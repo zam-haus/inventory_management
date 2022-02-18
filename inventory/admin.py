@@ -103,15 +103,33 @@ class LocationAdmin(admin.ModelAdmin):
     
     @method_decorator(staff_member_required)
     def send_to_printer_view(self, request, object_id=None):
-        models.Location.objects.get(pk=object_id).send_to_printer()
-        messages.add_message(request, messages.INFO, "Sent label to printer.")
-        return redirect(reverse('admin:%s_%s_change' % (self.model._meta.app_label, self.model._meta.model_name), args=[object_id]))
+        try:
+            models.Location.objects.get(pk=object_id).send_to_printer()
+            messages.add_message(request, messages.INFO, "Sent label to printer.")
+        except Exception as e:
+            messages.add_message(request, messages.ERROR, "Failed sending label to printer: {}".format(e))
+        return redirect(reverse(
+            'admin:%s_%s_change' % (self.model._meta.app_label, self.model._meta.model_name),
+            args=[object_id]))
 
     @admin.action(description='Print location labels')
     def send_to_printer_action(self, request, queryset):
+        sucesses, fails = 0, []
         for loc in queryset:
-            loc.send_to_printer()
-        messages.add_message(request, messages.INFO, "Sent {} label(s) to printer.".format(len(queryset)))
+            try:
+                loc.send_to_printer()
+                successes += 1
+            except Exception as e:
+                fails.append(str(e))
+        if successes:
+            messages.add_message(request, messages.INFO, "Sent {} label(s) to printer.".format(successes))
+        if fails:
+            for emsg in set(fails):
+                messages.add_message(
+                    request,
+                    messages.ERROR,
+                    "Failed sending {} label(s) to printer: {}".format(fails.count(emsg), emsg))
+
             
 
 admin.site.register(models.Location, LocationAdmin)

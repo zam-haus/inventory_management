@@ -194,9 +194,13 @@ class LocationLabelTemplate(models.Model):
     def send_to_printer(self, location=None):
         c = mqttc.Client(**settings.MQTT_CLIENT_KWARGS)
         c.tls_set()
-        c.username_pw_set(**settings.MQTT_PASSWORD_AUTH)
+        if settings.MQTT_PASSWORD_AUTH:
+            c.username_pw_set(**settings.MQTT_PASSWORD_AUTH)
         c.connect(**settings.MQTT_SERVER_KWARGS)
-        c.publish('im-label-print-queue/', payload=self.generate_label_zpl(location))
+        msg = c.publish(settings.MQTT_PRINTER_TOPIC, payload=self.generate_label_zpl(location))
+        # Messages to forbidden topics wil be silently ignored! Nothing we can do about it.
+        msg.wait_for_publish()
+        c.disconnect()
 
     def __str__(self):
         return self.name

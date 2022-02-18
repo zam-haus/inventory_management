@@ -8,19 +8,11 @@
 
 {% block content %}
 <table>
-    <tr>
-        <th>
-            <a href="{{ request.path }}{{ sort_helper.get_sort_query_by_name }}">Name</a>
-            <a href="{{ request.path }}{{ sort_helper.get_sort_query_by_name_asc }}">asc name</a>
-            <a href="{{ request.path }}{{ sort_helper.get_sort_query_by_name_desc }}">desc name</a>
-            {% if sort_helper.is_sorted_by_name %} ordered by name {{ sort_helper.is_sorted_by_name }} {% endif %}
-        </th>
-        <th>
-            <a href="{{ request.path }}{{ sort_helper.get_order_query_by_sku }}">SKU</a>
-        </th>
-    </tr>
     {% for object in object_list %}
         <tr>
+            <td>
+                {% for image in object.itemimage_set.all() %}
+            </td>
             <td>{{ object.name }}</td>
             <td>{{ object.sku }}</td>
         </tr>

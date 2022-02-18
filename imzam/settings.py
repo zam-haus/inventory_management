@@ -34,8 +34,8 @@ MEDIA_URL = 'media/'
 # "".join(random.choices([c for c in string.printable if c not in "\t\n\r\x0b\x0c], k=64))
 SECRET_KEY = 'django-insecure-0_3q=4-bhhfm%j7x9a$5czaxb&tkg#vs4n_@3*u4k-+rlt-1p!'
 
-# For developement, set to True in local_settings.py
-DEBUG = False
+# For deployment, set to False in local_settings.py
+DEBUG = True
 
 DEFAULT_DOMAIN = 'https://im.zam.haus'
 ALLOWED_HOSTS = []  # defined in local_settings.py
@@ -144,12 +144,16 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # https://www.eclipse.org/paho/index.php?page=clients/python/docs/index.php#connect-reconnect-disconnect
 MQTT_CLIENT_KWARGS = dict(client_id="imzam", transport="websockets")
 MQTT_SERVER_KWARGS = dict(host="mqtt.zam.haus", port=443, keepalive=10)
-MQTT_PASSWORD_AUTH = dict() # define in local_settings.py
+MQTT_PASSWORD_AUTH = {} # use local_settings.py to overwrite with actual credentials
+MQTT_PRINTER_TOPIC = 'im-label-print-queue/'  # this topic is write-restricted on mqtt.zam.haus,
+                                              # configure MQTT_PASSWORD_AUTH or 
+                                              # use 'public/#' for unprivileged-testing
 
-
-# Overwrite settings with local_settings.py configuration
+# Overwrite default settings with local_settings.py configuration
 try:
     from .local_settings import *
 except ImportError:
-    print("WARNING: no local_settings.py found. Use it for local and private settings.")
+    print("WARNING: no local_settings.py found.\n"
+          "         Current SETTINGS ARE INSECURE and\n"
+          "         NOT meant FOR DEPLOYMENT!")
     pass
