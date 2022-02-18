@@ -1,0 +1,24 @@
+{% extends 'inventory/base.html' %}
+
+{% load django_bootstrap5 %}
+
+{% block title %}
+    Item
+{% endblock %}
+
+{% block content %}
+
+<form method="post" class="form-row" enctype="multipart/form-data">
+    {% csrf_token %}
+
+    {% load crispy_forms_tags %}
+    {% crispy form %}
+
+    {% for formset in inlines %}
+    {% crispy formset %}
+    {% endfor %}
+
+    <input type="submit" value="Save" class="btn btn-primary mb-3">
+</form>
+
+{% endblock %}

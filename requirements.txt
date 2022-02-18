@@ -1,0 +1,8 @@
+django
+django-Pillow
+django-crispy-forms
+crispy-bootstrap5
+django-bootstrap5
+django-extra-views
+django-computedfields
+paho-mqtt

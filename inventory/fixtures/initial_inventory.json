@@ -1,0 +1,681 @@
+[
+{
+    "model": "inventory.barcodetype",
+    "pk": 1,
+    "fields": {
+        "name": "ean_13"
+    }
+},
+{
+    "model": "inventory.measurementunit",
+    "pk": 1,
+    "fields": {
+        "name": "Pieces",
+        "short": "pcs.",
+        "description": ""
+    }
+},
+{
+    "model": "inventory.measurementunit",
+    "pk": 2,
+    "fields": {
+        "name": "Meter",
+        "short": "m",
+        "description": ""
+    }
+},
+{
+    "model": "inventory.measurementunit",
+    "pk": 3,
+    "fields": {
+        "name": "Kilogram",
+        "short": "kg",
+        "description": ""
+    }
+},
+{
+    "model": "inventory.measurementunit",
+    "pk": 4,
+    "fields": {
+        "name": "Liter",
+        "short": "l",
+        "description": ""
+    }
+},
+{
+    "model": "inventory.locationtype",
+    "pk": 1,
+    "fields": {
+        "name": "Etage+Haus",
+        "unique": true,
+        "auto_name_prefix": "",
+        "auto_short_name_prefix": "",
+        "auto_short_name_padding_length": 0,
+        "auto_sequence": null,
+        "default_label_template": 4
+    }
+},
+{
+    "model": "inventory.locationtype",
+    "pk": 2,
+    "fields": {
+        "name": "Schrank",
+        "unique": true,
+        "auto_name_prefix": "Schrank",
+        "auto_short_name_prefix": "S",
+        "auto_short_name_padding_length": 3,
+        "auto_sequence": "0123456789",
+        "default_label_template": 4
+    }
+},
+{
+    "model": "inventory.locationtype",
+    "pk": 3,
+    "fields": {
+        "name": "Regal",
+        "unique": true,
+        "auto_name_prefix": "Regal",
+        "auto_short_name_prefix": "R",
+        "auto_short_name_padding_length": 3,
+        "auto_sequence": "0123456789",
+        "default_label_template": 4
+    }
+},
+{
+    "model": "inventory.locationtype",
+    "pk": 4,
+    "fields": {
+        "name": "Palette",
+        "unique": true,
+        "auto_name_prefix": "Palette",
+        "auto_short_name_prefix": "P",
+        "auto_short_name_padding_length": 4,
+        "auto_sequence": "0123456789abcdefghijklmnopqrstuvwxyz",
+        "default_label_template": 3
+    }
+},
+{
+    "model": "inventory.locationtype",
+    "pk": 5,
+    "fields": {
+        "name": "Kiste",
+        "unique": true,
+        "auto_name_prefix": "Kiste",
+        "auto_short_name_prefix": "K",
+        "auto_short_name_padding_length": 4,
+        "auto_sequence": "0123456789abcdef",
+        "default_label_template": 3
+    }
+},
+{
+    "model": "inventory.locationtype",
+    "pk": 6,
+    "fields": {
+        "name": "Raum/Bereich",
+        "unique": false,
+        "auto_name_prefix": "",
+        "auto_short_name_prefix": "",
+        "auto_short_name_padding_length": 0,
+        "auto_sequence": null,
+        "default_label_template": 4
+    }
+},
+{
+    "model": "inventory.locationtype",
+    "pk": 7,
+    "fields": {
+        "name": "Fach/Schub",
+        "unique": false,
+        "auto_name_prefix": "Fach",
+        "auto_short_name_prefix": "",
+        "auto_short_name_padding_length": 0,
+        "auto_sequence": "abcdefghijklmnopqrstuvwxyz",
+        "default_label_template": 4
+    }
+},
+{
+    "model": "inventory.locationlabeltemplate",
+    "pk": 1,
+    "fields": {
+        "name": "60x30 static up",
+        "zpl_template": "^XA\r\n^CI28\r\n^PW480\r\n^LT5\r\n^FX QR-Code\r\n^FO10,0\r\n^BQN,2,6,Q,5\r\n^FDQA,$url^FS\r\n\r\n^FX Direction indicator UP (center 350)\r\n^FO336,5^GB14,7,7^FS\r\n^FO329,12^GB28,7,7^FS\r\n^FO322,19^GB42,7,7^FS\r\n^FO315,26^GB56,7,7^FS\r\n^FO308,33^GB70,7,7^FS\r\n^FO301,40^GB84,7,7^FS\r\n^FO294,47^GB98,7,7^FS\r\n^FO287,54^GB112,7,7^FS\r\n\r\n^FX white-on-black short identifier\r\n^LRY\r\n^FO220,65\r\n^GB260,90,90^FS\r\n^FO220,86\r\n^FB260,1,0,C,0\r\n^AV\r\n^FD$unique_identifier\\&^FS\r\n^LRN\r\n\r\n^FX descriptive identifier\r\n^FO5,220\r\n^FB470,1,0,C,0\r\n^A0,20,17\r\n^FD$descriptive_identifier\\&^FS\r\n\r\n^XZ"
+    }
+},
+{
+    "model": "inventory.locationlabeltemplate",
+    "pk": 2,
+    "fields": {
+        "name": "60x30 static down",
+        "zpl_template": "^XA\r\n^CI28\r\n^LT5\r\n^PW480\r\n^FX QR-Code\r\n^FO10,0\r\n^BQN,2,6,Q,5\r\n^FDQA,$url^FS\r\n\r\n^FX Direction indicator DOWN (center 350)\r\n^FO336,208^GB14,7,7^FS\r\n^FO329,201^GB28,7,7^FS\r\n^FO322,194^GB42,7,7^FS\r\n^FO315,187^GB56,7,7^FS\r\n^FO308,180^GB70,7,7^FS\r\n^FO301,173^GB84,7,7^FS\r\n^FO294,166^GB98,7,7^FS\r\n^FO287,159^GB112,7,7^FS\r\n\r\n^FX white-on-black short identifier\r\n^LRY\r\n^FO220,65\r\n^GB260,90,90^FS\r\n^FO220,86\r\n^FB260,1,0,C,0\r\n^AV\r\n^FD$unique_identifier\\&^FS\r\n^LRN\r\n\r\n^FX descriptive identifier\r\n^FO5,220\r\n^FB470,1,0,C,0\r\n^A0,20,17\r\n^FD$descriptive_identifier\\&^FS\r\n\r\n^XZ"
+    }
+},
+{
+    "model": "inventory.locationlabeltemplate",
+    "pk": 3,
+    "fields": {
+        "name": "60x30 mobile",
+        "zpl_template": "^XA\r\n^CI28\r\n^PW480\r\n^FX QR-Code\r\n^FO10,0\r\n^BQN,2,6,Q,5\r\n^FDQA,$url^FS\r\n\r\n^FX white-on-black short identifier\r\n^LRY\r\n^FO220,10\r\n^GB260,90,90^FS\r\n^FO220,30\r\n^FB260,1,0,C,0\r\n^AV\r\n^FD$unique_identifier\\&^FS\r\n^LRN\r\n\r\n^FX eigentums text\r\n^FO5,220\r\n^FB470,1,0,C,0\r\n^A0,18\r\n^FDEigentum Betreiberverein Makerspace+ für Erlangen e.V.\\&^FS\r\n\r\n^FX ZAM Logo\r\n^FO225,110\r\n^GFA,5760,2880,30,000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000FFFFFFFFFFFFFFFFFC00000FFF000FFFF8000001FFE000003FFC00000001FFFFFFFFFFFFFFFFFC00003FFFE00FFFF8000007FFF80001FFFF00000000FFFFFFFFFFFFFFFFFC0000FFFFF00FFFF800001FFFFE0003FFFFC0000001FFFFFFFFFFFFFFFFFC0001FFFFF80FFFF800003FFFFF0007FFFFE0000000FFFFFFFFFFFFFFFFFC0003FFFFFC0FFFF800007FFFFF800FFFFFF0000001FFFFFFFFFFFFFFFFFC0007FFFFFE0FFFF80000FFFFFFC01FFFFFF8000000FFFFFFFFFFFFFFFFFC000FFFFFFF0FFFF80001FFFFFFE03FFFFFFC000001FFFFFFFFFFFFFFFFFC001FFFFFFF8FFFF80003FFFFFFF07FFFFFFE000000FFFFFFFFFFFFFFFFFC001FFFFFFFCFFFF80007FFFFFFF0FFFFFFFE000001FFFFFFFFFFFFFFFFFC003FFFFFFFCFFFF80007FFFFFFF8FFFFFFFF000000FFFFFFFFFFFFFFFFFC003FFFFFFFEFFFF80007FFFFFFF9FFFFFFFF000001FFFFFFFFFFFFFFFFFC007FFFFFFFEFFFF8000FFFFFFFFDFFFFFFFF800000FFFFFFFFFFFFFFFFFC007FFFFFFFEFFFF8000FFFFFFFFDFFFFFFFF800001FFFFFFFFFFFFFFFFFC007FFFFFFFFFFFF8001FFFFFFFFDFFFFFFFF800000FFFFFFFFFFFFFFFFFC007FFFFFFFFFFFF8001FFFFFFFFFFFFFFFFF800001FFFFFFFFFFFFFFFFFC00FFFFFFFFFFFFF8001FFFFFFFFFFFFFFFFFC00000FFFFFFFFFFFFFFFFFC00FFFFFFFFFFFFF8001FFFFFFFFFFFFFFFFF8000000000000000000000C000FFFFC0000FFFF8001FFFFFFFFFFFFFFFFFC000000000000000000007E000FFFFC0000FFFF8001FFFFFFFFFFFFFFFFF800000000000000000007FE000FFFFC0000FFFF8001FFFFFFFFFFFFFFFFFC000000000000000000FFFE000FFFFC0000FFFF8001FFFFFFFFFFFFFFFFF800000000000000000FFFFF000FFFFC0000FFFF8001FFFFFFFFFFFFFFFFFC00000000000000007FFFFF000FFFFC0000FFFF8001FFFFFFFFFFFFFFFFF80000000000000007FFFFFF000FFFFC0000FFFF8001FFFFFFFFFFFFFFFFFC000000000000003FFFFFFF000FFFFC0000FFFF8001FFFFFFFFFFFFFFFFF800000000000003FFFFFFFF800FFFFC0000FFFF8001FFFFFFFFFFFFFFFFFC0000000000001FFFFFFFFF800FFFFC0000FFFF8001FFFFFFFFFFFFFFFFF8000000000007FFFFFFFFFF800FFFFC0000FFFF8001FFFFFFFFFFFFFFFFFC00000000003FFFFFFFFFFFC00FFFFC0000FFFF8001FFFFFFFFFFFFFFFFF80000000003FFFFFFFFFFFFC00FFFFC0000FFFF8001FFFFFFFFFFFFFFFFFC000000001FFFFFFFFFFFFFC00FFFFC0000FFFF8001FFFFFFFFFFFFFFFFF800000001FFFFFFFFFFFFFFC00FFFFC0000FFFF8001FFFFFFFFFFFFFFFFFC0000000FFFFFFFFFFFFFFFC00FFFFC0000FFFF8001FFFFFFFFFFFFFFFFF8000000FFFFFFFFFFFFFFFFC00FFFFC0000FFFF8001FFFFFFFFFFFFFFFFFC00001FFFFFFFFFFFFFFFFF000FFFFC0000FFFF8001FFFFFFFFFFFFFFFFF800001FFFFFFFFFFFFFFFF0000FFFFC0000FFFF8001FFFFFFFFFFFFFFFFFC00001FFFFFFFFFFFFFFF80000FFFFC0000FFFF8001FFFFFFFFFFFFFFFFF800001FFFFFFFFFFFFFF800000FFFFC0000FFFF8001FFFFFFFFFFFFEFFFFC00001FFFFFFFFFFFFFC000000FFFFC0000FFFF8001FFFFFFFFFFFFEFFFF800000FFFFFFFFFFFFC0000000FFFFC0000FFFF8001FFFFBFFFFFFFEFFFFC00000FFFFFFFFFFFE00000000FFFFC0000FFFF8001FFFFBFFFFFFFEFFFF800000FFFFFFFFFF8000000000FFFFC0000FFFF8001FFFFBFFFFFFFCFFFFC000007FFFFFFFFC0000000000FFFFC0000FFFF8001FFFF9FFFFFFFCFFFF8000007FFFFFFFC00000000000FFFFC0000FFFF8001FFFF8FFFFFFFCFFFFC000007FFFFFFE000000000000FFFFC0000FFFF8001FFFF8FFFFFFF8FFFF8000007FFFFFE0000000000000FFFFC0000FFFF8001FFFF8FFFFFFF0FFFFC000003FFFFF00000000000000FFFFC0000FFFF8001FFFF87FFFFFE0FFFF8000003FFFF000000000000000FFFFC0000FFFF8001FFFF83FFFFFC0FFFFC000003FFE0000000000000000FFFFC0000FFFF8001FFFF80FFFFF00FFFF8000001FF00000000000000000FFFFC0000FFFF8001FFFF803FFFE00FFFFC000001F000000000000000000FFFFC0000FFFF8001FFFF800FFF800FFFF80000018000000000000000000FFFFC0000FFFF8001FFFF8003FC000FFFFC00000FFFFFFFFFFFFFFFFFC00FFFFFFFFFFFFF8001FFFF800000000FFFF800001FFFFFFFFFFFFFFFFFC007FFFFFFFFFFFF8001FFFF800000000FFFFC00000FFFFFFFFFFFFFFFFFC007FFFFFFFFFFFF8001FFFF800000000FFFF800001FFFFFFFFFFFFFFFFFC007FFFFFFFEFFFF8001FFFF800000000FFFFC00000FFFFFFFFFFFFFFFFFC007FFFFFFFEFFFF8001FFFF800000000FFFF800001FFFFFFFFFFFFFFFFFC007FFFFFFFEFFFF8001FFFF800000000FFFFC00000FFFFFFFFFFFFFFFFFC003FFFFFFFEFFFF8001FFFF800000000FFFF800001FFFFFFFFFFFFFFFFFC003FFFFFFFCFFFF8001FFFF800000000FFFFC00000FFFFFFFFFFFFFFFFFC001FFFFFFFCFFFF8001FFFF800000000FFFF800001FFFFFFFFFFFFFFFFFC000FFFFFFF8FFFF8001FFFF800000000FFFFC00000FFFFFFFFFFFFFFFFFC000FFFFFFF0FFFF8001FFFF800000000FFFF800001FFFFFFFFFFFFFFFFFC0007FFFFFE0FFFF8001FFFF800000000FFFFC00000FFFFFFFFFFFFFFFFFC0003FFFFFC0FFFF8001FFFF800000000FFFF800001FFFFFFFFFFFFFFFFFC0001FFFFF80FFFF8001FFFF800000000FFFFC00000FFFFFFFFFFFFFFFFFC0000FFFFF00FFFF8001FFFF800000000FFFF800001FFFFFFFFFFFFFFFFFC00003FFFC00FFFF8001FFFF800000000FFFFC00000FFFFFFFFFFFFFFFFFC000007FC000FFFF8001FFFF800000000FFFF800000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000\r\n^FS\r\n\r\n^XZ"
+    }
+},
+{
+    "model": "inventory.locationlabeltemplate",
+    "pk": 4,
+    "fields": {
+        "name": "60x30 static",
+        "zpl_template": "^XA\r\n^LT5\r\n^PW480\r\n^CI28\r\n^FX QR-Code\r\n^FO10,0\r\n^BQN,2,6,Q,5\r\n^FDQA,$url^FS\r\n\r\n^FX white-on-black short identifier\r\n^LRY\r\n^FO220,65\r\n^GB260,90,90^FS\r\n^FO220,86\r\n^FB260,1,0,C,0\r\n^AV\r\n^FD$unique_identifier\\&^FS\r\n^LRN\r\n\r\n^FX descriptive identifier\r\n^FO5,220\r\n^FB470,1,0,C,0\r\n^A0,20,17\r\n^FD$descriptive_identifier\\&^FS\r\n\r\n^XZ"
+    }
+},
+{
+    "model": "inventory.location",
+    "pk": 1,
+    "fields": {
+        "type": 1,
+        "name": "UG Nord",
+        "short_name": "0N",
+        "description": "Straßenebene Nord",
+        "label_template": 4,
+        "parent_location": null,
+        "unique_identifier": "0N",
+        "locatable_identifier": "0N",
+        "descriptive_identifier": "UG Nord [0N]"
+    }
+},
+{
+    "model": "inventory.location",
+    "pk": 2,
+    "fields": {
+        "type": 1,
+        "name": "EG Nord",
+        "short_name": "1N",
+        "description": "Passerellenebene Nordhaus",
+        "label_template": 4,
+        "parent_location": null,
+        "unique_identifier": "1N",
+        "locatable_identifier": "1N",
+        "descriptive_identifier": "EG Nord [1N]"
+    }
+},
+{
+    "model": "inventory.location",
+    "pk": 3,
+    "fields": {
+        "type": 1,
+        "name": "1. OG Nord",
+        "short_name": "2N",
+        "description": "Schraubenabteilung im Nordhaus",
+        "label_template": 4,
+        "parent_location": null,
+        "unique_identifier": "2N",
+        "locatable_identifier": "2N",
+        "descriptive_identifier": "1. OG Nord [2N]"
+    }
+},
+{
+    "model": "inventory.location",
+    "pk": 4,
+    "fields": {
+        "type": 1,
+        "name": "DG Nord",
+        "short_name": "3N",
+        "description": "Büroetage Nordhaus",
+        "label_template": 4,
+        "parent_location": null,
+        "unique_identifier": "3N",
+        "locatable_identifier": "3N",
+        "descriptive_identifier": "DG Nord [3N]"
+    }
+},
+{
+    "model": "inventory.location",
+    "pk": 5,
+    "fields": {
+        "type": 1,
+        "name": "Keller West",
+        "short_name": "0W",
+        "description": "",
+        "label_template": 4,
+        "parent_location": null,
+        "unique_identifier": "0W",
+        "locatable_identifier": "0W",
+        "descriptive_identifier": "Keller West [0W]"
+    }
+},
+{
+    "model": "inventory.location",
+    "pk": 6,
+    "fields": {
+        "type": 1,
+        "name": "Anlieferung West",
+        "short_name": "1W",
+        "description": "Lager/Anlieferung Westhaus",
+        "label_template": 4,
+        "parent_location": null,
+        "unique_identifier": "1W",
+        "locatable_identifier": "1W",
+        "descriptive_identifier": "Anlieferung West [1W]"
+    }
+},
+{
+    "model": "inventory.location",
+    "pk": 7,
+    "fields": {
+        "type": 1,
+        "name": "EG West",
+        "short_name": "2W",
+        "description": "Passerellenebene Westhaus",
+        "label_template": 4,
+        "parent_location": null,
+        "unique_identifier": "2W",
+        "locatable_identifier": "2W",
+        "descriptive_identifier": "EG West [2W]"
+    }
+},
+{
+    "model": "inventory.location",
+    "pk": 8,
+    "fields": {
+        "type": 1,
+        "name": "DG West",
+        "short_name": "3W",
+        "description": "",
+        "label_template": 4,
+        "parent_location": null,
+        "unique_identifier": "3W",
+        "locatable_identifier": "3W",
+        "descriptive_identifier": "DG West [3W]"
+    }
+},
+{
+    "model": "inventory.location",
+    "pk": 9,
+    "fields": {
+        "type": 1,
+        "name": "Keller Süd",
+        "short_name": "0S",
+        "description": "",
+        "label_template": 4,
+        "parent_location": null,
+        "unique_identifier": "0S",
+        "locatable_identifier": "0S",
+        "descriptive_identifier": "Keller Süd [0S]"
+    }
+},
+{
+    "model": "inventory.location",
+    "pk": 10,
+    "fields": {
+        "type": 1,
+        "name": "EG Süd",
+        "short_name": "1S",
+        "description": "",
+        "label_template": 4,
+        "parent_location": null,
+        "unique_identifier": "1S",
+        "locatable_identifier": "1S",
+        "descriptive_identifier": "EG Süd [1S]"
+    }
+},
+{
+    "model": "inventory.location",
+    "pk": 11,
+    "fields": {
+        "type": 1,
+        "name": "1. OG Süd",
+        "short_name": "2S",
+        "description": "",
+        "label_template": 4,
+        "parent_location": null,
+        "unique_identifier": "2S",
+        "locatable_identifier": "2S",
+        "descriptive_identifier": "1. OG Süd [2S]"
+    }
+},
+{
+    "model": "inventory.location",
+    "pk": 12,
+    "fields": {
+        "type": 1,
+        "name": "2. OG Süd",
+        "short_name": "3S",
+        "description": "Wohnungs-Ebene im Südhaus",
+        "label_template": 4,
+        "parent_location": null,
+        "unique_identifier": "3S",
+        "locatable_identifier": "3S",
+        "descriptive_identifier": "2. OG Süd [3S]"
+    }
+},
+{
+    "model": "inventory.location",
+    "pk": 13,
+    "fields": {
+        "type": 1,
+        "name": "DG Süd",
+        "short_name": "4S",
+        "description": "Dachstühle zur Hauptstraße im Südhaus",
+        "label_template": 4,
+        "parent_location": null,
+        "unique_identifier": "4S",
+        "locatable_identifier": "4S",
+        "descriptive_identifier": "DG Süd [4S]"
+    }
+},
+{
+    "model": "inventory.location",
+    "pk": 14,
+    "fields": {
+        "type": 1,
+        "name": "1. OG Turm",
+        "short_name": "2T",
+        "description": "aktuell Lagerregallager",
+        "label_template": 4,
+        "parent_location": null,
+        "unique_identifier": "2T",
+        "locatable_identifier": "2T",
+        "descriptive_identifier": "1. OG Turm [2T]"
+    }
+},
+{
+    "model": "inventory.location",
+    "pk": 15,
+    "fields": {
+        "type": 1,
+        "name": "2. OG Turm",
+        "short_name": "3T",
+        "description": "",
+        "label_template": 4,
+        "parent_location": null,
+        "unique_identifier": "3T",
+        "locatable_identifier": "3T",
+        "descriptive_identifier": "2. OG Turm [3T]"
+    }
+},
+{
+    "model": "inventory.location",
+    "pk": 16,
+    "fields": {
+        "type": 1,
+        "name": "DG Turm",
+        "short_name": "4T",
+        "description": "",
+        "label_template": 4,
+        "parent_location": null,
+        "unique_identifier": "4T",
+        "locatable_identifier": "4T",
+        "descriptive_identifier": "DG Turm [4T]"
+    }
+},
+{
+    "model": "inventory.location",
+    "pk": 17,
+    "fields": {
+        "type": 1,
+        "name": "Hof",
+        "short_name": "0H",
+        "description": "",
+        "label_template": 4,
+        "parent_location": null,
+        "unique_identifier": "0H",
+        "locatable_identifier": "0H",
+        "descriptive_identifier": "Hof [0H]"
+    }
+},
+{
+    "model": "inventory.location",
+    "pk": 18,
+    "fields": {
+        "type": 6,
+        "name": "IT- und Warenlager",
+        "short_name": "IWL",
+        "description": "",
+        "label_template": 4,
+        "parent_location": 11,
+        "unique_identifier": "IWL.2S",
+        "locatable_identifier": "IWL.2S",
+        "descriptive_identifier": "IT- und Warenlager [IWL] 1. OG Süd [2S]"
+    }
+},
+{
+    "model": "inventory.location",
+    "pk": 19,
+    "fields": {
+        "type": 6,
+        "name": "Verkaufsregallager",
+        "short_name": "VRL",
+        "description": "",
+        "label_template": 4,
+        "parent_location": 11,
+        "unique_identifier": "VRL.2S",
+        "locatable_identifier": "VRL.2S",
+        "descriptive_identifier": "Verkaufsregallager [VRL] 1. OG Süd [2S]"
+    }
+},
+{
+    "model": "inventory.location",
+    "pk": 20,
+    "fields": {
+        "type": 6,
+        "name": "Lampenlager",
+        "short_name": "LL",
+        "description": "",
+        "label_template": 4,
+        "parent_location": 11,
+        "unique_identifier": "LL.2S",
+        "locatable_identifier": "LL.2S",
+        "descriptive_identifier": "Lampenlager [LL] 1. OG Süd [2S]"
+    }
+},
+{
+    "model": "inventory.location",
+    "pk": 21,
+    "fields": {
+        "type": 6,
+        "name": "Treppenhaus",
+        "short_name": "T",
+        "description": "",
+        "label_template": 4,
+        "parent_location": 2,
+        "unique_identifier": "T.1N",
+        "locatable_identifier": "T.1N",
+        "descriptive_identifier": "Treppenhaus [T] EG Nord [1N]"
+    }
+},
+{
+    "model": "inventory.location",
+    "pk": 22,
+    "fields": {
+        "type": 6,
+        "name": "Treppenhaus",
+        "short_name": "T",
+        "description": "",
+        "label_template": 4,
+        "parent_location": 4,
+        "unique_identifier": "T.3N",
+        "locatable_identifier": "T.3N",
+        "descriptive_identifier": "Treppenhaus [T] DG Nord [3N]"
+    }
+},
+{
+    "model": "inventory.location",
+    "pk": 23,
+    "fields": {
+        "type": 6,
+        "name": "Serverraum",
+        "short_name": "1",
+        "description": "",
+        "label_template": 4,
+        "parent_location": 4,
+        "unique_identifier": "1.3N",
+        "locatable_identifier": "1.3N",
+        "descriptive_identifier": "Serverraum [1] DG Nord [3N]"
+    }
+},
+{
+    "model": "inventory.location",
+    "pk": 24,
+    "fields": {
+        "type": 6,
+        "name": "Toiletten 1",
+        "short_name": "WC1",
+        "description": "",
+        "label_template": 4,
+        "parent_location": 4,
+        "unique_identifier": "WC1.3N",
+        "locatable_identifier": "WC1.3N",
+        "descriptive_identifier": "Toiletten 1 [WC1] DG Nord [3N]"
+    }
+},
+{
+    "model": "inventory.location",
+    "pk": 25,
+    "fields": {
+        "type": 6,
+        "name": "Toiletten 2",
+        "short_name": "WC2",
+        "description": "",
+        "label_template": 4,
+        "parent_location": 4,
+        "unique_identifier": "WC2.3N",
+        "locatable_identifier": "WC2.3N",
+        "descriptive_identifier": "Toiletten 2 [WC2] DG Nord [3N]"
+    }
+},
+{
+    "model": "inventory.location",
+    "pk": 26,
+    "fields": {
+        "type": 6,
+        "name": "Lobby",
+        "short_name": "0",
+        "description": "",
+        "label_template": 4,
+        "parent_location": 4,
+        "unique_identifier": "0.3N",
+        "locatable_identifier": "0.3N",
+        "descriptive_identifier": "Lobby [0] DG Nord [3N]"
+    }
+},
+{
+    "model": "inventory.location",
+    "pk": 27,
+    "fields": {
+        "type": 6,
+        "name": "Aufzugsraum",
+        "short_name": "2",
+        "description": "",
+        "label_template": 4,
+        "parent_location": 4,
+        "unique_identifier": "2.3N",
+        "locatable_identifier": "2.3N",
+        "descriptive_identifier": "Aufzugsraum [2] DG Nord [3N]"
+    }
+},
+{
+    "model": "inventory.location",
+    "pk": 28,
+    "fields": {
+        "type": 6,
+        "name": "Büro SO",
+        "short_name": "3",
+        "description": "ehm. Chefbüro",
+        "label_template": 4,
+        "parent_location": 4,
+        "unique_identifier": "3.3N",
+        "locatable_identifier": "3.3N",
+        "descriptive_identifier": "Büro SO [3] DG Nord [3N]"
+    }
+},
+{
+    "model": "inventory.location",
+    "pk": 29,
+    "fields": {
+        "type": 6,
+        "name": "Lagerbüro",
+        "short_name": "4",
+        "description": "",
+        "label_template": 4,
+        "parent_location": 4,
+        "unique_identifier": "4.3N",
+        "locatable_identifier": "4.3N",
+        "descriptive_identifier": "Lagerbüro [4] DG Nord [3N]"
+    }
+},
+{
+    "model": "inventory.location",
+    "pk": 30,
+    "fields": {
+        "type": 6,
+        "name": "Büro SW",
+        "short_name": "5",
+        "description": "",
+        "label_template": 4,
+        "parent_location": 4,
+        "unique_identifier": "5.3N",
+        "locatable_identifier": "5.3N",
+        "descriptive_identifier": "Büro SW [5] DG Nord [3N]"
+    }
+},
+{
+    "model": "inventory.location",
+    "pk": 31,
+    "fields": {
+        "type": 6,
+        "name": "Büro NW",
+        "short_name": "6",
+        "description": "",
+        "label_template": 4,
+        "parent_location": 4,
+        "unique_identifier": "6.3N",
+        "locatable_identifier": "6.3N",
+        "descriptive_identifier": "Büro NW [6] DG Nord [3N]"
+    }
+},
+{
+    "model": "inventory.location",
+    "pk": 32,
+    "fields": {
+        "type": 6,
+        "name": "Büro",
+        "short_name": "1",
+        "description": "",
+        "label_template": 4,
+        "parent_location": 2,
+        "unique_identifier": "1.1N",
+        "locatable_identifier": "1.1N",
+        "descriptive_identifier": "Büro [1] EG Nord [1N]"
+    }
+},
+{
+    "model": "inventory.location",
+    "pk": 33,
+    "fields": {
+        "type": 6,
+        "name": "Zwergenlager",
+        "short_name": "2",
+        "description": "Lager unter Verkaufsraum-Treppe",
+        "label_template": null,
+        "parent_location": 2,
+        "unique_identifier": "2.1N",
+        "locatable_identifier": "2.1N",
+        "descriptive_identifier": "Zwergenlager [2] EG Nord [1N]"
+    }
+},
+{
+    "model": "inventory.itemlocation",
+    "pk": 1,
+    "fields": {
+        "item": 7,
+        "location": 3,
+        "amount": "23.000"
+    }
+},
+{
+    "model": "inventory.itemlocation",
+    "pk": 2,
+    "fields": {
+        "item": 8,
+        "location": 5,
+        "amount": "5.000"
+    }
+}
+]
