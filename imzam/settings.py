@@ -29,6 +29,9 @@ MEDIA_URL = 'media/'
 # See https://docs.djangoproject.com/en/4.0/howto/deployment/checklist/
 
 # For production, overwrite in local_settings.py
+# generate using this code:
+# import random, string
+# "".join(random.choices([c for c in string.printable if c not in "\t\n\r\x0b\x0c], k=64))
 SECRET_KEY = 'django-insecure-0_3q=4-bhhfm%j7x9a$5czaxb&tkg#vs4n_@3*u4k-+rlt-1p!'
 
 # For developement, set to True in local_settings.py

@@ -33,6 +33,7 @@ To get started do the following:
     ALLOWED_HOSTS = ['127.0.0.1']
     MQTT_PASSWORD_AUTH = dict(username="im.zam.haus-django", password='...')
     ```
+    for secure deployment: make sure to disable `DEBUG` and set `SECRET_KEY` to a random string and consult https://docs.djangoproject.com/en/4.0/howto/deployment/checklist/.
 3. install all python requirements (asuming current python and pip installation is availible)
     `pip install -r requirements.txt`
 4. initialize database
