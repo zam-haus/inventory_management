@@ -34,21 +34,33 @@ class Item(models.Model):
             return self.name
         else:
             return f"Unnamed item {self.pk}"
+    
+    def get_absolute_url(self):
+        return reverse("view_item", kwargs={"pk": self.pk})
 
-class Category(models.Model):
+
+class Category(ComputedFieldsModel):
     class Meta:
         verbose_name_plural = 'categories'
+        ordering = ('full_name',)
 
     name = models.CharField('category name', max_length=512)
     description = models.TextField()
     # TODO implement signal for automatic adoption by parent_location
     # https://stackoverflow.com/questions/43857902/django-set-foreign-key-to-parent_location-value-on-delete
-    parent_location = models.ForeignKey(
+    parent_category = models.ForeignKey(
         'self',
-        verbose_name='parent_location cateogry',
+        verbose_name='parent_cateogry',
         on_delete=models.SET_NULL,
         null=True,
         blank=True)
+    
+    @computed(models.CharField(max_length=1024), depends=[
+        ('self', ['name']), ('parent_category', ['full_name'])])
+    def full_name(self):
+        if self.parent_category:
+            return self.parent_category.full_name + '>' + self.name
+        return self.name
 
     def __str__(self):
         return f"Category {self.name}"
@@ -207,6 +219,9 @@ class LocationLabelTemplate(models.Model):
 
 
 class Location(ComputedFieldsModel):
+    class Meta:
+        ordering = ('locatable_identifier',)
+
     type = models.ForeignKey(LocationType, on_delete=models.PROTECT)
 
     name = models.CharField(
@@ -265,20 +280,20 @@ class Location(ComputedFieldsModel):
     def unique_identifier(self):
         if self.type.unique:
             return self.short_name
-        return self.short_name + '.' + self.parent_location.unique_identifier
+        return self.parent_location.unique_identifier + '.' + self.short_name
 
     @computed(models.CharField(max_length=512, unique=True), depends=[
         ('self', ['short_name']), ('parent_location', ['locatable_identifier'])])
     def locatable_identifier(self):
         if self.parent_location:
-            return self.short_name + '.' + self.parent_location.locatable_identifier
+            return self.parent_location.locatable_identifier + '.' + self.short_name
         return self.short_name
     
     @computed(models.CharField(max_length=512), depends=[
         ('self', ['name', 'short_name']), ('parent_location', ['descriptive_identifier'])])
     def descriptive_identifier(self):
         if self.parent_location:
-            return self.name + f' [{self.short_name}] ' + self.parent_location.descriptive_identifier
+            return self.parent_location.descriptive_identifier + ' ' + self.name + f' [{self.short_name}]'
         return self.name + f' [{self.short_name}]'
     
     def label_image_tag(self):
@@ -290,16 +305,29 @@ class Location(ComputedFieldsModel):
             return None
     label_image_tag.short_description = 'Label'
 
+    def get_lablary_url(self):
+        if self.label_template:
+            return self.label_template.get_lablary_url(self)
+        elif self.type.default_label_template:
+            return self.type.default_label_template.get_lablary_url(self)
+        else:
+            return None
+
     def send_to_printer(self):
         if self.label_template:
             self.label_template.send_to_printer(self)
         elif self.type.default_label_template:
             self.type.default_label_template.send_to_printer(self)
+    
+    def get_absolute_url(self):
+        return reverse('view_location', kwargs={
+            'pk': self.pk, 'unique_identifier': self.unique_identifier})
 
 
 class ItemLocation(models.Model):
     class Meta:
         unique_together = ['item', 'location']
+        order_with_respect_to = 'location'
 
     item = models.ForeignKey('Item', on_delete=models.CASCADE)
     location = models.ForeignKey(

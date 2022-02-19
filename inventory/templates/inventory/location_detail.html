@@ -1,0 +1,45 @@
+{% extends 'inventory/base.html' %}
+
+{% load django_bootstrap5 %}
+
+{% block title %}
+    Location:  {{ object.unique_identifier }}
+{% endblock %}
+
+{% block content %}
+    <p>{{ object.name }} ({{ object.type.name }})</p>
+    <p>{{ object.descriptive_identifier }}</p>
+    <p>{{ object.description }}</p>
+    {% if object.parent_location %}
+        <p><a href="{{ object.parent_location.get_absolute_url }}">{{ object.parent_location }}</a></p>
+    {% else %}
+        <p>root location (has no parent)</p>
+    {% endif %}
+    
+    {% if object.get_lablary_url %}
+        <img width="100%" src="{{ object.get_lablary_url }}"/>
+    {% endif %}
+
+    <h2>Sub-Locations</h2>
+    <ul>
+    {% for subloc in object.children.all %}
+        <li><a href="{{ subloc.get_absolute_url }}">{{ subloc.unique_identifier }} {{ subloc.name }}</a>
+    {% empty %}
+        No sub-locations.
+    {% endfor %}
+    </ul>
+
+    <h2>Items</h2>
+    <table>
+    {% for il in object.itemlocation_set.all %}
+        <tr>
+            <td><a href="{{ il.item.get_absolute_url }}">{{ il.item.name }}</a></td>
+            <td>{{ il.amount }} {{ il.item.measurement_unit }}</td>
+            <td><a href="TODO">Take</a></td>
+            <td><a href="TODO">Move</a></td>
+    {% empty %}
+        No items located here.
+    {% endfor %}
+    </table>
+    Items at sub-locations are not included!
+{% endblock %}

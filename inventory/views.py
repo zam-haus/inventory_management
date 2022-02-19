@@ -1,22 +1,34 @@
 from django.db import transaction
 from django.http import HttpResponse
-from django.shortcuts import render
+from django.shortcuts import render, redirect
 from django.urls import reverse_lazy
 from django.views import View
-from django.views.generic import ListView
+from django.views.generic import ListView, DetailView
 from extra_views import CreateWithInlinesView, SearchableListMixin
 
 from .forms import CreateItemForm, ItemImageInline, ItemLocationInline
-from .models import Item, ItemLocation
+from . import models
 
 # Create your views here.
 
 def index(request):
     return HttpResponse("Welcome to the ZAM Inventory Managment.")
 
-def view_location(request, pk, unique_identifier):
+class DetailLocationView(DetailView):
+    model = models.Location
+    #(request, pk, unique_identifier):
     # Prio 1
-    return HttpResponse("Here should be an overview of items stored at this location.")
+    #return HttpResponse("Here should be an overview of items stored at this location.")
+
+    # TODO
+    # * inform user, if redirect with changed unique_identifier occurred
+
+    def get(self, request, *args, **kwargs):
+        self.object = self.get_object()
+        if self.object.unique_identifier != kwargs['unique_identifier']:
+            return redirect(self.object)
+        context = self.get_context_data(object=self.object)
+        return self.render_to_response(context)
 
 def create_item(request):
     # Prio 0
@@ -39,12 +51,12 @@ def update_location(request, pk, unique_identifier):
     # Prio 4
     pass
 
-def view_item(request, id):
+def view_item(request, pk):
     pass
 
 
 class CreateItemView(CreateWithInlinesView):
-    model = Item
+    model = models.Item
     inlines = [ItemImageInline, ItemLocationInline]
     template_name = 'inventory/item_formset.html'
     form_class = CreateItemForm
@@ -65,7 +77,7 @@ class SearchableItemListView(SearchableListMixin, ListView):
     # matching criteria can be defined along with fields
     search_fields = ["name", "category__name"]
     search_date_fields = []
-    model = Item
+    model = models.Item
     exact_query = False
     wrong_lookup = False
 

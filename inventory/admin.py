@@ -47,6 +47,7 @@ class LocationInline(admin.TabularInline):
 class LocationAdmin(admin.ModelAdmin):
     list_display = ('locatable_identifier', 'name', 'descriptive_identifier')
     fields = ('type', 'name', 'short_name', 'description', 'parent_location', 'label_template', 'label_image_tag')
+    ordering = ('locatable_identifier',)
     readonly_fields = ('label_image_tag',)
     actions = ['send_to_printer_action']
     inlines = [
