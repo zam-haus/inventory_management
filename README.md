@@ -22,9 +22,9 @@ Implemented with Django.
 ## Development Setup
 To get started do the following:
 1. checkout this git repo
-    `git@github.com:zam-haus/inventory_management.git`
+    `git clone git@github.com:zam-haus/inventory_management.git`
 2. create and edit local settings file
-    `imzam/local_settings.py`
+    `imzam/locale_settings.py`
     Here is a usable template:
     ```
     # SECURITY WARNING: keep this file secret! Do not commit to git!
@@ -46,4 +46,4 @@ To get started do the following:
     `python manage.py runserver`
 
 ## Label Printing
-Print jobs are passed to the printer via MQTT. A simple print server, listening to a (currently) hard-coded topic on mqtt.zam.haus and passing them onto a (currently) hard-coded printer is implemented by `preint_server.py`. A more flexible (and complex) solution is planned.
+Print jobs are passed to the printer via MQTT. A simple print server, listening to a (currently) hard-coded topic on mqtt.zam.haus and passing them onto a (currently) hard-coded printer is implemented by `print_server.py`. A more flexible (and complex) solution is planned.

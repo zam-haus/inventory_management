@@ -102,7 +102,6 @@ class ItemImageInline(InlineFormSetFactory):
                 layout.Div(
                     'description',
                     'image',
-                    # {% debug %}
                     css_class="input-group"),))
         return formset
 

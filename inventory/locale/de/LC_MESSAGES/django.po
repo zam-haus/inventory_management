@@ -1,0 +1,195 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2022-02-20 22:38+0100\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+#: inventory/models.py:25 inventory/models.py:98 inventory/models.py:452
+msgid "item"
+msgstr "Sache"
+
+#: inventory/models.py:35 inventory/models.py:62
+msgid "category"
+msgstr "Kategorie"
+
+#: inventory/models.py:39 inventory/models.py:135
+msgid "measurement unit"
+msgstr "Maßeinheit"
+
+#: inventory/models.py:42
+msgid "sale price per unit"
+msgstr "VK-Preis pro Einheit"
+
+#: inventory/models.py:54
+msgid "Unnamed item"
+msgstr "Unbenamte Sache"
+
+#: inventory/models.py:63
+msgid "categories"
+msgstr "Kategorien"
+
+#: inventory/models.py:66
+msgid "category name"
+msgstr "Kategoriename"
+
+#: inventory/models.py:72
+msgid "parent category"
+msgstr "Übergeordnete Kategorie"
+
+#: inventory/models.py:79
+msgid "full name"
+msgstr "Voller Name"
+
+#: inventory/models.py:96
+msgid "image"
+msgstr "Bild"
+
+#: inventory/models.py:97 inventory/models.py:103 inventory/models.py:138
+#: inventory/models.py:310
+msgid "description"
+msgstr "Beschreibung"
+
+#: inventory/models.py:102 inventory/models.py:104
+msgid "file"
+msgstr "Datei"
+
+#: inventory/models.py:112
+msgid "data"
+msgstr "Daten"
+
+#: inventory/models.py:115
+msgid "type"
+msgstr "Typ"
+
+#: inventory/models.py:117
+msgid "Item"
+msgstr "Sache"
+
+#: inventory/models.py:125
+msgid "barcode type"
+msgstr "Barcodetyp"
+
+#: inventory/models.py:126
+msgid "barcode types"
+msgstr "Barcodetypen"
+
+#: inventory/models.py:127 inventory/models.py:136 inventory/models.py:148
+#: inventory/models.py:228 inventory/models.py:298 inventory/models.py:314
+#: inventory/models.py:323
+msgid "name"
+msgstr "Name"
+
+#: inventory/models.py:137
+msgid "abbreviation"
+msgstr "Abkürzung"
+
+#: inventory/models.py:146
+msgid "location type"
+msgstr "Standortyp"
+
+#: inventory/models.py:147
+msgid "location types"
+msgstr "Standorttypen"
+
+#: inventory/models.py:150
+msgid "unique flag"
+msgstr "Eindeutig"
+
+#: inventory/models.py:152
+msgid "name prefix"
+msgstr "Namen-Präfix"
+
+#: inventory/models.py:153
+msgid "short name prefix"
+msgstr "Kurznamen-Präfix"
+
+#: inventory/models.py:154
+msgid "short name pedding"
+msgstr "Kurznahmen-Padding"
+
+#: inventory/models.py:156
+msgid "sequence"
+msgstr "Sequenz"
+
+#: inventory/models.py:174
+msgid "default label template"
+msgstr "Standard Etiketttemplate"
+
+#: inventory/models.py:227
+msgid "location label template"
+msgstr "Standortetikett Template"
+
+#: inventory/models.py:230
+msgid "ZPL template"
+msgstr "ZPL Template"
+
+#: inventory/models.py:231
+msgid ""
+"ZPL2 string, where $url, $unique_identifier, $locatable_identifier and "
+"$descriptive_identifier will be replaced."
+msgstr ""
+"ZPL2 code. $url, $unique_identifier, $locatable_identfier und "
+"$descriptive_identifier werden automatisch ersetzt."
+
+#: inventory/models.py:285 inventory/models.py:453
+msgid "location"
+msgstr "Standort"
+
+#: inventory/models.py:301
+msgid "short name"
+msgstr "Kurzname"
+
+#: inventory/models.py:327
+msgid "last complete inventory"
+msgstr "Letzte abgeschlossene Inventur"
+
+#: inventory/models.py:379
+msgid "unique identifier"
+msgstr "Eindeutige Kennung"
+
+#: inventory/models.py:388
+msgid "locatable identifier"
+msgstr "Verortete Kennung"
+
+#: inventory/models.py:400
+msgid "descriptive identifier"
+msgstr "Beschreibende Kennung"
+
+#: inventory/models.py:454
+msgid "amount"
+msgstr "Menge"
+
+#: inventory/templates/admin/inventory/location/change_form.html:6
+msgid "History"
+msgstr "Änderungshistorie"
+
+#: inventory/templates/admin/inventory/location/change_form.html:11
+msgid "View on site"
+msgstr "Auf Seite ansehen"
+
+#: inventory/templates/admin/inventory/location/change_list.html:8
+#, python-format
+msgid "Add %(name)s"
+msgstr "%(name)s hinzufügen"
+
+#: inventory/templates/admin/inventory/location_massadd.html:8
+msgid "Home"
+msgstr "Home"
+
+#: inventory/templates/admin/inventory/location_massadd.html:12
+msgid "Mass-Add locations"
+msgstr "Mehrere Orte erzeugen"
