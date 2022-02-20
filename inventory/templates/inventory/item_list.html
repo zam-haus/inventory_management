@@ -7,17 +7,53 @@
 {% endblock %}
 
 {% block content %}
-<table>
+<table class="table">
+    <thead><tr>
+        <th scope="col">Name</td>
+        <th scope="col">Category</td>
+        <th scope="col">Photos</td>
+        <th scope="col">Locations</td>
+    </tr></thead>
+    <tbody>
     {% for object in object_list %}
         <tr>
-            <td>
-                {% for image in object.itemimage_set.all() %}
-                    
-                {% endfor %}
-            </td>
-            <td>{{ object.name }}</td>
-            <td>{{ object.sku }}</td>
+        <th scope="row">
+            <a href="{{ object.get_absolute_url }}">
+            {{ object }}
+            </a>
+        </td>
+        <td>
+            {% if object.category %}
+            <a href="{{ object.category.get_absolute_url }}">
+            {{ object.category }}
+            {% endif %}
+            </a>
+        </td>
+        <td>
+            {% for image in object.itemimage_set.all %}{% spaceless %}
+                <a href="{{ image.image.url }}">
+                <img src="{{ image.image.url }}" class="img-thumbnail img-fluid" style="max-width: 100px;" alt="{{ image.description }}" data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-original-title="{{ image.description }}">
+                </a>
+            {% endspaceless %}{% endfor %}
+        </td>
+        <td>
+            {% for itemloc in object.itemlocation_set.all %}
+                <a href="{{ itemloc.location.get_absolute_url }}">
+                {{ itemloc }}
+                </a><br>
+            {% endfor %}
+        </a></td>
         </tr>
     {% endfor %}
+    </tbody>
 </table>
+{% endblock %}
+
+{% block bootstrap5_extra_script %}
+<script type="text/javascript">
+var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+  return new bootstrap.Tooltip(tooltipTriggerEl)
+})
+</script>
 {% endblock %}

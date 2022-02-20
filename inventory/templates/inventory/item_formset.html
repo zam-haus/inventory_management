@@ -15,6 +15,7 @@
     {% crispy form %}
 
     {% for formset in inlines %}
+    <legend>{{ formset.helper.form_title }}</legend>
     {% crispy formset %}
     {% endfor %}
 

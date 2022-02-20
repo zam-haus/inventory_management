@@ -427,5 +427,12 @@ class ItemLocation(models.Model):
     location = models.ForeignKey("Location", on_delete=models.CASCADE)
     amount = models.DecimalField(max_digits=16, decimal_places=3)
 
+    @property
+    def amount_without_zeros(self):
+        for i in range(4):
+            rounded_amount = round(self.amount, i)
+            if rounded_amount == self.amount:
+                return rounded_amount
+
     def __str__(self):
-        return f"{self.amount} {self.item.measurement_unit} @ {self.location}"
+        return f"{self.amount_without_zeros} {self.item.measurement_unit.short} @ {self.location.locatable_identifier}"

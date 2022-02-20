@@ -1,3 +1,4 @@
+from audioop import reverse
 from django.db import transaction
 from django.http import HttpResponse
 from django.shortcuts import render, redirect
@@ -5,9 +6,9 @@ from django.urls import reverse_lazy
 from django.views import View
 from django.views.generic import ListView, DetailView
 from django.core.exceptions import ObjectDoesNotExist
-from extra_views import CreateWithInlinesView, SearchableListMixin
+import extra_views
 
-from .forms import CreateItemForm, ItemImageInline, ItemLocationInline
+from . import forms
 from . import models
 
 # Create your views here.
@@ -39,7 +40,7 @@ def create_item(request):
     # get location_id from request
     context = {}
 
-    item_form = CreateItemForm()
+    item_form = forms.CreateItemForm()
     context["form"] = item_form
     return render(request, "inventory/create_item.html", context)
 
@@ -60,14 +61,14 @@ def update_location(request, pk, unique_identifier):
 
 
 def view_item(request, pk):
-    pass
+    return redirect(reverse_lazy('update_item', args=[pk]))
 
 
-class CreateItemView(CreateWithInlinesView):
+class CreateItemView(extra_views.CreateWithInlinesView):
     model = models.Item
-    inlines = [ItemImageInline, ItemLocationInline]
+    inlines = [forms.ItemImageInline, forms.ItemLocationInline]
     template_name = "inventory/item_formset.html"
-    form_class = CreateItemForm
+    form_class = forms.CreateItemForm
 
     def get_success_url(self):
         url = reverse_lazy("create_item")
@@ -87,7 +88,16 @@ class CreateItemView(CreateWithInlinesView):
         return super().construct_inlines()
 
 
-class SearchableItemListView(SearchableListMixin, ListView):
+class UpdateItemView(extra_views.UpdateWithInlinesView):
+    model = models.Item
+    inlines = [forms.ItemImageInline, forms.ItemLocationInline]
+    template_name = "inventory/item_formset.html"
+    form_class = forms.ItemForm
+
+    def get_success_url(self):
+        return self.object.get_absolute_url()
+
+class SearchableItemListView(extra_views.SearchableListMixin, ListView):
     # matching criteria can be defined along with fields
     search_fields = ["name", "category__name"]
     search_date_fields = []

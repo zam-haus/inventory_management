@@ -2,7 +2,7 @@ import re
 from datetime import datetime, timezone
 
 from crispy_forms.helper import FormHelper
-from crispy_forms.layout import HTML, ButtonHolder, Div, Fieldset, Layout, Submit
+from crispy_forms import layout
 from django.core.exceptions import ObjectDoesNotExist
 from django.forms import FileInput, ModelForm, RegexField, Textarea, TextInput, Select
 from extra_views import InlineFormSetFactory
@@ -26,14 +26,7 @@ class TextDatalistInput(TextInput):
         return context
 
 
-class CreateItemForm(ModelForm):
-    # TODO use QuaggaJS? https://serratus.github.io/quaggaJS/
-    barcode_data = RegexField(
-        regex=r"(?:[^\s]+(?:[ \t]+[^\s]*)?\n)*[^\s]+(?:[ \t]+[^\s]*)?\n?",
-        widget=Textarea(attrs={"rows": 3}),
-        required=False,
-    )
-
+class ItemForm(ModelForm):
     class Meta:
         model = Item
         fields = "__all__"
@@ -47,6 +40,14 @@ class CreateItemForm(ModelForm):
         self.helper = FormHelper()
         self.helper.form_tag = False
         self.helper.disable_csrf = True
+
+class CreateItemForm(ItemForm):
+    # TODO use QuaggaJS? https://serratus.github.io/quaggaJS/
+    barcode_data = RegexField(
+        regex=r"(?:[^\s]+(?:[ \t]+[^\s]*)?\n)*[^\s]+(?:[ \t]+[^\s]*)?\n?",
+        widget=Textarea(attrs={"rows": 3}),
+        required=False,
+    )
 
     def save(self, commit=True):
         # process barcode_data
@@ -89,6 +90,20 @@ class ItemImageInline(InlineFormSetFactory):
         formset.helper.form_tag = False
         formset.helper.disable_csrf = True
         # formset.helper.template = 'bootstrap/table_inline_formset.html'
+        formset.helper.form_title = 'Item Photos'
+        formset.helper.form_show_labels = False
+        formset.helper.layout = layout.Layout(
+            layout.Fieldset(
+                '',
+                layout.HTML("""
+                {% if formset_form.image.value %}
+                    <img class="img-responsive" width="100%" src="{{ MEDIA_URL }}{{ formset_form.image.value }}">
+                {% endif %}""", ),
+                layout.Div(
+                    'description',
+                    'image',
+                    # {% debug %}
+                    css_class="input-group"),))
         return formset
 
 
@@ -99,15 +114,12 @@ class ItemLocationForm(ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        if "location" in self.initial:
+        if "location" in self.initial and not "instance" in kwargs:
             self.fields["location"].disabled = True
 
     def save(self, commit):
         instance = super().save(commit)
-        # check if location was marked finished
-        print(self.data)
-        print(self.cleaned_data)
-        print()
+        # check if location was marked complete inventory
         if commit and "save_and_mark" in self.data:
             self.instance.location.last_complete_inventory = datetime.now(timezone.utc)
             self.instance.location.save()
@@ -134,4 +146,13 @@ class ItemLocationInline(InlineFormSetFactory):
         formset.helper.form_tag = False
         formset.helper.disable_csrf = True
         # formset.helper.template = 'bootstrap/table_inline_formset.html'
+        formset.helper.form_title = 'Item Storage Locations'
+        formset.helper.layout = layout.Layout(
+            layout.Fieldset(
+                '',
+                layout.Div(
+                    'location',
+                    'amount',
+                    css_class="input-group"))
+        )
         return formset
