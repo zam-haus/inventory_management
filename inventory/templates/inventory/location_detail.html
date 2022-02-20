@@ -30,6 +30,7 @@
     </ul>
 
     <h2>Items</h2>
+    <div>
     <table>
     {% for il in object.itemlocation_set.all %}
         <tr>
@@ -42,4 +43,7 @@
     {% endfor %}
     </table>
     Items at sub-locations are not included!
+    </div>
+    
+    <p><a href="{% url 'create_item' %}?location_id={{ object.pk }}">Add item...</a></p>
 {% endblock %}

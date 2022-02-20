@@ -7,31 +7,37 @@ import django.db.models.deletion
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('inventory', '0001_initial'),
+        ("inventory", "0001_initial"),
     ]
 
     operations = [
         migrations.AlterModelOptions(
-            name='location',
-            options={'ordering': ['locatable_identifier']},
+            name="location",
+            options={"ordering": ["locatable_identifier"]},
         ),
         migrations.RemoveField(
-            model_name='category',
-            name='parent_location',
+            model_name="category",
+            name="parent_location",
         ),
         migrations.AddField(
-            model_name='category',
-            name='full_name',
-            field=models.CharField(default='', editable=False, max_length=1024),
+            model_name="category",
+            name="full_name",
+            field=models.CharField(default="", editable=False, max_length=1024),
             preserve_default=False,
         ),
         migrations.AddField(
-            model_name='category',
-            name='parent_category',
-            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, to='inventory.category', verbose_name='parent_cateogry'),
+            model_name="category",
+            name="parent_category",
+            field=models.ForeignKey(
+                blank=True,
+                null=True,
+                on_delete=django.db.models.deletion.SET_NULL,
+                to="inventory.category",
+                verbose_name="parent_cateogry",
+            ),
         ),
         migrations.AlterOrderWithRespectTo(
-            name='itemlocation',
-            order_with_respect_to='location',
+            name="itemlocation",
+            order_with_respect_to="location",
         ),
     ]

@@ -11,130 +11,391 @@ class Migration(migrations.Migration):
 
     initial = True
 
-    dependencies = [
-    ]
+    dependencies = []
 
     operations = [
         migrations.CreateModel(
-            name='BarcodeType',
+            name="BarcodeType",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('name', models.CharField(max_length=128, unique=True)),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("name", models.CharField(max_length=128, unique=True)),
             ],
         ),
         migrations.CreateModel(
-            name='Category',
+            name="Category",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('name', models.CharField(max_length=512, verbose_name='category name')),
-                ('description', models.TextField()),
-                ('parent_location', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, to='inventory.category', verbose_name='parent_location cateogry')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                (
+                    "name",
+                    models.CharField(max_length=512, verbose_name="category name"),
+                ),
+                ("description", models.TextField()),
+                (
+                    "parent_location",
+                    models.ForeignKey(
+                        blank=True,
+                        null=True,
+                        on_delete=django.db.models.deletion.SET_NULL,
+                        to="inventory.category",
+                        verbose_name="parent_location cateogry",
+                    ),
+                ),
             ],
             options={
-                'verbose_name_plural': 'categories',
+                "verbose_name_plural": "categories",
             },
         ),
         migrations.CreateModel(
-            name='Item',
+            name="Item",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('name', models.CharField(blank=True, max_length=512, null=True, verbose_name='item name')),
-                ('description', models.TextField(blank=True)),
-                ('sale_price', models.DecimalField(blank=True, decimal_places=2, default=None, max_digits=8, null=True, verbose_name='sale price per unit')),
-                ('category', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, to='inventory.category')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                (
+                    "name",
+                    models.CharField(
+                        blank=True, max_length=512, null=True, verbose_name="item name"
+                    ),
+                ),
+                ("description", models.TextField(blank=True)),
+                (
+                    "sale_price",
+                    models.DecimalField(
+                        blank=True,
+                        decimal_places=2,
+                        default=None,
+                        max_digits=8,
+                        null=True,
+                        verbose_name="sale price per unit",
+                    ),
+                ),
+                (
+                    "category",
+                    models.ForeignKey(
+                        blank=True,
+                        null=True,
+                        on_delete=django.db.models.deletion.SET_NULL,
+                        to="inventory.category",
+                    ),
+                ),
             ],
         ),
         migrations.CreateModel(
-            name='LocationLabelTemplate',
+            name="LocationLabelTemplate",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('name', models.CharField(max_length=128)),
-                ('zpl_template', models.TextField(help_text='ZPL2 string, where $url, $unique_identifier, $locatable_identifier and $descriptive_identifier will be replaced.')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("name", models.CharField(max_length=128)),
+                (
+                    "zpl_template",
+                    models.TextField(
+                        help_text="ZPL2 string, where $url, $unique_identifier, $locatable_identifier and $descriptive_identifier will be replaced."
+                    ),
+                ),
             ],
         ),
         migrations.CreateModel(
-            name='MeasurementUnit',
+            name="MeasurementUnit",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('name', models.CharField(max_length=128, unique=True)),
-                ('short', models.CharField(max_length=8, unique=True, verbose_name="unit's abbreviation")),
-                ('description', models.TextField(blank=True)),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("name", models.CharField(max_length=128, unique=True)),
+                (
+                    "short",
+                    models.CharField(
+                        max_length=8, unique=True, verbose_name="unit's abbreviation"
+                    ),
+                ),
+                ("description", models.TextField(blank=True)),
             ],
         ),
         migrations.CreateModel(
-            name='LocationType',
+            name="LocationType",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('name', models.CharField(max_length=64, unique=True)),
-                ('unique', models.BooleanField(default=False)),
-                ('auto_name_prefix', models.CharField(blank=True, default='', max_length=16)),
-                ('auto_short_name_prefix', models.CharField(blank=True, default='', max_length=4)),
-                ('auto_short_name_padding_length', models.IntegerField(default=0)),
-                ('auto_sequence', models.CharField(blank=True, choices=[('0123456789', 'Numeric (0-9)'), ('abcdefghijklmnopqrstuvwxyz', 'Letters lowercase (a-z)'), ('ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'Letters lowercase (a-z)'), ('0123456789abcdefghijklmnopqrstuvwxyz', 'Alphanumeric lowercase (0-9, a-z)'), ('0123456789abcdef', 'Hexadecimal lowercase (0-9, a-f)')], max_length=128, null=True)),
-                ('default_label_template', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, to='inventory.locationlabeltemplate')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("name", models.CharField(max_length=64, unique=True)),
+                ("unique", models.BooleanField(default=False)),
+                (
+                    "auto_name_prefix",
+                    models.CharField(blank=True, default="", max_length=16),
+                ),
+                (
+                    "auto_short_name_prefix",
+                    models.CharField(blank=True, default="", max_length=4),
+                ),
+                ("auto_short_name_padding_length", models.IntegerField(default=0)),
+                (
+                    "auto_sequence",
+                    models.CharField(
+                        blank=True,
+                        choices=[
+                            ("0123456789", "Numeric (0-9)"),
+                            ("abcdefghijklmnopqrstuvwxyz", "Letters lowercase (a-z)"),
+                            ("ABCDEFGHIJKLMNOPQRSTUVWXYZ", "Letters lowercase (a-z)"),
+                            (
+                                "0123456789abcdefghijklmnopqrstuvwxyz",
+                                "Alphanumeric lowercase (0-9, a-z)",
+                            ),
+                            ("0123456789abcdef", "Hexadecimal lowercase (0-9, a-f)"),
+                        ],
+                        max_length=128,
+                        null=True,
+                    ),
+                ),
+                (
+                    "default_label_template",
+                    models.ForeignKey(
+                        blank=True,
+                        null=True,
+                        on_delete=django.db.models.deletion.SET_NULL,
+                        to="inventory.locationlabeltemplate",
+                    ),
+                ),
             ],
         ),
         migrations.CreateModel(
-            name='Location',
+            name="Location",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('name', models.CharField(max_length=128, validators=[django.core.validators.RegexValidator('[^a-zA-Z0-9 \\-()]*', message='Only numbers, letters and spaces allowed.')])),
-                ('short_name', models.CharField(max_length=8, validators=[django.core.validators.RegexValidator('[^a-zA-Z0-9]*', message='Only numbers and letters allowed.')])),
-                ('description', models.TextField(blank=True)),
-                ('unique_identifier', models.CharField(editable=False, max_length=64, unique=True)),
-                ('locatable_identifier', models.CharField(editable=False, max_length=512, unique=True)),
-                ('descriptive_identifier', models.CharField(editable=False, max_length=512)),
-                ('label_template', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, to='inventory.locationlabeltemplate')),
-                ('parent_location', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='children', to='inventory.location')),
-                ('type', models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, to='inventory.locationtype')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                (
+                    "name",
+                    models.CharField(
+                        max_length=128,
+                        validators=[
+                            django.core.validators.RegexValidator(
+                                "[^a-zA-Z0-9 \\-()]*",
+                                message="Only numbers, letters and spaces allowed.",
+                            )
+                        ],
+                    ),
+                ),
+                (
+                    "short_name",
+                    models.CharField(
+                        max_length=8,
+                        validators=[
+                            django.core.validators.RegexValidator(
+                                "[^a-zA-Z0-9]*",
+                                message="Only numbers and letters allowed.",
+                            )
+                        ],
+                    ),
+                ),
+                ("description", models.TextField(blank=True)),
+                (
+                    "unique_identifier",
+                    models.CharField(editable=False, max_length=64, unique=True),
+                ),
+                (
+                    "locatable_identifier",
+                    models.CharField(editable=False, max_length=512, unique=True),
+                ),
+                (
+                    "descriptive_identifier",
+                    models.CharField(editable=False, max_length=512),
+                ),
+                (
+                    "label_template",
+                    models.ForeignKey(
+                        blank=True,
+                        null=True,
+                        on_delete=django.db.models.deletion.SET_NULL,
+                        to="inventory.locationlabeltemplate",
+                    ),
+                ),
+                (
+                    "parent_location",
+                    models.ForeignKey(
+                        blank=True,
+                        null=True,
+                        on_delete=django.db.models.deletion.SET_NULL,
+                        related_name="children",
+                        to="inventory.location",
+                    ),
+                ),
+                (
+                    "type",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.PROTECT,
+                        to="inventory.locationtype",
+                    ),
+                ),
             ],
             options={
-                'abstract': False,
+                "abstract": False,
             },
             bases=(computedfields.resolver._ComputedFieldsModelBase, models.Model),
         ),
         migrations.CreateModel(
-            name='ItemImage',
+            name="ItemImage",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('image', models.ImageField(upload_to=inventory.models.get_item_upload_path)),
-                ('description', models.CharField(blank=True, max_length=512)),
-                ('item', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='inventory.item')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                (
+                    "image",
+                    models.ImageField(upload_to=inventory.models.get_item_upload_path),
+                ),
+                ("description", models.CharField(blank=True, max_length=512)),
+                (
+                    "item",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE, to="inventory.item"
+                    ),
+                ),
             ],
         ),
         migrations.CreateModel(
-            name='ItemFile',
+            name="ItemFile",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('file', models.FileField(upload_to=inventory.models.get_item_upload_path)),
-                ('description', models.CharField(blank=True, max_length=512)),
-                ('item', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='inventory.item')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                (
+                    "file",
+                    models.FileField(upload_to=inventory.models.get_item_upload_path),
+                ),
+                ("description", models.CharField(blank=True, max_length=512)),
+                (
+                    "item",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE, to="inventory.item"
+                    ),
+                ),
             ],
         ),
         migrations.CreateModel(
-            name='ItemBarcode',
+            name="ItemBarcode",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('data', models.TextField()),
-                ('item', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='inventory.item')),
-                ('type', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, to='inventory.barcodetype')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("data", models.TextField()),
+                (
+                    "item",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE, to="inventory.item"
+                    ),
+                ),
+                (
+                    "type",
+                    models.ForeignKey(
+                        blank=True,
+                        null=True,
+                        on_delete=django.db.models.deletion.SET_NULL,
+                        to="inventory.barcodetype",
+                    ),
+                ),
             ],
         ),
         migrations.AddField(
-            model_name='item',
-            name='measurement_unit',
-            field=models.ForeignKey(default=1, on_delete=django.db.models.deletion.PROTECT, to='inventory.measurementunit'),
+            model_name="item",
+            name="measurement_unit",
+            field=models.ForeignKey(
+                default=1,
+                on_delete=django.db.models.deletion.PROTECT,
+                to="inventory.measurementunit",
+            ),
         ),
         migrations.CreateModel(
-            name='ItemLocation',
+            name="ItemLocation",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('amount', models.DecimalField(decimal_places=3, max_digits=16)),
-                ('item', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='inventory.item')),
-                ('location', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='inventory.location')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("amount", models.DecimalField(decimal_places=3, max_digits=16)),
+                (
+                    "item",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE, to="inventory.item"
+                    ),
+                ),
+                (
+                    "location",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        to="inventory.location",
+                    ),
+                ),
             ],
             options={
-                'unique_together': {('item', 'location')},
+                "unique_together": {("item", "location")},
             },
         ),
     ]
