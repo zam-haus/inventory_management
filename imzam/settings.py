@@ -70,6 +70,7 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "django.middleware.locale.LocaleMiddleware",
 ]
 
 ROOT_URLCONF = "imzam.urls"
@@ -132,6 +133,12 @@ LANGUAGE_CODE = "de-DE"
 TIME_ZONE = "Europe/Berlin"
 USE_I18N = True
 USE_TZ = True
+
+
+LANGUAGES = [
+    ('en', 'English'),
+    ('de', 'German'),
+]
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.0/ref/settings/#default-auto-field

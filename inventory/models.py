@@ -23,6 +23,7 @@ from django.utils.translation import gettext_lazy as _
 class Item(models.Model):
     class Meta:
         verbose_name = _("item")
+        verbose_name_plural = _("items")
 
     # TODO use UUID as id?
     # id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -133,6 +134,7 @@ class BarcodeType(models.Model):
 class MeasurementUnit(models.Model):
     class Meta:
         verbose_name = _("measurement unit")
+        verbose_name_plural = _("measurement units")
     name = models.CharField(_("name"), max_length=128, unique=True)
     short = models.CharField(_("abbreviation"), max_length=8, unique=True)
     description = models.TextField(_("description"), blank=True)
@@ -283,6 +285,7 @@ class LocationLabelTemplate(models.Model):
 class Location(ComputedFieldsModel):
     class Meta:
         verbose_name = _("location")
+        verbose_name_plural = _("locations")
         ordering = ("locatable_identifier",)
 
     type = models.ForeignKey(LocationType, on_delete=models.PROTECT)
