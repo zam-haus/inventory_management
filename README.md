@@ -24,7 +24,7 @@ To get started do the following:
 1. checkout this git repo
     `git clone git@github.com:zam-haus/inventory_management.git`
 2. create and edit local settings file
-    `imzam/locale_settings.py`
+    `imzam/local_settings.py`
     Here is a usable template:
     ```
     # SECURITY WARNING: keep this file secret! Do not commit to git!
