@@ -234,7 +234,7 @@ class LocationLabelTemplate(models.Model):
         "$descriptive_identifier will be replaced.")
     )
     label_width = models.IntegerField(_("Label width (mm)"))
-    label_height = models.IntegerField(_("Label width (mm)"))
+    label_height = models.IntegerField(_("Label height (mm)"))
 
     def generate_label_zpl(self, location=None):
         label_code = self.zpl_template
