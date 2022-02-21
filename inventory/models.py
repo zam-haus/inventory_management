@@ -32,12 +32,17 @@ class Item(models.Model):
     # TODO implement signal for automatic adoption by parent_location
     # https://stackoverflow.com/questions/43857902/django-set-foreign-key-to-parent_location-value-on-delete
     category = models.ForeignKey(
-        "Category", on_delete=models.SET_NULL, null=True, blank=True,
-        verbose_name=_("category")
+        "Category",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        verbose_name=_("category"),
     )
     measurement_unit = models.ForeignKey(
-        "MeasurementUnit", on_delete=models.PROTECT, default=1,
-        verbose_name=_("measurement unit")
+        "MeasurementUnit",
+        on_delete=models.PROTECT,
+        default=1,
+        verbose_name=_("measurement unit"),
     )
     sale_price = models.DecimalField(
         _("sale price per unit"),
@@ -52,7 +57,7 @@ class Item(models.Model):
         if self.name:
             return self.name
         else:
-            return _("Unnamed item")+f" {self.pk}"
+            return _("Unnamed item") + f" {self.pk}"
 
     def get_absolute_url(self):
         return reverse("view_item", kwargs={"pk": self.pk})
@@ -112,8 +117,11 @@ class ItemBarcode(models.Model):
 
     data = models.TextField(_("data"))
     type = models.ForeignKey(
-        "BarcodeType", on_delete=models.SET_NULL, null=True, blank=True,
-        verbose_name=_("type")
+        "BarcodeType",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        verbose_name=_("type"),
     )
     item = models.ForeignKey("Item", on_delete=models.CASCADE, verbose_name=_("Item"))
 
@@ -125,6 +133,7 @@ class BarcodeType(models.Model):
     class Meta:
         verbose_name = _("barcode type")
         verbose_name_plural = _("barcode types")
+
     name = models.CharField(_("name"), max_length=128, unique=True)
 
     def __str__(self):
@@ -135,6 +144,7 @@ class MeasurementUnit(models.Model):
     class Meta:
         verbose_name = _("measurement unit")
         verbose_name_plural = _("measurement units")
+
     name = models.CharField(_("name"), max_length=128, unique=True)
     short = models.CharField(_("abbreviation"), max_length=8, unique=True)
     description = models.TextField(_("description"), blank=True)
@@ -147,15 +157,22 @@ class LocationType(models.Model):
     class Meta:
         verbose_name = _("location type")
         verbose_name_plural = _("location types")
+
     name = models.CharField(_("name"), max_length=64, unique=True)
     # set if Location.short is to be globally unique
     unique = models.BooleanField(_("unique flag"), default=False)
     # for automatic generation of unique names and short_names:
-    auto_name_prefix = models.CharField(_("name prefix"), max_length=16, default="", blank=True)
-    auto_short_name_prefix = models.CharField(_("short name prefix"), max_length=4, default="", blank=True)
-    auto_short_name_padding_length = models.IntegerField(_("short name pedding"), default=0)
+    auto_name_prefix = models.CharField(
+        _("name prefix"), max_length=16, default="", blank=True
+    )
+    auto_short_name_prefix = models.CharField(
+        _("short name prefix"), max_length=4, default="", blank=True
+    )
+    auto_short_name_padding_length = models.IntegerField(
+        _("short name pedding"), default=0
+    )
     auto_sequence = models.CharField(
-        _("sequence"), 
+        _("sequence"),
         max_length=128,
         choices=[
             ("0123456789", "Numeric (0-9)"),
@@ -172,8 +189,11 @@ class LocationType(models.Model):
     )
 
     default_label_template = models.ForeignKey(
-        "LocationLabelTemplate", null=True, blank=True, on_delete=models.SET_NULL,
-        verbose_name=_("default label template")
+        "LocationLabelTemplate",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        verbose_name=_("default label template"),
     )
 
     def int2str(self, i):
@@ -227,11 +247,14 @@ class LocationType(models.Model):
 class LocationLabelTemplate(models.Model):
     class Meta:
         verbose_name = _("location label template")
+
     name = models.CharField(_("name"), max_length=128)
     zpl_template = models.TextField(
         _("ZPL template"),
-        help_text=_("ZPL2 string, where $url, $unique_identifier, $locatable_identifier and "
-        "$descriptive_identifier will be replaced.")
+        help_text=_(
+            "ZPL2 string, where $url, $unique_identifier, $locatable_identifier and "
+            "$descriptive_identifier will be replaced."
+        ),
     )
     label_width = models.IntegerField(_("Label width (mm)"))
     label_height = models.IntegerField(_("Label height (mm)"))
@@ -258,8 +281,8 @@ class LocationLabelTemplate(models.Model):
     def get_lablary_url(self, location=None):
         return (
             "http://api.labelary.com/v1/printers/8dpmm/labels/"
-            + '{:.1f}'.format(self.label_width/25.4)
-            + 'x{:.1f}'.format(self.label_height/25.4)
+            + "{:.1f}".format(self.label_width / 25.4)
+            + "x{:.1f}".format(self.label_height / 25.4)
             + "/0/"
             + urllib.parse.quote(self.generate_label_zpl(location))
         )
@@ -268,6 +291,7 @@ class LocationLabelTemplate(models.Model):
         return mark_safe(
             '<img width="100%%" src="%s" />' % escape(self.get_lablary_url(location))
         )
+
     image_tag.short_description = "Rendered label"
 
     def send_to_printer(self, location=None):
@@ -318,7 +342,10 @@ class Location(ComputedFieldsModel):
     description = models.TextField(_("description"), blank=True)
 
     label_template = models.ForeignKey(
-        "LocationLabelTemplate", on_delete=models.SET_NULL, null=True, blank=True,
+        "LocationLabelTemplate",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
         verbose_name=_("name"),
     )
 
@@ -332,7 +359,8 @@ class Location(ComputedFieldsModel):
     )
 
     last_complete_inventory = models.DateTimeField(
-        _("last complete inventory"), blank=True, null=True)
+        _("last complete inventory"), blank=True, null=True
+    )
 
     def clean(self):
         # ensure cycle-free tree
@@ -458,8 +486,12 @@ class ItemLocation(models.Model):
         order_with_respect_to = "location"
 
     item = models.ForeignKey("Item", on_delete=models.CASCADE, verbose_name=_("item"))
-    location = models.ForeignKey("Location", on_delete=models.CASCADE, verbose_name=_("location"))
-    amount = models.DecimalField(max_digits=16, decimal_places=3, verbose_name=_("amount"))
+    location = models.ForeignKey(
+        "Location", on_delete=models.CASCADE, verbose_name=_("location")
+    )
+    amount = models.DecimalField(
+        max_digits=16, decimal_places=3, verbose_name=_("amount")
+    )
 
     @property
     def amount_without_zeros(self):

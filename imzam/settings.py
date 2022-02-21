@@ -136,8 +136,8 @@ USE_TZ = True
 
 
 LANGUAGES = [
-    ('en', 'English'),
-    ('de', 'German'),
+    ("en", "English"),
+    ("de", "German"),
 ]
 
 # Default primary key field type

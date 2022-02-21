@@ -62,7 +62,7 @@ def update_location(request, pk, unique_identifier):
 
 
 def view_item(request, pk):
-    return redirect(reverse_lazy('update_item', args=[pk]))
+    return redirect(reverse_lazy("update_item", args=[pk]))
 
 
 class CreateItemView(extra_views.CreateWithInlinesView):
@@ -70,7 +70,7 @@ class CreateItemView(extra_views.CreateWithInlinesView):
     inlines = [forms.ItemImageInline, forms.ItemLocationInline]
     template_name = "inventory/item_formset.html"
     form_class = forms.CreateItemForm
-    extra_context = {'title': _("Create Item")}
+    extra_context = {"title": _("Create Item")}
 
     def get_success_url(self):
         url = reverse_lazy("create_item")
@@ -95,10 +95,11 @@ class UpdateItemView(extra_views.UpdateWithInlinesView):
     inlines = [forms.ItemImageInline, forms.ItemLocationInline]
     template_name = "inventory/item_formset.html"
     form_class = forms.ItemForm
-    extra_context = {'title': _("Update Item")}
+    extra_context = {"title": _("Update Item")}
 
     def get_success_url(self):
         return self.object.get_absolute_url()
+
 
 class SearchableItemListView(extra_views.SearchableListMixin, ListView):
     # matching criteria can be defined along with fields

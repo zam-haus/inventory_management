@@ -41,6 +41,7 @@ class ItemForm(ModelForm):
         self.helper.form_tag = False
         self.helper.disable_csrf = True
 
+
 class CreateItemForm(ItemForm):
     # TODO use QuaggaJS? https://serratus.github.io/quaggaJS/
     barcode_data = RegexField(
@@ -90,19 +91,20 @@ class ItemImageInline(InlineFormSetFactory):
         formset.helper.form_tag = False
         formset.helper.disable_csrf = True
         # formset.helper.template = 'bootstrap/table_inline_formset.html'
-        formset.helper.form_title = 'Item Photos'
+        formset.helper.form_title = "Item Photos"
         formset.helper.form_show_labels = False
         formset.helper.layout = layout.Layout(
             layout.Fieldset(
-                '',
-                layout.HTML("""
+                "",
+                layout.HTML(
+                    """
                 {% if formset_form.image.value %}
                     <img class="img-responsive" width="100%" src="{{ MEDIA_URL }}{{ formset_form.image.value }}">
-                {% endif %}""", ),
-                layout.Div(
-                    'description',
-                    'image',
-                    css_class="input-group"),))
+                {% endif %}""",
+                ),
+                layout.Div("description", "image", css_class="input-group"),
+            )
+        )
         return formset
 
 
@@ -145,13 +147,10 @@ class ItemLocationInline(InlineFormSetFactory):
         formset.helper.form_tag = False
         formset.helper.disable_csrf = True
         # formset.helper.template = 'bootstrap/table_inline_formset.html'
-        formset.helper.form_title = 'Item Storage Locations'
+        formset.helper.form_title = "Item Storage Locations"
         formset.helper.layout = layout.Layout(
             layout.Fieldset(
-                '',
-                layout.Div(
-                    'location',
-                    'amount',
-                    css_class="input-group"))
+                "", layout.Div("location", "amount", css_class="input-group")
+            )
         )
         return formset
