@@ -233,6 +233,8 @@ class LocationLabelTemplate(models.Model):
         help_text=_("ZPL2 string, where $url, $unique_identifier, $locatable_identifier and "
         "$descriptive_identifier will be replaced.")
     )
+    label_width = models.IntegerField(_("Label width (mm)"))
+    label_height = models.IntegerField(_("Label width (mm)"))
 
     def generate_label_zpl(self, location=None):
         label_code = self.zpl_template
@@ -255,7 +257,10 @@ class LocationLabelTemplate(models.Model):
 
     def get_lablary_url(self, location=None):
         return (
-            "http://api.labelary.com/v1/printers/8dpmm/labels/2.4x1.2/0/"
+            "http://api.labelary.com/v1/printers/8dpmm/labels/"
+            + '{:.1f}'.format(self.label_width/25.4)
+            + 'x{:.1f}'.format(self.label_height/25.4)
+            + "/0/"
             + urllib.parse.quote(self.generate_label_zpl(location))
         )
 

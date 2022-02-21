@@ -27,7 +27,7 @@ admin.site.register(models.BarcodeType)
 
 class LocationLabelTemplateAdmin(admin.ModelAdmin):
     model = models.LocationLabelTemplate
-    fields = ("name", "zpl_template", "image_tag")
+    fields = ("name", "zpl_template", "label_width", "label_height", "image_tag")
     readonly_fields = ("image_tag",)
 
 

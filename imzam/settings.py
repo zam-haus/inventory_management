@@ -161,10 +161,10 @@ MQTT_PRINTER_TOPIC = (
 
 # Overwrite default settings with local_settings.py configuration
 try:
-    from .locale_settings import *
+    from .local_settings import *
 except ImportError:
     print(
-        "WARNING: no locale_settings.py found.\n"
+        "WARNING: no local_settings.py found.\n"
         "         Current SETTINGS ARE INSECURE and\n"
         "         NOT meant FOR DEPLOYMENT!"
     )
