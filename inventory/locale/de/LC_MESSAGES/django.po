@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2022-02-20 23:30+0100\n"
+"POT-Creation-Date: 2022-02-21 10:44+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -93,7 +93,6 @@ msgstr "Barcodetypen"
 
 #: inventory/models.py:128 inventory/models.py:138 inventory/models.py:150
 #: inventory/models.py:230 inventory/models.py:301 inventory/models.py:317
-#: inventory/models.py:326
 msgid "name"
 msgstr "Name"
 
@@ -165,6 +164,10 @@ msgstr "Standorte"
 msgid "short name"
 msgstr "Kurzname"
 
+#: inventory/models.py:326
+msgid "parent location"
+msgstr "Übergeordneter Standort"
+
 #: inventory/models.py:330
 msgid "last complete inventory"
 msgstr "Letzte abgeschlossene Inventur"
@@ -189,6 +192,10 @@ msgstr "Menge"
 msgid "History"
 msgstr "Änderungshistorie"
 
+#: inventory/templates/admin/inventory/location/change_form.html:9
+msgid "Print label"
+msgstr "Etikett drucken"
+
 #: inventory/templates/admin/inventory/location/change_form.html:11
 msgid "View on site"
 msgstr "Auf Seite ansehen"
@@ -198,10 +205,88 @@ msgstr "Auf Seite ansehen"
 msgid "Add %(name)s"
 msgstr "%(name)s hinzufügen"
 
+#: inventory/templates/admin/inventory/location/change_list.html:12
+#: inventory/templates/admin/inventory/location_massadd.html:12
+msgid "Mass-Add Locations"
+msgstr "Mehrere Orte anlegen"
+
 #: inventory/templates/admin/inventory/location_massadd.html:8
 msgid "Home"
 msgstr "Home"
 
-#: inventory/templates/admin/inventory/location_massadd.html:12
-msgid "Mass-Add locations"
-msgstr "Mehrere Orte erzeugen"
+#: inventory/templates/admin/inventory/location_massadd.html:9
+msgid "Inventory"
+msgstr "Inventar"
+
+#: inventory/templates/admin/inventory/location_massadd.html:10
+#: inventory/templates/inventory/item_list.html:15
+msgid "Locations"
+msgstr "Standorte"
+
+#: inventory/templates/inventory/item_formset.html:25
+msgid "Save and mark location finished"
+msgstr "Speichern und Standort als abgeschlossen markieren"
+
+#: inventory/templates/inventory/item_list.html:6
+msgid "Item List"
+msgstr "Sachliste"
+
+#: inventory/templates/inventory/item_list.html:12
+msgid "Name"
+msgstr "Name"
+
+#: inventory/templates/inventory/item_list.html:13
+msgid "Category"
+msgstr "Kategorie"
+
+#: inventory/templates/inventory/item_list.html:14
+msgid "Photos"
+msgstr "Fotos"
+
+#: inventory/templates/inventory/location_detail.html:6
+msgid "Location"
+msgstr "Standort"
+
+#: inventory/templates/inventory/location_detail.html:16
+msgid "root location (has no parent)"
+msgstr "Wurzel-Standort (hat kein übergeordneter Standort hinterlegt)"
+
+#: inventory/templates/inventory/location_detail.html:23
+msgid "Sub-Locations"
+msgstr "Unterstandorte"
+
+#: inventory/templates/inventory/location_detail.html:28
+msgid "No sub-locations."
+msgstr "Keine Unterstandorte."
+
+#: inventory/templates/inventory/location_detail.html:32
+msgid "Items"
+msgstr "Sachen"
+
+#: inventory/templates/inventory/location_detail.html:39
+msgid "Take"
+msgstr "Entnehmen"
+
+#: inventory/templates/inventory/location_detail.html:40
+msgid "Move"
+msgstr "Verlegen"
+
+#: inventory/templates/inventory/location_detail.html:42
+msgid "No items located here."
+msgstr "Hier sind keine Sachen gelagert."
+
+#: inventory/templates/inventory/location_detail.html:45
+msgid "Items at sub-locations are not included!"
+msgstr "Sachen an untergeordneten Standorten wurden nicht berücksichtigt."
+
+#: inventory/templates/inventory/location_detail.html:48
+msgid "Add item..."
+msgstr "Sache anlegen..."
+
+#: inventory/views.py:73
+msgid "Create Item"
+msgstr "Sache anlegen"
+
+#: inventory/views.py:98
+msgid "Update Item"
+msgstr "Sache aktualisieren"

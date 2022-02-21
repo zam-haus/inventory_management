@@ -1,9 +1,9 @@
 {% extends 'inventory/base.html' %}
 
-{% load django_bootstrap5 %}
+{% load django_bootstrap5 i18n %}
 
 {% block title %}
-    Location:  {{ object.unique_identifier }}
+    {% trans "Location" %}:  {{ object.unique_identifier }}
 {% endblock %}
 
 {% block content %}
@@ -13,37 +13,37 @@
     {% if object.parent_location %}
         <p><a href="{{ object.parent_location.get_absolute_url }}">{{ object.parent_location }}</a></p>
     {% else %}
-        <p>root location (has no parent)</p>
+        <p>{% trans "root location (has no parent)" %}</p>
     {% endif %}
     
     {% if object.get_lablary_url %}
         <img width="100%" src="{{ object.get_lablary_url }}"/>
     {% endif %}
 
-    <h2>Sub-Locations</h2>
+    <h2>{% trans "Sub-Locations" %}</h2>
     <ul>
     {% for subloc in object.children.all %}
         <li><a href="{{ subloc.get_absolute_url }}">{{ subloc.unique_identifier }} {{ subloc.name }}</a>
     {% empty %}
-        No sub-locations.
+        {% trans "No sub-locations." %}
     {% endfor %}
     </ul>
 
-    <h2>Items</h2>
+    <h2>{% trans "Items" %}</h2>
     <div>
     <table>
     {% for il in object.itemlocation_set.all %}
         <tr>
             <td><a href="{{ il.item.get_absolute_url }}">{{ il.item.name }}</a></td>
             <td>{{ il.amount }} {{ il.item.measurement_unit }}</td>
-            <td><a href="TODO">Take</a></td>
-            <td><a href="TODO">Move</a></td>
+            <td><a href="TODO">{% trans "Take" %}</a></td>
+            <td><a href="TODO">{% trans "Move" %}</a></td>
     {% empty %}
-        No items located here.
+        {% trans "No items located here." %}
     {% endfor %}
     </table>
-    Items at sub-locations are not included!
+    {% trans "Items at sub-locations are not included!" %}
     </div>
     
-    <p><a href="{% url 'create_item' %}?location_id={{ object.pk }}">Add item...</a></p>
+    <p><a href="{% url 'create_item' %}?location_id={{ object.pk }}">{% trans "Add item..." %}</a></p>
 {% endblock %}

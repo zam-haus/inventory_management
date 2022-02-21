@@ -3,16 +3,16 @@
 {% load django_bootstrap5 %}
 
 {% block title %}
-    Item List
+    {% trans "Item List" %}
 {% endblock %}
 
 {% block content %}
 <table class="table">
     <thead><tr>
-        <th scope="col">Name</td>
-        <th scope="col">Category</td>
-        <th scope="col">Photos</td>
-        <th scope="col">Locations</td>
+        <th scope="col">{% trans "Name" %}</td>
+        <th scope="col">{% trans "Category" %}</td>
+        <th scope="col">{% trans "Photos" %}</td>
+        <th scope="col">{% trans "Locations" %}</td>
     </tr></thead>
     <tbody>
     {% for object in object_list %}

@@ -1,9 +1,10 @@
 {% extends 'inventory/base.html' %}
 
 {% load django_bootstrap5 %}
+{% load i18n %}
 
 {% block title %}
-    Item
+    {{ title }}
 {% endblock %}
 
 {% block content %}
@@ -21,7 +22,7 @@
 
     <input type="submit" name="save" value="Save" class="btn btn-primary mb-3">
     {% if request.GET and request.GET.location_id %}
-    <input type="submit" name="save_and_mark" value="Save and mark location finished" class="btn btn-primary mb-3">
+    <input type="submit" name="save_and_mark" value="{% translate "Save and mark location finished" %}" class="btn btn-primary mb-3">
     {% endif %}
 </form>
 

@@ -6,7 +6,7 @@
   <a href="{% add_preserved_filters history_url %}" class="historylink">{% translate "History" %}</a>
 </li>
 <li>
-  <a href="{% url opts|admin_urlname:'print-label' original.pk %}">Print label</a>
+  <a href="{% url opts|admin_urlname:'print-label' original.pk %}">{% trans "Print label" %}</a>
 </li>
-{% if has_absolute_url %}<li><a href="{{ absolute_url }}" class="viewsitelink">{% translate "View on site" %}</a></li>{% endif %}
+{% if has_absolute_url %}<li><a href="{{ absolute_url }}" class="viewsitelink">{% trans "View on site" %}</a></li>{% endif %}
 {% endblock %}

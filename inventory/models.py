@@ -323,7 +323,7 @@ class Location(ComputedFieldsModel):
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
-        verbose_name=_("name"),
+        verbose_name=_("parent location"),
     )
 
     last_complete_inventory = models.DateTimeField(

@@ -6,10 +6,10 @@
 {% block breadcrumbs %}
 <div class="breadcrumbs">
   <a href="{% url 'admin:index' %}">{% trans 'Home' %}</a>
-  <a href="{% url 'admin:app_list' app_label='inventory' %}">Inventory</a>
-  <a href="/_admin_/inventory/location/">Locations</a>
+  <a href="{% url 'admin:app_list' app_label='inventory' %}">{% trans "Inventory" %}</a>
+  <a href="/_admin_/inventory/location/">{% trans "Locations" %}</a>
 
-  {% trans 'Mass-Add locations' %} {{ original|truncatewords:"18" }}
+  {% trans 'Mass-Add Locations' %} {{ original|truncatewords:"18" }}
 </div>
 {% endblock %}
 
