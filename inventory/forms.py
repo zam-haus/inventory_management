@@ -109,10 +109,12 @@ class ItemImageInline(InlineFormSetFactory):
                         '<button type="button" class="btn btn-primary mb-4" '
                         'data-bs-toggle="modal" data-bs-target="#camera_modal">'
                         'integrated camera'
-                        '</button>'),
-                    css_class="input-group"),
+                        '</button>',
+                    ),
+                    css_class="input-group",
+                ),
                 css_class='container',
-                style='padding-bottom: 1.5rem;'
+                style='padding-bottom: 1.5rem;',
             ),
         )
         return formset
