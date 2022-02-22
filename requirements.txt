@@ -6,3 +6,7 @@ django-extra-views
 django-computedfields
 paho-mqtt
 Pillow
+typing_extensions
+psycopg2
+whitenoise
+gunicorn

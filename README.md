@@ -47,3 +47,31 @@ To get started do the following:
 
 ## Label Printing
 Print jobs are passed to the printer via MQTT. A simple print server, listening to a (currently) hard-coded topic on mqtt.zam.haus and passing them onto a (currently) hard-coded printer is implemented by `print_server.py`. A more flexible (and complex) solution is planned.
+
+
+## Deployment
+
+1. clone git repo
+2. copy .env.example to .env and edit (atleast) the following variables:
+   * `ALLOWED_HOSTS`
+   * `SECRET_KEY`
+   * `POSTGRES_PASSWORD`
+   * `MQTT_PASSWORD`
+2. collect static
+   ```
+   docker-compose run web ./manage.py collectstatic
+   ```
+3. migrate and import initial data
+    ```
+    docker-compose run web ./manage.py migrate
+    docker-compose run web ./manage.py loaddata initial_inventory
+    ```
+4. create superuser
+    ```
+    docker-compose run web ./manage.py createsuperuser
+    ```
+5. start
+    ```
+    docker-compose up
+    ```
+
