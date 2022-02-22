@@ -90,12 +90,10 @@ class ItemImageInline(InlineFormSetFactory):
         formset.helper = FormHelper()
         formset.helper.form_tag = False
         formset.helper.disable_csrf = True
-        formset.helper.template = 'bootstrap/whole_uni_formset.html'  # bootstrap/table_inline_formset.html'
         formset.helper.form_title = "Item Photos"
         formset.helper.form_show_labels = False
         formset.helper.layout = layout.Layout(
-            layout.Fieldset(
-                "",
+            layout.Div(
                 layout.HTML(
                     """
                     {% if formset_form.image.value %}
@@ -104,18 +102,17 @@ class ItemImageInline(InlineFormSetFactory):
                         <img class="img-responsive" width="100%" src="" hidden>
                     {% endif %}""",
                 ),
+                "description",
                 layout.Div(
-                    "description",
                     "image",
-                    layout.Div(
-                        layout.Button(
-                            'integrated camera',
-                            'Integrated Camera',
-                            css_class="btn btn-primary",
-                            **{'data-bs-toggle': 'modal',
-                                'data-bs-target': "#camera_modal"}),
-                        css_class='mb-3'),
+                    layout.HTML(
+                        '<button type="button" class="btn btn-primary mb-4" '
+                        'data-bs-toggle="modal" data-bs-target="#camera_modal">'
+                        'integrated camera'
+                        '</button>'),
                     css_class="input-group"),
+                css_class='container',
+                style='padding-bottom: 1.5rem;'
             ),
         )
         return formset
@@ -162,8 +159,6 @@ class ItemLocationInline(InlineFormSetFactory):
         # formset.helper.template = 'bootstrap/table_inline_formset.html'
         formset.helper.form_title = "Item Storage Locations"
         formset.helper.layout = layout.Layout(
-            layout.Fieldset(
-                "", layout.Div("location", "amount", css_class="input-group")
-            )
+            layout.Div("location", "amount", css_class="input-group")
         )
         return formset

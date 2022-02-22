@@ -111,7 +111,7 @@
     
     function handleInputChange(event){
         let input = event.target;
-        let fieldset = getClosest(input, 'fieldset');
+        let fieldset = getClosest(input, 'div[class="container"]');
         let image_obj = fieldset.querySelectorAll('img')[0];
         const file = input.files[0];
         if(file){
@@ -182,7 +182,7 @@
         camera_capture_canvas.height = camera_square_size;
         camera_capture_canvas.getContext('2d').drawImage(camera_video, -x_offset, -y_offset, videoWidth, videoHeight);
     
-        let fieldset = getClosest(camera_calling_button, 'fieldset');
+        let fieldset = getClosest(camera_calling_button, 'div[class="container"]');
         let input_obj = fieldset.querySelectorAll('input[type="file"]')[0];
     
         camera_capture_canvas.toBlob(function(blob){
