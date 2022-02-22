@@ -90,7 +90,7 @@ class ItemImageInline(InlineFormSetFactory):
         formset.helper = FormHelper()
         formset.helper.form_tag = False
         formset.helper.disable_csrf = True
-        # formset.helper.template = 'bootstrap/table_inline_formset.html'
+        formset.helper.template = 'bootstrap/whole_uni_formset.html'  # bootstrap/table_inline_formset.html'
         formset.helper.form_title = "Item Photos"
         formset.helper.form_show_labels = False
         formset.helper.layout = layout.Layout(
@@ -98,12 +98,25 @@ class ItemImageInline(InlineFormSetFactory):
                 "",
                 layout.HTML(
                     """
-                {% if formset_form.image.value %}
-                    <img class="img-responsive" width="100%" src="{{ MEDIA_URL }}{{ formset_form.image.value }}">
-                {% endif %}""",
+                    {% if formset_form.image.value %}
+                        <img class="img-responsive" width="100%" src="{{ MEDIA_URL }}{{ formset_form.image.value }}">
+                    {% else %}
+                        <img class="img-responsive" width="100%" src="" hidden>
+                    {% endif %}""",
                 ),
-                layout.Div("description", "image", css_class="input-group"),
-            )
+                layout.Div(
+                    "description",
+                    "image",
+                    layout.Div(
+                        layout.Button(
+                            'integrated camera',
+                            'Integrated Camera',
+                            css_class="btn btn-primary",
+                            **{'data-bs-toggle': 'modal',
+                                'data-bs-target': "#camera_modal"}),
+                        css_class='mb-3'),
+                    css_class="input-group"),
+            ),
         )
         return formset
 
