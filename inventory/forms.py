@@ -113,7 +113,7 @@ class ItemImageInline(InlineFormSetFactory):
                     ),
                     css_class="input-group",
                 ),
-                css_class='container',
+                css_class='container itemimage_set_item',
                 style='padding-bottom: 1.5rem;',
             ),
         )
