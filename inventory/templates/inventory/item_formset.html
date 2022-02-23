@@ -36,10 +36,11 @@
     {% load crispy_forms_tags %}
     {% crispy form %}
 
-    {% for formset in inlines %}
-    <legend>{{ formset.helper.form_title }}</legend>
-    {% crispy formset %}
-    {% endfor %}
+    <legend>{{ inlines.0.helper.form_title }}</legend>
+    {% crispy inlines.0 %}
+    <button id="add_image_button" type="button" class="btn btn-primary">Add image</button>
+    <legend>{{ inlines.1.helper.form_title }}</legend>
+    {% crispy inlines.1 %}
 
     <input type="submit" name="save" value="Save" class="btn btn-primary mb-3">
     {% if request.GET and request.GET.location_id %}
@@ -51,4 +52,5 @@
 {% block bootstrap5_extra_script %}
 {% load static %}
 <script type="text/javascript" src="{% static 'inventory/camera.js' %}"></script>
+<script type="text/javascript" src="{% static 'inventory/add_image_input.js' %}"></script>
 {% endblock %}
