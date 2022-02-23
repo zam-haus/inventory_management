@@ -1,3 +1,4 @@
+
 let camera_modal = document.querySelector("#camera_modal")
 let camera_modal_obj = new bootstrap.Modal(document.getElementById('camera_modal'))
 let camera_video = document.querySelector("#camera_video");
@@ -58,7 +59,7 @@ function present_canvas_update(){
 
 function handleInputChange(event){
 	let input = event.target;
-	let fieldset = getClosest(input, 'div[class="container"]');
+	let fieldset = getClosest(input, 'div.itemimage_set_item');
 	let image_obj = fieldset.querySelectorAll('img')[0];
 	const file = input.files[0];
 	if(file){
@@ -129,7 +130,7 @@ camera_click_button.addEventListener('click', function() {
 	camera_capture_canvas.height = camera_square_size;
 	camera_capture_canvas.getContext('2d').drawImage(camera_video, -x_offset, -y_offset, videoWidth, videoHeight);
 
-	let fieldset = getClosest(camera_calling_button, 'div[class="container"]');
+	let fieldset = getClosest(camera_calling_button, 'div.itemimage_set_item');
 	let input_obj = fieldset.querySelectorAll('input[type="file"]')[0];
 
 	camera_capture_canvas.toBlob(function(blob){
