@@ -74,7 +74,7 @@ class ItemImageInline(InlineFormSetFactory):
     model = ItemImage
     fields = ["description", "image"]
     description_defaults = ["Price label", "Packaged", "Single item (unpacked)"]
-    initial = [{"description": d} for d in description_defaults]
+    #initial = [{"description": d} for d in description_defaults]
     factory_kwargs = {
         "extra": 3,
         "can_order": False,
@@ -113,8 +113,7 @@ class ItemImageInline(InlineFormSetFactory):
                     ),
                     css_class="input-group",
                 ),
-                css_class='container itemimage_set_item',
-                style='padding-bottom: 1.5rem;',
+                css_class='container itemimage_set_item pb-3',
             ),
         )
         return formset

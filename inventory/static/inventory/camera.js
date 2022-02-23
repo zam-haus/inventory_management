@@ -69,7 +69,7 @@ function handleInputChange(event){
 			image_obj.src = this.result;
 			image_obj.removeAttribute("hidden");
 			let size = get_parent_width(image_obj);
-			image_obj.width = size;
+			//image_obj.width = size;
 			//image_obj.height = size;
 		})
 	}
