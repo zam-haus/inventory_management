@@ -74,7 +74,7 @@ class ItemImageInline(InlineFormSetFactory):
     model = ItemImage
     fields = ["description", "image"]
     description_defaults = ["Price label", "Packaged", "Single item (unpacked)"]
-    initial = [{"description": d} for d in description_defaults]
+    #initial = [{"description": d} for d in description_defaults]
     factory_kwargs = {
         "extra": 3,
         "can_order": False,
@@ -109,10 +109,11 @@ class ItemImageInline(InlineFormSetFactory):
                         '<button type="button" class="btn btn-primary mb-4" '
                         'data-bs-toggle="modal" data-bs-target="#camera_modal">'
                         'integrated camera'
-                        '</button>'),
-                    css_class="input-group"),
-                css_class='container',
-                style='padding-bottom: 1.5rem;'
+                        '</button>',
+                    ),
+                    css_class="input-group",
+                ),
+                css_class='container itemimage_set_item pb-3',
             ),
         )
         return formset
