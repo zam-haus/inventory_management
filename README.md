@@ -27,11 +27,24 @@ To get started do the following:
     `imzam/local_settings.py`
     Here is a usable template:
     ```
-    # SECURITY WARNING: keep this file secret! Do not commit to git!
+    # Example local_settings.py for development usage
+    # INSECURE, DO NOT USE IN PRODUCTION!
+    from pathlib import Path
 
-    DEBUG = True  # for development use only
-    ALLOWED_HOSTS = ['127.0.0.1']
+    DEBUG = True
+    TEMPLATE_DEBUG = True
+    ALLOWED_HOSTS = ['localhost', '127.0.0.1', '192.168.178.10', '10.233.1.123']
+    SECRET_KEY="REPLACE ME!!!!!"
+
     MQTT_PASSWORD_AUTH = dict(username="im.zam.haus-django", password='...')
+
+    BASE_DIR = Path(__file__).resolve().parent.parent
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.sqlite3",
+            "NAME": BASE_DIR / "db.sqlite3",
+        }
+    }
     ```
     for secure deployment: make sure to disable `DEBUG` and set `SECRET_KEY` to a random string and consult https://docs.djangoproject.com/en/4.0/howto/deployment/checklist/.
 3. install all python requirements (asuming current python and pip installation is availible)
@@ -47,3 +60,26 @@ To get started do the following:
 
 ## Label Printing
 Print jobs are passed to the printer via MQTT. A simple print server, listening to a (currently) hard-coded topic on mqtt.zam.haus and passing them onto a (currently) hard-coded printer is implemented by `print_server.py`. A more flexible (and complex) solution is planned.
+
+
+## Deployment
+
+1. clone git repo
+2. copy .env.example to .env and edit (atleast) the following variables:
+   * `ALLOWED_HOSTS`, set to a domain to be used to access the interface
+   * `SECRET_KEY`, set to a long random string
+   * `POSTGRES_PASSWORD`, set to a random string
+   * `MQTT_PASSWORD`, set to the appropriate password (only needed for printing)
+2. import initial data
+    ```
+    docker-compose run web ./manage.py loaddata initial_inventory
+    ```
+4. create superuser
+    ```
+    docker-compose run web ./manage.py createsuperuser
+    ```
+5. start
+    ```
+    docker-compose up
+    ```
+

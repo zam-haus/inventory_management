@@ -1,0 +1,26 @@
+version: "3.10"
+
+services:
+  db:
+    image: postgres
+    volumes:
+      - ./data/db:/var/lib/postgresql/data
+    env_file:
+      - ".env"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $POSTGRES_USER -d $POSTGRES_DB"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+  web:
+    build: .
+    volumes:
+      - .:/code
+    ports:
+      - "8000:8000"
+    env_file:
+      - ".env"
+    depends_on:
+      db:
+        condition: service_healthy
+

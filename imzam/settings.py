@@ -10,6 +10,7 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/4.0/ref/settings/
 """
 import os
+from distutils.util import strtobool
 from pathlib import Path
 
 
@@ -18,11 +19,12 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/4.0/howto/static-files/
-STATIC_ROOT = os.path.join(BASE_DIR, "static")
+STATIC_ROOT = os.path.join(BASE_DIR, "data", "static")
 STATIC_URL = "static/"
 # Media files (e.g., uploads by users)
-MEDIA_ROOT = os.path.join(BASE_DIR, "media")
+MEDIA_ROOT = os.path.join(BASE_DIR, "data", "media")
 MEDIA_URL = "media/"
+
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/4.0/howto/deployment/checklist/
@@ -31,14 +33,16 @@ MEDIA_URL = "media/"
 # generate using this code:
 # import random, string
 # "".join(random.choices([c for c in string.printable if c not in "\t\n\r\x0b\x0c], k=64))
-SECRET_KEY = "django-insecure-0_3q=4-bhhfm%j7x9a$5czaxb&tkg#vs4n_@3*u4k-+rlt-1p!"
+SECRET_KEY = os.getenv("SECRET_KEY", None)
 
 # For deployment, set to False in local_settings.py
-DEBUG = True
+DEBUG = bool(strtobool(os.getenv("DEBUG", "false")))
 
 DEFAULT_DOMAIN = "https://im.zam.haus"
-ALLOWED_HOSTS = []  # defined in local_settings.py
 
+# https://docs.djangoproject.com/en/4.0/ref/settings/#std:setting-ALLOWED_HOSTS
+allowed_hosts = os.getenv("ALLOWED_HOSTS", ".localhost,127.0.0.1,[::1]")
+ALLOWED_HOSTS = list(map(str.strip, allowed_hosts.split(",")))
 
 # Application definition
 
@@ -71,6 +75,7 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "django.middleware.locale.LocaleMiddleware",
+    "whitenoise.middleware.WhiteNoiseMiddleware",
 ]
 
 ROOT_URLCONF = "imzam.urls"
@@ -101,8 +106,12 @@ WSGI_APPLICATION = "imzam.wsgi.application"
 
 DATABASES = {
     "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
+        "ENGINE": "django.db.backends.postgresql",
+        "NAME": os.getenv("POSTGRES_DB", "django"),
+        "USER": os.getenv("POSTGRES_USER", "django"),
+        "PASSWORD": os.getenv("POSTGRES_PASSWORD", "password"),
+        "HOST": os.getenv("POSTGRES_HOST", "db"),
+        "PORT": os.getenv("POSTGRES_PORT", "5432"),
     }
 }
 
@@ -150,22 +159,22 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 # ================================================================
 
 # https://www.eclipse.org/paho/index.php?page=clients/python/docs/index.php#connect-reconnect-disconnect
-MQTT_CLIENT_KWARGS = dict(client_id="imzam", transport="websockets")
-MQTT_SERVER_KWARGS = dict(host="mqtt.zam.haus", port=443, keepalive=10)
-MQTT_PASSWORD_AUTH = {}  # use local_settings.py to overwrite with actual credentials
-MQTT_PRINTER_TOPIC = (
-    "im-label-print-queue/"  # this topic is write-restricted on mqtt.zam.haus,
-)
-# configure MQTT_PASSWORD_AUTH or
-# use 'public/#' for unprivileged-testing
+MQTT_CLIENT_KWARGS = dict(
+    client_id=os.getenv("MQTT_CLIENT_ID", "imzam"),
+    transport=os.getenv("MQTT_TRANSPORT", "websockets"))
+MQTT_SERVER_KWARGS = dict(
+    host=os.getenv("MQTT_SERVER_HOSTNAME", "mqtt.zam.haus"),
+    port=int(os.getenv("MQTT_SERVER_PORT", "443")),
+    keepalive=10)
+MQTT_PASSWORD_AUTH = dict(
+    username=os.getenv("MQTT_USERNAME", "im.zam.haus-django"),
+    password=os.getenv("MQTT_PASSWORD", ""))
+# this topic is write-restricted on mqtt.zam.haus
+MQTT_PRINTER_TOPIC = "im-label-print-queue/"
 
 # Overwrite default settings with local_settings.py configuration
-try:
-    from .local_settings import *
-except ImportError:
-    print(
-        "WARNING: no local_settings.py found.\n"
-        "         Current SETTINGS ARE INSECURE and\n"
-        "         NOT meant FOR DEPLOYMENT!"
-    )
-    pass
+if not os.getenv("IGNORE_LOCAL_SETTINGS", False):
+    try:
+        from .local_settings import *
+    except ImportError:
+        pass
