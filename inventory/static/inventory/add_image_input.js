@@ -14,6 +14,7 @@ add_image_button.addEventListener('click', function() {
 	})
 	clone.querySelectorAll("input[type='text']").forEach(input => {
 		input.value = ""
+		init_autocomplete(input);
 	})
 	clone.querySelectorAll("input[type='file']").forEach(input => {
 		input.files = (new DataTransfer()).files;
