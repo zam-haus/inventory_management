@@ -50,6 +50,7 @@ INSTALLED_APPS = [
     "inventory.apps.InventoryConfig",
     "django.contrib.admin",
     "django.contrib.auth",
+    "mozilla_django_oidc",
     "django.contrib.contenttypes",
     "django.contrib.sessions",
     "django.contrib.messages",
@@ -59,6 +60,7 @@ INSTALLED_APPS = [
     "django_bootstrap5",
     "extra_views",
     "computedfields",
+    "accounts",
 ]
 
 CRISPY_ALLOWED_TEMPLATE_PACKS = "bootstrap5"
@@ -76,6 +78,7 @@ MIDDLEWARE = [
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "django.middleware.locale.LocaleMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",
+    'mozilla_django_oidc.middleware.SessionRefresh',
 ]
 
 ROOT_URLCONF = "imzam.urls"
@@ -83,7 +86,7 @@ ROOT_URLCONF = "imzam.urls"
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
-        "DIRS": [],
+        "DIRS": [BASE_DIR / 'templates'],
         "APP_DIRS": True,
         "OPTIONS": {
             "context_processors": [
@@ -116,6 +119,12 @@ DATABASES = {
 }
 
 
+# ================================================================
+# OpenID and Athentication Configuration
+# ================================================================
+
+AUTH_USER_MODEL = "accounts.User"
+
 # Password validation
 # https://docs.djangoproject.com/en/4.0/ref/settings/#auth-password-validators
 
@@ -134,6 +143,34 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
+AUTHENTICATION_BACKENDS = (
+    'django.contrib.auth.backends.ModelBackend',
+    'accounts.auth.CustomOidcAuthenticationBackend',
+)
+
+OIDC_RP_CLIENT_ID = os.getenv('OIDC_RP_CLIENT_ID', 'inv.zam.haus')
+OIDC_RP_CLIENT_SECRET = os.getenv('OIDC_RP_CLIENT_SECRET')
+OIDC_OP_AUTHORIZATION_ENDPOINT = os.getenv(
+    'OIDC_OP_AUTHORIZATION_ENDPOINT',
+    'https://login.zam.haus/auth/realms/ZAM/protocol/openid-connect/auth')
+OIDC_OP_TOKEN_ENDPOINT = os.getenv(
+    'OIDC_OP_TOKEN_ENDPOINT',
+    'https://login.zam.haus/auth/realms/ZAM/protocol/openid-connect/token')
+OIDC_OP_USER_ENDPOINT = os.getenv(
+    'OIDC_OP_USER_ENDPOINT',
+    'https://login.zam.haus/auth/realms/ZAM/protocol/openid-connect/userinfo')
+OIDC_OP_LOGOUT_URL = os.getenv(
+    'OIDC_OP_LOGOUT_URL',
+    'https://login.zam.haus/auth/realms/ZAM/protocol/openid-connect/logout?redirect_uri={}')
+if OIDC_OP_LOGOUT_URL:
+    OIDC_OP_LOGOUT_URL_METHOD = 'accounts.auth.provider_logout'
+OIDC_RP_SIGN_ALGO = 'RS256'
+OIDC_OP_JWKS_ENDPOINT = os.getenv(
+    'OIDC_OP_JWKS_ENDPOINT',
+    'https://login.zam.haus/auth/realms/ZAM/protocol/openid-connect/certs')
+LOGIN_REDIRECT_URL = '/'
+ALLOW_LOGOUT_GET_METHOD = True
+LOGOUT_REDIRECT_URL = '/'
 
 # Internationalization
 # https://docs.djangoproject.com/en/4.0/topics/i18n/

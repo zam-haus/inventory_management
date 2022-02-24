@@ -1,0 +1,9 @@
+{% extends "admin/login.html" %}
+{% load i18n static %}
+
+{% block content %}
+{{ block.super }}
+<div class="container">
+<a href="{% url 'oidc_authentication_init' %}?next={{ next }}">{% trans 'Login via ZAM SSO' %}</a>
+</div>
+{% endblock %}
