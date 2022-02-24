@@ -1,5 +1,6 @@
 let add_image_button = document.querySelector('#add_image_button')
 let image_count_input = document.querySelector("#id_itemimage_set-TOTAL_FORMS")
+let image_placeholder_path = document.querySelector('#placeholder_path').value;
 
 add_image_button.addEventListener('click', function() {
 	let idx = image_count_input.value;
@@ -9,8 +10,7 @@ add_image_button.addEventListener('click', function() {
 	
 	//empty all inputs
 	clone.querySelectorAll("img").forEach(image => {
-		//image.src = "placeholder.svg"
-		image.src = ""
+		image.src = image_placeholder_path
 	})
 	clone.querySelectorAll("input[type='text']").forEach(input => {
 		input.value = ""

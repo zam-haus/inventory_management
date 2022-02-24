@@ -96,11 +96,15 @@ class ItemImageInline(InlineFormSetFactory):
             layout.Div(
                 layout.HTML(
                     """
+                    {% load static %}
+                    <img class="img-responsive" width="100%" src=
                     {% if formset_form.image.value %}
-                        <img class="img-responsive" width="100%" src="{{ MEDIA_URL }}{{ formset_form.image.value }}">
+                        "{{ MEDIA_URL }}{{ formset_form.image.value }}"
                     {% else %}
-                        <img class="img-responsive" width="100%" src="" hidden>
-                    {% endif %}""",
+                        "{% static 'inventory/placeholder.svg' %}"
+                    {% endif %}
+                    >
+                    """,
                 ),
                 "description",
                 layout.Div(
