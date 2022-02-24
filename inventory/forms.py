@@ -97,6 +97,7 @@ class ItemImageInline(InlineFormSetFactory):
                 layout.HTML(
                     """
                     {% load static %}
+                    <div data-bs-toggle="modal" data-bs-target="#camera_modal">
                     <img class="img-responsive" width="100%" src=
                     {% if formset_form.image.value %}
                         "{{ MEDIA_URL }}{{ formset_form.image.value }}"
@@ -104,17 +105,12 @@ class ItemImageInline(InlineFormSetFactory):
                         "{% static 'inventory/placeholder.svg' %}"
                     {% endif %}
                     >
+                    </div>
                     """,
                 ),
                 "description",
                 layout.Div(
                     "image",
-                    layout.HTML(
-                        '<button type="button" class="btn btn-primary mb-4" '
-                        'data-bs-toggle="modal" data-bs-target="#camera_modal">'
-                        'integrated camera'
-                        '</button>',
-                    ),
                     css_class="input-group",
                 ),
                 css_class='container itemimage_set_item pb-3',
