@@ -97,7 +97,7 @@ class ItemImageInline(InlineFormSetFactory):
                 layout.HTML(
                     """
                     {% load static %}
-                    <div data-bs-toggle="modal" data-bs-target="#camera_modal">
+                    <div class="col-md-5" data-bs-toggle="modal" data-bs-target="#camera_modal">
                     <img class="img-responsive" width="100%" src=
                     {% if formset_form.image.value %}
                         "{{ MEDIA_URL }}{{ formset_form.image.value }}"
