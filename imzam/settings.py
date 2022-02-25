@@ -174,6 +174,7 @@ ALLOW_LOGOUT_GET_METHOD = True
 LOGOUT_REDIRECT_URL = '/'
 OIDC_CLAIM_REFERENCE_KEY = os.getenv("OIDC_CLAIM_REFERENCE_KEY", 'ldap_id')
 OIDC_CLAIM_USERNAME_KEY = os.getenv("OIDC_CLAIM_USERNAME_KEY", 'preferred_username')
+LOGIN_URL = '/oidc/authenticate'
 
 # Internationalization
 # https://docs.djangoproject.com/en/4.0/topics/i18n/

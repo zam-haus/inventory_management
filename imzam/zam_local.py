@@ -59,14 +59,12 @@ class ZAMLocalMiddleware:
             for ip in self.zam_ips:
                 if ipaddress.ip_address(current_addr) == ip:
                     s.is_zam_local = True
-                    print('ZAM-local')
                     break
             else:
-                print('non-local')
                 s.is_zam_local = False
 
-        print("is_zam_local", s.is_zam_local)
-        print("current_addr", current_addr)
+        #print("is_zam_local", s.is_zam_local)
+        #print("current_addr", current_addr)
 
         response = self.get_response(request)
 

@@ -8,6 +8,8 @@ from django.views.generic import ListView, DetailView
 from django.core.exceptions import ObjectDoesNotExist
 import extra_views
 from django.utils.translation import gettext_lazy as _
+from django.contrib.auth.mixins import UserPassesTestMixin
+
 
 from . import forms
 from . import models
@@ -65,7 +67,7 @@ def view_item(request, pk):
     return redirect(reverse_lazy("update_item", args=[pk]))
 
 
-class CreateItemView(extra_views.CreateWithInlinesView):
+class CreateItemView(UserPassesTestMixin, extra_views.CreateWithInlinesView):
     model = models.Item
     inlines = [forms.ItemImageInline, forms.ItemLocationInline]
     template_name = "inventory/item_formset.html"
@@ -88,9 +90,15 @@ class CreateItemView(extra_views.CreateWithInlinesView):
         except ObjectDoesNotExist:
             pass
         return super().construct_inlines()
+    
+    def test_func(self):
+        # Logged in or @ZAM
+        print(not self.request.user.is_anonymous, self.request.session.get('is_zam_local', False))
+        return not self.request.user.is_anonymous or \
+            self.request.session.get('is_zam_local')
 
 
-class UpdateItemView(extra_views.UpdateWithInlinesView):
+class UpdateItemView(UserPassesTestMixin, extra_views.UpdateWithInlinesView):
     model = models.Item
     inlines = [forms.ItemImageInline, forms.ItemLocationInline]
     template_name = "inventory/item_formset.html"
@@ -100,8 +108,14 @@ class UpdateItemView(extra_views.UpdateWithInlinesView):
     def get_success_url(self):
         return self.object.get_absolute_url()
 
+    def test_func(self):
+        # Logged in or @ZAM
+        print(not self.request.user.is_anonymous, self.request.session.get('is_zam_local', False))
+        return not self.request.user.is_anonymous or \
+            self.request.session.get('is_zam_local', False)
 
-class SearchableItemListView(extra_views.SearchableListMixin, ListView):
+
+class SearchableItemListView(UserPassesTestMixin, extra_views.SearchableListMixin, ListView):
     # matching criteria can be defined along with fields
     search_fields = ["name", "category__name"]
     search_date_fields = []
@@ -112,3 +126,8 @@ class SearchableItemListView(extra_views.SearchableListMixin, ListView):
     # def get_search_query(self):
     #    # Overwrite query here
     #    return super().get_search_query()
+
+    def test_func(self):
+        # Logged in or @ZAM
+        return not self.request.user.is_anonymous or \
+            self.request.session.get('is_zam_local', False)
