@@ -10,3 +10,5 @@ typing_extensions
 psycopg2
 whitenoise
 gunicorn
+mozilla-django-oidc
+pymaybe

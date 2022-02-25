@@ -16,7 +16,7 @@ from . import models
 
 
 def index(request):
-    return HttpResponse("Welcome to the ZAM Inventory Managment.")
+    return render(request, "inventory/index.html")
 
 
 class DetailLocationView(DetailView):

@@ -8,6 +8,27 @@
 {% endblock %}
 
 {% block pre_container %}
+<div class="modal fade" id="barcode_modal" tabindex="-1" aria-labelledby="barcodeModalLabel" aria-hidden="true">
+    <div class="modal-dialog" style="max-width: 674px;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="barcodeModalLabel">scan a barcode</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div id="quagga_display"></div>
+                <div id="result_strip">
+                    <ul id="result_strip_thumbnails" class="thumbnails"></ul>
+                    <ul class="collector"></ul>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" id="barcode_use_selected">use selected</button>
+            </div>
+        </div>
+    </div>
+</div>
 <div class="modal fade" id="camera_modal" tabindex="-1" aria-labelledby="cameraModalLabel" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
@@ -58,4 +79,7 @@
 {% load static %}
 <script type="text/javascript" src="{% static 'inventory/camera.js' %}"></script>
 <script type="text/javascript" src="{% static 'inventory/add_image_input.js' %}"></script>
+<script type="text/javascript" src="{% static 'inventory/quagga.min.js' %}"></script>
+<script type="text/javascript" src="{% static 'inventory/barcodescanner.js' %}"></script>
+<link rel="stylesheet" type="text/css" href="{% static 'inventory/barcodescanner.css' %}" />
 {% endblock %}

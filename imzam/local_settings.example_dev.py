@@ -21,3 +21,6 @@ DATABASES = {
         "NAME": BASE_DIR / "db.sqlite3",
     }
 }
+
+OIDC_RP_CLIENT_ID = ''
+OIDC_RP_CLIENT_SECRET = ''
