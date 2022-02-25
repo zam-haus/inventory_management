@@ -22,4 +22,5 @@ DATABASES = {
     }
 }
 
+OIDC_RP_CLIENT_ID = ''
 OIDC_RP_CLIENT_SECRET = ''
