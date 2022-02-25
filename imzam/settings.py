@@ -171,6 +171,9 @@ OIDC_OP_JWKS_ENDPOINT = os.getenv(
 LOGIN_REDIRECT_URL = '/'
 ALLOW_LOGOUT_GET_METHOD = True
 LOGOUT_REDIRECT_URL = '/'
+OIDC_USER_DIRECTORY_UUID = os.getenv("OIDC_USER_DIRECTORY_UUID")  # not needed if only one
+OIDC_CLAIM_REFERENCE_KEY = os.getenv("OIDC_CLAIM_REFERENCE_KEY", 'ldap_id')
+OIDC_CLAIM_USERNAME_KEY = os.getenv("OIDC_CLAIM_USERNAME_KEY", 'preferred_username')
 
 # Internationalization
 # https://docs.djangoproject.com/en/4.0/topics/i18n/
