@@ -12,7 +12,7 @@ https://docs.djangoproject.com/en/4.0/ref/settings/
 import os
 from distutils.util import strtobool
 from pathlib import Path
-
+import socket
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -79,6 +79,7 @@ MIDDLEWARE = [
     "django.middleware.locale.LocaleMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",
     'mozilla_django_oidc.middleware.SessionRefresh',
+    'imzam.zam_local.ZAMLocalMiddleware',
 ]
 
 ROOT_URLCONF = "imzam.urls"
@@ -211,9 +212,36 @@ MQTT_PASSWORD_AUTH = dict(
 # this topic is write-restricted on mqtt.zam.haus
 MQTT_PRINTER_TOPIC = "im-label-print-queue/"
 
+MQTT_ZAMIP_SERVER_KWARGS = dict(
+    host=os.getenv("MQTT_ZAMIP_SERVER_HOSTNAME", "mqtt.sesam.zam.haus"),
+    port=int(os.getenv("MQTT_ZAMIP_SERVER_PORT", "443")),
+    keepalive=120)
+MQTT_ZAMIP_PASSWORD_AUTH = dict(
+    username=os.getenv("MQTT_ZAMIP_USERNAME", "im.zam.haus-django"),
+    password=os.getenv("MQTT_ZAMIP_PASSWORD", ""))
+
+
 # Overwrite default settings with local_settings.py configuration
 if not os.getenv("IGNORE_LOCAL_SETTINGS", False):
     try:
         from .local_settings import *
     except ImportError:
         pass
+
+
+# ================================================================
+# Client IP Detection Using ipware
+# ================================================================
+
+#PROXY_HOSTNAME = "nginx"
+#try:
+#    _, _, _nginx_address = socket.gethostbyname_ex(PROXY_HOSTNAME)
+#except socket.gaierror:
+#    _nginx_address = None
+#
+#if _nginx_address:
+#    IPWARE_REVERSE_PROXIES = [
+#        ReverseProxy(Header("X-Forwarded-For"), *_nginx_address),
+#    ]
+#else:
+#    IPWARE_REVERSE_PROXIES = []
