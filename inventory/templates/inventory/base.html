@@ -5,26 +5,41 @@
 
 {% block bootstrap5_content %}
     {% block pre_container %}{% endblock %}
-    <div class="container">
-        <h1>{% block title %}(no title){% endblock %}</h1>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+      <div class="container-fluid">
+        <a class="navbar-brand" href="{% url 'index' %}">ZAM inventory</a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNavAltMarkup" aria-controls="navbarNavAltMarkup" aria-expanded="false" aria-label="Toggle navigation">
+          <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNavAltMarkup">
+          <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+          <li class="nav-item"><a class="nav-link" href="{% url 'index_items' %}">Items</a></li>
 
-        <ul class="nav nav-pills">
-            <li class="nav-item"><a class="nav-link" href="{% url 'index' %}">home</a></li>
-            <li class="nav-item">
-                {% if user.is_authenticated %}
-                {% trans 'Current user:' %} {{ user.email }}
-                <form action="{% url 'oidc_logout' %}" method="post">
-                  {% csrf_token %}
-                  <input type="submit" value="{% trans 'logout' %}">
-                </form>
-              {% else %}
-                <a class="nav-link" href="{% url 'oidc_authentication_init' %}?next={{ request.get_full_path }}">{% trans 'Login via ZAM SSO' %}</a>
-              {% endif %}
-            </li>
-        </ul>
+          {% if user.is_staff %}
+          <li class="nav-item"><a class="nav-link" href="{% url 'admin:index' %}">Admin</a></li>
+          {% endif %}
+          </ul>
+        </div>
+        <div class="navbar-nav">
+          {% if user.is_authenticated %}
+          <span class="navbar-text me-2">
+            {% trans 'Current user:' %} {{ user.username }}
+          </span>
+          <form action="{% url 'oidc_logout' %}" method="post" class="d-flex">
+            {% csrf_token %}
+            <button class="btn btn-sm btn-outline-warning" type="submit">Logout</button>
+          </form>
+          {% else %}
+          <a class="btn btn-sm btn-outline-warning" href="{% url 'oidc_authentication_init' %}?next={{ request.get_full_path }}">{% trans 'Login via ZAM SSO' %}</a>
+          {% endif %}
+        </div>
+      </div>
+    </nav>
 
-        {% autoescape off %}{% bootstrap_messages %}{% endautoescape %}
-
-        {% block content %}(no content){% endblock %}
+    <div class="container mt-3">
+      <h1>{% block title %}(no title){% endblock %}</h1>
+      {% autoescape off %}{% bootstrap_messages %}{% endautoescape %}
+      {% block content %}(no content){% endblock %}
     </div>
+
 {% endblock %}
