@@ -7,7 +7,6 @@ from django.http import HttpRequest
 from django.core.exceptions import PermissionDenied
 from django.template.defaultfilters import urlencode
 from mozilla_django_oidc.auth import OIDCAuthenticationBackend
-from sympy import false
 
 from accounts.models import User
 from django.conf import settings
