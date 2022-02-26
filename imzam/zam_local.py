@@ -24,7 +24,8 @@ class ZAMLocalMiddleware:
     
     def mqtt_connect_and_loop(self):
         c = mqttc.Client(**settings.MQTT_CLIENT_KWARGS)
-        c.tls_set()
+        if settings.MQTT_ZAMIP_SERVER_SSL:
+            c.tls_set()
         c.username_pw_set(**settings.MQTT_ZAMIP_PASSWORD_AUTH)
         c.on_connect = self.on_connect
         c.on_message = self.on_message
