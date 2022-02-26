@@ -72,7 +72,6 @@ class CreateItemView(UserPassesTestMixin, extra_views.CreateWithInlinesView):
     
     def test_func(self):
         # Logged in or @ZAM
-        print(not self.request.user.is_anonymous, self.request.session.get('is_zam_local', False))
         return not self.request.user.is_anonymous or \
             self.request.session.get('is_zam_local')
 
@@ -89,8 +88,6 @@ class UpdateItemView(UserPassesTestMixin, extra_views.UpdateWithInlinesView):
 
     def test_func(self):
         # Logged in or @ZAM
-        print(not self.request.user.is_anonymous,
-              self.request.session.get('is_zam_local', False))
         return not self.request.user.is_anonymous or \
             self.request.session.get('is_zam_local', False)
 

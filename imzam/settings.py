@@ -104,7 +104,6 @@ TEMPLATES = [
 
 WSGI_APPLICATION = "imzam.wsgi.application"
 
-
 # Database
 # https://docs.djangoproject.com/en/4.0/ref/settings/#databases
 
@@ -248,3 +247,28 @@ if not os.getenv("IGNORE_LOCAL_SETTINGS", False):
 #    ]
 #else:
 #    IPWARE_REVERSE_PROXIES = []
+
+
+# ================================================================
+# Logging
+# ================================================================
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+        },
+    },
+    'root': {
+        'handlers': ['console'],
+        'level': 'WARNING',
+    },
+    'loggers': {
+        'mozilla_django_oidc': {
+            'handlers': ['console'],
+            'level': 'DEBUG'
+        },
+    },
+}

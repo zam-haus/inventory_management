@@ -78,6 +78,7 @@ class CustomOidcAuthenticationBackend(OIDCAuthenticationBackend):
         if save_user:
             user.save()
 
+
 def provider_logout(request: HttpRequest):
     keycloak_logout_url = settings.OIDC_OP_LOGOUT_URL
     redirect_url = request.build_absolute_uri(settings.LOGOUT_REDIRECT_URL)

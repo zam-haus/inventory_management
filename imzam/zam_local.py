@@ -7,9 +7,8 @@ from ipware import get_client_ip
 from pymaybe import maybe
 
 from . import settings
-from django.contrib.sessions.backends.db import SessionStore
 
-from paho.mqtt import subscribe, client as mqttc
+from paho.mqtt import client as mqttc
 
 
 class ZAMLocalMiddleware:
