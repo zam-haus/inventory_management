@@ -220,7 +220,7 @@ MQTT_ZAMIP_SERVER_KWARGS = dict(
     keepalive=120)
 MQTT_ZAMIP_SERVER_SSL=strtobool(os.getenv("MQTT_SERVER_SSL", "true"))
 MQTT_ZAMIP_PASSWORD_AUTH = dict(
-    username=os.getenv("MQTT_ZAMIP_USERNAME", "im.zam.haus-django"),
+    username=os.getenv("MQTT_ZAMIP_USERNAME", "inv.zam.haus-django"),
     password=os.getenv("MQTT_ZAMIP_PASSWORD", ""))
 
 
