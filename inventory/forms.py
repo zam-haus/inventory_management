@@ -2,9 +2,8 @@ import re
 from datetime import datetime, timezone
 
 from crispy_forms.helper import FormHelper
-from crispy_forms import layout
-from django.core.exceptions import ObjectDoesNotExist
-from django.forms import FileInput, ModelForm, RegexField, Textarea, TextInput, Select
+from crispy_forms import layout, bootstrap
+from django.forms import FileInput, ModelForm, RegexField, Textarea, TextInput
 from extra_views import InlineFormSetFactory
 
 from .models import BarcodeType, Item, ItemBarcode, ItemImage, ItemLocation, Location
@@ -40,6 +39,19 @@ class ItemForm(ModelForm):
         self.helper = FormHelper()
         self.helper.form_tag = False
         self.helper.disable_csrf = True
+        self.helper.layout = layout.Layout(
+            "name",
+            "description",
+            "category",
+            layout.Div(
+                layout.Div(
+                    "measurement_unit",
+                    css_class="col"),
+                layout.Div(
+                    bootstrap.AppendedText("sale_price", '€'),
+                    css_class="col"),
+                css_class="row"),
+        )
 
 
 class CreateItemForm(ItemForm):
@@ -49,6 +61,11 @@ class CreateItemForm(ItemForm):
         widget=Textarea(attrs={"rows": 3}),
         required=False,
     )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.helper.layout.fields.append(
+            bootstrap.FieldWithButtons("barcode_data"))
 
     def save(self, commit=True):
         # process barcode_data
@@ -159,7 +176,9 @@ class ItemLocationInline(InlineFormSetFactory):
         formset.helper.disable_csrf = True
         # formset.helper.template = 'bootstrap/table_inline_formset.html'
         formset.helper.form_title = "Item Storage Locations"
-        formset.helper.layout = layout.Layout(
-            layout.Div("location", "amount", css_class="input-group")
-        )
+        formset.helper.layout = layout.Layout(layout.Div(
+            layout.Div("location", css_class='col'),
+            layout.Div("amount", css_class="input-group col"),
+            css_class='row'
+        ))
         return formset

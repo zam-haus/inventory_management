@@ -38,28 +38,7 @@ class DetailLocationView(DetailView):
         return self.render_to_response(context)
 
 
-def create_item(request):
-    # Prio 0
-    # get location_id from request
-    context = {}
-
-    item_form = forms.CreateItemForm()
-    context["form"] = item_form
-    return render(request, "inventory/create_item.html", context)
-
-
-def update_item(request, id):
-    # Prio 3
-    pass
-
-
-def delete_item(request, id):
-    # Prio 5
-    pass
-
-
 def update_location(request, pk, unique_identifier):
-    # Prio 4
     pass
 
 
