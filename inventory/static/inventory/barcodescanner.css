@@ -1,0 +1,60 @@
+#quagga_display canvas, video {
+  float: left;
+  width: 100%;
+  height: 480px;
+}
+
+#quagga_display canvas.drawingBuffer, video.drawingBuffer {
+  margin-left: -100%;
+}
+
+#result_strip {
+  margin: 10px 0;
+  border-top: 1px solid #EEE;
+  border-bottom: 1px solid #EEE;
+  padding: 10px 0;
+}
+
+#result_strip > ul {
+  padding: 0;
+  margin: 0;
+  list-style-type: none;
+  width: auto;
+  overflow-x: auto;
+  overflow-y: hidden;
+  white-space: nowrap;
+}
+
+#result_strip > ul > li {
+  display: inline-block;
+  vertical-align: middle;
+  width: 160px;
+}
+
+#result_strip > ul > li .thumbnail {
+  padding: 5px;
+  margin: 4px;
+  border: 1px dashed #CCC;
+}
+
+#result_strip > ul > li .thumbnail img {
+  max-width: 140px;
+}
+
+#result_strip > ul > li .thumbnail .caption {
+  white-space: normal;
+  text-align: center;
+}
+
+#result_strip > ul > li .thumbnail .caption .code {
+  text-align: center;
+  word-wrap: break-word;
+  height: 40px;
+  margin: 0px;
+}
+
+#result_strip > ul:after {
+  content: "";
+  display: table;
+  clear: both;
+}

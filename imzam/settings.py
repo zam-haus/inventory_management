@@ -12,7 +12,7 @@ https://docs.djangoproject.com/en/4.0/ref/settings/
 import os
 from distutils.util import strtobool
 from pathlib import Path
-
+import socket
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -50,6 +50,7 @@ INSTALLED_APPS = [
     "inventory.apps.InventoryConfig",
     "django.contrib.admin",
     "django.contrib.auth",
+    "mozilla_django_oidc",
     "django.contrib.contenttypes",
     "django.contrib.sessions",
     "django.contrib.messages",
@@ -59,6 +60,7 @@ INSTALLED_APPS = [
     "django_bootstrap5",
     "extra_views",
     "computedfields",
+    "accounts",
 ]
 
 CRISPY_ALLOWED_TEMPLATE_PACKS = "bootstrap5"
@@ -76,6 +78,8 @@ MIDDLEWARE = [
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "django.middleware.locale.LocaleMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",
+    'mozilla_django_oidc.middleware.SessionRefresh',
+    'imzam.zam_local.ZAMLocalMiddleware',
 ]
 
 ROOT_URLCONF = "imzam.urls"
@@ -83,7 +87,7 @@ ROOT_URLCONF = "imzam.urls"
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
-        "DIRS": [],
+        "DIRS": [BASE_DIR / 'templates'],
         "APP_DIRS": True,
         "OPTIONS": {
             "context_processors": [
@@ -116,6 +120,12 @@ DATABASES = {
 }
 
 
+# ================================================================
+# OpenID and Athentication Configuration
+# ================================================================
+
+AUTH_USER_MODEL = "accounts.User"
+
 # Password validation
 # https://docs.djangoproject.com/en/4.0/ref/settings/#auth-password-validators
 
@@ -134,6 +144,37 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
+AUTHENTICATION_BACKENDS = (
+    'django.contrib.auth.backends.ModelBackend',
+    'accounts.auth.CustomOidcAuthenticationBackend',
+)
+
+OIDC_RP_CLIENT_ID = os.getenv('OIDC_RP_CLIENT_ID', 'inv.zam.haus')
+OIDC_RP_CLIENT_SECRET = os.getenv('OIDC_RP_CLIENT_SECRET')
+OIDC_OP_AUTHORIZATION_ENDPOINT = os.getenv(
+    'OIDC_OP_AUTHORIZATION_ENDPOINT',
+    'https://login.zam.haus/auth/realms/ZAM/protocol/openid-connect/auth')
+OIDC_OP_TOKEN_ENDPOINT = os.getenv(
+    'OIDC_OP_TOKEN_ENDPOINT',
+    'https://login.zam.haus/auth/realms/ZAM/protocol/openid-connect/token')
+OIDC_OP_USER_ENDPOINT = os.getenv(
+    'OIDC_OP_USER_ENDPOINT',
+    'https://login.zam.haus/auth/realms/ZAM/protocol/openid-connect/userinfo')
+OIDC_OP_LOGOUT_URL = os.getenv(
+    'OIDC_OP_LOGOUT_URL',
+    'https://login.zam.haus/auth/realms/ZAM/protocol/openid-connect/logout?redirect_uri={}')
+if OIDC_OP_LOGOUT_URL:
+    OIDC_OP_LOGOUT_URL_METHOD = 'accounts.auth.provider_logout'
+OIDC_RP_SIGN_ALGO = 'RS256'
+OIDC_OP_JWKS_ENDPOINT = os.getenv(
+    'OIDC_OP_JWKS_ENDPOINT',
+    'https://login.zam.haus/auth/realms/ZAM/protocol/openid-connect/certs')
+LOGIN_REDIRECT_URL = '/'
+ALLOW_LOGOUT_GET_METHOD = True
+LOGOUT_REDIRECT_URL = '/'
+OIDC_CLAIM_REFERENCE_KEY = os.getenv("OIDC_CLAIM_REFERENCE_KEY", 'ldap_id')
+OIDC_CLAIM_USERNAME_KEY = os.getenv("OIDC_CLAIM_USERNAME_KEY", 'preferred_username')
+LOGIN_URL = '/oidc/authenticate'
 
 # Internationalization
 # https://docs.djangoproject.com/en/4.0/topics/i18n/
@@ -166,11 +207,22 @@ MQTT_SERVER_KWARGS = dict(
     host=os.getenv("MQTT_SERVER_HOSTNAME", "mqtt.zam.haus"),
     port=int(os.getenv("MQTT_SERVER_PORT", "443")),
     keepalive=10)
+MQTT_SERVER_SSL=strtobool(os.getenv("MQTT_SERVER_SSL", "true"))
 MQTT_PASSWORD_AUTH = dict(
     username=os.getenv("MQTT_USERNAME", "im.zam.haus-django"),
     password=os.getenv("MQTT_PASSWORD", ""))
 # this topic is write-restricted on mqtt.zam.haus
 MQTT_PRINTER_TOPIC = "im-label-print-queue/"
+
+MQTT_ZAMIP_SERVER_KWARGS = dict(
+    host=os.getenv("MQTT_ZAMIP_SERVER_HOSTNAME", "mqtt.sesam.zam.haus"),
+    port=int(os.getenv("MQTT_ZAMIP_SERVER_PORT", "443")),
+    keepalive=120)
+MQTT_ZAMIP_SERVER_SSL=strtobool(os.getenv("MQTT_SERVER_SSL", "true"))
+MQTT_ZAMIP_PASSWORD_AUTH = dict(
+    username=os.getenv("MQTT_ZAMIP_USERNAME", "inv.zam.haus-django"),
+    password=os.getenv("MQTT_ZAMIP_PASSWORD", ""))
+
 
 # Overwrite default settings with local_settings.py configuration
 if not os.getenv("IGNORE_LOCAL_SETTINGS", False):
@@ -178,3 +230,21 @@ if not os.getenv("IGNORE_LOCAL_SETTINGS", False):
         from .local_settings import *
     except ImportError:
         pass
+
+
+# ================================================================
+# Client IP Detection Using ipware
+# ================================================================
+
+#PROXY_HOSTNAME = "nginx"
+#try:
+#    _, _, _nginx_address = socket.gethostbyname_ex(PROXY_HOSTNAME)
+#except socket.gaierror:
+#    _nginx_address = None
+#
+#if _nginx_address:
+#    IPWARE_REVERSE_PROXIES = [
+#        ReverseProxy(Header("X-Forwarded-For"), *_nginx_address),
+#    ]
+#else:
+#    IPWARE_REVERSE_PROXIES = []
