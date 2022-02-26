@@ -58,7 +58,7 @@ class CreateItemForm(ItemForm):
     # TODO use QuaggaJS? https://serratus.github.io/quaggaJS/
     barcode_data = RegexField(
         regex=r"(?:[^\s]+(?:[ \t]+[^\s]*)?\n)*[^\s]+(?:[ \t]+[^\s]*)?\n?",
-        widget=Textarea(attrs={"rows": 3}),
+        widget=Textarea(attrs={"rows": 2}),
         required=False,
     )
 

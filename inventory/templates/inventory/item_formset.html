@@ -62,7 +62,7 @@
     <div class="mb-3">
     <legend>{{ inlines.0.helper.form_title }}</legend>
     {% crispy inlines.0 %}
-    <button id="add_image_button" type="button" class="btn btn-primary">Add image</button>
+    <button id="add_image_button" type="button" class="btn btn-primary">{% trans 'Add additional image' %}</button>
     </div>
 
     <div class="mb-3">
@@ -70,7 +70,7 @@
     {% crispy inlines.1 %}
     </div>
 
-    <input type="submit" name="save" value="Save" class="btn btn-primary mb-3">
+    <input type="submit" name="save" value="{% trans 'Save' %}" class="btn btn-primary mb-3">
     {% if request.GET and request.GET.location_id %}
     <input type="submit" name="save_and_mark" value="{% translate "Save and mark location finished" %}" class="btn btn-primary mb-3">
     {% endif %}
