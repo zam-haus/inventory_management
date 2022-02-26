@@ -296,7 +296,8 @@ class LocationLabelTemplate(models.Model):
 
     def send_to_printer(self, location=None):
         c = mqttc.Client(**settings.MQTT_CLIENT_KWARGS)
-        c.tls_set()
+        if settings.MQTT_SERVER_SSL:
+            c.tls_set()
         if settings.MQTT_PASSWORD_AUTH:
             c.username_pw_set(**settings.MQTT_PASSWORD_AUTH)
         c.connect(**settings.MQTT_SERVER_KWARGS)
