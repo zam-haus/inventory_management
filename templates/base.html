@@ -24,12 +24,20 @@
           {% if user.is_authenticated %}
           <span class="navbar-text me-2">
             {% trans 'Current user:' %} {{ user.username }}
+            {% if request.session.is_zam_local %}
+            (ZAM-local)
+            {% endif %}
           </span>
           <form action="{% url 'oidc_logout' %}" method="post" class="d-flex">
             {% csrf_token %}
             <button class="btn btn-sm btn-outline-warning" type="submit">{% trans 'Logout' %}</button>
           </form>
           {% else %}
+          {% if request.session.is_zam_local %}
+          <span class="navbar-text me-2">
+            {% trans 'unknown ZAM-local user' %}
+          </span>
+          {% endif %}
           <a class="btn btn-sm btn-outline-warning" href="{% url 'oidc_authentication_init' %}?next={{ request.get_full_path }}">{% trans 'Login via ZAM SSO' %}</a>
           {% endif %}
         </div>
