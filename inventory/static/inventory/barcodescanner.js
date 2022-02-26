@@ -38,6 +38,9 @@ barcode_modal.addEventListener('show.bs.modal', async function(event){
 			readers : [{
 				format: "ean_reader",
 				config: {}
+			},{
+				format: "ean_8_reader",
+				config: {}
 			}],
 		},
 		locate: true,
