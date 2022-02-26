@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2022-02-26 10:55+0100\n"
+"POT-Creation-Date: 2022-02-26 11:19+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -25,6 +25,16 @@ msgstr "Sache"
 #: inventory/models.py:26
 msgid "items"
 msgstr "Sachen"
+
+#: inventory/models.py:30
+#| msgid "category name"
+msgid "item name"
+msgstr "Name der Sache"
+
+#: inventory/models.py:31 inventory/models.py:103 inventory/models.py:109
+#: inventory/models.py:150 inventory/models.py:343
+msgid "description"
+msgstr "Beschreibung"
 
 #: inventory/models.py:39 inventory/models.py:68
 msgid "category"
@@ -61,11 +71,6 @@ msgstr "Voller Name"
 #: inventory/models.py:102
 msgid "image"
 msgstr "Bild"
-
-#: inventory/models.py:103 inventory/models.py:109 inventory/models.py:150
-#: inventory/models.py:343
-msgid "description"
-msgstr "Beschreibung"
 
 #: inventory/models.py:108 inventory/models.py:110
 msgid "file"
@@ -236,7 +241,6 @@ msgid "ZAM inv"
 msgstr "ZAM inv"
 
 #: inventory/templates/inventory/item_formset.html:65
-#| msgid "image"
 msgid "Add additional image"
 msgstr "Weiteres Bild hinzufügen"
 

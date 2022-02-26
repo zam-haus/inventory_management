@@ -27,8 +27,8 @@ class Item(models.Model):
 
     # TODO use UUID as id?
     # id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    name = models.CharField("item name", max_length=512, blank=True, null=True)
-    description = models.TextField(blank=True)
+    name = models.CharField(_("item name"), max_length=512, blank=True, null=True)
+    description = models.TextField(_("description"), blank=True)
     # TODO implement signal for automatic adoption by parent_location
     # https://stackoverflow.com/questions/43857902/django-set-foreign-key-to-parent_location-value-on-delete
     category = models.ForeignKey(
