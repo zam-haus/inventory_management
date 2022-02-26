@@ -59,10 +59,10 @@ class ZAMLocalMiddleware:
             s.last_seen_remote_addr = current_addr
             for ip in self.zam_ips:
                 if ipaddress.ip_address(current_addr) == ip:
-                    s.is_zam_local = True
+                    s['is_zam_local'] = True
                     break
             else:
-                s.is_zam_local = False
+                s['is_zam_local'] = False
 
         #print("is_zam_local", s.is_zam_local)
         #print("current_addr", current_addr)
