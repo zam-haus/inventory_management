@@ -29,6 +29,7 @@ class CustomOidcAuthenticationBackend(OIDCAuthenticationBackend):
             user = User()
             user.username = claims.get(settings.OIDC_CLAIM_USERNAME_KEY)
             user.directory_reference = self.get_directory_reference(claims)
+            user.set_unusable_password()
             # This may fail on preexisting users with same name
             try:
                 user.save()
@@ -60,7 +61,6 @@ class CustomOidcAuthenticationBackend(OIDCAuthenticationBackend):
             user.email = None
         user.first_name = claims.get("given_name")
         user.last_name = claims.get("family_name")
-        user.set_unusable_password()
         user.is_superuser = 'Admin' in claims['groups']
         user.is_staff = 'Admin' in claims['groups']
         if save_user:
