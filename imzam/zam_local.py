@@ -63,9 +63,6 @@ class ZAMLocalMiddleware:
             else:
                 s['is_zam_local'] = False
 
-        #print("is_zam_local", s.is_zam_local)
-        #print("current_addr", current_addr)
-
         response = self.get_response(request)
 
         # Code to be executed for each request/response after
