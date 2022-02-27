@@ -3,6 +3,7 @@ from datetime import datetime, timezone
 
 from crispy_forms.helper import FormHelper
 from crispy_forms import layout, bootstrap
+from crispy_bootstrap5.bootstrap5 import FloatingField
 from django.forms import FileInput, ModelForm, RegexField, Textarea, TextInput
 from extra_views import InlineFormSetFactory
 
@@ -125,7 +126,7 @@ class ItemImageInline(InlineFormSetFactory):
                     </div>
                     """,
                 ),
-                "description",
+                FloatingField("description"),
                 layout.Div(
                     "image",
                     css_class="input-group",
