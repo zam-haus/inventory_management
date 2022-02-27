@@ -131,7 +131,7 @@ class ItemImageInline(InlineFormSetFactory):
                     "image",
                     css_class="input-group",
                 ),
-                css_class='container itemimage_set_item pb-3',
+                css_class='itemimage_set_item mb-3',
             ),
         )
         return formset
