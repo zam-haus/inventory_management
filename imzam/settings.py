@@ -175,6 +175,14 @@ OIDC_CLAIM_REFERENCE_KEY = os.getenv("OIDC_CLAIM_REFERENCE_KEY", 'ldap_id')
 OIDC_CLAIM_USERNAME_KEY = os.getenv("OIDC_CLAIM_USERNAME_KEY", 'preferred_username')
 LOGIN_URL = '/oidc/authenticate'
 
+OIDC_ADMIN_GROUPS = map(
+    str.strip,
+    os.getenv("OIDC_ADMIN_GROUPS", ['Admin', 'InventoryAdmin']).split(','))
+
+OIDC_STAFF_GROUPS = list(map(
+    str.strip,
+    os.getenv("OIDC_ADMIN_GROUPS", 'Admin, InventoryAdmin').split(',')))
+
 # Internationalization
 # https://docs.djangoproject.com/en/4.0/topics/i18n/
 

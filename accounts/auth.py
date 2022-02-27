@@ -61,8 +61,18 @@ class CustomOidcAuthenticationBackend(OIDCAuthenticationBackend):
             user.email = None
         user.first_name = claims.get("given_name")
         user.last_name = claims.get("family_name")
-        user.is_superuser = 'Admin' in claims['groups']
-        user.is_staff = 'Admin' in claims['groups']
+        for g in claims['groups']:
+            if g in settings.OIDC_ADMIN_GROUPS:
+                user.is_superuser = True
+                break
+        else:
+            user.is_superuser = False
+        for g in claims['groups']:
+            if g in settings.OIDC_STAFF_GROUPS:
+                user.is_staff = True
+                break
+        else:
+            user.is_staff = False
         if save_user:
             user.save()
 
