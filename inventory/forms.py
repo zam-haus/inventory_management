@@ -178,8 +178,13 @@ class ItemLocationInline(InlineFormSetFactory):
         # formset.helper.template = 'bootstrap/table_inline_formset.html'
         formset.helper.form_title = "Item Storage Locations"
         formset.helper.layout = layout.Layout(layout.Div(
-            layout.Div("location", css_class='col'),
-            layout.Div("amount", css_class="input-group col"),
-            css_class='row'
+            FloatingField("location"),
+            FloatingField("amount"),
+            layout.HTML(
+                """
+                <span class="input-group-text amount_print_meas_unit mb-2"></span>
+                """
+            ),
+            css_class='input-group item-location-group mb-3'
         ))
         return formset
