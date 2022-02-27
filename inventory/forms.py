@@ -3,6 +3,7 @@ from datetime import datetime, timezone
 
 from crispy_forms.helper import FormHelper
 from crispy_forms import layout, bootstrap
+from crispy_bootstrap5.bootstrap5 import FloatingField
 from django.forms import FileInput, ModelForm, RegexField, Textarea, TextInput
 from extra_views import InlineFormSetFactory
 
@@ -125,12 +126,12 @@ class ItemImageInline(InlineFormSetFactory):
                     </div>
                     """,
                 ),
-                "description",
+                FloatingField("description"),
                 layout.Div(
                     "image",
                     css_class="input-group",
                 ),
-                css_class='container itemimage_set_item pb-3',
+                css_class='itemimage_set_item mb-3',
             ),
         )
         return formset
@@ -177,8 +178,13 @@ class ItemLocationInline(InlineFormSetFactory):
         # formset.helper.template = 'bootstrap/table_inline_formset.html'
         formset.helper.form_title = "Item Storage Locations"
         formset.helper.layout = layout.Layout(layout.Div(
-            layout.Div("location", css_class='col'),
-            layout.Div("amount", css_class="input-group col"),
-            css_class='row'
+            FloatingField("location"),
+            FloatingField("amount"),
+            layout.HTML(
+                """
+                <span class="input-group-text amount_print_meas_unit mb-2"></span>
+                """
+            ),
+            css_class='input-group item-location-group mb-3'
         ))
         return formset
