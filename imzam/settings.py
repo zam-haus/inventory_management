@@ -40,6 +40,8 @@ DEBUG = bool(strtobool(os.getenv("DEBUG", "false")))
 
 DEFAULT_DOMAIN = "https://im.zam.haus"
 
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+
 # https://docs.djangoproject.com/en/4.0/ref/settings/#std:setting-ALLOWED_HOSTS
 allowed_hosts = os.getenv("ALLOWED_HOSTS", ".localhost,127.0.0.1,[::1]")
 ALLOWED_HOSTS = list(map(str.strip, allowed_hosts.split(",")))
@@ -177,7 +179,7 @@ LOGIN_URL = '/oidc/authenticate'
 
 OIDC_ADMIN_GROUPS = map(
     str.strip,
-    os.getenv("OIDC_ADMIN_GROUPS", ['Admin', 'InventoryAdmin']).split(','))
+    os.getenv("OIDC_ADMIN_GROUPS", 'Admin, InventoryAdmin').split(','))
 
 OIDC_STAFF_GROUPS = list(map(
     str.strip,
