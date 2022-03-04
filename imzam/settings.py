@@ -38,7 +38,7 @@ SECRET_KEY = os.getenv("SECRET_KEY", None)
 # For deployment, set to False in local_settings.py
 DEBUG = bool(strtobool(os.getenv("DEBUG", "false")))
 
-DEFAULT_DOMAIN = "https://im.zam.haus"
+DEFAULT_DOMAIN = "https://inv.zam.haus"
 
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
