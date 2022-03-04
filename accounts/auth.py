@@ -1,5 +1,6 @@
 import json
 from logging import getLogger
+from itertools import chain
 
 from django.contrib.auth.models import Permission, Group
 from django.db import transaction, IntegrityError
@@ -61,13 +62,13 @@ class CustomOidcAuthenticationBackend(OIDCAuthenticationBackend):
             user.email = None
         user.first_name = claims.get("given_name")
         user.last_name = claims.get("family_name")
-        for g in zip(claims['groups'], claims['roles']):
+        for g in chain(claims['groups'], claims['roles']):
             if g in settings.OIDC_ADMIN_GROUPS:
                 user.is_superuser = True
                 break
         else:
             user.is_superuser = False
-        for g in zip(claims['groups'], claims['roles']):
+        for g in chain(claims['groups'], claims['roles']):
             if g in settings.OIDC_STAFF_GROUPS:
                 user.is_staff = True
                 break
