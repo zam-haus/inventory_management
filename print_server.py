@@ -3,6 +3,9 @@ from paho.mqtt import client as mqttc
 
 # import zpl
 import subprocess
+import random
+import copy
+import string
 
 from imzam import settings
 
@@ -19,7 +22,11 @@ def on_message(client, userdata, message):
 
 
 def run_server():
-    c = mqttc.Client(**settings.MQTT_CLIENT_KWARGS)
+    client_kwargs = copy.copy(settings.MQTT_CLIENT_KWARGS)
+    # Randomize client id
+    client_kwargs['client_id'] += '_' + \
+        "".join(random.choices(string.ascii_letters + string.digits, k=8))
+    c = mqttc.Client(**client_kwargs)
     c.tls_set()
 
     def on_connect(client, userdata, flags, rc):
