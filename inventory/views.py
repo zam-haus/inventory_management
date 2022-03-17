@@ -120,11 +120,12 @@ class UpdateItemView(UserPassesTestMixin, extra_views.UpdateWithInlinesView):
 
 class SearchableItemListView(UserPassesTestMixin, extra_views.SearchableListMixin, ListView):
     # matching criteria can be defined along with fields
-    search_fields = ["name", "category__name"]
+    search_fields = ["name", "category__name", "location__unique_identifier", "location__name"]
     search_date_fields = []
     model = models.Item
     exact_query = False
     wrong_lookup = False
+    paginate_by = 25
 
     # def get_search_query(self):
     #    # Overwrite query here
