@@ -144,7 +144,7 @@ class LocationAdmin(admin.ModelAdmin):
 
     @admin.action(description="Print location labels")
     def send_to_printer_action(self, request, queryset):
-        sucesses, fails = 0, []
+        successes, fails = 0, []
         for loc in queryset:
             try:
                 loc.send_to_printer()
