@@ -1,4 +1,4 @@
-from audioop import reverse
+from datetime import datetime
 from django.db import transaction
 from django.http import HttpResponse
 from django.shortcuts import render, redirect
@@ -54,10 +54,15 @@ class CreateItemView(UserPassesTestMixin, extra_views.CreateWithInlinesView):
     extra_context = {"title": _("Create Item")}
 
     def get_success_url(self):
-        url = reverse_lazy("create_item")
+        location = self._get_location()
+        if location is not None \
+                and self.request.POST and "save_and_mark" in self.request.POST:
+            # redirect to location
+            return reverse_lazy('view_location', args=[location.id, location.unique_identifier])
         # Preserve location_id
-        if self.request.GET and "location_id" in self.request.GET:
-            url += "?location_id=%s" % self.request.GET.get("location_id")
+        url = reverse_lazy("create_item")
+        if self.request.GET and "location_id" in self.request.GET and location:
+            url += "?location_id=%s" % self._get_location().id
         return url
     
     def _get_location(self):
@@ -87,6 +92,14 @@ class CreateItemView(UserPassesTestMixin, extra_views.CreateWithInlinesView):
         # Logged in or @ZAM
         return not self.request.user.is_anonymous or \
             self.request.session.get('is_zam_local')
+
+    def form_valid(self, form):
+        response = super().form_valid(form)
+        if self.request.POST and 'save_and_mark' in self.request.POST:
+            location = self._get_location()
+            location.last_complete_inventory = datetime.now()
+            location.save()
+        return response
 
 
 class UpdateItemView(UserPassesTestMixin, extra_views.UpdateWithInlinesView):
