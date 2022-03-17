@@ -59,6 +59,7 @@ class LocationAdmin(admin.ModelAdmin):
     )
     ordering = ("locatable_identifier",)
     readonly_fields = ("label_image_tag",)
+    search_fields = ('locatable_identifier', 'name')
     actions = ["send_to_printer_action"]
     inlines = [LocationInline]
     inlines_popup = []
