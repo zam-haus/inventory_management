@@ -59,15 +59,28 @@ class CreateItemView(UserPassesTestMixin, extra_views.CreateWithInlinesView):
         if self.request.GET and "location_id" in self.request.GET:
             url += "?location_id=%s" % self.request.GET.get("location_id")
         return url
+    
+    def _get_location(self):
+        if self.request.GET and "location_id" in self.request.GET:
+            location_id = self.request.GET.get("location_id")
+            try:
+                location_id = int(location_id)
+                return models.Location.objects.get(pk=location_id)
+            except (ValueError, models.Location.DoesNotExist):
+                pass
+        return None
+
+    def get_context_data(self, **kwargs):
+        ctxt = super().get_context_data(**kwargs)
+        location = self._get_location()
+        if location is not None:
+            ctxt['location'] = location
+        return ctxt
 
     def construct_inlines(self):
-        try:
-            location = models.Location.objects.get(
-                pk=self.request.GET.get("location_id")
-            )
+        location = self._get_location()
+        if location is not None:
             self.kwargs["initial"] = [{"location": location}]
-        except ObjectDoesNotExist:
-            pass
         return super().construct_inlines()
     
     def test_func(self):
