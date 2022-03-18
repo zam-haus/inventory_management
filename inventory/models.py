@@ -281,8 +281,8 @@ class LocationLabelTemplate(models.Model):
     def get_lablary_url(self, location=None):
         return (
             "http://api.labelary.com/v1/printers/8dpmm/labels/"
-            + "{:.1f}".format(self.label_width / 25.4)
-            + "x{:.1f}".format(self.label_height / 25.4)
+            + "{:.1f}".format(self.label_width or 0 / 25.4)
+            + "x{:.1f}".format(self.label_height or 0 / 25.4)
             + "/0/"
             + urllib.parse.quote(self.generate_label_zpl(location))
         )
