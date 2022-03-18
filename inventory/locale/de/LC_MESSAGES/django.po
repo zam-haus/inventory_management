@@ -130,7 +130,7 @@ msgstr "Kurznamen-Präfix"
 
 #: inventory/models.py:172
 msgid "short name pedding"
-msgstr "Kurznahmen-Padding"
+msgstr "Kurznamen-Padding"
 
 #: inventory/models.py:175
 msgid "sequence"
