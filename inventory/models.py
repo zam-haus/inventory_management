@@ -347,7 +347,7 @@ class Location(ComputedFieldsModel):
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
-        verbose_name=_("name"),
+        verbose_name=_("label template"),
     )
 
     parent_location = models.ForeignKey(
