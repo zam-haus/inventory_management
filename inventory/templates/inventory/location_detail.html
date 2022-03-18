@@ -17,7 +17,7 @@
     {% endif %}
     
     {% if object.get_lablary_url %}
-        <img width="100%" src="{{ object.get_lablary_url }}"/>
+        <img height="150em" src="{{ object.get_lablary_url }}"/>
     {% endif %}
 
     <h2>{% trans "Sub-Locations" %}</h2>
@@ -34,7 +34,7 @@
     <table>
     {% for il in object.itemlocation_set.all %}
         <tr>
-            <td><a href="{{ il.item.get_absolute_url }}">{{ il.item.name }}</a></td>
+            <td><a href="{{ il.item.get_absolute_url }}">{{ il.item }}</a></td>
             <td>{{ il.amount }} {{ il.item.measurement_unit }}</td>
             <td><a href="TODO">{% trans "Take" %}</a></td>
             <td><a href="TODO">{% trans "Move" %}</a></td>

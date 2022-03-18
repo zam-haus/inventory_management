@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2022-02-26 11:19+0100\n"
+"POT-Creation-Date: 2022-03-18 11:14+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -27,7 +27,6 @@ msgid "items"
 msgstr "Sachen"
 
 #: inventory/models.py:30
-#| msgid "category name"
 msgid "item name"
 msgstr "Name der Sache"
 
@@ -50,7 +49,7 @@ msgstr "VK-Preis pro Einheit"
 
 #: inventory/models.py:60
 msgid "Unnamed item"
-msgstr "Unbenamte Sache"
+msgstr "Unbenannte Sache"
 
 #: inventory/models.py:69
 msgid "categories"
@@ -232,7 +231,7 @@ msgid "Inventory"
 msgstr "Inventar"
 
 #: inventory/templates/admin/inventory/location_massadd.html:10
-#: inventory/templates/inventory/item_list.html:15
+#: inventory/templates/inventory/item_list.html:21
 msgid "Locations"
 msgstr "Standorte"
 
@@ -240,15 +239,15 @@ msgstr "Standorte"
 msgid "ZAM inv"
 msgstr "ZAM inv"
 
-#: inventory/templates/inventory/item_formset.html:65
+#: inventory/templates/inventory/item_formset.html:68
 msgid "Add additional image"
 msgstr "Weiteres Bild hinzufügen"
 
-#: inventory/templates/inventory/item_formset.html:73
+#: inventory/templates/inventory/item_formset.html:76
 msgid "Save"
 msgstr "Speichern"
 
-#: inventory/templates/inventory/item_formset.html:75
+#: inventory/templates/inventory/item_formset.html:78
 msgid "Save and mark location finished"
 msgstr "Speichern und Standort als abgeschlossen markieren"
 
@@ -256,15 +255,15 @@ msgstr "Speichern und Standort als abgeschlossen markieren"
 msgid "Item List"
 msgstr "Sachliste"
 
-#: inventory/templates/inventory/item_list.html:12
+#: inventory/templates/inventory/item_list.html:18
 msgid "Name"
 msgstr "Name"
 
-#: inventory/templates/inventory/item_list.html:13
+#: inventory/templates/inventory/item_list.html:19
 msgid "Category"
 msgstr "Kategorie"
 
-#: inventory/templates/inventory/item_list.html:14
+#: inventory/templates/inventory/item_list.html:20
 msgid "Photos"
 msgstr "Fotos"
 
@@ -312,6 +311,6 @@ msgstr "Sache anlegen..."
 msgid "Create Item"
 msgstr "Sache anlegen"
 
-#: inventory/views.py:85
+#: inventory/views.py:110
 msgid "Update Item"
 msgstr "Sache aktualisieren"
