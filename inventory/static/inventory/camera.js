@@ -86,6 +86,8 @@ camera_modal.addEventListener('show.bs.modal', async function(event){
 		audio: false,
 		video: {
 			facingMode: "environment",
+			width:{ideal: 10000},
+			height:{ideal: 10000},
 		}
 	};
 
