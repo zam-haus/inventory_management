@@ -81,14 +81,14 @@ document.querySelectorAll('input[type="file"]').forEach(input => {
 
 camera_modal.addEventListener('show.bs.modal', async function(event){
 	camera_calling_button = event.relatedTarget;
-	
+
 	let constraints = {
 		audio: false,
 		video: {
 			facingMode: "environment",
 		}
 	};
-	
+
 	let stream = await navigator.mediaDevices.getUserMedia(constraints);
 
 	let stream_settings = stream.getVideoTracks()[0].getSettings();
@@ -105,9 +105,9 @@ camera_modal.addEventListener('show.bs.modal', async function(event){
 
 	camera_video.srcObject = stream;
 	camera_video.play();
-	
+
 	update_present_canvas_size();
-	
+
 	present_canvas_update();
 });
 
