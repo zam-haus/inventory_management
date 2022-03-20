@@ -50,7 +50,8 @@ function present_canvas_update(){
 		scale = camera_present_canvas.width / videoHeight;
 		x_offset = (videoWidth - videoHeight)/2;
 	}
-	camera_present_canvas.getContext('2d').drawImage(camera_video, -x_offset, -y_offset, videoWidth*scale, videoHeight*scale);
+
+	camera_present_canvas.getContext('2d').drawImage(camera_video, -x_offset*scale, -y_offset*scale, videoWidth*scale, videoHeight*scale);
 	if (camera_video.ended == false){
 		//setTimeout(present_canvas_update, 1000/30);
 		setTimeout(present_canvas_update, 1000/30);
