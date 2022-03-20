@@ -503,7 +503,8 @@ class ItemLocation(models.Model):
             if rounded_amount == self.amount:
                 return rounded_amount
 
-    def __str__(self):
+    @property
+    def amount_text(self):
         if self.amount < 0:
             if self.amount == -1:
                 unspecific_amount_string = _("few")
@@ -511,6 +512,10 @@ class ItemLocation(models.Model):
                 unspecific_amount_string = _("many")
             else:
                 unspecific_amount_string = f"~{-self.amount_without_zeros}"
-            return f"{unspecific_amount_string} {self.item.measurement_unit.short} @ {self.location.locatable_identifier}"
+            return f"{unspecific_amount_string} {self.item.measurement_unit.short}"
         else:
-            return f"{self.amount_without_zeros} {self.item.measurement_unit.short} @ {self.location.locatable_identifier}"
+            return f"{self.amount_without_zeros} {self.item.measurement_unit.short}"
+
+
+    def __str__(self):
+        return f"{self.amount_text} {self.item.measurement_unit.short} @ {self.location.locatable_identifier}"

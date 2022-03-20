@@ -35,7 +35,7 @@
     {% for il in object.itemlocation_set.all %}
         <tr>
             <td><a href="{{ il.item.get_absolute_url }}">{{ il.item }}</a></td>
-            <td>{{ il.amount }} {{ il.item.measurement_unit }}</td>
+            <td>{{ il.amount_without_zeros }} {{ il.item.measurement_unit }}</td>
             <td><a href="TODO">{% trans "Take" %}</a></td>
             <td><a href="TODO">{% trans "Move" %}</a></td>
     {% empty %}
