@@ -50,7 +50,8 @@ function present_canvas_update(){
 		scale = camera_present_canvas.width / videoHeight;
 		x_offset = (videoWidth - videoHeight)/2;
 	}
-	camera_present_canvas.getContext('2d').drawImage(camera_video, -x_offset, -y_offset, videoWidth*scale, videoHeight*scale);
+
+	camera_present_canvas.getContext('2d').drawImage(camera_video, -x_offset*scale, -y_offset*scale, videoWidth*scale, videoHeight*scale);
 	if (camera_video.ended == false){
 		//setTimeout(present_canvas_update, 1000/30);
 		setTimeout(present_canvas_update, 1000/30);
@@ -81,14 +82,16 @@ document.querySelectorAll('input[type="file"]').forEach(input => {
 
 camera_modal.addEventListener('show.bs.modal', async function(event){
 	camera_calling_button = event.relatedTarget;
-	
+
 	let constraints = {
 		audio: false,
 		video: {
 			facingMode: "environment",
+			width:{ideal: 10000},
+			height:{ideal: 10000},
 		}
 	};
-	
+
 	let stream = await navigator.mediaDevices.getUserMedia(constraints);
 
 	let stream_settings = stream.getVideoTracks()[0].getSettings();
@@ -105,9 +108,9 @@ camera_modal.addEventListener('show.bs.modal', async function(event){
 
 	camera_video.srcObject = stream;
 	camera_video.play();
-	
+
 	update_present_canvas_size();
-	
+
 	present_canvas_update();
 });
 
