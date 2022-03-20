@@ -491,7 +491,9 @@ class ItemLocation(models.Model):
         "Location", on_delete=models.CASCADE, verbose_name=_("location")
     )
     amount = models.DecimalField(
-        max_digits=16, decimal_places=3, verbose_name=_("amount")
+        max_digits=16, decimal_places=3, verbose_name=_("amount"),
+        help_text=_("positive numbers are precise, negative numbers are rough estimates. "
+                    "-1 is 'few' and -9999 is 'many'.")
     )
 
     @property
@@ -502,4 +504,13 @@ class ItemLocation(models.Model):
                 return rounded_amount
 
     def __str__(self):
-        return f"{self.amount_without_zeros} {self.item.measurement_unit.short} @ {self.location.locatable_identifier}"
+        if self.amount < 0:
+            if self.amount == -1:
+                unspecific_amount_string = _("few")
+            elif self.amount == -9999:
+                unspecific_amount_string = _("many")
+            else:
+                unspecific_amount_string = f"~{-self.amount_without_zeros}"
+            return f"{unspecific_amount_string} {self.item.measurement_unit.short} @ {self.location.locatable_identifier}"
+        else:
+            return f"{self.amount_without_zeros} {self.item.measurement_unit.short} @ {self.location.locatable_identifier}"

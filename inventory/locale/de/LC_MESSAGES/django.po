@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2022-03-18 11:14+0100\n"
+"POT-Creation-Date: 2022-03-20 20:24+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -96,7 +96,7 @@ msgid "barcode types"
 msgstr "Barcodetypen"
 
 #: inventory/models.py:137 inventory/models.py:148 inventory/models.py:161
-#: inventory/models.py:251 inventory/models.py:331 inventory/models.py:350
+#: inventory/models.py:251 inventory/models.py:331
 msgid "name"
 msgstr "Name"
 
@@ -176,6 +176,10 @@ msgstr "Standorte"
 msgid "short name"
 msgstr "Kurzname"
 
+#: inventory/models.py:350
+msgid "label template"
+msgstr "Etikettenvorlage"
+
 #: inventory/models.py:359
 msgid "parent location"
 msgstr "Übergeordneter Standort"
@@ -199,6 +203,20 @@ msgstr "Beschreibende Kennung"
 #: inventory/models.py:494
 msgid "amount"
 msgstr "Menge"
+
+#: inventory/models.py:495
+msgid ""
+"positive numbers are precise, negative numbers are rough estimates. -1 is "
+"'few' and -9999 is 'many'."
+msgstr "Positive Zahlen sind exakt, negative Zahlen sind Schätzungen, -1 bedeutet 'wenige' und -9999 'viele'."
+
+#: inventory/models.py:509
+msgid "few"
+msgstr "wenige"
+
+#: inventory/models.py:511
+msgid "many"
+msgstr "viele"
 
 #: inventory/templates/admin/inventory/location/change_form.html:6
 msgid "History"
