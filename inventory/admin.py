@@ -278,7 +278,7 @@ class ItemBarcodeInline(admin.TabularInline):
 class ItemImageInline(admin.TabularInline):
     model = models.ItemImage
     extra = 1
-
+    readonly_fields = ('image_tag',)
 
 class ItemFileInline(admin.TabularInline):
     model = models.ItemFile

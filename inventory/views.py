@@ -50,7 +50,7 @@ class CreateItemView(UserPassesTestMixin, extra_views.CreateWithInlinesView):
     model = models.Item
     inlines = [forms.ItemImageInline, forms.ItemLocationInline]
     template_name = "inventory/item_formset.html"
-    form_class = forms.CreateItemForm
+    form_class = forms.ItemForm
     extra_context = {"title": _("Create Item")}
 
     def get_success_url(self):

@@ -5,7 +5,9 @@ from crispy_forms.helper import FormHelper
 from crispy_forms import layout, bootstrap
 from crispy_bootstrap5.bootstrap5 import FloatingField
 from django.forms import FileInput, ModelForm, RegexField, Textarea, TextInput
+from django.forms.utils import ErrorList
 from extra_views import InlineFormSetFactory
+
 
 from .models import BarcodeType, Item, ItemBarcode, ItemImage, ItemLocation, Location
 
@@ -35,8 +37,33 @@ class ItemForm(ModelForm):
             #'sale_price': TextInput(attrs={'type':'number', 'pattern':'[0-9,\.]*'})
         }
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    barcode_data = RegexField(
+        regex=r"(?:[^\s]+(?:[ \t]+[^\s]*)?\n)*[^\s]+(?:[ \t]+[^\s]*)?\n?",
+        widget=Textarea(attrs={"rows": 2}),
+        required=False,
+    )
+
+    def __init__(self, data=None, files=None, auto_id='id_%s', prefix=None,
+                 initial=None, error_class=ErrorList, label_suffix=None,
+                 empty_permitted=False, instance=None, use_required_attribute=None,
+                 renderer=None):
+        # initial barcode_data
+        if instance is not None:
+            barcode_data_string = ""
+            for bc in instance.itembarcode_set.all():
+                barcode_data_string += bc.data
+                if bc.type is not None:
+                    barcode_data_string += " " + bc.type.name
+                barcode_data_string += '\n'
+            if initial is None:
+                initial = {}
+            initial['barcode_data'] = barcode_data_string
+
+        super().__init__(data, files, auto_id, prefix,
+                         initial, error_class, label_suffix,
+                         empty_permitted, instance, use_required_attribute,
+                         renderer)
+
         self.helper = FormHelper()
         self.helper.form_tag = False
         self.helper.disable_csrf = True
@@ -52,26 +79,15 @@ class ItemForm(ModelForm):
                     bootstrap.AppendedText("sale_price", '€'),
                     css_class="col"),
                 css_class="row"),
+            bootstrap.FieldWithButtons("barcode_data")
         )
-
-
-class CreateItemForm(ItemForm):
-    # TODO use QuaggaJS? https://serratus.github.io/quaggaJS/
-    barcode_data = RegexField(
-        regex=r"(?:[^\s]+(?:[ \t]+[^\s]*)?\n)*[^\s]+(?:[ \t]+[^\s]*)?\n?",
-        widget=Textarea(attrs={"rows": 2}),
-        required=False,
-    )
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.helper.layout.fields.append(
-            bootstrap.FieldWithButtons("barcode_data"))
 
     def save(self, commit=True):
         # process barcode_data
         instance = super().save(commit=commit)
         if commit:
+            # Add missing barcodes
+            bc_list = []  # list of processed barcodes
             for barcode in self.cleaned_data["barcode_data"].split("\n"):
                 barcode = barcode.split()
                 if not barcode:
@@ -85,7 +101,17 @@ class CreateItemForm(ItemForm):
                 ItemBarcode.objects.get_or_create(
                     item=self.instance, data=barcode[0], type=barcode_type
                 )
+                bc_list.append((barcode[0], barcode_type))
+            # Remove any that were not previously processed
+            for bc in instance.itembarcode_set.all():
+                bc_tuple = (bc.data, bc.type)
+                if bc_tuple not in bc_list:
+                    bc.delete()
         return instance
+
+
+class ItemAnnotationForm(ModelForm):
+    pass
 
 
 class ItemImageInline(InlineFormSetFactory):

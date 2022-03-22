@@ -103,6 +103,13 @@ class ItemImage(models.Model):
     description = models.CharField(_("description"), max_length=512, blank=True)
     item = models.ForeignKey("Item", on_delete=models.CASCADE, verbose_name=_("item"))
 
+    def image_tag(self, location=None):
+        return mark_safe(
+            '<img src="%s" width="512" />' % escape(self.image.url)
+        )
+    image_tag.short_description = "Image"
+    image_tag.allow_tags = True
+
 
 class ItemFile(models.Model):
     file = models.FileField(_("file"), upload_to=get_item_upload_path)
@@ -291,8 +298,9 @@ class LocationLabelTemplate(models.Model):
         return mark_safe(
             '<img width="100%%" src="%s" />' % escape(self.get_lablary_url(location))
         )
-
     image_tag.short_description = "Rendered label"
+    image_tag.allow_tags = True
+
 
     def send_to_printer(self, location=None):
         c = mqttc.Client(**settings.MQTT_CLIENT_KWARGS)
@@ -504,11 +512,7 @@ class ItemLocation(models.Model):
                 return rounded_amount
 
     @property
-    def amount_text(self, short_unit=True):
-        if short_unit:
-            unit_text = self.item.measurement_unit.short
-        else:
-            unit_text = self.item.measurement_unit.name
+    def amount_text(self):
         if self.amount < 0:
             if self.amount == -1:
                 unspecific_amount_string = _("few")
@@ -516,10 +520,10 @@ class ItemLocation(models.Model):
                 unspecific_amount_string = _("many")
             else:
                 unspecific_amount_string = f"~{-self.amount_without_zeros}"
-            return f"{unspecific_amount_string} {unit_text}"
+            return f"{unspecific_amount_string} {self.item.measurement_unit.short}"
         else:
-            return f"{self.amount_without_zeros} {unit_text}"
+            return f"{self.amount_without_zeros} {self.item.measurement_unit.short}"
 
 
     def __str__(self):
-        return f"{self.amount_text} {self.item.measurement_unit.short} @ {self.location.locatable_identifier}"
+        return f"{self.amount_text} @ {self.location.locatable_identifier}"
