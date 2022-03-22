@@ -19,7 +19,7 @@
         <th scope="col">{% trans "Identifier" %}</td>
         <th scope="col">{% trans "Name" %}</td>
         <th scope="col">{% trans "Items" %}</td>
-        <th scope="col">{% trans "Status (inventory marked complete)" %}</td>
+        <th scope="col">{% trans "Status" %}</td>
     </tr></thead>
     <tbody>
     {% for object in page_obj %}
@@ -39,7 +39,7 @@
         </td>
         <td>
             {% if object.last_complete_inventory %}
-            ✅ {{ object.last_complete_inventory }}
+            <a href="#" data-bs-toggle="tooltip" title="" data-bs-original-title="{% trans "Inventory marked complete by " %}{{ object.last_complete_inventory }}">✅</a>
             {% endif %}
        </td>
         </tr>
