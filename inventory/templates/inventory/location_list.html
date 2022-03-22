@@ -1,3 +1,4 @@
+
 {% extends 'base.html' %}
 
 {% load django_bootstrap5 i18n %}
@@ -15,40 +16,32 @@
 </form>
 <table class="table table-striped">
     <thead><tr>
+        <th scope="col">{% trans "Identifier" %}</td>
         <th scope="col">{% trans "Name" %}</td>
-        <th scope="col">{% trans "Category" %}</td>
-        <th scope="col">{% trans "Photos" %}</td>
-        <th scope="col">{% trans "Locations" %}</td>
+        <th scope="col">{% trans "Items" %}</td>
+        <th scope="col">{% trans "Status (inventory marked complete)" %}</td>
     </tr></thead>
     <tbody>
     {% for object in page_obj %}
         <tr>
         <th scope="row">
-            <a href="{{ object.get_absolute_url }}">
-            {{ object }}
+            <a href="{{ object.get_absolute_url }}" data-bs-toggle="tooltip" title="" data-bs-original-title="{{ object.descriptive_identifier }}">
+                {{ object.unique_identifier }}
             </a>
         </td>
         <td>
-            {% if object.category %}
-            <a href="{{ object.category.get_absolute_url }}">
-            {{ object.category }}
+            <a href="{{ object.get_absolute_url }}" data-bs-toggle="tooltip" title="" data-bs-original-title="{{ object.descriptive_identifier }}">
+                {{ object.name }}
+            </a>
+        </td>
+        <td>
+            {{ object.itemlocation_set.count }}
+        </td>
+        <td>
+            {% if object.last_complete_inventory %}
+            ✅ {{ object.last_complete_inventory }}
             {% endif %}
-            </a>
-        </td>
-        <td>
-            {% for image in object.itemimage_set.all %}{% spaceless %}
-                <a href="{{ image.image.url }}">
-                <img src="{{ image.image.url }}" class="img-thumbnail img-fluid" style="max-width: 100px;" alt="{{ image.description }}" data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-original-title="{{ image.description }}">
-                </a>
-            {% endspaceless %}{% endfor %}
-        </td>
-        <td>
-            {% for itemloc in object.itemlocation_set.all %}
-                <a href="{{ itemloc.location.get_absolute_url }}">
-                {{ itemloc }}
-                </a><br>
-            {% endfor %}
-        </a></td>
+       </td>
         </tr>
     {% endfor %}
     </tbody>

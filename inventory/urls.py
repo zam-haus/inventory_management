@@ -17,6 +17,7 @@ urlpatterns = [
         views.update_location,
         name="update_location",
     ),
+    path("loc/", views.SearchableLocationListView.as_view(), name="index_locations"),
     path("item/create", views.CreateItemView.as_view(), name="create_item"),
     path("item/", views.SearchableItemListView.as_view(), name="index_items"),
     path("item/<int:pk>", views.view_item, name="view_item"),

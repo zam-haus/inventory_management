@@ -135,3 +135,18 @@ class SearchableItemListView(UserPassesTestMixin, extra_views.SearchableListMixi
         # Logged in or @ZAM
         return not self.request.user.is_anonymous or \
             self.request.session.get('is_zam_local', False)
+
+
+class SearchableLocationListView(UserPassesTestMixin, extra_views.SearchableListMixin, ListView):
+    # matching criteria can be defined along with fields
+    search_fields = ["locatable_identifier", "name", "descriptive_identifier"]
+    search_date_fields = []
+    model = models.Location
+    exact_query = False
+    wrong_lookup = False
+    paginate_by = 100
+
+    def test_func(self):
+        # Logged in or @ZAM
+        return not self.request.user.is_anonymous or \
+            self.request.session.get('is_zam_local', False)
