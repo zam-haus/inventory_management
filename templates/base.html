@@ -17,7 +17,7 @@
             <li class="nav-item"><a class="nav-link" href="{% url 'index_locations' %}">{% trans 'Locations' %}</a></li>
 
           {% if user.is_staff %}
-          <li class="nav-item"><a class="nav-link" href="{% url 'admin:index' %}">Admin</a></li>
+          <li class="nav-item"><a class="nav-link" href="{% block admin_url %}{% url 'admin:index' %}{% endblock %}">Admin</a></li>
           {% endif %}
           </ul>
         </div>

@@ -55,6 +55,12 @@
 </div>
 {% endblock %}
 
+{% if form.instance.id %}
+{% block admin_url %}
+{{ form.instance.get_admin_url }}
+{% endblock %}
+{% endif %}
+
 {% block content %}
 <form method="post" class="form-row" enctype="multipart/form-data">
     {% csrf_token %}

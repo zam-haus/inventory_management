@@ -6,6 +6,12 @@
     {% trans "Location" %}:  {{ object.unique_identifier }}
 {% endblock %}
 
+{% if form.instance.id %}
+{% block admin_url %}
+{{ object.get_admin_url }}
+{% endblock %}
+{% endif %}
+
 {% block content %}
     <p>{{ object.name }} ({{ object.type.name }})</p>
     <p>{{ object.descriptive_identifier }}</p>

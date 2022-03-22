@@ -62,6 +62,12 @@ class Item(models.Model):
     def get_absolute_url(self):
         return reverse("view_item", kwargs={"pk": self.pk})
 
+    def get_admin_url(self):
+        return reverse(
+            "admin:inventory_item_change",
+            args=(self.pk,),
+        )
+
 
 class Category(ComputedFieldsModel):
     class Meta:
@@ -486,6 +492,12 @@ class Location(ComputedFieldsModel):
         return reverse(
             "view_location",
             kwargs={"pk": self.pk, "unique_identifier": self.unique_identifier},
+        )
+    
+    def get_admin_url(self):
+        return reverse(
+            "admin:inventory_location_change",
+            args=(self.pk,),
         )
 
 
