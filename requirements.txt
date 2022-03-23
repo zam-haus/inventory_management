@@ -13,3 +13,4 @@ gunicorn
 mozilla-django-oidc
 pymaybe
 django-ipware
+django-bootstrap-icons
