@@ -2,6 +2,7 @@
 {% extends 'base.html' %}
 
 {% load django_bootstrap5 i18n %}
+{% load bootstrap_icons %}
 
 {% block title %}
     {% trans "Item List" %}
@@ -16,15 +17,45 @@
 </form>
 <table class="table table-striped">
     <thead><tr>
-        <th scope="col">{% trans "Identifier" %}</td>
-        <th scope="col">{% trans "Name" %}</td>
-        <th scope="col">{% trans "Items" %}</td>
-        <th scope="col">{% trans "Status" %}</td>
+        <th scope="col">
+            {% trans "Identifier" %}
+            {% if sort_helper.is_sorted_by_unique_identifier == "asc" %}
+            <a href="{{ request.path }}{{ sort_helper.get_sort_query_by_unique_identifier_desc }}">
+            {% bs_icon 'sort-up' color="red" %}
+            </a>
+            {% elif sort_helper.is_sorted_by_unique_identifier == "desc" %}
+            <a href="{{ request.path }}{{ sort_helper.get_sort_query_by_unique_identifier_asc }}">
+            {% bs_icon 'sort-down' color="red" %}
+            </a>
+            {% else %}
+            <a href="{{ request.path }}{{ sort_helper.get_sort_query_by_unique_identifier_desc }}">
+            {% bs_icon 'sort-down' %}
+            </a>
+            {% endif %}
+        </th>
+        <th scope="col">{% trans "Name" %}</th>
+        <th scope="col">{% trans "Items" %}</th>
+        <th scope="col">
+            {% trans "Status" %}
+            {% if sort_helper.is_sorted_by_last_complete_inventory == "asc" %}
+            <a href="{{ request.path }}{{ sort_helper.get_sort_query_by_last_complete_inventory_desc }}">
+            {% bs_icon 'sort-up' color="red" %}
+            </a>
+            {% elif sort_helper.is_sorted_by_last_complete_inventory == "desc" %}
+            <a href="{{ request.path }}{{ sort_helper.get_sort_query_by_last_complete_inventory_asc }}">
+            {% bs_icon 'sort-down' color="red" %}
+            </a>
+            {% else %}
+            <a href="{{ request.path }}{{ sort_helper.get_sort_query_by_last_complete_inventory_desc }}">
+            {% bs_icon 'sort-down' %}
+            </a>
+            {% endif %}
+        </th>
     </tr></thead>
     <tbody>
     {% for object in page_obj %}
         <tr>
-        <th scope="row">
+        <td scope="row">
             <a href="{{ object.get_absolute_url }}" data-bs-toggle="tooltip" title="" data-bs-original-title="{{ object.descriptive_identifier }}">
                 {{ object.unique_identifier }}
             </a>
@@ -41,7 +72,7 @@
             {% if object.last_complete_inventory %}
             <a href="#" data-bs-toggle="tooltip" title="" data-bs-original-title="{% trans "Inventory marked complete by " %}{{ object.last_complete_inventory }}">✅</a>
             {% endif %}
-       </td>
+        </td>
         </tr>
     {% endfor %}
     </tbody>

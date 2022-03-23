@@ -137,10 +137,15 @@ class SearchableItemListView(UserPassesTestMixin, extra_views.SearchableListMixi
             self.request.session.get('is_zam_local', False)
 
 
-class SearchableLocationListView(UserPassesTestMixin, extra_views.SearchableListMixin, ListView):
+class SearchableLocationListView(
+        UserPassesTestMixin,
+        extra_views.SearchableListMixin,
+        extra_views.SortableListMixin,
+        ListView):
     # matching criteria can be defined along with fields
     search_fields = ["locatable_identifier", "name", "descriptive_identifier"]
     search_date_fields = []
+    sort_fields = ["unique_identifier", "last_complete_inventory"]
     model = models.Location
     exact_query = False
     wrong_lookup = False

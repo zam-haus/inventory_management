@@ -63,6 +63,7 @@ INSTALLED_APPS = [
     "extra_views",
     "computedfields",
     "accounts",
+    "django_bootstrap_icons",
 ]
 
 CRISPY_ALLOWED_TEMPLATE_PACKS = "bootstrap5"
