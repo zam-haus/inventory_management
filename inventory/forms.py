@@ -7,6 +7,8 @@ from crispy_bootstrap5.bootstrap5 import FloatingField
 from django.forms import FileInput, ModelForm, RegexField, Textarea, TextInput
 from django.forms.utils import ErrorList
 from extra_views import InlineFormSetFactory
+from django.utils.translation import gettext_lazy as _
+
 
 
 from .models import BarcodeType, Item, ItemBarcode, ItemImage, ItemLocation, Location
@@ -111,8 +113,32 @@ class ItemForm(ModelForm):
 
 
 class ItemAnnotationForm(ModelForm):
-    pass
-
+    class Meta:
+        model = Item
+        fields = ["name", "description", "category", "measurement_unit", "sale_price"]
+        widgets = {
+            "description": Textarea(attrs={"rows": 3}),
+            #'sale_price': TextInput(attrs={'type':'number', 'pattern':'[0-9,\.]*'})
+        }
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.helper = FormHelper()
+        self.helper.form_title = "Item Storage Locations"
+        self.helper.layout = layout.Layout(
+            "name",
+            "description",
+            "category",
+            layout.Div(
+                layout.Div(
+                    FloatingField("measurement_unit"),
+                    css_class='col'),
+                layout.Div(
+                    FloatingField("sale_price",),
+                    css_class='col'),
+            css_class='row'),
+            layout.Submit("save", _("Save")),
+            layout.Submit("save_next", _("Save and go to next incomplete item")),
+        )
 
 class ItemImageInline(InlineFormSetFactory):
     model = ItemImage

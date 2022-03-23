@@ -1,0 +1,42 @@
+{% extends 'base.html' %}
+
+{% load django_bootstrap5 %}
+{% load i18n %}
+{% load static %}
+
+{% block title %}
+    {{ title }}
+{% endblock %}
+
+
+{% block content %}
+<div class="container-sm">
+<div id="carouselImageIndicators" class="carousel slide" data-bs-ride="carousel">
+    <div class="carousel-indicators">
+      {% for img in object.itemimage_set.all %}
+      <button type="button" data-bs-target="#carouselImageIndicators" data-bs-slide-to="{{ forloop.counter0 }}" class="active" aria-current="true" aria-label="{{ img.description }}"></button>
+      {% endfor %}
+    </div>
+    <div class="carousel-inner">
+      {% for img in object.itemimage_set.all %}
+      <div class="carousel-item{% if forloop.first %} active{% endif %}" data-bs-interval="false">
+        <img src="{{ img.image.url }}" class="d-block w-100" alt="{{ img.description }}">
+      </div>
+      {% endfor %}
+    </div>
+    <button class="carousel-control-prev" type="button" data-bs-target="#carouselImageIndicators" data-bs-slide="prev">
+      <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+      <span class="visually-hidden">Previous</span>
+    </button>
+    <button class="carousel-control-next" type="button" data-bs-target="#carouselImageIndicators" data-bs-slide="next">
+      <span class="carousel-control-next-icon" aria-hidden="true"></span>
+      <span class="visually-hidden">Next</span>
+    </button>
+</div>
+</div>
+
+{% load crispy_forms_tags %}
+{% crispy form %}
+
+{% endblock %}
+

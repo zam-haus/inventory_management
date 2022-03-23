@@ -4,7 +4,7 @@ from django.http import HttpResponse
 from django.shortcuts import render, redirect
 from django.urls import reverse_lazy
 from django.views import View
-from django.views.generic import ListView, DetailView
+from django.views.generic import ListView, DetailView, UpdateView
 from django.core.exceptions import ObjectDoesNotExist
 import extra_views
 from django.utils.translation import gettext_lazy as _
@@ -116,6 +116,29 @@ class UpdateItemView(UserPassesTestMixin, extra_views.UpdateWithInlinesView):
         # Logged in or @ZAM
         return not self.request.user.is_anonymous or \
             self.request.session.get('is_zam_local', False)
+
+
+class AnnotateItemView(UserPassesTestMixin, UpdateView):
+    model = models.Item
+    template_name = "inventory/item_annotate_form.html"
+    form_class = forms.ItemAnnotationForm
+    extra_context = {"title": _("Update Item")}
+
+    def test_func(self):
+        # Logged in or @ZAM
+        return not self.request.user.is_anonymous or \
+            self.request.session.get('is_zam_local', False)
+
+    def get_success_url(self):
+        if self.request.POST and "save_next" in self.request.POST:
+            # redirect to next incomplete
+            incomplete = (models.Item.objects.filter(name=None) |
+                          models.Item.objects.filter(sale_price=None))
+            next_incomplete = incomplete & models.Item.objects.filter(pk__gt=self.object.pk)
+            if not next_incomplete:
+                next_incomplete = incomplete
+            return reverse_lazy("annotate_item", args=[next_incomplete.first().pk])
+        return reverse_lazy("annotate_item", args=[self.object.pk])
 
 
 class SearchableItemListView(UserPassesTestMixin, extra_views.SearchableListMixin, ListView):

@@ -21,6 +21,7 @@ urlpatterns = [
     path("item/create", views.CreateItemView.as_view(), name="create_item"),
     path("item/", views.SearchableItemListView.as_view(), name="index_items"),
     path("item/<int:pk>", views.view_item, name="view_item"),
+    path("item/<int:pk>/annotate", views.AnnotateItemView.as_view(), name="annotate_item"),
     # path('item/<int:pk>/delete', views.delete_item, name='delete_item'),
     # path('item/<int:pk>/move', views.move_item, name='move_item'),
     # path('item/<int:pk>/take', views.takee_item, name='take_item'),
