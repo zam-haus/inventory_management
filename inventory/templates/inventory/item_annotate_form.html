@@ -11,7 +11,7 @@
 
 {% block content %}
 <div class="container-sm">
-<div id="carouselImageIndicators" class="carousel slide" data-bs-ride="carousel">
+<div id="carouselImageIndicators" class="carousel slide" data-bs-ride="carousel" data-bs-interval="false">
     <div class="carousel-indicators">
       {% for img in object.itemimage_set.all %}
       <button type="button" data-bs-target="#carouselImageIndicators" data-bs-slide-to="{{ forloop.counter0 }}" class="active" aria-current="true" aria-label="{{ img.description }}"></button>
@@ -19,7 +19,7 @@
     </div>
     <div class="carousel-inner">
       {% for img in object.itemimage_set.all %}
-      <div class="carousel-item{% if forloop.first %} active{% endif %}" data-bs-interval="false">
+      <div class="carousel-item{% if forloop.first %} active{% endif %}">
         <img src="{{ img.image.url }}" class="d-block w-100" alt="{{ img.description }}">
       </div>
       {% endfor %}
@@ -35,8 +35,10 @@
 </div>
 </div>
 
+<div class="container-sm mt-3">
 {% load crispy_forms_tags %}
 {% crispy form %}
+</div>
 
 {% endblock %}
 

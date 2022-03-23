@@ -125,9 +125,15 @@ class ItemAnnotationForm(ModelForm):
         self.helper = FormHelper()
         self.helper.form_title = "Item Storage Locations"
         self.helper.layout = layout.Layout(
-            "name",
+            layout.Div(
+                layout.Div(
+                    FloatingField("name"),
+                    css_class='col'),
+                layout.Div(
+                    FloatingField("category"),
+                    css_class='col'),
+            css_class='row'),
             "description",
-            "category",
             layout.Div(
                 layout.Div(
                     FloatingField("measurement_unit"),
