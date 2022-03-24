@@ -93,11 +93,11 @@ class Category(ComputedFieldsModel):
     )
     def full_name(self):
         if self.parent_category:
-            return self.parent_category.full_name + ">" + self.name
+            return self.parent_category.full_name + "/" + self.name
         return self.name
 
     def __str__(self):
-        return f"Category {self.name}"
+        return self.full_name
 
 
 def get_item_upload_path(instance, filename):

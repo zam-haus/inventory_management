@@ -20,17 +20,20 @@ from . import models
 
 # Register your models here.
 admin.site.register(models.LocationType)
-admin.site.register(models.Category)
 admin.site.register(models.MeasurementUnit)
 admin.site.register(models.BarcodeType)
+
+
+class CategoryAdmin(admin.ModelAdmin):
+    model = models.Category
+    fields = ("name", "description", "parent_category")
+admin.site.register(models.Category, CategoryAdmin)
 
 
 class LocationLabelTemplateAdmin(admin.ModelAdmin):
     model = models.LocationLabelTemplate
     fields = ("name", "zpl_template", "label_width", "label_height", "image_tag")
     readonly_fields = ("image_tag",)
-
-
 admin.site.register(models.LocationLabelTemplate, LocationLabelTemplateAdmin)
 
 
