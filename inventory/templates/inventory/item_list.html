@@ -7,12 +7,21 @@
 {% endblock %}
 
 {% block content %}
-<form method="get">
-<div class="input-group mb-3">
-    <span class="input-group-text" id="basic-addon1">🔎</span>
-    <input type="text" class="form-control" aria-label="Username" aria-describedby="basic-addon1" name="q" value="{{ request.GET.q }}">
+<div class='row'>
+    <div class='col'>
+        <form method="get">
+        <div class="input-group mb-3">
+            <span class="input-group-text" id="basic-addon1">🔎</span>
+            <input type="text" class="form-control" aria-label="Username" aria-describedby="basic-addon1" name="q" value="{{ request.GET.q }}">
+        </div>
+        </form>
+    </div>
+    {% if incomplete_count %}
+        <div class='col-3'>
+            <a href="{% url "annotate_item" incomplete_first_pk %}">Help annotate incomplete item descriptions ({{ incomplete_count }})</a>
+        </div>
+    {% endif %}
 </div>
-</form>
 <table class="table table-striped">
     <thead><tr>
         <th scope="col">{% trans "Name" %}</td>

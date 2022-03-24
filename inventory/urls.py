@@ -26,6 +26,7 @@ urlpatterns = [
     # path('item/<int:pk>/move', views.move_item, name='move_item'),
     # path('item/<int:pk>/take', views.takee_item, name='take_item'),
     path("item/<int:pk>/update", views.UpdateItemView.as_view(), name="update_item"),
+    path("category/<int:pk>.json", views.category_json, name="category_json"),
 ]
 urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
 urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

@@ -1,6 +1,6 @@
 from datetime import datetime
 from django.db import transaction
-from django.http import HttpResponse
+from django.http import HttpResponse, JsonResponse
 from django.shortcuts import render, redirect
 from django.urls import reverse_lazy
 from django.views import View
@@ -45,6 +45,15 @@ def update_location(request, pk, unique_identifier):
 def view_item(request, pk):
     return redirect(reverse_lazy("update_item", args=[pk]))
 
+
+def category_json(request, pk):
+    c = models.Category.objects.get(pk=pk)
+    return JsonResponse({
+        'name': c.name,
+        'full_name': c.full_name,
+        'description': c.description,
+        'parent_category': c.parent_category.pk if c.parent_category else None,
+    })
 
 class CreateItemView(UserPassesTestMixin, extra_views.CreateWithInlinesView):
     model = models.Item
@@ -150,9 +159,16 @@ class SearchableItemListView(UserPassesTestMixin, extra_views.SearchableListMixi
     wrong_lookup = False
     paginate_by = 25
 
-    # def get_search_query(self):
-    #    # Overwrite query here
-    #    return super().get_search_query()
+    def get_context_data(self):
+        ctxt = super().get_context_data()
+        incomplete = (models.Item.objects.filter(name=None) |
+                      models.Item.objects.filter(sale_price=None))
+        ctxt.update({
+            'incomplete_count': incomplete.count(),
+            'incomplete_first_pk': incomplete.first().pk if incomplete else None
+        })
+        return ctxt
+
 
     def test_func(self):
         # Logged in or @ZAM
