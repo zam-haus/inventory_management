@@ -76,7 +76,7 @@ class Category(ComputedFieldsModel):
         ordering = ("full_name",)
 
     name = models.CharField(_("category name"), max_length=512)
-    description = models.TextField()
+    description = models.TextField(blank=True)
     # TODO implement signal for automatic adoption by parent_location
     # https://stackoverflow.com/questions/43857902/django-set-foreign-key-to-parent_location-value-on-delete
     parent_category = models.ForeignKey(
