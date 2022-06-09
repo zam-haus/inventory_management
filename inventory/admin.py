@@ -136,6 +136,30 @@ class LocationAdmin(admin.ModelAdmin):
                     ),
                 )
 
+    @admin.action(description="Print location labels twice (2x)")
+    def send_to_printer_twice_action(self, request, queryset):
+        successes, fails = 0, []
+        for loc in queryset:
+            try:
+                loc.send_to_printer()
+                loc.send_to_printer()
+                successes += 2
+            except Exception as e:
+                fails.append(str(e))
+        if successes:
+            messages.add_message(
+                request, messages.INFO, "Sent {} label(s) to printer.".format(successes)
+            )
+        if fails:
+            for emsg in set(fails):
+                messages.add_message(
+                    request,
+                    messages.ERROR,
+                    "Failed sending {} label(s) to printer: {}".format(
+                        fails.count(emsg), emsg
+                    ),
+                )
+
 
 admin.site.register(models.Location, LocationAdmin)
 
