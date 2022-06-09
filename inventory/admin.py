@@ -1,5 +1,6 @@
 from email.policy import default
 from random import choices
+from typing_extensions import Required
 from django.contrib import admin
 from django import forms
 from django.urls import path
@@ -95,39 +96,6 @@ class LocationAdmin(admin.ModelAdmin):
         ]
         return my_urls + urls
 
-    def mass_add_view(self, request, object_id=None):
-        class MassAddForm(forms.Form):
-            location_type = forms.ModelChoiceField(
-                label="location type",
-                required=True,
-                queryset=models.LocationType.objects.all(),
-            )
-            parent = forms.ModelChoiceField(
-                label="Parent location", queryset=models.Location.objects.all()
-            )
-            sequence_start = forms.CharField(max_length=32)
-
-            sub_count = forms.IntegerField(label="Sub-location count")
-            sub_type = forms.ModelChoiceField(
-                label="Sub-location type",
-                required=True,
-                queryset=models.LocationType.objects.all(),
-            )
-
-        if request.method == "POST":
-            form = MassAddForm(request.POST)
-        else:
-            form = MassAddForm()
-
-        context = dict(
-            # Include common variables for rendering the admin template.
-            self.admin_site.each_context(request),
-            content=form.as_p(),
-        )
-        return TemplateResponse(
-            request, "admin/inventory/location_massadd.html", context
-        )
-
     @method_decorator(staff_member_required)
     def send_to_printer_view(self, request, object_id=None):
         try:
@@ -186,7 +154,9 @@ class MassAddLocationsForm(forms.Form):
     )
     sequence_start = forms.CharField(max_length=32)
     count = forms.IntegerField()
+    description = forms.CharField(required=False)
     print = forms.BooleanField(label="print main lables", required=False)
+    print_multiple = forms.IntegerField(label="print multiple", required=False)
 
     sub_type = forms.ModelChoiceField(
         label="Sub-location type",
@@ -242,9 +212,11 @@ class MassAddLocationsAdminView(FormView):
             l.type = loc_type
             l.parent_location = data["parent_location"]
             l.label_template = data["label_template"] or None
+            l.description = data['description'] or None
             l.save()
             if data["print"]:
-                l.send_to_printer()
+                for i in range(data["print_multiple"] or 1):
+                    l.send_to_printer()
 
             # create sub-locations
             print(sub_type)
