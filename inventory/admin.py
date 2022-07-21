@@ -236,7 +236,7 @@ class MassAddLocationsAdminView(FormView):
             l.type = loc_type
             l.parent_location = data["parent_location"]
             l.label_template = data["label_template"] or None
-            l.description = data['description'] or None
+            l.description = data['description'] or ""
             l.save()
             if data["print"]:
                 for i in range(data["print_multiple"] or 1):

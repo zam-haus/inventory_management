@@ -155,22 +155,22 @@ OIDC_RP_CLIENT_ID = os.getenv('OIDC_RP_CLIENT_ID', 'inv.zam.haus')
 OIDC_RP_CLIENT_SECRET = os.getenv('OIDC_RP_CLIENT_SECRET')
 OIDC_OP_AUTHORIZATION_ENDPOINT = os.getenv(
     'OIDC_OP_AUTHORIZATION_ENDPOINT',
-    'https://login.zam.haus/auth/realms/ZAM/protocol/openid-connect/auth')
+    'https://sso.zam.haus/realms/ZAM/protocol/openid-connect/auth')
 OIDC_OP_TOKEN_ENDPOINT = os.getenv(
     'OIDC_OP_TOKEN_ENDPOINT',
-    'https://login.zam.haus/auth/realms/ZAM/protocol/openid-connect/token')
+    'https://sso.zam.haus/realms/ZAM/protocol/openid-connect/token')
 OIDC_OP_USER_ENDPOINT = os.getenv(
     'OIDC_OP_USER_ENDPOINT',
-    'https://login.zam.haus/auth/realms/ZAM/protocol/openid-connect/userinfo')
+    'https://sso.zam.haus/realms/ZAM/protocol/openid-connect/userinfo')
 OIDC_OP_LOGOUT_URL = os.getenv(
     'OIDC_OP_LOGOUT_URL',
-    'https://login.zam.haus/auth/realms/ZAM/protocol/openid-connect/logout?redirect_uri={}')
+    'https://sso.zam.haus/realms/ZAM/protocol/openid-connect/logout?redirect_uri={}')
 if OIDC_OP_LOGOUT_URL:
     OIDC_OP_LOGOUT_URL_METHOD = 'accounts.auth.provider_logout'
 OIDC_RP_SIGN_ALGO = 'RS256'
 OIDC_OP_JWKS_ENDPOINT = os.getenv(
     'OIDC_OP_JWKS_ENDPOINT',
-    'https://login.zam.haus/auth/realms/ZAM/protocol/openid-connect/certs')
+    'https://sso.zam.haus/realms/ZAM/protocol/openid-connect/certs')
 LOGIN_REDIRECT_URL = '/'
 ALLOW_LOGOUT_GET_METHOD = True
 LOGOUT_REDIRECT_URL = '/'
