@@ -58,6 +58,8 @@ To get started do the following:
 7. start local server
     `python manage.py runserver`
 
+The frontend login link will not work (as it relies on a working OIDC setup), but you can login through the admin interface at `/admin`. This will also log you in to the frontend.
+
 ## Label Printing
 Print jobs are passed to the printer via MQTT. A simple print server, listening to a (currently) hard-coded topic on mqtt.zam.haus and passing them onto a (currently) hard-coded printer is implemented by `print_server.py`. A more flexible (and complex) solution is planned.
 
