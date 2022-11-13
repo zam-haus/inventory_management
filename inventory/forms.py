@@ -148,7 +148,7 @@ class ItemAnnotationForm(ModelForm):
 
 class ItemImageInline(InlineFormSetFactory):
     model = ItemImage
-    fields = ["description", "image"]
+    fields = ["description", "image", "ocr_text"]
     description_defaults = ["Price label", "Packaged", "Single item (unpacked)"]
     #initial = [{"description": d} for d in description_defaults]
     factory_kwargs = {
@@ -158,6 +158,7 @@ class ItemImageInline(InlineFormSetFactory):
         "widgets": {
             "image": FileInput(attrs={"capture": True}),
             "description": TextDatalistInput(options=description_defaults),
+            "ocr_text": Textarea()
         },
     }
 
@@ -185,6 +186,7 @@ class ItemImageInline(InlineFormSetFactory):
                     """,
                 ),
                 FloatingField("description"),
+                FloatingField("ocr_text"),
                 layout.Div(
                     "image",
                     css_class="input-group",

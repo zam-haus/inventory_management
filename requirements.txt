@@ -14,3 +14,5 @@ mozilla-django-oidc
 pymaybe
 django-ipware
 django-bootstrap-icons
+tqdm
+pytesseract

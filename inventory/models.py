@@ -1,6 +1,7 @@
 from datetime import datetime
 from string import Template
 import urllib.parse
+import pytesseract
 
 from paho.mqtt import client as mqttc
 from pydoc import describe
@@ -108,6 +109,7 @@ class ItemImage(models.Model):
     image = models.ImageField(_("image"), upload_to=get_item_upload_path)
     description = models.CharField(_("description"), max_length=512, blank=True)
     item = models.ForeignKey("Item", on_delete=models.CASCADE, verbose_name=_("item"))
+    ocr_text = models.CharField(_("ocr_text"), max_length=1024, blank=True)
 
     def image_tag(self, location=None):
         return mark_safe(
@@ -115,6 +117,12 @@ class ItemImage(models.Model):
         )
     image_tag.short_description = "Image"
     image_tag.allow_tags = True
+
+    def run_ocr(self):
+        self.ocr_text = pytesseract.image_to_string(self.image.path)
+        self.save()
+        return self.ocr_text
+
 
 
 class ItemFile(models.Model):
