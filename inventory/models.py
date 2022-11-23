@@ -109,7 +109,7 @@ class ItemImage(models.Model):
     image = models.ImageField(_("image"), upload_to=get_item_upload_path)
     description = models.CharField(_("description"), max_length=512, blank=True)
     item = models.ForeignKey("Item", on_delete=models.CASCADE, verbose_name=_("item"))
-    ocr_text = models.CharField(_("ocr_text"), max_length=1024, blank=True)
+    ocr_text = models.TextField(_("ocr text"), blank=True)
 
     def image_tag(self, location=None):
         return mark_safe(
