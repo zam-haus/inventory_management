@@ -120,7 +120,7 @@ class ItemImage(models.Model):
     image_tag.allow_tags = True
 
     def run_ocr(self):
-        ocr_raw = pytesseract.image_to_string(self.image.path)
+        ocr_raw = pytesseract.image_to_string(self.image.path, lang='deu+eng')
         # clean up ocr_raw
         self.ocr_text = re.sub(r'\s+', ' ', ocr_raw.strip())
         self.save()
