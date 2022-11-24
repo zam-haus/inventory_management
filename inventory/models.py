@@ -122,7 +122,10 @@ class ItemImage(models.Model):
     def run_ocr(self):
         ocr_raw = pytesseract.image_to_string(self.image.path, lang='deu+eng')
         # clean up ocr_raw
-        self.ocr_text = re.sub(r'\s+', ' ', ocr_raw.strip())
+        # remove multiple blank lines and long spaces
+        self.ocr_text = re.sub(
+            r'[ \t\r\f\v]+\n[ \n\t\r\f\v]+', '\n',
+            re.sub(r'[ \t\r\f\v]+', ' ', ocr_raw.strip))
         self.save()
         return self.ocr_text
 
