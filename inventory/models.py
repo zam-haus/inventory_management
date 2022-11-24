@@ -1,8 +1,9 @@
 from datetime import datetime
 from string import Template
 import urllib.parse
-import pytesseract
+import re
 
+import pytesseract
 from paho.mqtt import client as mqttc
 from pydoc import describe
 from typing_extensions import Required
@@ -119,10 +120,11 @@ class ItemImage(models.Model):
     image_tag.allow_tags = True
 
     def run_ocr(self):
-        self.ocr_text = pytesseract.image_to_string(self.image.path)
+        ocr_raw = pytesseract.image_to_string(self.image.path)
+        # clean up ocr_raw
+        self.ocr_text = re.sub(r'\w+', '', ocr_raw.strip())
         self.save()
         return self.ocr_text
-
 
 
 class ItemFile(models.Model):
