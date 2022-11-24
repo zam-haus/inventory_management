@@ -6,6 +6,6 @@ WORKDIR /code
 COPY requirements.txt /code/
 RUN pip install -r requirements.txt
 RUN apt-get update && apt-get install -y \
-     gettext
+     gettext tesseract-ocr tesseract-ocr-deu
 COPY manage.py imzam inventory web-entrypoint.sh /code/
 CMD ["./web-entrypoint.sh"]
