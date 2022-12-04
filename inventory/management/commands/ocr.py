@@ -1,14 +1,15 @@
 from django.core.management.base import BaseCommand, CommandError
 from inventory.models import ItemImage
+from inventory.ocr_util import ocr_on_image_path
 from tqdm import tqdm
 import multiprocessing as mp
 from multiprocessing import Pool
-import pytesseract
 import logging
+
 
 def run_ocr(id_with_path):
     image_id, path = id_with_path
-    return (image_id, pytesseract.image_to_string(path))
+    return (image_id, ocr_on_image_path(path))
 
 class Command(BaseCommand):
     help = "Runs OCR on item images"
