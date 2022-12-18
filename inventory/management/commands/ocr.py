@@ -13,6 +13,10 @@ def run_ocr(id_with_path):
 class Command(BaseCommand):
     help = "Runs OCR on item images"
 
+    def add_arguments(self, parser):
+        parser.add_argument('--rerun', action='store_true', default=False,
+                            help="Rerun OCR on all images")
+
     def get_logger(self):
         logger = logging.getLogger("ocr")
         logger.handlers.clear()
@@ -24,12 +28,14 @@ class Command(BaseCommand):
         return logger
         
 
-    def handle(self, *args, **kwargs):
+    def handle(self, *args, rerun=False, **kwargs):
         logger = self.get_logger()
         mp.set_start_method("fork")
 
         logger.info("Collecting image paths...")
-        id_to_path = {image.id : image.image.path for image in ItemImage.objects.all()}
+        id_to_path = {image.id : image.image.path
+                      for image in ItemImage.objects.all()
+                      if image.image and (not image.ocr_text or rerun)}
         logging.info("Done")
         with Pool(4) as pool:
             id_to_ocr_text = dict(list(tqdm(pool.imap(func=run_ocr, iterable=id_to_path.items()), total=len(id_to_path))))
