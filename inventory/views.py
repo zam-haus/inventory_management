@@ -152,7 +152,7 @@ class AnnotateItemView(UserPassesTestMixin, UpdateView):
 
 class SearchableItemListView(UserPassesTestMixin, extra_views.SearchableListMixin, ListView):
     # matching criteria can be defined along with fields
-    search_fields = ["name", "category__name", "itemlocation__location__unique_identifier", "itemlocation__location__name"]
+    search_fields = ["name", "category__name", "itemlocation__location__unique_identifier", "itemlocation__location__name", "itemimage__ocr_text"]
     search_date_fields = []
     model = models.Item
     exact_query = False
