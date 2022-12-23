@@ -16,6 +16,7 @@ from django.utils.html import escape
 from django.utils.safestring import mark_safe
 from django.conf import settings
 from django.utils.translation import gettext_lazy as _
+from django.utils.timezone import make_aware
 
 
 # Create your models here.
@@ -121,7 +122,7 @@ class ItemImage(models.Model):
 
     def update_ocr_text(self, ocr_text):
         self.ocr_text = ocr_text
-        self.ocr_timestamp = datetime.utcnow()
+        self.ocr_timestamp = make_aware(datetime.utcnow())
         self.save()
 
     def run_ocr(self):
