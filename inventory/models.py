@@ -110,6 +110,7 @@ class ItemImage(models.Model):
     description = models.CharField(_("description"), max_length=512, blank=True)
     item = models.ForeignKey("Item", on_delete=models.CASCADE, verbose_name=_("item"))
     ocr_text = models.TextField(_("ocr text"), blank=True)
+    ocr_timestamp = models.DateTimeField(blank=True, null=True)
 
     def image_tag(self, location=None):
         return mark_safe(
@@ -118,10 +119,15 @@ class ItemImage(models.Model):
     image_tag.short_description = "Image"
     image_tag.allow_tags = True
 
-    def run_ocr(self):
-        self.ocr_text = ocr_on_image_path(self.image.path)
+    def update_ocr_text(self, ocr_text):
+        self.ocr_text = ocr_text
+        self.ocr_timestamp = datetime.utcnow()
         self.save()
-        return self.ocr_text
+
+    def run_ocr(self):
+        ocr_text = ocr_on_image_path(self.image.path)
+        self.update_ocr_text(ocr_text)
+        return ocr_text
 
 
 class ItemFile(models.Model):
