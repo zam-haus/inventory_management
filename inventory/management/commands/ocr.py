@@ -37,7 +37,7 @@ class Command(BaseCommand):
             logger.error(f"'since' argument {since} has invalid format. Must be YYYY-MM-DD")
             sys.exit(1)
 
-    def configure_logger(self):
+    def get_logger(self):
         handler = logging.StreamHandler(self.stdout)
         logger.addHandler(handler)
         formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -53,7 +53,7 @@ class Command(BaseCommand):
         return ItemImage.objects.filter(**filters)
 
     def handle(self, *args, rerun=False, since=None,  **kwargs):
-        self.configure_logger()
+        self.get_logger()
         since_parsed = self.parse_since_argument(since)
         mp.set_start_method("fork")
         logger.info("Collecting image paths...")
