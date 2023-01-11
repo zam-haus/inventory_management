@@ -1,9 +1,8 @@
 from datetime import datetime
 from string import Template
 import urllib.parse
-import re
 
-import pytesseract
+from inventory.ocr_util import ocr_on_image_path
 from paho.mqtt import client as mqttc
 from pydoc import describe
 from typing_extensions import Required
@@ -17,6 +16,7 @@ from django.utils.html import escape
 from django.utils.safestring import mark_safe
 from django.conf import settings
 from django.utils.translation import gettext_lazy as _
+from django.utils.timezone import make_aware
 
 
 # Create your models here.
@@ -111,6 +111,7 @@ class ItemImage(models.Model):
     description = models.CharField(_("description"), max_length=512, blank=True)
     item = models.ForeignKey("Item", on_delete=models.CASCADE, verbose_name=_("item"))
     ocr_text = models.TextField(_("ocr text"), blank=True, null=True, editable=False)
+    ocr_timestamp = models.DateTimeField(blank=True, null=True)
 
     def image_tag(self, location=None):
         return mark_safe(
@@ -119,15 +120,15 @@ class ItemImage(models.Model):
     image_tag.short_description = "Image"
     image_tag.allow_tags = True
 
-    def run_ocr(self):
-        ocr_raw = pytesseract.image_to_string(self.image.path, lang='deu+eng')
-        # clean up ocr_raw
-        # remove multiple blank lines and long spaces
-        self.ocr_text = re.sub(
-            r'[ \t\r\f\v]+\n[ \n\t\r\f\v]+', '\n',
-            re.sub(r'[ \t\r\f\v]+', ' ', ocr_raw.strip))
+    def update_ocr_text(self, ocr_text):
+        self.ocr_text = ocr_text
+        self.ocr_timestamp = make_aware(datetime.utcnow())
         self.save()
-        return self.ocr_text
+
+    def run_ocr(self):
+        ocr_text = ocr_on_image_path(self.image.path)
+        self.update_ocr_text(ocr_text)
+        return ocr_text
 
 
 class ItemFile(models.Model):

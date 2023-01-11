@@ -185,7 +185,6 @@ class ItemImageInline(InlineFormSetFactory):
                     """,
                 ),
                 FloatingField("description"),
-                FloatingField("ocr_text"),
                 layout.Div(
                     "image",
                     css_class="input-group",
