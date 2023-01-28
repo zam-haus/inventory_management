@@ -123,12 +123,27 @@ class ItemImage(models.Model):
     def update_ocr_text(self, ocr_text):
         self.ocr_text = ocr_text
         self.ocr_timestamp = make_aware(datetime.utcnow())
-        self.save()
+        self.save(update_fields=['ocr_text', 'ocr_timestamp'])
 
     def run_ocr(self):
-        ocr_text = ocr_on_image_path(self.image.path)
-        self.update_ocr_text(ocr_text)
-        return ocr_text
+        self.ocr_text = ocr_on_image_path(self.image.path)
+        self.ocr_timestamp = make_aware(datetime.utcnow())
+
+    def save(
+        self, force_insert=False, force_update=False, using=None, update_fields=None
+    ):
+        if update_fields is not None and 'image' not in update_fields:
+            return super().save(force_insert, force_update, using, update_fields)
+        try:
+            original_instance = ItemImage.objects.get(pk=self.pk)
+        except ItemImage.DoesNotExist:
+            original_instance = None
+        super().save(force_insert, force_update, using, update_fields)
+        new_instance = ItemImage.objects.get(pk=self.pk) # Retrieve new instance with updated file path
+        if original_instance is None or (original_instance.ocr_text == new_instance.ocr_text and original_instance.image.path != new_instance.image.path):          
+            self.run_ocr()
+            super().save(force_insert, force_update, update_fields=['ocr_text', 'ocr_timestamp'])
+       
 
 
 class ItemFile(models.Model):
