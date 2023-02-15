@@ -1,4 +1,4 @@
-from datetime import datetime
+from django.utils import timezone
 from django.db import transaction
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import render, redirect
@@ -106,7 +106,7 @@ class CreateItemView(UserPassesTestMixin, extra_views.CreateWithInlinesView):
         response = super().form_valid(form)
         if self.request.POST and 'save_and_mark' in self.request.POST:
             location = self._get_location()
-            location.last_complete_inventory = datetime.now()
+            location.last_complete_inventory = timezone.now()
             location.save()
         return response
 

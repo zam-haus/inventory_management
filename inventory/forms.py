@@ -1,5 +1,4 @@
 import re
-from datetime import datetime, timezone
 
 from crispy_forms.helper import FormHelper
 from crispy_forms import layout, bootstrap
@@ -8,6 +7,7 @@ from django.forms import FileInput, ModelForm, RegexField, Textarea, TextInput
 from django.forms.utils import ErrorList
 from extra_views import InlineFormSetFactory
 from django.utils.translation import gettext_lazy as _
+from django.utils import timezone
 
 
 
@@ -209,7 +209,7 @@ class ItemLocationForm(ModelForm):
         instance = super().save(commit)
         # check if location was marked complete inventory
         if commit and "save_and_mark" in self.data:
-            self.instance.location.last_complete_inventory = datetime.now(timezone.utc)
+            self.instance.location.last_complete_inventory = timezone.now()
             self.instance.location.save()
         return instance
 
