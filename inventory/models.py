@@ -17,6 +17,9 @@ from django.utils.safestring import mark_safe
 from django.conf import settings
 from django.utils.translation import gettext_lazy as _
 from django.utils.timezone import make_aware
+from django.db.models.signals import pre_delete
+from django.dispatch.dispatcher import receiver
+from sorl.thumbnail import delete
 
 
 # Create your models here.
@@ -131,10 +134,25 @@ class ItemImage(models.Model):
         return ocr_text
 
 
+@receiver(pre_delete, sender=ItemImage)
+def delete_image(sender, instance, **kwargs):
+    # Pass false so FileField doesn't save the model.
+    if instance.image:
+        delete(instance.image, delete_file=False)  # delete thumbnails
+        instance.image.delete(False)
+
+
 class ItemFile(models.Model):
     file = models.FileField(_("file"), upload_to=get_item_upload_path)
     description = models.CharField(_("description"), max_length=512, blank=True)
     item = models.ForeignKey("Item", on_delete=models.CASCADE, verbose_name=_("file"))
+
+
+@receiver(pre_delete, sender=ItemImage)
+def delete_image(sender, instance, **kwargs):
+    # Pass false so FileField doesn't save the model.
+    if instance.image:
+        instance.image.delete(False)
 
 
 class ItemBarcode(models.Model):

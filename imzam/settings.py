@@ -64,6 +64,7 @@ INSTALLED_APPS = [
     "computedfields",
     "accounts",
     "django_bootstrap_icons",
+    "sorl.thumbnail",
 ]
 
 CRISPY_ALLOWED_TEMPLATE_PACKS = "bootstrap5"

@@ -54,6 +54,7 @@ class ZAMLocalMiddleware:
 
         s = request.session
         current_addr, _ = get_client_ip(request)
+        print("current_addr", current_addr)
 
         # If request ip changed
         if current_addr is not None and \
@@ -61,6 +62,7 @@ class ZAMLocalMiddleware:
             # recheck locality, set zam_local accordingly
             s.last_seen_remote_addr = current_addr
             for ip in self.zam_ips:
+                print(ip)
                 if ipaddress.ip_address(current_addr) in ip:
                     s['is_zam_local'] = True
                     break

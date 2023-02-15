@@ -2,6 +2,7 @@
 
 {% load django_bootstrap5 i18n %}
 {% load mytemplatetags %}
+{% load thumbnail %}
 
 {% block title %}
     {% trans "Item List" %}
@@ -46,11 +47,15 @@
             </a>
         </td>
         <td>
-            {% for image in object.itemimage_set.all %}{% spaceless %}
-                <a href="{{ image.image.url }}">
-                <img src="{{ image.image.url }}" class="img-thumbnail img-fluid" style="max-width: 100px;" alt="{{ image.description }}" data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-original-title="{{ image.description }}">
-                </a>
-            {% endspaceless %}{% endfor %}
+            {% for image in object.itemimage_set.all %}
+                {% thumbnail image.image "200x200" as im %}
+                    {% spaceless %}
+                        <a href="{{ image.image.url }}">
+                            <img src="{{ im.url }}" class="img-thumbnail img-fluid" style="max-width: 100px;" alt="{{ image.description }}" data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-original-title="{{ image.description }}">
+                        </a>
+                    {% endspaceless %}
+                {% endthumbnail %}
+            {% endfor %}
         </td>
         <td>
             {% for itemloc in object.itemlocation_set.all %}
