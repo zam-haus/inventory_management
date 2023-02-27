@@ -2,7 +2,7 @@
 
 This is a basic inventory managment system, with a focus on quick and easy data collection without any previous knowledge about the items in inventory.
 
-To be found at https://im.zam.haus
+To be found at https://inv.zam.haus
 
 Implemented with Django.
 
