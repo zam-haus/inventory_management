@@ -48,7 +48,7 @@ To get started do the following:
     ```
     for secure deployment: make sure to disable `DEBUG` and set `SECRET_KEY` to a random string and consult https://docs.djangoproject.com/en/4.0/howto/deployment/checklist/.
 3. install all python requirements (asuming current python and pip installation is availible)
-    `pip install -r requirements.txt`
+    `pip install -r requirements.dev.txt`
 4. initialize database
     `python manage.py migrate`
 5. create superuser account
