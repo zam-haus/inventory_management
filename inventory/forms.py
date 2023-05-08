@@ -207,10 +207,6 @@ class ItemLocationForm(ModelForm):
 
     def save(self, commit):
         instance = super().save(commit)
-        # check if location was marked complete inventory
-        if commit and "save_and_mark" in self.data:
-            self.instance.location.last_complete_inventory = timezone.now()
-            self.instance.location.save()
         return instance
 
 

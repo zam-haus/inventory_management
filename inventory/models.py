@@ -405,10 +405,6 @@ class Location(ComputedFieldsModel):
         verbose_name=_("parent location"),
     )
 
-    last_complete_inventory = models.DateTimeField(
-        _("last complete inventory"), blank=True, null=True
-    )
-
     def clean(self):
         # ensure cycle-free tree
         cur = self
