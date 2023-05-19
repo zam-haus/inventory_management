@@ -59,7 +59,6 @@ class LocationAdmin(admin.ModelAdmin):
         "parent_location",
         "label_template",
         "label_image_tag",
-        "last_complete_inventory",
     )
     ordering = ("locatable_identifier",)
     readonly_fields = ("label_image_tag",)
