@@ -16,3 +16,5 @@ django-ipware
 django-bootstrap-icons
 tqdm
 pytesseract
+celery
+redis
