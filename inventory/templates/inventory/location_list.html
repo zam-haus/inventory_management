@@ -36,22 +36,6 @@
         </th>
         <th scope="col">{% trans "Name" %}</th>
         <th scope="col">{% trans "Items" %}</th>
-        <th scope="col">
-            {% trans "Status" %}
-            {% if sort_helper.is_sorted_by_last_complete_inventory == "asc" %}
-            <a href="{{ request.path }}{{ sort_helper.get_sort_query_by_last_complete_inventory_desc }}">
-            {% bs_icon 'sort-up' color="red" %}
-            </a>
-            {% elif sort_helper.is_sorted_by_last_complete_inventory == "desc" %}
-            <a href="{{ request.path }}{{ sort_helper.get_sort_query_by_last_complete_inventory_asc }}">
-            {% bs_icon 'sort-down' color="red" %}
-            </a>
-            {% else %}
-            <a href="{{ request.path }}{{ sort_helper.get_sort_query_by_last_complete_inventory_desc }}">
-            {% bs_icon 'sort-down' %}
-            </a>
-            {% endif %}
-        </th>
     </tr></thead>
     <tbody>
     {% for object in page_obj %}
@@ -68,11 +52,6 @@
         </td>
         <td>
             {{ object.itemlocation_set.count }}
-        </td>
-        <td>
-            {% if object.last_complete_inventory %}
-            <a href="#" data-bs-toggle="tooltip" title="" data-bs-original-title="{% trans "Inventory marked complete by " %}{{ object.last_complete_inventory }}">✅</a>
-            {% endif %}
         </td>
         </tr>
     {% endfor %}
@@ -99,7 +78,7 @@
 
 {% endblock %}
 
-{% block bootstrap5_extra_script %}
+{% block bootstrap5_extra_head %}
 <script type="text/javascript">
 var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
 var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {

@@ -1,4 +1,4 @@
-from datetime import datetime
+from django.utils import timezone
 from django.db import transaction
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import render, redirect
@@ -102,14 +102,6 @@ class CreateItemView(UserPassesTestMixin, extra_views.CreateWithInlinesView):
         return not self.request.user.is_anonymous or \
             self.request.session.get('is_zam_local')
 
-    def form_valid(self, form):
-        response = super().form_valid(form)
-        if self.request.POST and 'save_and_mark' in self.request.POST:
-            location = self._get_location()
-            location.last_complete_inventory = datetime.now()
-            location.save()
-        return response
-
 
 class UpdateItemView(UserPassesTestMixin, extra_views.UpdateWithInlinesView):
     model = models.Item
@@ -184,7 +176,7 @@ class SearchableLocationListView(
     # matching criteria can be defined along with fields
     search_fields = ["locatable_identifier", "name", "descriptive_identifier"]
     search_date_fields = []
-    sort_fields = ["unique_identifier", "last_complete_inventory"]
+    sort_fields = ["unique_identifier"]
     model = models.Location
     exact_query = False
     wrong_lookup = False

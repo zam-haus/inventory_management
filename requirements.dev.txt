@@ -7,7 +7,6 @@ django-computedfields
 paho-mqtt
 Pillow
 typing_extensions
-psycopg2
 whitenoise
 gunicorn
 mozilla-django-oidc
@@ -16,6 +15,4 @@ django-ipware
 django-bootstrap-icons
 tqdm
 pytesseract
-celery
-redis
 sorl-thumbnail

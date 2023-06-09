@@ -8,6 +8,8 @@ from computedfields.models import ComputedFieldsModel, computed
 from django.conf import settings
 from django.core import validators
 from django.db import models
+from django.db.models.signals import pre_delete
+from django.dispatch.dispatcher import receiver
 from django.forms import ValidationError
 from django.urls import reverse
 from django.utils.html import escape
@@ -15,9 +17,11 @@ from django.utils.safestring import mark_safe
 from django.utils.timezone import make_aware
 from django.utils.translation import gettext_lazy as _
 from paho.mqtt import client as mqttc
+from sorl.thumbnail import delete
 from typing_extensions import Required
-from inventory.tasks import run_ocr_on_item_image
+
 from inventory.ocr_util import ocr_on_image_path
+from inventory.tasks import run_ocr_on_item_image
 
 # Create your models here.
 
@@ -152,12 +156,27 @@ class ItemImage(models.Model):
             run_ocr_on_item_image.delay(self.pk)
 
 
+@receiver(pre_delete, sender=ItemImage)
+def delete_image(sender, instance, **kwargs):
+    # Pass false so FileField doesn't save the model.
+    if instance.image:
+        delete(instance.image, delete_file=False)  # delete thumbnails
+        instance.image.delete(False)
+
+
 class ItemFile(models.Model):
     file = models.FileField(_("file"), upload_to=get_item_upload_path)
     description = models.CharField(
         _("description"), max_length=512, blank=True)
     item = models.ForeignKey(
         "Item", on_delete=models.CASCADE, verbose_name=_("file"))
+
+
+@receiver(pre_delete, sender=ItemImage)
+def delete_image(sender, instance, **kwargs):
+    # Pass false so FileField doesn't save the model.
+    if instance.image:
+        instance.image.delete(False)
 
 
 class ItemBarcode(models.Model):
@@ -403,6 +422,8 @@ class Location(ComputedFieldsModel):
         verbose_name=_("label template"),
     )
 
+    # TODO prevent assigning self as parent
+    # TODO circular dependencies
     parent_location = models.ForeignKey(
         "self",
         related_name="children",
@@ -410,10 +431,6 @@ class Location(ComputedFieldsModel):
         null=True,
         blank=True,
         verbose_name=_("parent location"),
-    )
-
-    last_complete_inventory = models.DateTimeField(
-        _("last complete inventory"), blank=True, null=True
     )
 
     def clean(self):
