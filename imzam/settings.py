@@ -233,6 +233,18 @@ MQTT_ZAMIP_PASSWORD_AUTH = dict(
     username=os.getenv("MQTT_ZAMIP_USERNAME", "inv.zam.haus-django"),
     password=os.getenv("MQTT_ZAMIP_PASSWORD", ""))
 
+# ================================================================
+# Celery config
+# ================================================================
+CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
+CELERY_BROKER_CONNECTION_MAX_RETRIES = 5
+
+# Setting CELERY_TASK_ALWAYS_EAGER executes all celery tasks locally by blocking until the task returns. Set this to False
+# if you have a local running instance of redis and use the command 'python manage.py celery_worker run' to start the celery worker
+CELERY_TASK_ALWAYS_EAGER = False
+
+CELERY_BROKER_URL = "redis://celery_redis"
+
 
 # Overwrite default settings with local_settings.py configuration
 if not os.getenv("IGNORE_LOCAL_SETTINGS", False):

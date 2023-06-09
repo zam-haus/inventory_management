@@ -4,7 +4,6 @@ from pydoc import describe
 from string import Template
 from xml.etree.ElementTree import Comment
 
-import celery
 from computedfields.models import ComputedFieldsModel, computed
 from django.conf import settings
 from django.core import validators
@@ -17,7 +16,7 @@ from django.utils.timezone import make_aware
 from django.utils.translation import gettext_lazy as _
 from paho.mqtt import client as mqttc
 from typing_extensions import Required
-
+from inventory.tasks import run_ocr_on_item_image
 from inventory.ocr_util import ocr_on_image_path
 
 # Create your models here.
@@ -150,8 +149,7 @@ class ItemImage(models.Model):
         # Retrieve new instance with updated file path
         new_instance = ItemImage.objects.get(pk=self.pk)
         if original_instance is None or (original_instance.ocr_text == new_instance.ocr_text and original_instance.image.path != new_instance.image.path):
-            celery.current_app.send_task(
-                'inventory.tasks.run_ocr_on_item_image', (self.pk,))
+            run_ocr_on_item_image.delay(self.pk)
 
 
 class ItemFile(models.Model):
