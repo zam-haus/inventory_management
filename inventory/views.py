@@ -44,6 +44,8 @@ def update_location(request, pk, unique_identifier):
 
 def view_item(request, pk):
     return redirect(reverse_lazy("update_item", args=[pk]))
+class DetailItemView(DetailView):
+    model = models.Item
 
 
 def category_json(request, pk):

@@ -1,0 +1,46 @@
+{% extends 'base.html' %}
+
+{% load django_bootstrap5 i18n %}
+{% load mytemplatetags %}
+{% load thumbnail %}
+
+{% block title %}
+    {{ object.name }}
+{% endblock %}
+
+{% if form.instance.id %}
+{% block admin_url %}
+{{ object.get_admin_url }}
+{% endblock %}
+{% endif %}
+
+{% block content %}
+    <a href="{% url 'update_item' object.id %}">{% trans "edit" %}</a>
+    <p>{{ object.description }}</p>
+
+    {% for image in object.itemimage_set.all %}
+    {% thumbnail image.image "200x200" as im %}
+        {% spaceless %}
+            <a class="img-link" href="{{ image.image.url }}">
+                <img src="{{ im.url }}" class="img-thumbnail img-fluid" style="max-width: 200px;" alt="{{ image.description }}" data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-original-title="{{ image.description }}">
+            </a>
+        {% endspaceless %}
+    {% endthumbnail %}
+{% endfor %}
+
+    <h2>{% trans "Locations" %}</h2>
+    <div>
+    <table>
+    {% for il in object.itemlocation_set.all %}
+        <tr>
+            <td><a href="{{ il.location.get_absolute_url }}">{{ il.location }}</a></td>
+            <td>{{ il.amount_text }}</td>
+            <td><a href="TODO">{% trans "Take" %}</a></td>
+            <td><a href="TODO">{% trans "Move" %}</a></td>
+    {% empty %}
+        {% trans "Item is located nowhere." %}
+    {% endfor %}
+    </table>
+    </div>
+    
+{% endblock %}
