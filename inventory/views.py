@@ -1,3 +1,5 @@
+from random import randint, choice
+
 from django.utils import timezone
 from django.db import transaction
 from django.http import HttpResponse, JsonResponse
@@ -135,12 +137,11 @@ class AnnotateItemView(UserPassesTestMixin, UpdateView):
     def get_success_url(self):
         if self.request.POST and "save_next" in self.request.POST:
             # redirect to next incomplete
-            incomplete = (models.Item.objects.filter(name=None) |
-                          models.Item.objects.filter(sale_price=None))
+            incomplete = models.Item.filter_incomplete(ordered=True)
             next_incomplete = incomplete & models.Item.objects.filter(pk__gt=self.object.pk)
             if not next_incomplete:
                 next_incomplete = incomplete
-            return reverse_lazy("annotate_item", args=[next_incomplete.first().pk])
+            return reverse_lazy("annotate_item", args=[incomplete[randint(0, incomplete.count()//3)].pk])
         return reverse_lazy("annotate_item", args=[self.object.pk])
 
 
@@ -155,11 +156,10 @@ class SearchableItemListView(UserPassesTestMixin, extra_views.SearchableListMixi
 
     def get_context_data(self):
         ctxt = super().get_context_data()
-        incomplete = (models.Item.objects.filter(name=None) |
-                      models.Item.objects.filter(sale_price=None))
+        incomplete = models.Item.filter_incomplete()
         ctxt.update({
             'incomplete_count': incomplete.count(),
-            'incomplete_first_pk': incomplete.first().pk if incomplete else None
+            'incomplete_first_pk': incomplete[randint(0, incomplete.count())].pk
         })
         return ctxt
 

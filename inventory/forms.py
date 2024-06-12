@@ -72,7 +72,6 @@ class ItemForm(ModelForm):
         self.helper.layout = layout.Layout(
             "name",
             "description",
-            "category",
             layout.Div(
                 layout.Div(
                     "measurement_unit",
@@ -115,7 +114,7 @@ class ItemForm(ModelForm):
 class ItemAnnotationForm(ModelForm):
     class Meta:
         model = Item
-        fields = ["name", "description", "category", "measurement_unit", "sale_price"]
+        fields = ["name", "description", "measurement_unit", "sale_price"]
         widgets = {
             "description": Textarea(attrs={"rows": 3}),
             #'sale_price': TextInput(attrs={'type':'number', 'pattern':'[0-9,\.]*'})
@@ -127,7 +126,7 @@ class ItemAnnotationForm(ModelForm):
         self.helper.layout = layout.Layout(
             layout.Div(
                 layout.Div(
-                    FloatingField("name"),
+                    FloatingField("name", autofocus=True),
                     css_class='col'),
                 layout.Div(
                     FloatingField("category"),
@@ -142,8 +141,8 @@ class ItemAnnotationForm(ModelForm):
                     FloatingField("sale_price",),
                     css_class='col'),
             css_class='row'),
-            layout.Submit("save", _("Save")),
-            layout.Submit("save_next", _("Save and go to next incomplete item")),
+            layout.Submit("save_next", _("Save and go to next incomplete item"), css_class="btn btn-primary"),
+            layout.Submit("save", _("Save"), css_class="btn btn-secondary", ),
         )
 
 class ItemImageInline(InlineFormSetFactory):

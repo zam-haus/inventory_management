@@ -72,6 +72,27 @@ class Item(models.Model):
             "admin:inventory_item_change",
             args=(self.pk,),
         )
+    
+    @classmethod
+    def filter_incomplete(cls, ordered=False):
+        # prefilter:
+        # only with image(s)
+        relevant_items = cls.objects.filter(itemimage__isnull=False, itemlocation__isnull=False)
+
+        # filter with complete information
+        relevant_items = relevant_items.exclude(name__isnull=False, sale_price__isnull=False)
+
+        if ordered:
+            # prioritize items with price label image
+            relevant_items = relevant_items.annotate(
+                pl_count=models.Count('itemimage', filter=models.Q(itemimage__description="Price label")))
+
+            # sorted by price label count and amount:
+            relevant_items = relevant_items.annotate(
+                amount=models.Sum(models.functions.math.Abs('itemlocation__amount')))
+            relevant_items = relevant_items.order_by('-pl_count', '-amount')
+        
+        return relevant_items
 
 
 class Category(ComputedFieldsModel):
