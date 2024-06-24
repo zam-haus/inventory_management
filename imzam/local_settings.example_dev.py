@@ -24,3 +24,10 @@ DATABASES = {
 
 OIDC_RP_CLIENT_ID = ''
 OIDC_RP_CLIENT_SECRET = ''
+
+# ================================================================
+# Celery config
+# ================================================================
+# Setting CELERY_TASK_ALWAYS_EAGER executes all celery tasks locally by blocking until the task returns. Set this to False
+# if you have a local running instance of redis and use the command 'python manage.py celery_worker run' to start the celery worker
+CELERY_TASK_ALWAYS_EAGER = True
