@@ -10,7 +10,8 @@
 
 
 {% block content %}
-<div class="container-sm">
+<div class="row">
+<div class="col-lg">
 <div id="carouselImageIndicators" class="carousel slide" data-ride="carousel" data-interval="false">
     <div class="carousel-indicators">
       {% for img in object.itemimage_set.all %}
@@ -35,7 +36,7 @@
 </div>
 </div>
 
-<div class="container-sm mt-3">
+<div class="col-lg">
 <table>
 {% for il in object.itemlocation_set.all %}
     <tr>
@@ -45,12 +46,10 @@
     {% trans "Item is located nowhere." %}
 {% endfor %}
 </table>
-</div>
-
-
-<div class="container-sm mt-3">
+<br/>
 {% load crispy_forms_tags %}
 {% crispy form %}
+</div>
 </div>
 
 {% endblock %}
