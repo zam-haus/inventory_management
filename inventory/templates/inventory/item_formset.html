@@ -64,29 +64,18 @@
 {% block content %}
 <form method="post" class="form-row" enctype="multipart/form-data">
     {% csrf_token %}
-    {{ form.media }}
-    {{ form.as_p }}
-
-    {% load crispy_forms_tags %}
-    {% crispy form %}
-
-    <div class="mb-3">
-    <legend>{{ inlines.0.helper.form_title }}</legend>
-    {{ inlines.0.media }}
-    {% crispy inlines.0 %}
-    <button id="add_image_button" type="button" class="btn btn-primary">{% trans 'Add additional image' %}</button>
+    {% bootstrap_form form %}
+    {% for formset in inlines %}
+        {% bootstrap_formset formset %}
+    {% endfor %}
+    <div class="form-group d-flex justify-content-between align-items-center">
+        <button type="submit" class="btn btn-primary">{% trans "Save" %}</button>
+        {% if form.instance.pk %}
+            <a href="{% url 'delete_item' form.instance.pk %}" class="btn btn-danger">
+                {% trans "Delete Item" %}
+            </a>
+        {% endif %}
     </div>
-
-    <div class="mb-3">
-    <legend>{{ inlines.1.helper.form_title }}</legend>
-    {{ inlines.1.media }}
-    {% crispy inlines.1 %}
-    </div>
-
-    <input type="submit" name="save" value="{% trans 'Save' %}" class="btn btn-primary mb-3">
-    {% if request.GET and request.GET.location_id %}
-    <input type="submit" name="save_and_mark" value="{% translate "Save and mark location finished" %}" class="btn btn-primary mb-3">
-    {% endif %}
 </form>
 {% endblock %}
 

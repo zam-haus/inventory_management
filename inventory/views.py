@@ -7,6 +7,7 @@ from django.shortcuts import render, redirect
 from django.urls import reverse_lazy
 from django.views import View
 from django.views.generic import ListView, DetailView, UpdateView
+from django.views.generic.edit import DeleteView
 from django.core.exceptions import ObjectDoesNotExist
 import extra_views
 from django.utils.translation import gettext_lazy as _
@@ -141,14 +142,13 @@ class UpdateItemView(UserPassesTestMixin, extra_views.UpdateWithInlinesView):
     model = models.Item
     inlines = [forms.ItemImageInline, forms.ItemLocationInline]
     template_name = "inventory/item_formset.html"
-    form_class = forms.ItemLocationForm
+    form_class = forms.ItemForm  # Changed to ItemForm
     factory_kwargs = {
         "extra": 1,
         "can_order": False,
         "can_delete": False,
     }
-
-    extra_context = {"title": _("Update Item2")}
+    extra_context = {"title": _("Update Item")}
 
     def get_success_url(self):
         return self.object.get_absolute_url()
@@ -168,7 +168,7 @@ class AnnotateItemView(UserPassesTestMixin, UpdateView):
         "can_order": False,
         "can_delete": False,
     }
-    extra_context = {"title": _("Update Item1")}
+    extra_context = {"title": _("Update Item")}
 
     def test_func(self):
         # Logged in or @ZAM
@@ -186,24 +186,26 @@ class AnnotateItemView(UserPassesTestMixin, UpdateView):
         return reverse_lazy("annotate_item", args=[self.object.pk])
 
 
-class SearchableItemListView(UserPassesTestMixin, extra_views.SearchableListMixin, ListView):
-    # matching criteria can be defined along with fields
-    search_fields = ["name", "category__name", "itemlocation__location__unique_identifier", "itemlocation__location__name", "itemimage__ocr_text"]
-    search_date_fields = []
+class SearchableItemListView(ListView):
     model = models.Item
-    exact_query = False
-    wrong_lookup = False
-    paginate_by = 25
+    paginate_by = 50
+    template_name = "inventory/item_list.html"
 
-    def get_context_data(self):
-        ctxt = super().get_context_data()
-        incomplete = models.Item.filter_incomplete()
-        ctxt.update({
-            'incomplete_count': incomplete.count(),
-            'incomplete_first_pk': incomplete[randint(0, incomplete.count())].pk
-        })
-        return ctxt
-
+    def get_queryset(self):
+        try:
+            queryset = super().get_queryset()
+            query = self.request.GET.get('q')
+            if query:
+                queryset = queryset.filter(
+                    models.Q(name__icontains=query) |
+                    models.Q(description__icontains=query)
+                )
+            return queryset
+        except Exception as e:
+            # Log the error
+            print(f"Error in SearchableItemListView: {str(e)}")
+            # Return empty queryset instead of failing
+            return self.model.objects.none()
 
     def test_func(self):
         # Logged in or @ZAM
@@ -227,5 +229,15 @@ class SearchableLocationListView(
 
     def test_func(self):
         # Logged in or @ZAM
+        return not self.request.user.is_anonymous or \
+            self.request.session.get('is_zam_local', False)
+
+
+class DeleteItemView(UserPassesTestMixin, DeleteView):
+    model = models.Item
+    success_url = reverse_lazy('index_items')
+    template_name = 'inventory/item_confirm_delete.html'
+
+    def test_func(self):
         return not self.request.user.is_anonymous or \
             self.request.session.get('is_zam_local', False)

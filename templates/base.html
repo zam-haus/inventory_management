@@ -13,12 +13,17 @@
         </button>
         <div class="collapse navbar-collapse" id="navbarNavAltMarkup">
           <ul class="navbar-nav me-auto mb-lg-0">
-            <li class="nav-item"><a class="nav-link" href="{% url 'index_items' %}">{% trans 'Items' %}</a></li>
-            <li class="nav-item"><a class="nav-link" href="{% url 'index_locations' %}">{% trans 'Locations' %}</a></li>
-
-          {% if user.is_staff %}
-          <li class="nav-item"><a class="nav-link" href="{% block admin_url %}{% url 'admin:index' %}{% endblock %}">Admin</a></li>
-          {% endif %}
+            <li class="nav-item">
+                <a class="nav-link" href="{% url 'index_items' %}">{% trans 'Items' %}</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="{% url 'index_locations' %}">{% trans 'Locations' %}</a>
+            </li>
+            {% if user.is_staff %}
+                <li class="nav-item">
+                    <a class="nav-link" href="{% block admin_url %}{% url 'admin:index' %}{% endblock %}">Admin</a>
+                </li>
+            {% endif %}
           </ul>
         </div>
         <div class="d-flex">
