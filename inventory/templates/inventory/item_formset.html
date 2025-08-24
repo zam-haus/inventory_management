@@ -64,18 +64,22 @@
 {% block content %}
 <form method="post" class="form-row" enctype="multipart/form-data">
     {% csrf_token %}
+    {{ form.media }}
+    {{ form.as_p }}
 
     {% load crispy_forms_tags %}
     {% crispy form %}
 
     <div class="mb-3">
     <legend>{{ inlines.0.helper.form_title }}</legend>
+    {{ inlines.0.media }}
     {% crispy inlines.0 %}
     <button id="add_image_button" type="button" class="btn btn-primary">{% trans 'Add additional image' %}</button>
     </div>
 
     <div class="mb-3">
     <legend>{{ inlines.1.helper.form_title }}</legend>
+    {{ inlines.1.media }}
     {% crispy inlines.1 %}
     </div>
 
@@ -86,7 +90,58 @@
 </form>
 {% endblock %}
 
+{% block bootstrap5_extra_head %}
+    {{ block.super }}
+    {{ form.media.css }}
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/css/select2.min.css" rel="stylesheet" />
+    <style>
+        .select2-container { width: 100% !important; }
+    </style>
+{% endblock %}
+
 {% block bootstrap5_extra_script %}
+    {{ block.super }}
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/js/select2.full.min.js"></script>
+    {{ form.media.js }}
+    <script>
+        $(document).ready(function() {
+            $('.location-select2').each(function() {
+                $(this).select2({
+                    theme: 'default',
+                    width: '100%',
+                    ajax: {
+                        url: '/ajax/location-search/',
+                        dataType: 'json',
+                        delay: 250,
+                        data: function(params) {
+                            return {
+                                q: params.term || '',
+                                page: params.page || 1
+                            };
+                        },
+                        processResults: function(data) {
+                            return {
+                                results: data.results,
+                                pagination: data.pagination
+                            };
+                        },
+                        cache: true
+                    },
+                    minimumInputLength: 0,
+                    placeholder: 'Search for a location...',
+                    allowClear: true,
+                    dropdownParent: $('body')
+                });
+            });
+
+            // Global event handler for Select2 open
+            $(document).on('select2:open', () => {
+                document.querySelector('.select2-search__field').focus();
+            });
+        });
+    </script>
+{% endblock %}
+
 <script type="text/javascript" src="{% static 'inventory/camera.js' %}"></script>
 <script type="text/javascript" src="{% static 'inventory/autocomplete.js' %}"></script>
 <script type="text/javascript" src="{% static 'inventory/autocomplete_custom.js' %}"></script>
@@ -104,4 +159,3 @@
         white-space: normal;
     }
 </style>
-{% endblock %}

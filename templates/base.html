@@ -49,3 +49,8 @@
     </div>
 
 {% endblock %}
+
+{% block bootstrap5_extra_head %}
+    {{ block.super }}
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+{% endblock %}

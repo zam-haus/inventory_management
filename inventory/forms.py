@@ -8,11 +8,16 @@ from django.forms.utils import ErrorList
 from extra_views import InlineFormSetFactory
 from django.utils.translation import gettext_lazy as _
 from django.utils import timezone
-
+from django import forms
+from .models import Item
+from .widgets import Select2Widget
+from django_select2.forms import ModelSelect2Widget
 
 
 from .models import BarcodeType, Item, ItemBarcode, ItemImage, ItemLocation, Location
 
+
+# .select2itemform
 
 class TextDatalistInput(TextInput):
     template_name = "inventory/widgets/text_datalist.html"
@@ -194,21 +199,44 @@ class ItemImageInline(InlineFormSetFactory):
         return formset
 
 
-class ItemLocationForm(ModelForm):
+
+
+class LocationSelect2Widget(ModelSelect2Widget):
+    model = Location
+    search_fields = ['name__icontains', 'unique_identifier__icontains']
+    
+    def build_attrs(self, base_attrs, extra_attrs=None):
+        attrs = super().build_attrs(base_attrs, extra_attrs)
+        attrs.update({
+            'class': 'location-select2 form-select',
+            'data-minimum-input-length': 0,
+            'data-ajax--delay': 250,
+            'data-ajax--url': '/ajax/location-search/',
+            'data-placeholder': 'Search for a location...',
+            'data-allow-clear': 'true'
+        })
+        return attrs
+
+    def get_queryset(self):
+        return Location.objects.all()
+
+class ItemLocationForm(forms.ModelForm):
     class Meta:
         model = ItemLocation
-        fields = "__all__"
+        fields = ['location', 'amount']
+        widgets = {
+            'location': LocationSelect2Widget()
+        }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         if "location" in self.initial and not "instance" in kwargs:
             self.fields["location"].disabled = True
 
-    def save(self, commit):
-        instance = super().save(commit)
+    def save(self, commit=True):  # Add default value for commit
+        instance = super().save(commit=commit)  # Pass commit parameter
         return instance
-
-
+    
 class ItemLocationInline(InlineFormSetFactory):
     model = ItemLocation
     form_class = ItemLocationForm

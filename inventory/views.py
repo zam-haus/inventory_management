@@ -11,7 +11,8 @@ from django.core.exceptions import ObjectDoesNotExist
 import extra_views
 from django.utils.translation import gettext_lazy as _
 from django.contrib.auth.mixins import UserPassesTestMixin
-
+from django.db.models import Q
+from .models import Location
 
 from . import forms
 from . import models
@@ -21,6 +22,35 @@ from . import models
 
 def index(request):
     return render(request, "inventory/index.html")
+
+# adding the search based on select2
+
+def search_location(request):
+    """Handle AJAX search requests for locations"""
+    try:
+        search_term = request.GET.get('term', '') or request.GET.get('q', '')
+        print(f"Searching for: {search_term}")  # Debug log
+        
+        # Fetch locations matching the search term
+        locations = Location.objects.filter(
+            Q(name__icontains=search_term) | 
+            Q(unique_identifier__icontains=search_term)
+        )
+        print(f"Found {locations.count()} locations")  # Debug log
+        
+        # Format results for Select2
+        results = [{
+            'id': loc.id,
+            'text': f"{loc.name} [{loc.unique_identifier}]"
+        } for loc in locations]
+        
+        return JsonResponse({
+            'results': results,
+            'pagination': {'more': False}
+        })
+    except Exception as e:
+        print(f"Error in search_location: {str(e)}")  # Debug log
+        return JsonResponse({'error': str(e)}, status=500)
 
 
 class DetailLocationView(DetailView):
@@ -111,8 +141,14 @@ class UpdateItemView(UserPassesTestMixin, extra_views.UpdateWithInlinesView):
     model = models.Item
     inlines = [forms.ItemImageInline, forms.ItemLocationInline]
     template_name = "inventory/item_formset.html"
-    form_class = forms.ItemForm
-    extra_context = {"title": _("Update Item")}
+    form_class = forms.ItemLocationForm
+    factory_kwargs = {
+        "extra": 1,
+        "can_order": False,
+        "can_delete": False,
+    }
+
+    extra_context = {"title": _("Update Item2")}
 
     def get_success_url(self):
         return self.object.get_absolute_url()
@@ -126,8 +162,13 @@ class UpdateItemView(UserPassesTestMixin, extra_views.UpdateWithInlinesView):
 class AnnotateItemView(UserPassesTestMixin, UpdateView):
     model = models.Item
     template_name = "inventory/item_annotate_form.html"
-    form_class = forms.ItemAnnotationForm
-    extra_context = {"title": _("Update Item")}
+    form_class = forms.ItemLocationForm
+    actory_kwargs = {
+        "extra": 1,
+        "can_order": False,
+        "can_delete": False,
+    }
+    extra_context = {"title": _("Update Item1")}
 
     def test_func(self):
         # Logged in or @ZAM
