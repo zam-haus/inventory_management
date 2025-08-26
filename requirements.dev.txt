@@ -16,3 +16,4 @@ django-bootstrap-icons
 tqdm
 pytesseract
 sorl-thumbnail
+setuptools
