@@ -1,6 +1,7 @@
 {% extends 'base.html' %}
 
 {% load django_bootstrap5 i18n %}
+{% load thumbnail %}
 
 {% block title %}
     {% trans "Location" %}:  {{ object.unique_identifier }}
@@ -42,6 +43,17 @@
         <tr>
             <td><a href="{{ il.item.get_absolute_url }}">{{ il.item }}</a></td>
             <td>{{ il.amount_text }}</td>
+            <td>
+                {% for image in il.item.itemimage_set.all %}
+                    {% thumbnail image.image "200x200" as im %}
+                        {% spaceless %}
+                            <a class="img-link" href="{{ image.image.url }}">
+                                <img src="{{ im.url }}" class="img-thumbnail img-fluid" style="max-width: 100px;" alt="{{ image.description }}" data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-original-title="{{ image.description }}">
+                            </a>
+                        {% endspaceless %}
+                    {% endthumbnail %}
+                {% endfor %}
+            </td>
             <td><a href="TODO">{% trans "Take" %}</a></td>
             <td><a href="TODO">{% trans "Move" %}</a></td>
     {% empty %}
