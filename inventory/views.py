@@ -157,10 +157,11 @@ class SearchableItemListView(UserPassesTestMixin, extra_views.SearchableListMixi
     def get_context_data(self):
         ctxt = super().get_context_data()
         incomplete = models.Item.filter_incomplete()
-        ctxt.update({
-            'incomplete_count': incomplete.count(),
-            'incomplete_first_pk': incomplete[randint(0, incomplete.count())].pk
-        })
+        if (len(incomplete) != 0):
+            ctxt.update({
+                'incomplete_count': incomplete.count(),
+                'incomplete_first_pk': incomplete[randint(0, incomplete.count())].pk
+            })
         return ctxt
 
 
