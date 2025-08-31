@@ -188,24 +188,20 @@ class AnnotateItemView(UserPassesTestMixin, UpdateView):
 
 class SearchableItemListView(ListView):
     model = models.Item
-    paginate_by = 50
-    template_name = "inventory/item_list.html"
+    exact_query = False
+    wrong_lookup = False
+    paginate_by = 25
 
-    def get_queryset(self):
-        try:
-            queryset = super().get_queryset()
-            query = self.request.GET.get('q')
-            if query:
-                queryset = queryset.filter(
-                    models.Q(name__icontains=query) |
-                    models.Q(description__icontains=query)
-                )
-            return queryset
-        except Exception as e:
-            # Log the error
-            print(f"Error in SearchableItemListView: {str(e)}")
-            # Return empty queryset instead of failing
-            return self.model.objects.none()
+    def get_context_data(self):
+        ctxt = super().get_context_data()
+        incomplete = models.Item.filter_incomplete()
+        if (len(incomplete) != 0):
+            ctxt.update({
+                'incomplete_count': incomplete.count(),
+                'incomplete_first_pk': incomplete[randint(0, incomplete.count())].pk
+            })
+        return ctxt
+
 
     def test_func(self):
         # Logged in or @ZAM
