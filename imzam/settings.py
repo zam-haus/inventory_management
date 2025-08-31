@@ -65,11 +65,18 @@ INSTALLED_APPS = [
     "accounts",
     "django_bootstrap_icons",
     "sorl.thumbnail",
+    "django_select2",
 ]
 
 CRISPY_ALLOWED_TEMPLATE_PACKS = "bootstrap5"
 CRISPY_TEMPLATE_PACK = "bootstrap5"
 
+# Add these settings after INSTALLED_APPS
+
+SELECT2_CACHE_BACKEND = "default"
+SELECT2_JS = ''
+SELECT2_CSS = ''
+SELECT2_I18N_AVAILABLE_LANGUAGES = ['de', 'en']
 COMPUTEDFIELDS_ALLOW_RECURSION = True
 
 MIDDLEWARE = [

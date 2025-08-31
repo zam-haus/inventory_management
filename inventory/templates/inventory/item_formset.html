@@ -69,7 +69,7 @@
         {% bootstrap_formset formset %}
     {% endfor %}
     <div class="form-group d-flex justify-content-between align-items-center">
-        <button type="submit" class="btn btn-primary">{% trans "Save" %}</button>
+        <button type="submit" class="btn btn-primary" disabled>{% trans "Save" %}</button>
         {% if form.instance.pk %}
             <a href="{% url 'delete_item' form.instance.pk %}" class="btn btn-danger">
                 {% trans "Delete Item" %}
@@ -123,14 +123,35 @@
                 });
             });
 
-            // Global event handler for Select2 open
             $(document).on('select2:open', () => {
                 document.querySelector('.select2-search__field').focus();
             });
+
+            // This script uses a MutationObserver to ensure the button remains disabled.
+            // It will override any other script that attempts to enable it.
+            const saveButton = document.querySelector('button[type="submit"]');
+
+            if (saveButton) {
+                // Ensure it's disabled on load
+                saveButton.setAttribute('disabled', 'disabled');
+
+                const observer = new MutationObserver((mutationsList, observer) => {
+                    for(const mutation of mutationsList) {
+                        if (mutation.type === 'attributes' && mutation.attributeName === 'disabled') {
+                            // If another script removes the 'disabled' attribute, put it back.
+                            if (!saveButton.disabled) {
+                                saveButton.setAttribute('disabled', 'disabled');
+                                console.log('Save button was re-enabled and has been disabled again.');
+                            }
+                        }
+                    }
+                });
+
+                // Start observing the button for attribute changes
+                observer.observe(saveButton, { attributes: true });
+            }
         });
     </script>
-{% endblock %}
-
 <script type="text/javascript" src="{% static 'inventory/camera.js' %}"></script>
 <script type="text/javascript" src="{% static 'inventory/autocomplete.js' %}"></script>
 <script type="text/javascript" src="{% static 'inventory/autocomplete_custom.js' %}"></script>
@@ -148,3 +169,4 @@
         white-space: normal;
     }
 </style>
+{% endblock %}

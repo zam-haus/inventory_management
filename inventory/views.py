@@ -24,6 +24,33 @@ from . import models
 def index(request):
     return render(request, "inventory/index.html")
 
+def search_location(request):
+    """Handle AJAX search requests for locations"""
+    try:
+        search_term = request.GET.get('term', '') or request.GET.get('q', '')
+        print(f"Searching for: {search_term}")  # Debug log
+        
+        # Fetch locations matching the search term
+        locations = Location.objects.filter(
+            Q(name__icontains=search_term) | 
+            Q(unique_identifier__icontains=search_term)
+        )
+        print(f"Found {locations.count()} locations")  # Debug log
+        
+        # Format results for Select2
+        results = [{
+            'id': loc.id,
+            'text': f"{loc.name} [{loc.unique_identifier}]"
+        } for loc in locations]
+        
+        return JsonResponse({
+            'results': results,
+            'pagination': {'more': False}
+        })
+    except Exception as e:
+        print(f"Error in search_location: {str(e)}")  # Debug log
+        return JsonResponse({'error': str(e)}, status=500)
+
 class DetailLocationView(DetailView):
     model = models.Location
     # (request, pk, unique_identifier):
@@ -114,9 +141,7 @@ class UpdateItemView(UserPassesTestMixin, extra_views.UpdateWithInlinesView):
     template_name = "inventory/item_formset.html"
     form_class = forms.ItemForm  # Changed to ItemForm
     factory_kwargs = {
-        "extra": 1,
-        "can_order": False,
-        "can_delete": False,
+        "extra": 1, #possible usage for additional related
     }
     extra_context = {"title": _("Update Item")}
 
@@ -133,10 +158,8 @@ class AnnotateItemView(UserPassesTestMixin, UpdateView):
     model = models.Item
     template_name = "inventory/item_annotate_form.html"
     form_class = forms.ItemLocationForm
-    actory_kwargs = {
-        "extra": 1,
-        "can_order": False,
-        "can_delete": False,
+    factory_kwargs = {
+        "extra": 1, #possible usage for additional related item
     }
     extra_context = {"title": _("Update Item")}
 
