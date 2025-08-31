@@ -24,36 +24,6 @@ from . import models
 def index(request):
     return render(request, "inventory/index.html")
 
-# adding the search based on select2
-
-def search_location(request):
-    """Handle AJAX search requests for locations"""
-    try:
-        search_term = request.GET.get('term', '') or request.GET.get('q', '')
-        print(f"Searching for: {search_term}")  # Debug log
-        
-        # Fetch locations matching the search term
-        locations = Location.objects.filter(
-            Q(name__icontains=search_term) | 
-            Q(unique_identifier__icontains=search_term)
-        )
-        print(f"Found {locations.count()} locations")  # Debug log
-        
-        # Format results for Select2
-        results = [{
-            'id': loc.id,
-            'text': f"{loc.name} [{loc.unique_identifier}]"
-        } for loc in locations]
-        
-        return JsonResponse({
-            'results': results,
-            'pagination': {'more': False}
-        })
-    except Exception as e:
-        print(f"Error in search_location: {str(e)}")  # Debug log
-        return JsonResponse({'error': str(e)}, status=500)
-
-
 class DetailLocationView(DetailView):
     model = models.Location
     # (request, pk, unique_identifier):
@@ -191,6 +161,7 @@ class SearchableItemListView(ListView):
     exact_query = False
     wrong_lookup = False
     paginate_by = 25
+    template_name = "inventory/item_list.html"
 
     def get_context_data(self):
         ctxt = super().get_context_data()
@@ -201,6 +172,21 @@ class SearchableItemListView(ListView):
                 'incomplete_first_pk': incomplete[randint(0, incomplete.count())].pk
             })
         return ctxt
+    def get_queryset(self):
+        try:
+            queryset = super().get_queryset()
+            query = self.request.GET.get('q')
+            if query:
+                queryset = queryset.filter(
+                    models.Q(name__icontains=query) |
+                    models.Q(description__icontains=query)
+                )
+            return queryset
+        except Exception as e:
+            # Log the error
+            print(f"Error in SearchableItemListView: {str(e)}")
+            # Return empty queryset instead of failing
+            return self.model.objects.none()
 
 
     def test_func(self):
