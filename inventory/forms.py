@@ -212,7 +212,7 @@ class LocationSelect2Widget(ModelSelect2Widget):
             'data-minimum-input-length': 0,
             'data-ajax--delay': 250,
             'data-ajax--url': '/ajax/location-search/',
-            'data-placeholder': 'Search for a location...',
+            'data-placeholder': '',
             'data-allow-clear': 'true'
         })
         return attrs
@@ -256,21 +256,21 @@ class ItemLocationInline(InlineFormSetFactory):
         formset.helper = FormHelper()
         formset.helper.form_tag = False
         formset.helper.disable_csrf = True
-        # formset.helper.template = 'bootstrap/table_inline_formset.html'
         formset.helper.form_title = "Item Storage Locations"
-        formset.helper.layout = layout.Layout(layout.Div(
-            layout.Div(
-                FloatingField("location"),
-                css_class='col'),
-            layout.Div(
-                FloatingField("amount",),
-                css_class='col'),
-            layout.Div(
-                layout.HTML(
-                """
-                <span class="amount_print_meas_unit mb-2"></span>
-                """),
-                css_class='item-location-group mb-3 col-md-2'),
-            css_class='row',
-        ))
+        formset.helper.layout = layout.Layout(
+    layout.Div(
+        layout.Div(
+            bootstrap.Field("location"),
+            css_class='col-md-6'),
+        layout.Div(
+            # change to use FieldWithButtons modified from floating fields
+            bootstrap.FieldWithButtons(
+                "amount",
+                layout.HTML('<span class="amount_print_meas_unit ms-2 text-nowrap"></span>')
+            ),
+            css_class='col-md-6'
+        ),
+        css_class='row',
+    )
+)
         return formset
