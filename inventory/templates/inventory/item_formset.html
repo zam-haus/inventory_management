@@ -91,64 +91,12 @@
 {% block bootstrap5_extra_head %}
     {{ block.super }}
     {{ form.media.css }}
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/css/select2.min.css" rel="stylesheet" />
-    <style>
-        /*.select2-container { width: 100% !important; }*/
-        
-      
-        .select2-container .select2-selection--single {
-            height: 40px !important; 
-        }
-        
-        /* This rule ensures the rendered text is vertically centered */
-        .select2-container .select2-selection__rendered {
-            line-height: 38px !important; /* Should be about 2px less than the height */
-        }
-    </style>
-    </style>
 {% endblock %}
 
 {% block bootstrap5_extra_script %}
     {{ block.super }}
     <script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/js/select2.full.min.js"></script>
     {{ form.media.js }}
-    <script>
-        $(document).ready(function() {
-            $('.location-select2').each(function() {
-                $(this).select2({
-                    theme: 'default',
-                    width: '100%',
-                    ajax: {
-                        url: '/ajax/location-search/',
-                        dataType: 'json',
-                        delay: 250,
-                        data: function(params) {
-                            return {
-                                q: params.term || '',
-                                page: params.page || 1
-                            };
-                        },
-                        processResults: function(data) {
-                            return {
-                                results: data.results,
-                                pagination: data.pagination
-                            };
-                        },
-                        cache: true
-                    },
-                    minimumInputLength: 0,
-                    placeholder: '',
-                    allowClear: true,
-                    dropdownParent: $('body')
-                });
-            });
-
-            $(document).on('select2:open', () => {
-                document.querySelector('.select2-search__field').focus();
-            });
-           
-        });
-    </script>
 <script type="text/javascript" src="{% static 'inventory/camera.js' %}"></script>
 <script type="text/javascript" src="{% static 'inventory/autocomplete.js' %}"></script>
 <script type="text/javascript" src="{% static 'inventory/autocomplete_custom.js' %}"></script>

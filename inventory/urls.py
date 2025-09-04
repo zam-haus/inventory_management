@@ -2,6 +2,7 @@ from django.conf import settings
 from django.conf.urls.static import static
 from django.urls import path, include
 from django.views.generic.base import TemplateView
+from .views import LocationAutocomplete
 
 from . import views
 
@@ -29,9 +30,9 @@ urlpatterns = [
     path("item/<int:pk>/update", views.UpdateItemView.as_view(), name="update_item"),
     path("category/<int:pk>.json", views.category_json, name="category_json"),
     # update for search functionality
-    path('ajax/location-search/', views.search_location, name='location_search'),
+    path('ajax/location-search/', views.LocationAutocomplete.as_view(), name='location_search'),
     path("robots.txt", TemplateView.as_view(template_name="inventory/robots.txt", content_type="text/plain")),
-    path('select2/', include('django_select2.urls')),
+    path('location-autocomplete/', LocationAutocomplete.as_view(), name='location-autocomplete'),
 ]
 urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
 urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

@@ -10,8 +10,7 @@ from django.utils.translation import gettext_lazy as _
 from django.utils import timezone
 from django import forms
 from .models import Item
-from .widgets import Select2Widget
-from django_select2.forms import ModelSelect2Widget
+from dal import autocomplete
 
 
 from .models import BarcodeType, Item, ItemBarcode, ItemImage, ItemLocation, Location
@@ -201,31 +200,13 @@ class ItemImageInline(InlineFormSetFactory):
 
 
 
-class LocationSelect2Widget(ModelSelect2Widget):
-    model = Location
-    search_fields = ['name__icontains', 'unique_identifier__icontains']
-    
-    def build_attrs(self, base_attrs, extra_attrs=None):
-        attrs = super().build_attrs(base_attrs, extra_attrs)
-        attrs.update({
-            'class': 'location-select2 form-select',
-            'data-minimum-input-length': 0,
-            'data-ajax--delay': 250,
-            'data-ajax--url': '/ajax/location-search/',
-            'data-placeholder': '',
-            'data-allow-clear': 'true'
-        })
-        return attrs
-
-    def get_queryset(self):
-        return Location.objects.all()
 
 class ItemLocationForm(forms.ModelForm):
     class Meta:
         model = ItemLocation
         fields = ['location', 'amount']
         widgets = {
-            'location': LocationSelect2Widget()
+            'location': autocomplete.ModelSelect2(url='location-autocomplete')
         }
 
     def __init__(self, *args, **kwargs):

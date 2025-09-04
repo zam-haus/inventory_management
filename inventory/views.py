@@ -14,7 +14,7 @@ from django.utils.translation import gettext_lazy as _
 from django.contrib.auth.mixins import UserPassesTestMixin
 from django.db.models import Q
 from .models import Location
-
+from dal import autocomplete
 from . import forms
 from . import models
 
@@ -24,32 +24,23 @@ from . import models
 def index(request):
     return render(request, "inventory/index.html")
 
-def search_location(request):
-    """Handle AJAX search requests for locations"""
-    try:
-        search_term = request.GET.get('term', '') or request.GET.get('q', '')
-        print(f"Searching for: {search_term}")  # Debug log
-        
-        # Fetch locations matching the search term
-        locations = Location.objects.filter(
-            Q(name__icontains=search_term) | 
-            Q(unique_identifier__icontains=search_term)
-        )
-        print(f"Found {locations.count()} locations")  # Debug log
-        
-        # Format results for Select2
-        results = [{
-            'id': loc.id,
-            'text': f"{loc.name} [{loc.unique_identifier}]"
-        } for loc in locations]
-        
-        return JsonResponse({
-            'results': results,
-            'pagination': {'more': False}
-        })
-    except Exception as e:
-        print(f"Error in search_location: {str(e)}")  # Debug log
-        return JsonResponse({'error': str(e)}, status=500)
+class LocationAutocomplete(autocomplete.Select2QuerySetView):
+    def get_queryset(self):
+        # Do not forget to filter out results depending on the logged-in user or other criteria
+        if not self.request.user.is_authenticated:
+            return Location.objects.none()
+
+        qs = Location.objects.all()
+
+        # `self.q` is the search term from the user, provided by DAL.
+        if self.q:
+            query = self.q
+            qs = qs.filter(
+                Q(name__icontains=query) | 
+                Q(unique_identifier__icontains=query)
+            )
+
+        return qs
 
 class DetailLocationView(DetailView):
     model = models.Location

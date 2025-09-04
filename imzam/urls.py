@@ -21,5 +21,5 @@ urlpatterns = [
     path('accounts/', include('django.contrib.auth.urls')),
     path('oidc/', include('mozilla_django_oidc.urls')),
     path("", include("inventory.urls")),
-    path('select2/', include('django_select2.urls')),
+
 ]

@@ -17,4 +17,4 @@ django-bootstrap-icons
 tqdm
 pytesseract
 sorl-thumbnail
-django-select2>=8.4.1
+django-autocomplete-light==3.12.1

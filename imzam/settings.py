@@ -65,7 +65,9 @@ INSTALLED_APPS = [
     "accounts",
     "django_bootstrap_icons",
     "sorl.thumbnail",
-    "django_select2",
+    'dal',
+    'dal_select2',
+
 ]
 
 CRISPY_ALLOWED_TEMPLATE_PACKS = "bootstrap5"
