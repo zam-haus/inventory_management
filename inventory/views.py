@@ -7,12 +7,14 @@ from django.shortcuts import render, redirect
 from django.urls import reverse_lazy
 from django.views import View
 from django.views.generic import ListView, DetailView, UpdateView
+from django.views.generic.edit import DeleteView
 from django.core.exceptions import ObjectDoesNotExist
 import extra_views
 from django.utils.translation import gettext_lazy as _
 from django.contrib.auth.mixins import UserPassesTestMixin
-
-
+from django.db.models import Q
+from .models import Location
+from dal import autocomplete
 from . import forms
 from . import models
 
@@ -22,6 +24,23 @@ from . import models
 def index(request):
     return render(request, "inventory/index.html")
 
+class LocationAutocomplete(autocomplete.Select2QuerySetView):
+    def get_queryset(self):
+        # Do not forget to filter out results depending on the logged-in user or other criteria
+        if not self.request.user.is_authenticated:
+            return Location.objects.none()
+
+        qs = Location.objects.all()
+
+        # `self.q` is the search term from the user, provided by DAL.
+        if self.q:
+            query = self.q
+            qs = qs.filter(
+                Q(name__icontains=query) | 
+                Q(unique_identifier__icontains=query)
+            )
+
+        return qs
 
 class DetailLocationView(DetailView):
     model = models.Location
@@ -111,7 +130,10 @@ class UpdateItemView(UserPassesTestMixin, extra_views.UpdateWithInlinesView):
     model = models.Item
     inlines = [forms.ItemImageInline, forms.ItemLocationInline]
     template_name = "inventory/item_formset.html"
-    form_class = forms.ItemForm
+    form_class = forms.ItemForm  # Changed to ItemForm
+    factory_kwargs = {
+        "extra": 1, #possible usage for additional related
+    }
     extra_context = {"title": _("Update Item")}
 
     def get_success_url(self):
@@ -126,7 +148,10 @@ class UpdateItemView(UserPassesTestMixin, extra_views.UpdateWithInlinesView):
 class AnnotateItemView(UserPassesTestMixin, UpdateView):
     model = models.Item
     template_name = "inventory/item_annotate_form.html"
-    form_class = forms.ItemAnnotationForm
+    form_class = forms.ItemLocationForm
+    factory_kwargs = {
+        "extra": 1, #possible usage for additional related item
+    }
     extra_context = {"title": _("Update Item")}
 
     def test_func(self):
@@ -145,14 +170,12 @@ class AnnotateItemView(UserPassesTestMixin, UpdateView):
         return reverse_lazy("annotate_item", args=[self.object.pk])
 
 
-class SearchableItemListView(UserPassesTestMixin, extra_views.SearchableListMixin, ListView):
-    # matching criteria can be defined along with fields
-    search_fields = ["name", "category__name", "itemlocation__location__unique_identifier", "itemlocation__location__name", "itemimage__ocr_text"]
-    search_date_fields = []
+class SearchableItemListView(ListView):
     model = models.Item
     exact_query = False
     wrong_lookup = False
     paginate_by = 25
+    template_name = "inventory/item_list.html"
 
     def get_context_data(self):
         ctxt = super().get_context_data()
@@ -163,6 +186,21 @@ class SearchableItemListView(UserPassesTestMixin, extra_views.SearchableListMixi
                 'incomplete_first_pk': incomplete[randint(0, incomplete.count())].pk
             })
         return ctxt
+    def get_queryset(self):
+        try:
+            queryset = super().get_queryset()
+            query = self.request.GET.get('q')
+            if query:
+                queryset = queryset.filter(
+                    models.Q(name__icontains=query) |
+                    models.Q(description__icontains=query)
+                )
+            return queryset
+        except Exception as e:
+            # Log the error
+            print(f"Error in SearchableItemListView: {str(e)}")
+            # Return empty queryset instead of failing
+            return self.model.objects.none()
 
 
     def test_func(self):
@@ -187,5 +225,15 @@ class SearchableLocationListView(
 
     def test_func(self):
         # Logged in or @ZAM
+        return not self.request.user.is_anonymous or \
+            self.request.session.get('is_zam_local', False)
+
+
+class DeleteItemView(UserPassesTestMixin, DeleteView):
+    model = models.Item
+    success_url = reverse_lazy('index_items')
+    template_name = 'inventory/item_confirm_delete.html'
+
+    def test_func(self):
         return not self.request.user.is_anonymous or \
             self.request.session.get('is_zam_local', False)

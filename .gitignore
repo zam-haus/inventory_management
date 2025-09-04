@@ -596,3 +596,6 @@ MigrationBackup/
 .ionide/
 
 # End of https://www.toptal.com/developers/gitignore/api/vs,django,python
+
+# Skipping Desktop services store 
+.DS_Store 

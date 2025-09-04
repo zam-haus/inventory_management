@@ -8,11 +8,15 @@ from django.forms.utils import ErrorList
 from extra_views import InlineFormSetFactory
 from django.utils.translation import gettext_lazy as _
 from django.utils import timezone
-
+from django import forms
+from .models import Item
+from dal import autocomplete
 
 
 from .models import BarcodeType, Item, ItemBarcode, ItemImage, ItemLocation, Location
 
+
+# .select2itemform
 
 class TextDatalistInput(TextInput):
     template_name = "inventory/widgets/text_datalist.html"
@@ -194,21 +198,26 @@ class ItemImageInline(InlineFormSetFactory):
         return formset
 
 
-class ItemLocationForm(ModelForm):
+
+
+
+class ItemLocationForm(forms.ModelForm):
     class Meta:
         model = ItemLocation
-        fields = "__all__"
+        fields = ['location', 'amount']
+        widgets = {
+            'location': autocomplete.ModelSelect2(url='location-autocomplete')
+        }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         if "location" in self.initial and not "instance" in kwargs:
             self.fields["location"].disabled = True
 
-    def save(self, commit):
-        instance = super().save(commit)
+    def save(self, commit=True):  # Add default value for commit
+        instance = super().save(commit=commit)  # Pass commit parameter
         return instance
-
-
+    
 class ItemLocationInline(InlineFormSetFactory):
     model = ItemLocation
     form_class = ItemLocationForm
@@ -228,21 +237,21 @@ class ItemLocationInline(InlineFormSetFactory):
         formset.helper = FormHelper()
         formset.helper.form_tag = False
         formset.helper.disable_csrf = True
-        # formset.helper.template = 'bootstrap/table_inline_formset.html'
         formset.helper.form_title = "Item Storage Locations"
-        formset.helper.layout = layout.Layout(layout.Div(
-            layout.Div(
-                FloatingField("location"),
-                css_class='col'),
-            layout.Div(
-                FloatingField("amount",),
-                css_class='col'),
-            layout.Div(
-                layout.HTML(
-                """
-                <span class="amount_print_meas_unit mb-2"></span>
-                """),
-                css_class='item-location-group mb-3 col-md-2'),
-            css_class='row',
-        ))
+        formset.helper.layout = layout.Layout(
+    layout.Div(
+        layout.Div(
+            bootstrap.Field("location"),
+            css_class='col-md-6'),
+        layout.Div(
+            # change to use FieldWithButtons modified from floating fields
+            bootstrap.FieldWithButtons(
+                "amount",
+                layout.HTML('<span class="amount_print_meas_unit ms-2 text-nowrap"></span>')
+            ),
+            css_class='col-md-6'
+        ),
+        css_class='row',
+    )
+)
         return formset

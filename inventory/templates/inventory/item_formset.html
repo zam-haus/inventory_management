@@ -64,20 +64,22 @@
 {% block content %}
 <form method="post" class="form-row" enctype="multipart/form-data">
     {% csrf_token %}
-
+    
+   
     {% load crispy_forms_tags %}
     {% crispy form %}
 
     <div class="mb-3">
-    <legend>{{ inlines.0.helper.form_title }}</legend>
-    {% crispy inlines.0 %}
-    <button id="add_image_button" type="button" class="btn btn-primary">{% trans 'Add additional image' %}</button>
+        <legend>{{ inlines.0.helper.form_title }}</legend>
+        {% crispy inlines.0 %}
+        <button id="add_image_button" type="button" class="btn btn-primary">{% trans 'Add additional image' %}</button>
     </div>
 
     <div class="mb-3">
-    <legend>{{ inlines.1.helper.form_title }}</legend>
-    {% crispy inlines.1 %}
+        <legend>{{ inlines.1.helper.form_title }}</legend>
+        {% crispy inlines.1 %}
     </div>
+    
 
     <input type="submit" name="save" value="{% trans 'Save' %}" class="btn btn-primary mb-3">
     {% if request.GET and request.GET.location_id %}
@@ -86,7 +88,15 @@
 </form>
 {% endblock %}
 
+{% block bootstrap5_extra_head %}
+    {{ block.super }}
+    {{ form.media.css }}
+{% endblock %}
+
 {% block bootstrap5_extra_script %}
+    {{ block.super }}
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/js/select2.full.min.js"></script>
+    {{ form.media.js }}
 <script type="text/javascript" src="{% static 'inventory/camera.js' %}"></script>
 <script type="text/javascript" src="{% static 'inventory/autocomplete.js' %}"></script>
 <script type="text/javascript" src="{% static 'inventory/autocomplete_custom.js' %}"></script>
@@ -97,7 +107,8 @@
 <script type="text/javascript" src="{% static 'inventory/show_measurement_unit_after_amount.js' %}"></script>
 <style type="text/css">
     .itemimage_set_item div.mb-3,
-    .item-location-group div.mb-3{
+    .item-location-group div.mb-3
+    {
         margin-bottom: 0.5rem !important;
     }
     .btn{

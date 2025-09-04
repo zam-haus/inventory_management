@@ -193,7 +193,6 @@
         "description": "Straßenebene Nord",
         "label_template": 4,
         "parent_location": null,
-        "last_complete_inventory": null,
         "unique_identifier": "N0",
         "locatable_identifier": "N0",
         "descriptive_identifier": "UG Nord [N0]"
@@ -209,7 +208,6 @@
         "description": "Passerellenebene Nordhaus",
         "label_template": 4,
         "parent_location": null,
-        "last_complete_inventory": null,
         "unique_identifier": "N1",
         "locatable_identifier": "N1",
         "descriptive_identifier": "EG Nord [N1]"
@@ -225,7 +223,6 @@
         "description": "Schraubenabteilung im Nordhaus",
         "label_template": 4,
         "parent_location": null,
-        "last_complete_inventory": "2022-02-20T00:34:40.216Z",
         "unique_identifier": "N2",
         "locatable_identifier": "N2",
         "descriptive_identifier": "1. OG Nord [N2]"
@@ -241,7 +238,6 @@
         "description": "Büroetage Nordhaus",
         "label_template": 4,
         "parent_location": null,
-        "last_complete_inventory": null,
         "unique_identifier": "N3",
         "locatable_identifier": "N3",
         "descriptive_identifier": "DG Nord [N3]"
@@ -257,7 +253,6 @@
         "description": "",
         "label_template": 4,
         "parent_location": null,
-        "last_complete_inventory": null,
         "unique_identifier": "W0",
         "locatable_identifier": "W0",
         "descriptive_identifier": "Keller West [W0]"
@@ -273,7 +268,6 @@
         "description": "Lager/Anlieferung Westhaus",
         "label_template": 4,
         "parent_location": null,
-        "last_complete_inventory": null,
         "unique_identifier": "W1",
         "locatable_identifier": "W1",
         "descriptive_identifier": "Anlieferung West [W1]"
@@ -289,7 +283,6 @@
         "description": "Passerellenebene Westhaus",
         "label_template": 4,
         "parent_location": null,
-        "last_complete_inventory": null,
         "unique_identifier": "W2",
         "locatable_identifier": "W2",
         "descriptive_identifier": "EG West [W2]"
@@ -305,7 +298,6 @@
         "description": "",
         "label_template": 4,
         "parent_location": null,
-        "last_complete_inventory": null,
         "unique_identifier": "W3",
         "locatable_identifier": "W3",
         "descriptive_identifier": "DG West [W3]"
@@ -321,7 +313,6 @@
         "description": "",
         "label_template": 4,
         "parent_location": null,
-        "last_complete_inventory": null,
         "unique_identifier": "S0",
         "locatable_identifier": "S0",
         "descriptive_identifier": "Keller Süd [S0]"
@@ -337,7 +328,6 @@
         "description": "",
         "label_template": 4,
         "parent_location": null,
-        "last_complete_inventory": null,
         "unique_identifier": "S1",
         "locatable_identifier": "S1",
         "descriptive_identifier": "EG Süd [S1]"
@@ -353,7 +343,6 @@
         "description": "",
         "label_template": 4,
         "parent_location": null,
-        "last_complete_inventory": null,
         "unique_identifier": "S2",
         "locatable_identifier": "S2",
         "descriptive_identifier": "1. OG Süd [S2]"
@@ -369,7 +358,6 @@
         "description": "Wohnungs-Ebene im Südhaus",
         "label_template": 4,
         "parent_location": null,
-        "last_complete_inventory": null,
         "unique_identifier": "S3",
         "locatable_identifier": "S3",
         "descriptive_identifier": "2. OG Süd [S3]"
@@ -385,7 +373,6 @@
         "description": "Dachstühle zur Hauptstraße im Südhaus",
         "label_template": 4,
         "parent_location": null,
-        "last_complete_inventory": null,
         "unique_identifier": "S4",
         "locatable_identifier": "S4",
         "descriptive_identifier": "DG Süd [S4]"
@@ -401,7 +388,6 @@
         "description": "aktuell Lagerregallager",
         "label_template": 4,
         "parent_location": null,
-        "last_complete_inventory": null,
         "unique_identifier": "T2",
         "locatable_identifier": "T2",
         "descriptive_identifier": "1. OG Turm [T2]"
@@ -417,7 +403,6 @@
         "description": "",
         "label_template": 4,
         "parent_location": null,
-        "last_complete_inventory": null,
         "unique_identifier": "T3",
         "locatable_identifier": "T3",
         "descriptive_identifier": "2. OG Turm [T3]"
@@ -433,7 +418,6 @@
         "description": "",
         "label_template": 4,
         "parent_location": null,
-        "last_complete_inventory": null,
         "unique_identifier": "T4",
         "locatable_identifier": "T4",
         "descriptive_identifier": "DG Turm [T4]"
@@ -449,7 +433,6 @@
         "description": "",
         "label_template": 4,
         "parent_location": null,
-        "last_complete_inventory": "2022-02-20T00:40:35.260Z",
         "unique_identifier": "H0",
         "locatable_identifier": "H0",
         "descriptive_identifier": "Hof [H0]"
@@ -465,7 +448,6 @@
         "description": "",
         "label_template": 4,
         "parent_location": 11,
-        "last_complete_inventory": null,
         "unique_identifier": "S2.IWL",
         "locatable_identifier": "S2.IWL",
         "descriptive_identifier": "1. OG Süd [S2] IT- und Warenlager [IWL]"
@@ -481,7 +463,6 @@
         "description": "",
         "label_template": 4,
         "parent_location": 11,
-        "last_complete_inventory": null,
         "unique_identifier": "S2.VRL",
         "locatable_identifier": "S2.VRL",
         "descriptive_identifier": "1. OG Süd [S2] Verkaufsregallager [VRL]"
@@ -497,7 +478,6 @@
         "description": "",
         "label_template": 4,
         "parent_location": 11,
-        "last_complete_inventory": null,
         "unique_identifier": "S2.LL",
         "locatable_identifier": "S2.LL",
         "descriptive_identifier": "1. OG Süd [S2] Lampenlager [LL]"
@@ -513,7 +493,6 @@
         "description": "",
         "label_template": 4,
         "parent_location": 2,
-        "last_complete_inventory": null,
         "unique_identifier": "N1.T",
         "locatable_identifier": "N1.T",
         "descriptive_identifier": "EG Nord [N1] Treppenhaus [T]"
@@ -529,7 +508,6 @@
         "description": "",
         "label_template": 4,
         "parent_location": 4,
-        "last_complete_inventory": null,
         "unique_identifier": "N3.T",
         "locatable_identifier": "N3.T",
         "descriptive_identifier": "DG Nord [N3] Treppenhaus [T]"
@@ -545,7 +523,6 @@
         "description": "",
         "label_template": 4,
         "parent_location": 4,
-        "last_complete_inventory": null,
         "unique_identifier": "N3.1",
         "locatable_identifier": "N3.1",
         "descriptive_identifier": "DG Nord [N3] Serverraum [1]"
@@ -561,7 +538,6 @@
         "description": "",
         "label_template": 4,
         "parent_location": 4,
-        "last_complete_inventory": null,
         "unique_identifier": "N3.WC1",
         "locatable_identifier": "N3.WC1",
         "descriptive_identifier": "DG Nord [N3] Toiletten 1 [WC1]"
@@ -577,7 +553,6 @@
         "description": "",
         "label_template": 4,
         "parent_location": 4,
-        "last_complete_inventory": null,
         "unique_identifier": "N3.WC2",
         "locatable_identifier": "N3.WC2",
         "descriptive_identifier": "DG Nord [N3] Toiletten 2 [WC2]"
@@ -593,7 +568,6 @@
         "description": "",
         "label_template": 4,
         "parent_location": 4,
-        "last_complete_inventory": null,
         "unique_identifier": "N3.0",
         "locatable_identifier": "N3.0",
         "descriptive_identifier": "DG Nord [N3] Lobby [0]"
@@ -609,7 +583,6 @@
         "description": "",
         "label_template": 4,
         "parent_location": 4,
-        "last_complete_inventory": null,
         "unique_identifier": "N3.2",
         "locatable_identifier": "N3.2",
         "descriptive_identifier": "DG Nord [N3] Aufzugsraum [2]"
@@ -625,7 +598,6 @@
         "description": "ehm. Chefbüro",
         "label_template": 4,
         "parent_location": 4,
-        "last_complete_inventory": null,
         "unique_identifier": "N3.3",
         "locatable_identifier": "N3.3",
         "descriptive_identifier": "DG Nord [N3] Büro SO [3]"
@@ -641,7 +613,6 @@
         "description": "",
         "label_template": 4,
         "parent_location": 4,
-        "last_complete_inventory": null,
         "unique_identifier": "N3.4",
         "locatable_identifier": "N3.4",
         "descriptive_identifier": "DG Nord [N3] Lagerbüro [4]"
@@ -657,7 +628,6 @@
         "description": "",
         "label_template": 4,
         "parent_location": 4,
-        "last_complete_inventory": null,
         "unique_identifier": "N3.5",
         "locatable_identifier": "N3.5",
         "descriptive_identifier": "DG Nord [N3] Büro SW [5]"
@@ -673,7 +643,6 @@
         "description": "",
         "label_template": 4,
         "parent_location": 4,
-        "last_complete_inventory": null,
         "unique_identifier": "N3.6",
         "locatable_identifier": "N3.6",
         "descriptive_identifier": "DG Nord [N3] Büro NW [6]"
@@ -689,7 +658,6 @@
         "description": "",
         "label_template": 4,
         "parent_location": 2,
-        "last_complete_inventory": null,
         "unique_identifier": "N1.1",
         "locatable_identifier": "N1.1",
         "descriptive_identifier": "EG Nord [N1] Büro [1]"
@@ -705,7 +673,6 @@
         "description": "Lager unter Verkaufsraum-Treppe",
         "label_template": null,
         "parent_location": 2,
-        "last_complete_inventory": null,
         "unique_identifier": "N1.2",
         "locatable_identifier": "N1.2",
         "descriptive_identifier": "EG Nord [N1] Zwergenlager [2]"

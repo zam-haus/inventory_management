@@ -25,6 +25,13 @@
         </div>
     {% endif %}
 </div>
+<div class="row mb-3">
+    <div class="col">
+        <a href="{% url 'create_item' %}" class="btn btn-primary">
+            {% trans "Create New Item" %}
+        </a>
+    </div>
+</div>
 <table class="table table-striped">
     <thead><tr>
         <th scope="col">{% trans "Name" %}</td>
