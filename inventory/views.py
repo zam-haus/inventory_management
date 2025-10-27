@@ -189,3 +189,17 @@ class SearchableLocationListView(
         # Logged in or @ZAM
         return not self.request.user.is_anonymous or \
             self.request.session.get('is_zam_local', False)
+
+from dal import autocomplete
+
+from .models import Location
+
+from django.db.models import Q
+class ParentLocationAutocompleteView(autocomplete.Select2QuerySetView):
+    def get_queryset(self):
+        if not self.request.user.is_authenticated:
+            return Location.objects.none()
+        qs = Location.objects.all()
+        if self.q:
+            qs = qs.filter(Q(name__icontains=self.q) | Q(short_name__icontains=self.q) | Q(unique_identifier__icontains=self.q))
+        return qs

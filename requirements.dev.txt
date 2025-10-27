@@ -17,3 +17,4 @@ tqdm
 pytesseract
 sorl-thumbnail
 setuptools
+django-autocomplete-light

@@ -17,3 +17,4 @@ django-bootstrap-icons
 tqdm
 pytesseract
 sorl-thumbnail
+django-autocomplete-light

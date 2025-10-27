@@ -50,6 +50,8 @@ ALLOWED_HOSTS = list(map(str.strip, allowed_hosts.split(",")))
 
 INSTALLED_APPS = [
     "inventory.apps.InventoryConfig",
+    "dal",#django-autocomplete-light
+    "dal_select2",
     "django.contrib.admin",
     "django.contrib.auth",
     "mozilla_django_oidc",

@@ -15,6 +15,8 @@ from django.utils.decorators import method_decorator
 from django.shortcuts import redirect
 from django.urls import reverse
 from django.contrib import messages
+from .models import Location
+from dal import autocomplete
 
 
 from . import models
@@ -48,6 +50,15 @@ class LocationInline(admin.TabularInline):
         CharField: {"widget": forms.TextInput(attrs={"size": 20})},
     }
 
+class EditLocationForm(forms.ModelForm):
+    class Meta:
+        model = Location
+        fields = ('__all__')
+
+    parent_location = forms.ModelChoiceField(
+        queryset=Location.objects.all(),
+        widget=autocomplete.ModelSelect2(url='parent_location_autocomplete')
+    )
 
 class LocationAdmin(admin.ModelAdmin):
     list_display = ("locatable_identifier", "name", "descriptive_identifier")
@@ -66,6 +77,7 @@ class LocationAdmin(admin.ModelAdmin):
     actions = ["send_to_printer_action", "send_to_printer_twice_action"]
     inlines = [LocationInline]
     inlines_popup = []
+    form = EditLocationForm
 
     def get_inlines(self, request, obj):
         if "_to_field" in request.GET and "_popup" in request.GET:
