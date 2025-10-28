@@ -201,5 +201,5 @@ class ParentLocationAutocompleteView(autocomplete.Select2QuerySetView):
             return Location.objects.none()
         qs = Location.objects.filter(type__no_sublocations = False)
         if self.q:
-            qs = qs.filter(Q(name__icontains=self.q) | Q(short_name__icontains=self.q) | Q(unique_identifier__icontains=self.q))
+            qs = qs.filter(Q(name__icontains=self.q) | Q(unique_identifier__icontains=self.q))
         return qs
