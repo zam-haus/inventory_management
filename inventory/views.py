@@ -160,7 +160,7 @@ class SearchableItemListView(UserPassesTestMixin, extra_views.SearchableListMixi
         if (len(incomplete) != 0):
             ctxt.update({
                 'incomplete_count': incomplete.count(),
-                'incomplete_first_pk': incomplete[randint(0, incomplete.count())].pk
+                'incomplete_first_pk': incomplete[randint(0, incomplete.count() - 1)].pk
             })
         return ctxt
 
