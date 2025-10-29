@@ -57,7 +57,10 @@ class EditLocationForm(forms.ModelForm):
 
     parent_location = forms.ModelChoiceField(
         queryset=Location.objects.filter(type__no_sublocations = False),
-        widget=autocomplete.ModelSelect2(url='parent_location_autocomplete')
+        widget=autocomplete.ModelSelect2(url='parent_location_autocomplete', attrs={
+            'data-placeholder': '---------',
+            'data-allow-clear': 1,
+        })
     )
 
 class LocationAdmin(admin.ModelAdmin):
