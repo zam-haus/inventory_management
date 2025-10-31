@@ -64,6 +64,8 @@ class EditLocationForm(forms.ModelForm):
                 'data-allow-clear': 1,
             },
         ),
+        blank=True,
+        required=False,
     )
 
 class LocationAdmin(admin.ModelAdmin):
