@@ -201,3 +201,23 @@ class ParentLocationAutocompleteView(autocomplete.Select2QuerySetView):
         if self.q:
             qs = qs.filter(Q(name__icontains=self.q) | Q(unique_identifier__icontains=self.q))
         return qs
+
+    def get_results(self, context):
+        self_id_str = self.forwarded.get('id', None)
+        if self_id_str == None:
+            return super().get_results(context)
+        try:
+            self_id = int(self_id_str)
+        except ValueError:
+            self_id = 0
+        if self_id == 0:
+            return super().get_results(context)
+        sorted_out = [self_id]
+        while True:
+            old_count = len(sorted_out)
+            sorted_out.extend([x.pk for x in context['object_list'] if x.pk not in sorted_out and x.parent_location != None and x.parent_location.pk in sorted_out])
+            new_count = len(sorted_out)
+            if (old_count == new_count):
+                break
+        context['object_list'] = [x for x in context['object_list'] if x.pk not in sorted_out]
+        return super().get_results(context)

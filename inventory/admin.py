@@ -51,14 +51,17 @@ class LocationInline(admin.TabularInline):
     }
 
 class EditLocationForm(forms.ModelForm):
+    id = forms.IntegerField(widget=forms.HiddenInput(), required = False)
+
     class Meta:
         model = Location
-        fields = ('__all__')
+        exclude = []
 
     parent_location = forms.ModelChoiceField(
         queryset=Location.objects.filter(type__no_sublocations = False),
         widget=autocomplete.ModelSelect2(
             url='parent_location_autocomplete',
+            forward=['id'],
             attrs={
                 'data-placeholder': '---------',
                 'data-allow-clear': 1,
@@ -70,15 +73,6 @@ class EditLocationForm(forms.ModelForm):
 
 class LocationAdmin(admin.ModelAdmin):
     list_display = ("locatable_identifier", "name", "descriptive_identifier")
-    fields = (
-        "type",
-        "name",
-        "short_name",
-        "description",
-        "parent_location",
-        "label_template",
-        "label_image_tag",
-    )
     ordering = ("locatable_identifier",)
     readonly_fields = ("label_image_tag",)
     search_fields = ('locatable_identifier', 'name')
@@ -86,6 +80,14 @@ class LocationAdmin(admin.ModelAdmin):
     inlines = [LocationInline]
     inlines_popup = []
     form = EditLocationForm
+
+    def get_form(self, request, obj=None, **kwargs):
+        form = super(LocationAdmin, self).get_form(request, obj, **kwargs)
+        id = 0
+        if obj:
+            id = obj.id
+        form.base_fields['id'].initial = id
+        return form
 
     def get_inlines(self, request, obj):
         if "_to_field" in request.GET and "_popup" in request.GET:
