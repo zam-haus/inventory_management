@@ -15,7 +15,6 @@ from django.utils.decorators import method_decorator
 from django.shortcuts import redirect
 from django.urls import reverse
 from django.contrib import messages
-from .models import Location
 from dal import autocomplete
 
 
@@ -54,11 +53,11 @@ class EditLocationForm(forms.ModelForm):
     id = forms.IntegerField(widget=forms.HiddenInput(), required = False)
 
     class Meta:
-        model = Location
+        model = models.Location
         exclude = []
 
     parent_location = forms.ModelChoiceField(
-        queryset=Location.objects.filter(type__no_sublocations = False),
+        queryset=models.Location.objects.filter(type__no_sublocations = False),
         widget=autocomplete.ModelSelect2(
             url='parent_location_autocomplete',
             forward=['id'],
