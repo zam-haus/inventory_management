@@ -1,12 +1,7 @@
-from email.policy import default
-from random import choices
-from typing_extensions import Required
 from django.contrib import admin
 from django import forms
 from django.urls import path
 from django.db.models import TextField, CharField
-from django.db import IntegrityError
-from django.template.response import TemplateResponse
 from django.views.generic import FormView
 from django.db import transaction
 from django.core.exceptions import ValidationError
