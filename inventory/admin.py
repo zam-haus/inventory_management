@@ -15,10 +15,10 @@ from django.utils.decorators import method_decorator
 from django.shortcuts import redirect
 from django.urls import reverse
 from django.contrib import messages
-from dal import autocomplete
 
 
 from . import models
+from .forms import LocationMoveForm
 
 # Register your models here.
 admin.site.register(models.LocationType)
@@ -49,27 +49,6 @@ class LocationInline(admin.TabularInline):
         CharField: {"widget": forms.TextInput(attrs={"size": 20})},
     }
 
-class EditLocationForm(forms.ModelForm):
-    id = forms.IntegerField(widget=forms.HiddenInput(), required = False)
-
-    class Meta:
-        model = models.Location
-        exclude = []
-
-    parent_location = forms.ModelChoiceField(
-        queryset=models.Location.objects.filter(type__no_sublocations = False),
-        widget=autocomplete.ModelSelect2(
-            url='parent_location_autocomplete',
-            forward=['id'],
-            attrs={
-                'data-placeholder': '---------',
-                'data-allow-clear': 1,
-            },
-        ),
-        blank=True,
-        required=False,
-    )
-
 class LocationAdmin(admin.ModelAdmin):
     list_display = ("locatable_identifier", "name", "descriptive_identifier")
     ordering = ("locatable_identifier",)
@@ -78,7 +57,7 @@ class LocationAdmin(admin.ModelAdmin):
     actions = ["send_to_printer_action", "send_to_printer_twice_action"]
     inlines = [LocationInline]
     inlines_popup = []
-    form = EditLocationForm
+    form = LocationMoveForm
 
     def get_form(self, request, obj=None, **kwargs):
         form = super(LocationAdmin, self).get_form(request, obj, **kwargs)
