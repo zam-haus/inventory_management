@@ -192,14 +192,12 @@ class SearchableLocationListView(
 
 from dal import autocomplete
 
-from .models import Location
-
 from django.db.models import Q
 class ParentLocationAutocompleteView(autocomplete.Select2QuerySetView):
     def get_queryset(self):
         if not self.request.user.is_authenticated:
-            return Location.objects.none()
-        qs = Location.objects.filter(type__no_sublocations = False)
+            return models.Location.objects.none()
+        qs = models.Location.objects.filter(type__no_sublocations = False)
         if self.q:
             qs = qs.filter(Q(name__icontains=self.q) | Q(unique_identifier__icontains=self.q))
         return qs
