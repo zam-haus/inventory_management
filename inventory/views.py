@@ -246,14 +246,14 @@ class SearchableLocationListView(
             self.request.session.get('is_zam_local', False)
 
 
-class DeleteItemView(UserPassesTestMixin, DeleteView):
-    model = models.Item
-    success_url = reverse_lazy('index_items')
-    template_name = 'inventory/item_confirm_delete.html'
-
-    def test_func(self):
-        return not self.request.user.is_anonymous or \
-            self.request.session.get('is_zam_local', False)
+#class DeleteItemView(UserPassesTestMixin, DeleteView):
+#    model = models.Item
+#    success_url = reverse_lazy('index_items')
+#    template_name = 'inventory/item_confirm_delete.html'
+#
+#    def test_func(self):
+#        return not self.request.user.is_anonymous or \
+#            self.request.session.get('is_zam_local', False)
 
 
 class ParentLocationAutocompleteView(autocomplete.Select2QuerySetView):
