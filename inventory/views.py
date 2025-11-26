@@ -34,7 +34,7 @@ class DetailLocationView(DetailView):
 
     def get(self, request, *args, **kwargs):
         self.object = self.get_object()
-        if self.object.unique_identifier != kwargs["unique_identifier"]:
+        if "unique_identifier" in kwargs and self.object.unique_identifier != kwargs["unique_identifier"]:
             return redirect(self.object)
         context = self.get_context_data(object=self.object)
         return self.render_to_response(context)
