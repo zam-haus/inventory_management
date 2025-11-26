@@ -183,7 +183,7 @@ class AnnotateItemView(UserPassesTestMixin, UpdateView):
             next_incomplete = incomplete & models.Item.objects.filter(pk__gt=self.object.pk)
             if not next_incomplete:
                 next_incomplete = incomplete
-            return reverse_lazy("annotate_item", args=[incomplete[randint(0, incomplete.count())].pk])
+            return reverse_lazy("annotate_item", args=[incomplete[randint(0, incomplete.count() -1)].pk])
         return reverse_lazy("annotate_item", args=[self.object.pk])
 
 
