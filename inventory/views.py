@@ -2,7 +2,7 @@ from random import randint, choice
 
 from django.utils import timezone
 from django.db import transaction
-from django.http import HttpResponse, JsonResponse
+from django.http import HttpResponse, JsonResponse, HttpResponseForbidden
 from django.shortcuts import render, redirect
 from django.urls import reverse_lazy
 from django.views import View
@@ -53,7 +53,7 @@ class DetailLocationView(DetailView):
 
     def get(self, request, *args, **kwargs):
         self.object = self.get_object()
-        if self.object.unique_identifier != kwargs["unique_identifier"]:
+        if "unique_identifier" in kwargs and self.object.unique_identifier != kwargs["unique_identifier"]:
             return redirect(self.object)
         context = self.get_context_data(object=self.object)
         return self.render_to_response(context)
@@ -62,6 +62,23 @@ class DetailLocationView(DetailView):
 def update_location(request, pk, unique_identifier):
     pass
 
+class LocationMoveView(UpdateView):
+    template_name = 'inventory/location_move.html'
+    form_class = forms.LocationMoveForm
+    model = models.Location
+    def test_func(self):
+        # Logged in or @ZAM
+        return not self.request.user.is_anonymous or \
+            self.request.session.get('is_zam_local', False)
+
+    def get(self, request, *args, **kwargs):
+        if not self.get_object().type.moveable:
+            return HttpResponseForbidden("This Location is not allowed to be moved in the Frontend.")
+        return super().get(request, *args, **kwargs)
+    def post(self, request, *args, **kwargs):
+        if not self.get_object().type.moveable:
+            return HttpResponseForbidden("This Location is not allowed to be moved in the Frontend.")
+        return super().post(request, *args, **kwargs)
 
 def view_item(request, pk):
     return redirect(reverse_lazy("update_item", args=[pk]))
@@ -183,7 +200,7 @@ class SearchableItemListView(ListView):
         if (len(incomplete) != 0):
             ctxt.update({
                 'incomplete_count': incomplete.count(),
-                'incomplete_first_pk': incomplete[randint(0, incomplete.count())].pk
+                'incomplete_first_pk': incomplete[randint(0, incomplete.count() - 1)].pk
             })
         return ctxt
     def get_queryset(self):
@@ -237,3 +254,33 @@ class DeleteItemView(UserPassesTestMixin, DeleteView):
     def test_func(self):
         return not self.request.user.is_anonymous or \
             self.request.session.get('is_zam_local', False)
+
+
+class ParentLocationAutocompleteView(autocomplete.Select2QuerySetView):
+    def get_queryset(self):
+        if not self.request.user.is_authenticated:
+            return models.Location.objects.none()
+        qs = models.Location.objects.filter(type__no_sublocations = False)
+        if self.q:
+            qs = qs.filter(Q(name__icontains=self.q) | Q(unique_identifier__icontains=self.q))
+        return qs
+
+    def get_results(self, context):
+        self_id_str = self.forwarded.get('id', None)
+        if self_id_str == None:
+            return super().get_results(context)
+        try:
+            self_id = int(self_id_str)
+        except ValueError:
+            self_id = 0
+        if self_id == 0:
+            return super().get_results(context)
+        sorted_out = [self_id]
+        while True:
+            old_count = len(sorted_out)
+            sorted_out.extend([x.pk for x in context['object_list'] if x.pk not in sorted_out and x.parent_location != None and x.parent_location.pk in sorted_out])
+            new_count = len(sorted_out)
+            if (old_count == new_count):
+                break
+        context['object_list'] = [x for x in context['object_list'] if x.pk not in sorted_out]
+        return super().get_results(context)

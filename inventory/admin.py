@@ -1,12 +1,7 @@
-from email.policy import default
-from random import choices
-from typing_extensions import Required
 from django.contrib import admin
 from django import forms
 from django.urls import path
 from django.db.models import TextField, CharField
-from django.db import IntegrityError
-from django.template.response import TemplateResponse
 from django.views.generic import FormView
 from django.db import transaction
 from django.core.exceptions import ValidationError
@@ -18,6 +13,7 @@ from django.contrib import messages
 
 
 from . import models
+from .forms import LocationMoveForm
 
 # Register your models here.
 admin.site.register(models.LocationType)
@@ -48,24 +44,23 @@ class LocationInline(admin.TabularInline):
         CharField: {"widget": forms.TextInput(attrs={"size": 20})},
     }
 
-
 class LocationAdmin(admin.ModelAdmin):
     list_display = ("locatable_identifier", "name", "descriptive_identifier")
-    fields = (
-        "type",
-        "name",
-        "short_name",
-        "description",
-        "parent_location",
-        "label_template",
-        "label_image_tag",
-    )
     ordering = ("locatable_identifier",)
     readonly_fields = ("label_image_tag",)
     search_fields = ('locatable_identifier', 'name')
     actions = ["send_to_printer_action", "send_to_printer_twice_action"]
     inlines = [LocationInline]
     inlines_popup = []
+    form = LocationMoveForm
+
+    def get_form(self, request, obj=None, **kwargs):
+        form = super(LocationAdmin, self).get_form(request, obj, **kwargs)
+        id = 0
+        if obj:
+            id = obj.id
+        form.base_fields['id'].initial = id
+        return form
 
     def get_inlines(self, request, obj):
         if "_to_field" in request.GET and "_popup" in request.GET:

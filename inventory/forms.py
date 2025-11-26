@@ -3,13 +3,11 @@ import re
 from crispy_forms.helper import FormHelper
 from crispy_forms import layout, bootstrap
 from crispy_bootstrap5.bootstrap5 import FloatingField
-from django.forms import FileInput, ModelForm, RegexField, Textarea, TextInput
+from django.forms import FileInput, ModelForm, RegexField, Textarea, TextInput, IntegerField, HiddenInput, ModelChoiceField
 from django.forms.utils import ErrorList
 from extra_views import InlineFormSetFactory
 from django.utils.translation import gettext_lazy as _
 from django.utils import timezone
-from django import forms
-from .models import Item
 from dal import autocomplete
 
 
@@ -201,7 +199,7 @@ class ItemImageInline(InlineFormSetFactory):
 
 
 
-class ItemLocationForm(forms.ModelForm):
+class ItemLocationForm(ModelForm):
     class Meta:
         model = ItemLocation
         fields = ['location', 'amount']
@@ -255,3 +253,24 @@ class ItemLocationInline(InlineFormSetFactory):
     )
 )
         return formset
+
+class LocationMoveForm(ModelForm):
+    class Meta:
+        model = Location
+        fields = ["parent_location", "id"]
+
+    parent_location = ModelChoiceField(
+        queryset=Location.objects.filter(type__no_sublocations = False),
+        widget=autocomplete.ModelSelect2(
+            url='parent_location_autocomplete',
+            forward=['id'],
+            attrs={
+                'data-placeholder': '---------',
+                'data-allow-clear': 1,
+            },
+        ),
+        blank=True,
+        required=False,
+    )
+
+    id = IntegerField(widget=HiddenInput(), required = False)

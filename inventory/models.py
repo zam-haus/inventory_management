@@ -225,6 +225,10 @@ class LocationType(models.Model):
         verbose_name_plural = _("location types")
 
     name = models.CharField(_("name"), max_length=64, unique=True)
+    # set if this Locations can not have sublocations (you can not put a box in a box)
+    no_sublocations = models.BooleanField(_("no sublocations flag"), default=False)
+    # allow this type to be moved from frontend
+    moveable = models.BooleanField(_("moveable flag"), default=False)
     # set if Location.short is to be globally unique
     unique = models.BooleanField(_("unique flag"), default=False)
     # for automatic generation of unique names and short_names:
