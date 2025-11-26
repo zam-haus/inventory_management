@@ -43,6 +43,7 @@
     </nav>
 
     <div class="container mt-3">
+      {% block item_nav %}{% endblock %}
       <h1>{% block title %}(no title){% endblock %}</h1>
       {% autoescape off %}{% bootstrap_messages %}{% endautoescape %}
       {% block content %}(no content){% endblock %}

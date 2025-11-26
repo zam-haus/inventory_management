@@ -3,6 +3,19 @@
 {% load django_bootstrap5 i18n %}
 {% load thumbnail %}
 
+{% block item_nav %}
+    {% if user.is_authenticated and object.type.moveable %}
+        <ul class="nav nav-tabs">
+            <li class="nav-item">
+                <a class="nav-link active" aria-current="page" href="#">{% trans "view" %}</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" aria-current="page" href="{% url 'location_move' pk=object.id %}">{% trans "move" %}</a>
+            </li>
+        </ul>
+    {% endif %}
+{% endblock %}
+
 {% block title %}
     {% trans "Location" %}:  {{ object.unique_identifier }}
 {% endblock %}

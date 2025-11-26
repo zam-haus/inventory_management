@@ -1,0 +1,54 @@
+{% extends 'base.html' %}
+
+{% load static %}
+
+{% load django_bootstrap5 i18n %}
+
+{% block item_nav %}
+    {% if user.is_authenticated %}
+        <ul class="nav nav-tabs">
+            <li class="nav-item">
+                <a class="nav-link" aria-current="page" href="{% url 'view_location2' pk=object.id %}">{% trans "view" %}</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link active" aria-current="page" href="#">{% trans "move" %}</a>
+            </li>
+        </ul>
+    {% endif %}
+{% endblock %}
+
+{% block title %}
+    {% trans "Move Location" %}:  {{ object.unique_identifier }}
+{% endblock %}
+
+{% if form.instance.id %}
+{% block admin_url %}
+{{ object.get_admin_url }}
+{% endblock %}
+{% endif %}
+
+{% block content %}
+    <p>{{ object.name }} ({{ object.type.name }})</p>
+    <p>{% trans "Current Parent Location" %}: {{ object.parent_location.descriptive_identifier }}</p>
+    <p>{{ object.description }}</p>
+    <form method="post" novalidate>
+        {% csrf_token %}
+        {{ form.as_p }}
+
+        <table>
+            {{ view.formset }}
+        </table>
+        <input type="submit" value="{% trans "Save" %}" />
+    </form>
+
+{% endblock %}
+
+{% block bootstrap5_extra_head %}
+    {{ block.super }}
+    {{ form.media.css }}
+{% endblock %}
+
+{% block bootstrap5_extra_script %}
+<script type="text/javascript" src="{% static 'static_jquery/js/jquery.js' %}"></script>
+{{ form.media }}
+{% endblock %}
