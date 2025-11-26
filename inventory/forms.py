@@ -249,11 +249,9 @@ class ItemLocationInline(InlineFormSetFactory):
         return formset
 
 class LocationMoveForm(ModelForm):
-    id = IntegerField(widget=HiddenInput(), required = False)
-
     class Meta:
         model = Location
-        exclude = []
+        fields = ["parent_location", "id"]
 
     parent_location = ModelChoiceField(
         queryset=Location.objects.filter(type__no_sublocations = False),
@@ -268,3 +266,5 @@ class LocationMoveForm(ModelForm):
         blank=True,
         required=False,
     )
+
+    id = IntegerField(widget=HiddenInput(), required = False)
