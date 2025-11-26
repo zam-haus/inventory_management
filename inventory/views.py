@@ -2,7 +2,7 @@ from random import randint, choice
 
 from django.utils import timezone
 from django.db import transaction
-from django.http import HttpResponse, JsonResponse
+from django.http import HttpResponse, JsonResponse, HttpResponseForbidden
 from django.shortcuts import render, redirect
 from django.urls import reverse_lazy
 from django.views import View
@@ -43,6 +43,23 @@ class DetailLocationView(DetailView):
 def update_location(request, pk, unique_identifier):
     pass
 
+class LocationMoveView(UpdateView):
+    template_name = 'inventory/location_move.html'
+    form_class = forms.LocationMoveForm
+    model = models.Location
+    def test_func(self):
+        # Logged in or @ZAM
+        return not self.request.user.is_anonymous or \
+            self.request.session.get('is_zam_local', False)
+
+    def get(self, request, *args, **kwargs):
+        if not self.get_object().type.moveable:
+            return HttpResponseForbidden("This Location is not allowed to be moved in the Frontend.")
+        return super().get(request, *args, **kwargs)
+    def post(self, request, *args, **kwargs):
+        if not self.get_object().type.moveable:
+            return HttpResponseForbidden("This Location is not allowed to be moved in the Frontend.")
+        return super().post(request, *args, **kwargs)
 
 def view_item(request, pk):
     return redirect(reverse_lazy("update_item", args=[pk]))

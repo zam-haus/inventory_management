@@ -67,6 +67,7 @@ INSTALLED_APPS = [
     "accounts",
     "django_bootstrap_icons",
     "sorl.thumbnail",
+    "django_static_jquery",
 ]
 
 CRISPY_ALLOWED_TEMPLATE_PACKS = "bootstrap5"
