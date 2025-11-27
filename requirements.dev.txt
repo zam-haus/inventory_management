@@ -17,5 +17,5 @@ tqdm
 pytesseract
 sorl-thumbnail
 setuptools
-django-autocomplete-light==3.12.1
+django-autocomplete-light>=3.12.1
 django-static-jquery

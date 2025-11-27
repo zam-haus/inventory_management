@@ -17,5 +17,5 @@ django-bootstrap-icons
 tqdm
 pytesseract
 sorl-thumbnail
-django-autocomplete-light==3.12.1
+django-autocomplete-light>=3.12.1
 django-static-jquery
