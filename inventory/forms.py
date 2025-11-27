@@ -235,6 +235,7 @@ class ItemLocationInline(InlineFormSetFactory):
         formset.helper = FormHelper()
         formset.helper.form_tag = False
         formset.helper.disable_csrf = True
+        formset.helper.include_media = False
         formset.helper.form_title = "Item Storage Locations"
         formset.helper.layout = layout.Layout(
     layout.Div(

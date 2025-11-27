@@ -91,12 +91,15 @@
 {% block bootstrap5_extra_head %}
     {{ block.super }}
     {{ form.media.css }}
+    {{ inlines.1.media.css }}
 {% endblock %}
 
 {% block bootstrap5_extra_script %}
     {{ block.super }}
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/js/select2.full.min.js"></script>
+    <script type="text/javascript" src="{% static 'static_jquery/js/jquery.min.js' %}"></script>
     {{ form.media.js }}
+    {{ inlines.1.media.js }}
+
 <script type="text/javascript" src="{% static 'inventory/camera.js' %}"></script>
 <script type="text/javascript" src="{% static 'inventory/autocomplete.js' %}"></script>
 <script type="text/javascript" src="{% static 'inventory/autocomplete_custom.js' %}"></script>
