@@ -13,7 +13,6 @@ import extra_views
 from django.utils.translation import gettext_lazy as _
 from django.contrib.auth.mixins import UserPassesTestMixin
 from django.db.models import Q
-from .models import Location
 from dal import autocomplete
 from . import forms
 from . import models
@@ -28,9 +27,9 @@ class LocationAutocomplete(autocomplete.Select2QuerySetView):
     def get_queryset(self):
         # Do not forget to filter out results depending on the logged-in user or other criteria
         if not self.request.user.is_authenticated:
-            return Location.objects.none()
+            return models.Location.objects.none()
 
-        qs = Location.objects.all()
+        qs = models.Location.objects.all()
 
         # `self.q` is the search term from the user, provided by DAL.
         if self.q:
