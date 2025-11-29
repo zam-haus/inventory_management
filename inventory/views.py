@@ -19,6 +19,9 @@ from . import models
 
 # Create your views here.
 
+def check_user_is_allowed(request):
+    return ((not request.user.is_anonymous) or #we are logged in
+            request.session.get('is_zam_local', False)) #we are in local lan
 
 def index(request):
     return render(request, "inventory/index.html")
@@ -66,9 +69,7 @@ class LocationMoveView(UpdateView):
     form_class = forms.LocationMoveForm
     model = models.Location
     def test_func(self):
-        # Logged in or @ZAM
-        return not self.request.user.is_anonymous or \
-            self.request.session.get('is_zam_local', False)
+        return check_user_is_allowed(self.request)
 
     def get(self, request, *args, **kwargs):
         if not self.get_object().type.moveable:
@@ -137,9 +138,7 @@ class CreateItemView(UserPassesTestMixin, extra_views.CreateWithInlinesView):
         return super().construct_inlines()
     
     def test_func(self):
-        # Logged in or @ZAM
-        return not self.request.user.is_anonymous or \
-            self.request.session.get('is_zam_local')
+        return check_user_is_allowed(self.request)
 
 
 class UpdateItemView(UserPassesTestMixin, extra_views.UpdateWithInlinesView):
@@ -156,9 +155,7 @@ class UpdateItemView(UserPassesTestMixin, extra_views.UpdateWithInlinesView):
         return self.object.get_absolute_url()
 
     def test_func(self):
-        # Logged in or @ZAM
-        return not self.request.user.is_anonymous or \
-            self.request.session.get('is_zam_local', False)
+        return check_user_is_allowed(self.request)
 
 
 class AnnotateItemView(UserPassesTestMixin, UpdateView):
@@ -171,9 +168,7 @@ class AnnotateItemView(UserPassesTestMixin, UpdateView):
     extra_context = {"title": _("Update Item")}
 
     def test_func(self):
-        # Logged in or @ZAM
-        return not self.request.user.is_anonymous or \
-            self.request.session.get('is_zam_local', False)
+        return check_user_is_allowed(self.request)
 
     def get_success_url(self):
         if self.request.POST and "save_next" in self.request.POST:
@@ -224,9 +219,7 @@ class SearchableItemListView(ListView):
 
 
     def test_func(self):
-        # Logged in or @ZAM
-        return not self.request.user.is_anonymous or \
-            self.request.session.get('is_zam_local', False)
+        return check_user_is_allowed(self.request)
 
 
 class SearchableLocationListView(
@@ -244,9 +237,7 @@ class SearchableLocationListView(
     paginate_by = 100
 
     def test_func(self):
-        # Logged in or @ZAM
-        return not self.request.user.is_anonymous or \
-            self.request.session.get('is_zam_local', False)
+        return check_user_is_allowed(self.request)
 
 
 #class DeleteItemView(UserPassesTestMixin, DeleteView):
@@ -255,8 +246,7 @@ class SearchableLocationListView(
 #    template_name = 'inventory/item_confirm_delete.html'
 #
 #    def test_func(self):
-#        return not self.request.user.is_anonymous or \
-#            self.request.session.get('is_zam_local', False)
+#        return check_user_is_allowed(self.request)
 
 
 class ParentLocationAutocompleteView(autocomplete.Select2QuerySetView):
