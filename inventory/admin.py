@@ -13,7 +13,7 @@ from django.contrib import messages
 
 
 from . import models
-from .forms import LocationMoveForm
+from .forms import AdminLocationForm
 
 # Register your models here.
 admin.site.register(models.LocationType)
@@ -52,7 +52,7 @@ class LocationAdmin(admin.ModelAdmin):
     actions = ["send_to_printer_action", "send_to_printer_twice_action"]
     inlines = [LocationInline]
     inlines_popup = []
-    form = LocationMoveForm
+    form = AdminLocationForm
 
     def get_form(self, request, obj=None, **kwargs):
         form = super(LocationAdmin, self).get_form(request, obj, **kwargs)
