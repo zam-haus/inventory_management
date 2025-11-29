@@ -422,8 +422,6 @@ class Location(ComputedFieldsModel):
         verbose_name=_("label template"),
     )
 
-    # TODO prevent assigning self as parent
-    # TODO circular dependencies
     parent_location = models.ForeignKey(
         "self",
         related_name="children",
