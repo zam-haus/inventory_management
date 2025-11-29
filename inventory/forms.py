@@ -253,6 +253,16 @@ class ItemLocationInline(InlineFormSetFactory):
 )
         return formset
 
+class AdminLocationForm(ModelForm):
+    class Meta:
+        model = Location
+        fields = ('__all__')
+        widgets = {
+            'parent_location': autocomplete.ModelSelect2(url='parent_location_autocomplete', forward=['id'])
+        }
+
+    id = IntegerField(widget=HiddenInput(), required = False)
+
 class LocationMoveForm(ModelForm):
     class Meta:
         model = Location
