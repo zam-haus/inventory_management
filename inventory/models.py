@@ -29,6 +29,7 @@ class Item(models.Model):
     class Meta:
         verbose_name = _("item")
         verbose_name_plural = _("items")
+        ordering = ["id"]
 
     # TODO use UUID as id?
     # id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
