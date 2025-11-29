@@ -208,8 +208,8 @@ class SearchableItemListView(ListView):
             query = self.request.GET.get('q')
             if query:
                 queryset = queryset.filter(
-                    models.Q(name__icontains=query) |
-                    models.Q(description__icontains=query)
+                    Q(name__icontains=query) |
+                    Q(description__icontains=query)
                 )
             return queryset
         except Exception as e:
