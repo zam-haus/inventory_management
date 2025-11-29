@@ -12,6 +12,7 @@ from django.core.exceptions import ObjectDoesNotExist
 import extra_views
 from django.utils.translation import gettext_lazy as _
 from django.contrib.auth.mixins import UserPassesTestMixin
+from django.conf import settings
 from django.db.models import Q
 from dal import autocomplete
 from . import forms
@@ -22,6 +23,29 @@ from . import models
 def check_user_is_allowed(request):
     return ((not request.user.is_anonymous) or #we are logged in
             request.session.get('is_zam_local', False)) #we are in local lan
+
+def get_location_id_from_qr_url(query):
+    url_prefix = settings.DEFAULT_DOMAIN + reverse_lazy('index_locations')
+    search_id = 0
+    if query.startswith(url_prefix):
+        print ("query starts with url")
+        substr = query.replace(url_prefix, '')
+        #now we have the id at the start of the string
+        try:
+            #find end of id
+            pos = substr.index('/')
+            #and slice into substr
+            substr = substr[0:pos]
+        except ValueError:
+            #could not find slash, so probably we already have only the id in the string
+            pass
+        try:
+            #convert substring to integer, sothat we can use it in search-query
+            search_id = int(substr)
+        except ValueError:
+            #parsing to integer failed, so use default
+            pass
+    return search_id
 
 def index(request):
     return render(request, "inventory/index.html")
@@ -38,8 +62,9 @@ class LocationAutocomplete(autocomplete.Select2QuerySetView):
         if self.q:
             query = self.q
             qs = qs.filter(
-                Q(name__icontains=query) |
-                Q(unique_identifier__icontains=query)
+                Q(name__icontains=query)
+                |Q(unique_identifier__icontains=query)
+                |Q(id=get_location_id_from_qr_url(query))
             )
 
         return qs
@@ -255,7 +280,11 @@ class ParentLocationAutocompleteView(autocomplete.Select2QuerySetView):
             return models.Location.objects.none()
         qs = models.Location.objects.filter(type__no_sublocations = False)
         if self.q:
-            qs = qs.filter(Q(name__icontains=self.q) | Q(unique_identifier__icontains=self.q))
+            qs = qs.filter(
+                Q(name__icontains=self.q)
+                |Q(unique_identifier__icontains=self.q)
+                |Q(id=get_location_id_from_qr_url(self.q))
+            )
         return qs
 
     def get_results(self, context):
