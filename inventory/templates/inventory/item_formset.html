@@ -117,31 +117,28 @@
     .btn{
         white-space: normal;
     }
+
     .select2-container .select2-selection--single {
-            /* Standard Bootstrap 5 form-control height formula: 1.5em (line-height) + 1rem (vertical padding) + 2px (borders) */
-            height: calc(1.5em + 1.1rem + 2px); 
-        }
+        /* Standard Bootstrap 5 form-control height formula: 1.5em (line-height) + 1rem (vertical padding) + 2px (borders) */
+        height: calc(1.5em + 1.1rem + 2px);
+    }
+    /* Targets the text and placeholder inside the box */
+    .select2-container .select2-selection--single .select2-selection__rendered {
+        /* Matches Bootstrap 5 form-control line-height */
+        line-height: 1.5;
+        /* Matches Bootstrap 5 form-control vertical padding: 0.375rem (default) or 0.5rem (if using Lg forms) */
+        padding-top: 0.35rem;
+        padding-bottom: 0.35rem;
+    }
 
-        /* Targets the text and placeholder inside the box */
-        .select2-container .select2-selection--single .select2-selection__rendered {
-            /* Matches Bootstrap 5 form-control line-height */
-            line-height: 1.5; 
-            /* Matches Bootstrap 5 form-control vertical padding: 0.375rem (default) or 0.5rem (if using Lg forms) */
-            padding-top: 0.35rem; 
-            padding-bottom: 0.35rem; 
-        }
-        
-        /* Ensures the dropdown arrow remains vertically centered */
-        .select2-container .select2-selection--single .select2-selection__arrow {
-            height: 100%;
-        }
-        /* Removes the default Bootstrap caret/background image from the 
-           Select2 field's selection area */
-        .select2-container--default .select2-selection--single {
-            background-image: none !important;
-        }
-        
-
-
+    /* Ensures the dropdown arrow remains vertically centered */
+    .select2-container .select2-selection--single .select2-selection__arrow {
+        height: 100%;
+    }
+    /* Removes the default Bootstrap caret/background image from the
+        Select2 field's selection area */
+    .select2-container--default .select2-selection--single {
+        background-image: none !important;
+    }
 </style>
 {% endblock %}
