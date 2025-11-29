@@ -29,7 +29,7 @@ def index(request):
 class LocationAutocomplete(autocomplete.Select2QuerySetView):
     def get_queryset(self):
         # Do not forget to filter out results depending on the logged-in user or other criteria
-        if not self.request.user.is_authenticated:
+        if not check_user_is_allowed(self.request):
             return models.Location.objects.none()
 
         qs = models.Location.objects.all()
@@ -251,7 +251,7 @@ class SearchableLocationListView(
 
 class ParentLocationAutocompleteView(autocomplete.Select2QuerySetView):
     def get_queryset(self):
-        if not self.request.user.is_authenticated:
+        if not check_user_is_allowed(self.request):
             return models.Location.objects.none()
         qs = models.Location.objects.filter(type__no_sublocations = False)
         if self.q:
