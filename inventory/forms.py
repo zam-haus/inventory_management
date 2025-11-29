@@ -14,8 +14,6 @@ from dal import autocomplete
 from .models import BarcodeType, Item, ItemBarcode, ItemImage, ItemLocation, Location
 
 
-# .select2itemform
-
 class TextDatalistInput(TextInput):
     template_name = "inventory/widgets/text_datalist.html"
 
