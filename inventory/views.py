@@ -7,21 +7,42 @@ from django.shortcuts import render, redirect
 from django.urls import reverse_lazy
 from django.views import View
 from django.views.generic import ListView, DetailView, UpdateView
+from django.views.generic.edit import DeleteView
 from django.core.exceptions import ObjectDoesNotExist
 import extra_views
 from django.utils.translation import gettext_lazy as _
 from django.contrib.auth.mixins import UserPassesTestMixin
-
-
+from django.db.models import Q
+from dal import autocomplete
 from . import forms
 from . import models
 
 # Create your views here.
 
+def check_user_is_allowed(request):
+    return ((not request.user.is_anonymous) or #we are logged in
+            request.session.get('is_zam_local', False)) #we are in local lan
 
 def index(request):
     return render(request, "inventory/index.html")
 
+class LocationAutocomplete(autocomplete.Select2QuerySetView):
+    def get_queryset(self):
+        # Do not forget to filter out results depending on the logged-in user or other criteria
+        if not check_user_is_allowed(self.request):
+            return models.Location.objects.none()
+
+        qs = models.Location.objects.all()
+
+        # `self.q` is the search term from the user, provided by DAL.
+        if self.q:
+            query = self.q
+            qs = qs.filter(
+                Q(name__icontains=query) |
+                Q(unique_identifier__icontains=query)
+            )
+
+        return qs
 
 class DetailLocationView(DetailView):
     model = models.Location
@@ -48,9 +69,7 @@ class LocationMoveView(UpdateView):
     form_class = forms.LocationMoveForm
     model = models.Location
     def test_func(self):
-        # Logged in or @ZAM
-        return not self.request.user.is_anonymous or \
-            self.request.session.get('is_zam_local', False)
+        return check_user_is_allowed(self.request)
 
     def get(self, request, *args, **kwargs):
         if not self.get_object().type.moveable:
@@ -94,7 +113,7 @@ class CreateItemView(UserPassesTestMixin, extra_views.CreateWithInlinesView):
         if self.request.GET and "location_id" in self.request.GET and location:
             url += "?location_id=%s" % self._get_location().id
         return url
-    
+
     def _get_location(self):
         if self.request.GET and "location_id" in self.request.GET:
             location_id = self.request.GET.get("location_id")
@@ -117,39 +136,39 @@ class CreateItemView(UserPassesTestMixin, extra_views.CreateWithInlinesView):
         if location is not None:
             self.kwargs["initial"] = [{"location": location}]
         return super().construct_inlines()
-    
+
     def test_func(self):
-        # Logged in or @ZAM
-        return not self.request.user.is_anonymous or \
-            self.request.session.get('is_zam_local')
+        return check_user_is_allowed(self.request)
 
 
 class UpdateItemView(UserPassesTestMixin, extra_views.UpdateWithInlinesView):
     model = models.Item
     inlines = [forms.ItemImageInline, forms.ItemLocationInline]
     template_name = "inventory/item_formset.html"
-    form_class = forms.ItemForm
+    form_class = forms.ItemForm  # Changed to ItemForm
+    factory_kwargs = {
+        "extra": 1, #possible usage for additional related
+    }
     extra_context = {"title": _("Update Item")}
 
     def get_success_url(self):
         return self.object.get_absolute_url()
 
     def test_func(self):
-        # Logged in or @ZAM
-        return not self.request.user.is_anonymous or \
-            self.request.session.get('is_zam_local', False)
+        return check_user_is_allowed(self.request)
 
 
 class AnnotateItemView(UserPassesTestMixin, UpdateView):
     model = models.Item
     template_name = "inventory/item_annotate_form.html"
-    form_class = forms.ItemAnnotationForm
+    form_class = forms.ItemLocationForm
+    factory_kwargs = {
+        "extra": 1, #possible usage for additional related item
+    }
     extra_context = {"title": _("Update Item")}
 
     def test_func(self):
-        # Logged in or @ZAM
-        return not self.request.user.is_anonymous or \
-            self.request.session.get('is_zam_local', False)
+        return check_user_is_allowed(self.request)
 
     def get_success_url(self):
         if self.request.POST and "save_next" in self.request.POST:
@@ -158,18 +177,16 @@ class AnnotateItemView(UserPassesTestMixin, UpdateView):
             next_incomplete = incomplete & models.Item.objects.filter(pk__gt=self.object.pk)
             if not next_incomplete:
                 next_incomplete = incomplete
-            return reverse_lazy("annotate_item", args=[incomplete[randint(0, incomplete.count())].pk])
+            return reverse_lazy("annotate_item", args=[incomplete[randint(0, incomplete.count() -1)].pk])
         return reverse_lazy("annotate_item", args=[self.object.pk])
 
 
-class SearchableItemListView(UserPassesTestMixin, extra_views.SearchableListMixin, ListView):
-    # matching criteria can be defined along with fields
-    search_fields = ["name", "category__name", "itemlocation__location__unique_identifier", "itemlocation__location__name", "itemimage__ocr_text"]
-    search_date_fields = []
+class SearchableItemListView(ListView):
     model = models.Item
     exact_query = False
     wrong_lookup = False
     paginate_by = 25
+    template_name = "inventory/item_list.html"
 
     def get_context_data(self):
         ctxt = super().get_context_data()
@@ -180,12 +197,29 @@ class SearchableItemListView(UserPassesTestMixin, extra_views.SearchableListMixi
                 'incomplete_first_pk': incomplete[randint(0, incomplete.count() - 1)].pk
             })
         return ctxt
+    def get_queryset(self):
+        try:
+            queryset = super().get_queryset()
+            query = self.request.GET.get('q')
+            if query:
+                queryset = queryset.filter(
+                    Q(name__icontains=query) |
+                    Q(description__icontains=query) |
+                    Q(category__name__icontains=query) |
+                    Q(itemlocation__location__unique_identifier__icontains=query) |
+                    Q(itemlocation__location__name__icontains=query) |
+                    Q(itemimage__ocr_text__icontains=query)
+                )
+            return queryset
+        except Exception as e:
+            # Log the error
+            print(f"Error in SearchableItemListView: {str(e)}")
+            # Return empty queryset instead of failing
+            return self.model.objects.none()
 
 
     def test_func(self):
-        # Logged in or @ZAM
-        return not self.request.user.is_anonymous or \
-            self.request.session.get('is_zam_local', False)
+        return check_user_is_allowed(self.request)
 
 
 class SearchableLocationListView(
@@ -203,16 +237,21 @@ class SearchableLocationListView(
     paginate_by = 100
 
     def test_func(self):
-        # Logged in or @ZAM
-        return not self.request.user.is_anonymous or \
-            self.request.session.get('is_zam_local', False)
+        return check_user_is_allowed(self.request)
 
-from dal import autocomplete
 
-from django.db.models import Q
+#class DeleteItemView(UserPassesTestMixin, DeleteView):
+#    model = models.Item
+#    success_url = reverse_lazy('index_items')
+#    template_name = 'inventory/item_confirm_delete.html'
+#
+#    def test_func(self):
+#        return check_user_is_allowed(self.request)
+
+
 class ParentLocationAutocompleteView(autocomplete.Select2QuerySetView):
     def get_queryset(self):
-        if not self.request.user.is_authenticated:
+        if not check_user_is_allowed(self.request):
             return models.Location.objects.none()
         qs = models.Location.objects.filter(type__no_sublocations = False)
         if self.q:
