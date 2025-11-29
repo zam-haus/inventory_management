@@ -38,7 +38,7 @@ class LocationAutocomplete(autocomplete.Select2QuerySetView):
         if self.q:
             query = self.q
             qs = qs.filter(
-                Q(name__icontains=query) | 
+                Q(name__icontains=query) |
                 Q(unique_identifier__icontains=query)
             )
 
@@ -113,7 +113,7 @@ class CreateItemView(UserPassesTestMixin, extra_views.CreateWithInlinesView):
         if self.request.GET and "location_id" in self.request.GET and location:
             url += "?location_id=%s" % self._get_location().id
         return url
-    
+
     def _get_location(self):
         if self.request.GET and "location_id" in self.request.GET:
             location_id = self.request.GET.get("location_id")
@@ -136,7 +136,7 @@ class CreateItemView(UserPassesTestMixin, extra_views.CreateWithInlinesView):
         if location is not None:
             self.kwargs["initial"] = [{"location": location}]
         return super().construct_inlines()
-    
+
     def test_func(self):
         return check_user_is_allowed(self.request)
 
