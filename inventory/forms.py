@@ -194,8 +194,13 @@ class ItemImageInline(InlineFormSetFactory):
         return formset
 
 
-
-
+class AdminItemLocationForm(ModelForm):
+    class Meta:
+        model = ItemLocation
+        fields = ('__all__')
+        widgets = {
+            'location': autocomplete.ModelSelect2(url='location-autocomplete')
+        }
 
 class ItemLocationForm(ModelForm):
     class Meta:
@@ -213,7 +218,7 @@ class ItemLocationForm(ModelForm):
     def save(self, commit=True):  # Add default value for commit
         instance = super().save(commit=commit)  # Pass commit parameter
         return instance
-    
+
 class ItemLocationInline(InlineFormSetFactory):
     model = ItemLocation
     form_class = ItemLocationForm

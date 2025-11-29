@@ -13,7 +13,7 @@ from django.contrib import messages
 
 
 from . import models
-from .forms import AdminLocationForm
+from .forms import AdminLocationForm, AdminItemLocationForm
 
 # Register your models here.
 admin.site.register(models.LocationType)
@@ -258,6 +258,7 @@ class MassAddLocationsAdminView(FormView):
 class ItemLocationInline(admin.TabularInline):
     model = models.ItemLocation
     extra = 1
+    form = AdminItemLocationForm
 
 
 class ItemBarcodeInline(admin.TabularInline):
