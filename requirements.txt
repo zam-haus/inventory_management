@@ -16,6 +16,8 @@ django-ipware
 django-bootstrap-icons
 tqdm
 pytesseract
+celery
+redis
 sorl-thumbnail
 django-autocomplete-light>=3.12.1
 django-static-jquery

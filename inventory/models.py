@@ -1,26 +1,27 @@
-from datetime import datetime
-from string import Template
 import urllib.parse
-
-from inventory.ocr_util import ocr_on_image_path
-from paho.mqtt import client as mqttc
+from datetime import datetime
 from pydoc import describe
-from typing_extensions import Required
+from string import Template
 from xml.etree.ElementTree import Comment
-from django.db import models
-from django.core import validators
+
 from computedfields.models import ComputedFieldsModel, computed
+from django.conf import settings
+from django.core import validators
+from django.db import models
+from django.db.models.signals import pre_delete
+from django.dispatch.dispatcher import receiver
 from django.forms import ValidationError
 from django.urls import reverse
 from django.utils.html import escape
 from django.utils.safestring import mark_safe
-from django.conf import settings
-from django.utils.translation import gettext_lazy as _
 from django.utils.timezone import make_aware
-from django.db.models.signals import pre_delete
-from django.dispatch.dispatcher import receiver
+from django.utils.translation import gettext_lazy as _
+from paho.mqtt import client as mqttc
 from sorl.thumbnail import delete
+from typing_extensions import Required
 
+from inventory.ocr_util import ocr_on_image_path
+from inventory.tasks import run_ocr_on_item_image
 
 # Create your models here.
 
@@ -33,7 +34,8 @@ class Item(models.Model):
 
     # TODO use UUID as id?
     # id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    name = models.CharField(_("item name"), max_length=512, blank=True, null=True)
+    name = models.CharField(
+        _("item name"), max_length=512, blank=True, null=True)
     description = models.TextField(_("description"), blank=True)
     # TODO implement signal for automatic adoption by parent_location
     # https://stackoverflow.com/questions/43857902/django-set-foreign-key-to-parent_location-value-on-delete
@@ -133,9 +135,12 @@ def get_item_upload_path(instance, filename):
 
 class ItemImage(models.Model):
     image = models.ImageField(_("image"), upload_to=get_item_upload_path)
-    description = models.CharField(_("description"), max_length=512, blank=True)
-    item = models.ForeignKey("Item", on_delete=models.CASCADE, verbose_name=_("item"))
-    ocr_text = models.TextField(_("ocr text"), blank=True, null=True, editable=False)
+    description = models.CharField(
+        _("description"), max_length=512, blank=True)
+    item = models.ForeignKey(
+        "Item", on_delete=models.CASCADE, verbose_name=_("item"))
+    ocr_text = models.TextField(
+        _("ocr text"), blank=True, null=True, editable=False)
     ocr_timestamp = models.DateTimeField(blank=True, null=True)
 
     def image_tag(self, location=None):
@@ -148,12 +153,29 @@ class ItemImage(models.Model):
     def update_ocr_text(self, ocr_text):
         self.ocr_text = ocr_text
         self.ocr_timestamp = make_aware(datetime.utcnow())
-        self.save()
+        self.save(update_fields=['ocr_text', 'ocr_timestamp'])
 
     def run_ocr(self):
-        ocr_text = ocr_on_image_path(self.image.path)
-        self.update_ocr_text(ocr_text)
-        return ocr_text
+        self.ocr_text = ocr_on_image_path(self.image.path)
+        self.ocr_timestamp = make_aware(datetime.utcnow())
+
+    def save_ocr_text(self):
+        super().save(update_fields=['ocr_text', 'ocr_timestamp'])
+
+    def save(
+        self, force_insert=False, force_update=False, using=None, update_fields=None
+    ):
+        if update_fields is not None and 'image' not in update_fields:
+            return super().save(force_insert, force_update, using, update_fields)
+        try:
+            original_instance = ItemImage.objects.get(pk=self.pk)
+        except ItemImage.DoesNotExist:
+            original_instance = None
+        super().save(force_insert, force_update, using, update_fields)
+        # Retrieve new instance with updated file path
+        new_instance = ItemImage.objects.get(pk=self.pk)
+        if original_instance is None or (original_instance.ocr_text == new_instance.ocr_text and original_instance.image.path != new_instance.image.path):
+            run_ocr_on_item_image.delay(self.pk)
 
 
 @receiver(pre_delete, sender=ItemImage)
@@ -166,8 +188,10 @@ def delete_image(sender, instance, **kwargs):
 
 class ItemFile(models.Model):
     file = models.FileField(_("file"), upload_to=get_item_upload_path)
-    description = models.CharField(_("description"), max_length=512, blank=True)
-    item = models.ForeignKey("Item", on_delete=models.CASCADE, verbose_name=_("file"))
+    description = models.CharField(
+        _("description"), max_length=512, blank=True)
+    item = models.ForeignKey(
+        "Item", on_delete=models.CASCADE, verbose_name=_("file"))
 
 
 @receiver(pre_delete, sender=ItemImage)
@@ -190,7 +214,8 @@ class ItemBarcode(models.Model):
         blank=True,
         verbose_name=_("type"),
     )
-    item = models.ForeignKey("Item", on_delete=models.CASCADE, verbose_name=_("Item"))
+    item = models.ForeignKey(
+        "Item", on_delete=models.CASCADE, verbose_name=_("Item"))
 
     def __str__(self):
         return f"{repr(self.data)} ({self.type})"
@@ -360,11 +385,11 @@ class LocationLabelTemplate(models.Model):
 
     def image_tag(self, location=None):
         return mark_safe(
-            '<img width="100%%" src="%s" />' % escape(self.get_lablary_url(location))
+            '<img width="100%%" src="%s" />' % escape(
+                self.get_lablary_url(location))
         )
     image_tag.short_description = "Rendered label"
     image_tag.allow_tags = True
-
 
     def send_to_printer(self, location=None):
         c = mqttc.Client(**settings.MQTT_CLIENT_KWARGS)
@@ -374,7 +399,8 @@ class LocationLabelTemplate(models.Model):
             c.username_pw_set(**settings.MQTT_PASSWORD_AUTH)
         c.connect(**settings.MQTT_SERVER_KWARGS)
         msg = c.publish(
-            settings.MQTT_PRINTER_TOPIC, payload=self.generate_label_zpl(location)
+            settings.MQTT_PRINTER_TOPIC, payload=self.generate_label_zpl(
+                location)
         )
         # Messages to forbidden topics wil be silently ignored! Nothing we can do about it.
         msg.wait_for_publish()
@@ -446,7 +472,8 @@ class Location(ComputedFieldsModel):
         # ensure uniqueness on short_name and name per type, if type demands it
         if self.type.unique:
             # get all locations with a LocType defined as unique
-            unique_locs = Location.objects.exclude(pk=self.pk).filter(type__unique=True)
+            unique_locs = Location.objects.exclude(
+                pk=self.pk).filter(type__unique=True)
             if self.short_name in unique_locs.values_list("short_name", flat=True):
                 raise ValidationError(
                     {"short_name": "Short name must be unique, as defined by type."}
@@ -484,7 +511,8 @@ class Location(ComputedFieldsModel):
 
     @computed(
         models.CharField(_("unique identifier"), max_length=64, unique=True),
-        depends=[("self", ["short_name"]), ("parent_location", ["unique_identifier"])],
+        depends=[("self", ["short_name"]),
+                 ("parent_location", ["unique_identifier"])],
     )
     def unique_identifier(self):
         if self.type.unique:
@@ -492,7 +520,8 @@ class Location(ComputedFieldsModel):
         return self.parent_location.unique_identifier + "." + self.short_name
 
     @computed(
-        models.CharField(_("locatable identifier"), max_length=512, unique=True),
+        models.CharField(_("locatable identifier"),
+                         max_length=512, unique=True),
         depends=[
             ("self", ["short_name"]),
             ("parent_location", ["locatable_identifier"]),
@@ -549,7 +578,7 @@ class Location(ComputedFieldsModel):
             "view_location",
             kwargs={"pk": self.pk, "unique_identifier": self.unique_identifier},
         )
-    
+
     def get_admin_url(self):
         return reverse(
             "admin:inventory_location_change",
@@ -562,7 +591,8 @@ class ItemLocation(models.Model):
         unique_together = ["item", "location"]
         order_with_respect_to = "location"
 
-    item = models.ForeignKey("Item", on_delete=models.CASCADE, verbose_name=_("item"))
+    item = models.ForeignKey(
+        "Item", on_delete=models.CASCADE, verbose_name=_("item"))
     location = models.ForeignKey(
         "Location", on_delete=models.CASCADE, verbose_name=_("location")
     )
@@ -591,7 +621,6 @@ class ItemLocation(models.Model):
             return f"{unspecific_amount_string} {self.item.measurement_unit.short}"
         else:
             return f"{self.amount_without_zeros} {self.item.measurement_unit.short}"
-
 
     def __str__(self):
         return f"{self.amount_text} @ {self.location.locatable_identifier}"
