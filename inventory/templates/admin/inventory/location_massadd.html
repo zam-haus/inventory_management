@@ -22,3 +22,8 @@
     </form>
 </div>
 {% endblock %}
+{% block extrabody %}
+{{ block.super }}
+<script type="text/javascript" src="{% static 'static_jquery/js/jquery.min.js' %}"></script>
+{{ form.media }}
+{% endblock extrabody %}

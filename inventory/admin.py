@@ -10,6 +10,7 @@ from django.utils.decorators import method_decorator
 from django.shortcuts import redirect
 from django.urls import reverse
 from django.contrib import messages
+from dal import autocomplete
 
 
 from . import models
@@ -160,7 +161,18 @@ admin.site.register(models.Location, LocationAdmin)
 
 class MassAddLocationsForm(forms.Form):
     parent_location = forms.ModelChoiceField(
-        label="Parent location", queryset=models.Location.objects.all()
+        label="Parent location",
+        queryset=models.Location.objects.all(),
+        widget=autocomplete.ModelSelect2(
+            url='parent_location_autocomplete',
+            forward=['id'],
+            attrs={
+                'data-placeholder': '---------',
+                'data-allow-clear': 1,
+            },
+        ),
+        blank=True,
+        required=False,
     )
     location_type = forms.ModelChoiceField(
         label="Location type", required=True, queryset=models.LocationType.objects.all()
