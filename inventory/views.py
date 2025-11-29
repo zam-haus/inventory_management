@@ -209,7 +209,11 @@ class SearchableItemListView(ListView):
             if query:
                 queryset = queryset.filter(
                     Q(name__icontains=query) |
-                    Q(description__icontains=query)
+                    Q(description__icontains=query) |
+                    Q(category__name__icontains=query) |
+                    Q(itemlocation__location__unique_identifier__icontains=query) |
+                    Q(itemlocation__location__name__icontains=query) |
+                    Q(itemimage__ocr_text__icontains=query)
                 )
             return queryset
         except Exception as e:
