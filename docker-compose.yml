@@ -33,5 +33,11 @@ services:
     depends_on:
       db:
         condition: service_healthy
-    restart: unless-stopped
+      celery_redis:
+        condition: service_healthy
+    restart: unless-stopped      
+  celery_redis:
+    image: redis
+    healthcheck:
+      test: ["CMD", "redis-cli","ping"]
 
