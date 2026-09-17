@@ -1,4 +1,4 @@
-django>=5.2.4
+django>=5.2.8
 django-crispy-forms
 crispy-bootstrap5
 django-bootstrap5
@@ -7,7 +7,7 @@ django-computedfields
 paho-mqtt
 Pillow
 typing_extensions
-psycopg2
+psycopg2>=2.9.11
 whitenoise
 gunicorn
 mozilla-django-oidc

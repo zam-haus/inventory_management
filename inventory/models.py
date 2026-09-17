@@ -398,7 +398,7 @@ class Location(ComputedFieldsModel):
         max_length=128,
         validators=[
             validators.RegexValidator(
-                "[^a-zA-Z0-9 \-()]*",
+                r"[^a-zA-Z0-9 \-()]*",
                 message="Only numbers, letters and spaces allowed.",
             )
         ],

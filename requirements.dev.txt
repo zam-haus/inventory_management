@@ -1,4 +1,4 @@
-django>=5.2.4
+django>=5.2.8
 django-crispy-forms
 crispy-bootstrap5
 django-bootstrap5
@@ -16,6 +16,5 @@ django-bootstrap-icons
 tqdm
 pytesseract
 sorl-thumbnail
-setuptools
 django-autocomplete-light>=3.12.1
 django-static-jquery

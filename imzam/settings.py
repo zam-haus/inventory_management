@@ -10,9 +10,19 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/4.0/ref/settings/
 """
 import os
-from distutils.util import strtobool
 from pathlib import Path
 import socket
+
+
+def parse_bool(value):
+    """Parse environment flags using the former strtobool values."""
+    value = value.lower()
+    if value in ("y", "yes", "t", "true", "on", "1"):
+        return True
+    if value in ("n", "no", "f", "false", "off", "0"):
+        return False
+    raise ValueError(f"invalid truth value {value!r}")
+
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -36,7 +46,7 @@ MEDIA_URL = "media/"
 SECRET_KEY = os.getenv("SECRET_KEY", None)
 
 # For deployment, set to False in local_settings.py
-DEBUG = bool(strtobool(os.getenv("DEBUG", "false")))
+DEBUG = parse_bool(os.getenv("DEBUG", "false"))
 
 DEFAULT_DOMAIN = "https://inv.zam.haus"
 
@@ -227,7 +237,7 @@ MQTT_SERVER_KWARGS = dict(
     host=os.getenv("MQTT_SERVER_HOSTNAME", "mqtt.zam.haus"),
     port=int(os.getenv("MQTT_SERVER_PORT", "443")),
     keepalive=120)
-MQTT_SERVER_SSL=strtobool(os.getenv("MQTT_SERVER_SSL", "true"))
+MQTT_SERVER_SSL=parse_bool(os.getenv("MQTT_SERVER_SSL", "true"))
 MQTT_PASSWORD_AUTH = dict(
     username=os.getenv("MQTT_USERNAME", "im.zam.haus-django"),
     password=os.getenv("MQTT_PASSWORD", ""))
@@ -238,7 +248,7 @@ MQTT_ZAMIP_SERVER_KWARGS = dict(
     host=os.getenv("MQTT_ZAMIP_SERVER_HOSTNAME", "mqtt.sesam.zam.haus"),
     port=int(os.getenv("MQTT_ZAMIP_SERVER_PORT", "443")),
     keepalive=120)
-MQTT_ZAMIP_SERVER_SSL=strtobool(os.getenv("MQTT_SERVER_SSL", "true"))
+MQTT_ZAMIP_SERVER_SSL=parse_bool(os.getenv("MQTT_SERVER_SSL", "true"))
 MQTT_ZAMIP_PASSWORD_AUTH = dict(
     username=os.getenv("MQTT_ZAMIP_USERNAME", "inv.zam.haus-django"),
     password=os.getenv("MQTT_ZAMIP_PASSWORD", ""))
