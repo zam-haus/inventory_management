@@ -1,46 +1,142 @@
 {% extends 'base.html' %}
+{% load i18n static thumbnail %}
 
-{% load django_bootstrap5 i18n %}
-{% load mytemplatetags %}
-{% load thumbnail %}
-
-{% block title %}
-    {{ object.name }}
+{% block bootstrap5_extra_head %}
+    {{ block.super }}
+    <link rel="stylesheet" href="{% static 'inventory/simple-lightbox.min.css' %}">
+    <link rel="stylesheet" href="{% static 'inventory/item_detail.css' %}">
 {% endblock %}
 
-{% if form.instance.id %}
-{% block admin_url %}
-{{ object.get_admin_url }}
+{% block title %}{{ object }}{% endblock %}
+{% block admin_url %}{{ object.get_admin_url }}{% endblock %}
+
+{% block page_header %}
+    <header class="item-header">
+        <nav class="item-breadcrumb" aria-label="{% trans 'Item navigation' %}">
+            <a href="{% url 'index_items' %}">{% trans "Items" %}</a>
+        </nav>
+        <div class="item-heading">
+            <div class="item-heading-text">
+                <p class="item-eyebrow">{% trans "Item" %}{% if object.category %} · {{ object.category }}{% endif %}</p>
+                <h1>{{ object }}</h1>
+            </div>
+            <div class="item-actions">
+                <a class="btn btn-primary" href="{% url 'update_item' object.pk %}">{% trans "Edit item" %}</a>
+            </div>
+        </div>
+    </header>
 {% endblock %}
-{% endif %}
 
 {% block content %}
-    <a href="{% url 'update_item' object.id %}">{% trans "edit" %}</a>
-    <p>{{ object.description }}</p>
+    {% with images=object.itemimage_set.all entries=object.itemlocation_set.all %}
+    <div class="item-detail">
+        <dl class="item-overview">
+            <div>
+                <dt>{% trans "Price per unit" %}</dt>
+                <dd class="item-unit-price">{% if object.sale_price != None %}{{ object.sale_price|floatformat:2 }} € / {{ object.measurement_unit.short }}{% else %}<span class="item-muted">{% trans "No price specified" %}</span>{% endif %}</dd>
+            </div>
+            <div>
+                <dt>{% trans "measurement unit" %}</dt>
+                <dd>{{ object.measurement_unit }}</dd>
+            </div>
+            <div>
+                <dt>{% trans "Locations" %}</dt>
+                <dd><a href="#item-locations-heading">{{ entries|length }}</a></dd>
+            </div>
+        </dl>
 
-    {% for image in object.itemimage_set.all %}
-    {% thumbnail image.image "200x200" as im %}
-        {% spaceless %}
-            <a class="img-link" href="{{ image.image.url }}">
-                <img src="{{ im.url }}" class="img-thumbnail img-fluid" style="max-width: 200px;" alt="{{ image.description }}" data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-original-title="{{ image.description }}">
-            </a>
-        {% endspaceless %}
-    {% endthumbnail %}
-{% endfor %}
+        <div class="item-layout">
+            <div class="item-main">
+                <section class="item-panel" aria-labelledby="item-description-heading">
+                    <div class="item-panel-heading">
+                        <h2 id="item-description-heading">{% trans "description" %}</h2>
+                    </div>
+                    <div class="item-panel-body item-description">
+                        {% if object.description %}
+                            {{ object.description|linebreaksbr }}
+                        {% else %}
+                            <p class="item-muted">{% trans "No description provided." %}</p>
+                        {% endif %}
+                    </div>
+                </section>
 
-    <h2>{% trans "Locations" %}</h2>
-    <div>
-    <table>
-    {% for il in object.itemlocation_set.all %}
-        <tr>
-            <td><a href="{{ il.location.get_absolute_url }}">{{ il.location }}</a></td>
-            <td>{{ il.amount_text }}</td>
-            <td><a href="TODO">{% trans "Take" %}</a></td>
-            <td><a href="TODO">{% trans "Move" %}</a></td>
-    {% empty %}
-        {% trans "Item is located nowhere." %}
-    {% endfor %}
-    </table>
+                <section class="item-panel" aria-labelledby="item-photos-heading">
+                    <div class="item-panel-heading">
+                        <h2 id="item-photos-heading">{% trans "Photos" %} <span class="item-count">{{ images|length }}</span></h2>
+                        {% if images %}<p class="item-muted">{% trans "Click a photo to enlarge it; click again to close. Use arrow keys or swipe to browse." %}</p>{% endif %}
+                    </div>
+                    {% if images %}
+                        <div class="item-gallery" data-gallery-label="{% trans 'Photos' %}" data-close-label="{% trans 'Close photo' %}" data-previous-label="{% trans 'Previous photo' %}" data-next-label="{% trans 'Next photo' %}" data-error-message="{% trans 'Image could not be loaded.' %}">
+                            {% for image in images %}
+                                {% if image.image %}
+                                    <figure>
+                                        <div class="item-image-frame">
+                                            {% thumbnail image.image "640x480" as im %}
+                                                <a class="item-image-link" href="{{ image.image.url }}">
+                                                    <img src="{{ im.url }}" width="{{ im.width }}" height="{{ im.height }}" alt="{{ image.description|default:object }}" loading="lazy">
+                                                </a>
+                                            {% empty %}
+                                                <a class="item-image-link" href="{{ image.image.url }}">
+                                                    <img src="{{ image.image.url }}" alt="{{ image.description|default:object }}" loading="lazy">
+                                                </a>
+                                            {% endthumbnail %}
+                                            {% if image.ocr_text.strip %}
+                                                <details class="item-image-ocr">
+                                                    <summary aria-label="{% trans 'OCR information' %}" title="{% trans 'OCR information' %}"><span aria-hidden="true">ⓘ</span></summary>
+                                                    <div class="item-image-ocr-panel" tabindex="0">
+                                                        <h3>{% trans "Recognized text (OCR)" %}</h3>
+                                                        <pre>{{ image.ocr_text }}</pre>
+                                                        {% if image.ocr_timestamp %}
+                                                            <p>{% trans "Recognized on" %}: <time datetime="{{ image.ocr_timestamp|date:'c' }}">{{ image.ocr_timestamp|date:"SHORT_DATETIME_FORMAT" }}</time></p>
+                                                        {% endif %}
+                                                    </div>
+                                                </details>
+                                            {% endif %}
+                                        </div>
+                                        {% if image.description %}<figcaption>{{ image.description }}</figcaption>{% endif %}
+                                    </figure>
+                                {% endif %}
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="item-empty item-muted">{% trans "No images" %}</div>
+                    {% endif %}
+                </section>
+            </div>
+
+            <section class="item-panel" aria-labelledby="item-locations-heading">
+                <div class="item-panel-heading">
+                    <h2 id="item-locations-heading">{% trans "Locations" %} <span class="item-count">{{ entries|length }}</span></h2>
+                    {% if entries %}<p class="item-muted">{% trans "Quantities are shown separately for each storage location." %}</p>{% endif %}
+                </div>
+                <ul class="item-locations">
+                    {% for entry in entries %}
+                        <li>
+                            <div class="item-location-heading">
+                                <h3><a href="{{ entry.location.get_absolute_url }}">{{ entry.location.name }}</a></h3>
+                                <span class="item-amount"><span class="visually-hidden">{% trans "Amount" %}: </span>{{ entry.amount_text }}</span>
+                            </div>
+                            <button type="button" class="item-location-identifier item-help" data-bs-toggle="tooltip" title="{% trans 'Unique identifier for this storage location, used on labels and to find the location in the inventory.' %}">{{ entry.location.unique_identifier }} <span aria-hidden="true">ⓘ</span></button>
+                            <p class="item-location-path item-muted">{{ entry.location.descriptive_identifier }}</p>
+                            {% with sale_value=entry.sale_value %}
+                                {% if sale_value != None %}
+                                    <p class="item-sale-value"><span class="item-muted">{% if entry.amount < 0 %}{% trans "Estimated sale value" %}{% else %}{% trans "Sale value" %}{% endif %}:</span> {% if entry.amount < 0 %}~{% endif %}{{ sale_value|floatformat:2 }} €</p>
+                                {% endif %}
+                            {% endwith %}
+                        </li>
+                    {% empty %}
+                        <li class="item-empty item-muted">{% trans "Item is located nowhere." %}</li>
+                    {% endfor %}
+                </ul>
+            </section>
+        </div>
     </div>
-    
+    {% endwith %}
+{% endblock %}
+
+{% block bootstrap5_extra_script %}
+    {{ block.super }}
+    <script src="{% static 'inventory/location_detail.js' %}"></script>
+    <script src="{% static 'inventory/simple-lightbox.min.js' %}"></script>
+    <script src="{% static 'inventory/item_detail.js' %}"></script>
 {% endblock %}

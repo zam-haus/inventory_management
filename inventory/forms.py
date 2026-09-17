@@ -3,7 +3,11 @@ import re
 from crispy_forms.helper import FormHelper
 from crispy_forms import layout, bootstrap
 from crispy_bootstrap5.bootstrap5 import FloatingField
-from django.forms import FileInput, ModelForm, RegexField, Textarea, TextInput, IntegerField, HiddenInput, ModelChoiceField
+from django.core.exceptions import ValidationError
+from django.forms import (
+    FileInput, Form, HiddenInput, IntegerField, ModelChoiceField, ModelForm,
+    ModelMultipleChoiceField, RegexField, SelectMultiple, Textarea, TextInput,
+)
 from django.forms.utils import ErrorList
 from extra_views import InlineFormSetFactory
 from django.utils.translation import gettext_lazy as _
@@ -12,6 +16,30 @@ from dal import autocomplete
 
 
 from .models import BarcodeType, Item, ItemBarcode, ItemImage, ItemLocation, Location
+
+
+class LocationMultipleChoiceField(ModelMultipleChoiceField):
+    def clean(self, value):
+        # Validate the integer range before the choice field queries the database.
+        if isinstance(value, (list, tuple)):
+            for pk in value:
+                try:
+                    Location._meta.pk.clean(pk, None)
+                except ValidationError:
+                    raise ValidationError(
+                        self.error_messages["invalid_pk_value"],
+                        code="invalid_pk_value", params={"pk": pk},
+                    )
+        return super().clean(value)
+
+
+class PrintableInventoryForm(Form):
+    locations = LocationMultipleChoiceField(
+        queryset=Location.objects.all(),
+        label=_("Locations"),
+        help_text=_("Select one or more locations."),
+        widget=SelectMultiple(attrs={"size": 12}),
+    )
 
 
 class TextDatalistInput(TextInput):
@@ -274,13 +302,16 @@ class LocationMoveForm(ModelForm):
         fields = ["parent_location", "id"]
 
     parent_location = ModelChoiceField(
+        label=_("Destination"),
+        help_text=_("Search by location name or identifier and select the new parent location."),
         queryset=Location.objects.filter(type__no_sublocations = False),
         widget=autocomplete.ModelSelect2(
             url='parent_location_autocomplete',
             forward=['id'],
             attrs={
-                'data-placeholder': '---------',
+                'data-placeholder': _("Search for a location…"),
                 'data-allow-clear': 1,
+                'data-width': '100%',
             },
         ),
         blank=True,

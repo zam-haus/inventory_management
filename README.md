@@ -83,4 +83,3 @@ Print jobs are passed to the printer via MQTT. A simple print server, listening 
     ```
     docker-compose up
     ```
-

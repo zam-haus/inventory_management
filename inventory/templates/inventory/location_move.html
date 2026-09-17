@@ -1,55 +1,69 @@
 {% extends 'base.html' %}
-
-{% load static %}
-
-{% load django_bootstrap5 i18n %}
-
-{% block item_nav %}
-    {% if user.is_authenticated %}
-        <ul class="nav nav-tabs">
-            <li class="nav-item">
-                <a class="nav-link" aria-current="page" href="{% url 'view_location2' pk=object.id %}">{% trans "view" %}</a>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link active" aria-current="page" href="#">{% trans "move" %}</a>
-            </li>
-        </ul>
-    {% endif %}
-{% endblock %}
-
-{% block title %}
-    {% trans "Move Location" %}:  {{ object.unique_identifier }}
-{% endblock %}
-
-{% if form.instance.id %}
-{% block admin_url %}
-{{ object.get_admin_url }}
-{% endblock %}
-{% endif %}
-
-{% block content %}
-    <p>{{ object.name }} ({{ object.type.name }})</p>
-    <p>{% trans "Current Parent Location" %}: {{ object.parent_location.descriptive_identifier }}</p>
-    <p>{{ object.description }}</p>
-    <form method="post" novalidate>
-        {% csrf_token %}
-        {{ form.as_p }}
-
-        <table>
-            {{ view.formset }}
-        </table>
-        <input type="submit" value="{% trans "Save" %}" />
-    </form>
-
-{% endblock %}
+{% load django_bootstrap5 i18n static %}
 
 {% block bootstrap5_extra_head %}
     {{ block.super }}
     {{ form.media.css }}
+    <link rel="stylesheet" href="{% static 'inventory/location_detail.css' %}">
+{% endblock %}
+
+{% block title %}{% trans "Move Location" %}: {{ object.unique_identifier }}{% endblock %}
+{% block admin_url %}{{ object.get_admin_url }}{% endblock %}
+
+{% block page_header %}
+    <header class="location-header">
+        <nav aria-label="{% trans 'Location navigation' %}" class="location-breadcrumb">
+            <a href="{% url 'index_locations' %}">{% trans "Locations" %}</a>
+            <span aria-hidden="true">/</span>
+            <a href="{{ object.get_absolute_url }}">{{ object.name }}</a>
+        </nav>
+        <div class="location-heading">
+            <div class="location-heading-text">
+                <p class="location-eyebrow">{% trans "Move Location" %} · {{ object.type.name }}</p>
+                <h1>{{ object.name }}</h1>
+                <button type="button" class="location-identifier location-help" data-bs-toggle="tooltip" title="{% trans 'Unique identifier for this storage location, used on labels and to find the location in the inventory.' %}">{{ object.unique_identifier }} <span aria-hidden="true">ⓘ</span></button>
+            </div>
+            <div class="location-actions">
+                <a class="btn btn-outline-secondary" href="{{ object.get_absolute_url }}">{% trans "Cancel" %}</a>
+            </div>
+        </div>
+    </header>
+{% endblock %}
+
+{% block content %}
+    <div class="location-detail location-move">
+        <section class="location-overview" aria-label="{% trans 'Location details' %}">
+            <div>
+                <h2 class="location-eyebrow">{% trans "Current location path" %} <button type="button" class="location-help location-help-icon" aria-label="{% trans 'Explain location path' %}" data-bs-toggle="tooltip" title="{% trans 'The full path from the top-level location to this storage location. Short identifiers are shown in square brackets.' %}"><span aria-hidden="true">ⓘ</span></button></h2>
+                <p class="location-path">{{ object.descriptive_identifier }}</p>
+                {% if object.description %}
+                    <div class="location-description">{{ object.description|linebreaksbr }}</div>
+                {% endif %}
+            </div>
+        </section>
+
+        <section class="location-panel" aria-labelledby="move-destination-heading">
+            <div class="location-panel-heading">
+                <h2 id="move-destination-heading">{% trans "Choose a destination" %}</h2>
+                <p class="location-muted">{% trans "Stored items and child locations remain assigned to this location." %}</p>
+            </div>
+            <form id="location-move-form" class="location-move-form" method="post" novalidate>
+                {% csrf_token %}
+                {% bootstrap_form form %}
+                {% if object.type.unique %}
+                    <p class="location-muted mb-0">{% trans "Leave the destination empty to make this a top-level location." %}</p>
+                {% endif %}
+                <div class="location-actions mt-3">
+                    <button class="btn btn-primary" type="submit">{% trans "Move location" %}</button>
+                </div>
+            </form>
+        </section>
+    </div>
 {% endblock %}
 
 {% block bootstrap5_extra_script %}
-{{ block.super }}
-<script type="text/javascript" src="{% static 'static_jquery/js/jquery.min.js' %}"></script>
-{{ form.media }}
+    {{ block.super }}
+    <script src="{% static 'static_jquery/js/jquery.min.js' %}"></script>
+    {{ form.media.js }}
+    <script src="{% static 'inventory/location_detail.js' %}"></script>
 {% endblock %}

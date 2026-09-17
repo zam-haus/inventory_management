@@ -367,6 +367,8 @@ class LocationLabelTemplate(models.Model):
 
 
     def send_to_printer(self, location=None):
+        # TODO implement ZPL based replication of labels
+        # TODO implement compression
         c = mqttc.Client(**settings.MQTT_CLIENT_KWARGS)
         if settings.MQTT_SERVER_SSL:
             c.tls_set()
@@ -569,6 +571,12 @@ class ItemLocation(models.Model):
         help_text=_("positive numbers are precise, negative numbers are rough estimates. "
                     "-1 is 'few' and -9999 is 'many'.")
     )
+
+    @property
+    def sale_value(self):
+        if self.item.sale_price is None or self.amount is None or self.amount in (-1, -9999):
+            return None
+        return abs(self.amount) * self.item.sale_price
 
     @property
     def amount_without_zeros(self):

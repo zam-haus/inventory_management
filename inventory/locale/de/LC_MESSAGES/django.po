@@ -325,6 +325,9 @@ msgstr "Sachen an untergeordneten Standorten wurden nicht berücksichtigt."
 msgid "Add item..."
 msgstr "Sache anlegen..."
 
+msgid "Add an item at this location"
+msgstr "Sache an diesem Standort anlegen"
+
 #: inventory/views.py:54
 msgid "Create Item"
 msgstr "Sache anlegen"
@@ -332,3 +335,186 @@ msgstr "Sache anlegen"
 #: inventory/views.py:110
 msgid "Update Item"
 msgstr "Sache aktualisieren"
+
+msgid "Select one or more locations. All child locations are included."
+msgstr "Einen oder mehrere Standorte auswählen. Alle Unterstandorte werden eingeschlossen."
+
+msgid "Print inventory including child locations"
+msgstr "Inventarliste einschließlich Unterstandorten drucken"
+
+msgid "Print inventory for selected locations"
+msgstr "Inventarliste für ausgewählte Standorte drucken"
+
+msgid "Printable inventory"
+msgstr "Inventarliste zum Drucken"
+
+msgid "Hold Ctrl (Windows/Linux) or Command (Mac) to select multiple locations."
+msgstr "Strg (Windows/Linux) oder Command (Mac) gedrückt halten, um mehrere Standorte auszuwählen."
+
+msgid "Show inventory"
+msgstr "Inventarliste anzeigen"
+
+msgid "Print / Save as PDF"
+msgstr "Drucken / Als PDF speichern"
+
+msgid "Selected locations"
+msgstr "Ausgewählte Standorte"
+
+msgid "Includes all child locations."
+msgstr "Alle Unterstandorte sind eingeschlossen."
+
+msgid "Generated"
+msgstr "Erstellt"
+
+msgid "Amount"
+msgstr "Menge"
+
+msgid "Location identifier"
+msgstr "Standortkennung"
+
+msgid "Price per unit"
+msgstr "Preis pro Einheit"
+
+msgid "Sale value"
+msgstr "Verkaufswert"
+
+msgid "Estimated sale value"
+msgstr "Geschätzter Verkaufswert"
+
+msgid "No items in the selected locations or their child locations."
+msgstr "Keine Gegenstände an den ausgewählten Standorten oder deren Unterstandorten."
+
+msgid "Select locations above to generate a printable inventory."
+msgstr "Oben Standorte auswählen, um eine druckbare Inventarliste zu erstellen."
+
+msgid "Print inventory"
+msgstr "Inventarliste drucken"
+
+msgid "Move Location"
+msgstr "Standort verschieben"
+
+msgid "Move location"
+msgstr "Verschieben"
+
+msgid "Moving is disabled for location type “%(location_type)s”."
+msgstr "Verschieben ist für den Standorttyp „%(location_type)s“ nicht freigegeben."
+
+msgid "Location navigation"
+msgstr "Standortnavigation"
+
+msgid "Location details"
+msgstr "Standortdetails"
+
+msgid "Location path"
+msgstr "Standortpfad"
+
+msgid "Unique identifier for this storage location, used on labels and to find the location in the inventory."
+msgstr "Eindeutige Kennung dieses Lagerorts. Sie wird auf Etiketten verwendet und hilft, den Standort im Inventar zu finden."
+
+msgid "Explain location path"
+msgstr "Standortpfad erklären"
+
+msgid "The full path from the top-level location to this storage location. Short identifiers are shown in square brackets."
+msgstr "Der vollständige Weg vom obersten Standort bis zu diesem Lagerort. Die Kurzkennungen stehen in eckigen Klammern."
+
+msgid "Label preview"
+msgstr "Etikettenvorschau"
+
+msgid "Label for %(identifier)s"
+msgstr "Etikett für %(identifier)s"
+
+msgid "Only items stored directly at this location are shown."
+msgstr "Hier werden nur direkt an diesem Standort gelagerte Sachen angezeigt."
+
+msgid "Include child locations in a printable list"
+msgstr "Druckbare Liste einschließlich Unterstandorten anzeigen"
+
+msgid "No images"
+msgstr "Keine Bilder"
+
+msgid "Select one or more locations."
+msgstr "Einen oder mehrere Standorte auswählen."
+
+msgid "Also include child locations"
+msgstr "Auch Unterstandorte einschließen"
+
+msgid "Only selected locations"
+msgstr "Nur ausgewählte Standorte"
+
+msgid "Only items stored directly at the selected locations."
+msgstr "Nur direkt an den ausgewählten Standorten gelagerte Sachen."
+
+msgid "No items in the selected locations."
+msgstr "Keine Sachen an den ausgewählten Standorten."
+
+msgid "Item navigation"
+msgstr "Sachennavigation"
+
+msgid "Unique number of this item in the inventory. An item can be stored at several locations."
+msgstr "Eindeutige Nummer dieser Sache im Inventar. Eine Sache kann an mehreren Standorten gelagert sein."
+
+msgid "Edit item"
+msgstr "Sache bearbeiten"
+
+msgid "No price specified"
+msgstr "Kein Preis angegeben"
+
+msgid "No description provided."
+msgstr "Keine Beschreibung vorhanden."
+
+msgid "Select a photo to view the original image."
+msgstr "Ein Foto auswählen, um das Originalbild anzuzeigen."
+
+msgid "Click a photo to enlarge it; click again to close. Use arrow keys or swipe to browse."
+msgstr "Foto zum Vergrößern anklicken, erneut klicken zum Schließen. Mit Pfeiltasten oder Wischen zwischen den Fotos wechseln."
+
+msgid "Close photo"
+msgstr "Foto schließen"
+
+msgid "Previous photo"
+msgstr "Vorheriges Foto"
+
+msgid "Next photo"
+msgstr "Nächstes Foto"
+
+msgid "Image could not be loaded."
+msgstr "Das Bild konnte nicht geladen werden."
+
+msgid "OCR information"
+msgstr "OCR-Informationen"
+
+msgid "Recognized text (OCR)"
+msgstr "Erkannter Text (OCR)"
+
+msgid "Recognized on"
+msgstr "Texterkennung vom"
+
+msgid "Quantities are shown separately for each storage location."
+msgstr "Die Mengen werden für jeden Lagerort einzeln angezeigt."
+
+msgid "Item is located nowhere."
+msgstr "Dieser Sache ist noch kein Lagerort zugeordnet."
+
+msgid "Cancel"
+msgstr "Abbrechen"
+
+msgid "Current location path"
+msgstr "Aktueller Standortpfad"
+
+msgid "Choose a destination"
+msgstr "Zielstandort auswählen"
+
+msgid "Stored items and child locations remain assigned to this location."
+msgstr "Gelagerte Sachen und Unterstandorte bleiben diesem Standort zugeordnet."
+
+msgid "Leave the destination empty to make this a top-level location."
+msgstr "Das Ziel leer lassen, um diesen Standort auf die oberste Ebene zu verschieben."
+
+msgid "Destination"
+msgstr "Zielstandort"
+
+msgid "Search by location name or identifier and select the new parent location."
+msgstr "Nach Standortname oder Kennung suchen und den neuen übergeordneten Standort auswählen."
+
+msgid "Search for a location…"
+msgstr "Standort suchen…"

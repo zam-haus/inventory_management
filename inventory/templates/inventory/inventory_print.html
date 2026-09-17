@@ -1,0 +1,131 @@
+{% load i18n %}
+{% get_current_language as language_code %}
+<!doctype html>
+<html lang="{{ language_code }}">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% trans "Printable inventory" %}</title>
+    <style>
+        body { font: 14px/1.45 sans-serif; color: #111; margin: 2rem auto; padding: 0 1rem; max-width: 1100px; }
+        a { color: #174d85; }
+        .controls { padding: 1rem; border: 1px solid #aaa; margin-bottom: 2rem; }
+        label { display: block; font-weight: bold; }
+        select { display: block; max-width: 100%; width: 100%; margin: .5rem 0; }
+        button { padding: .5rem 1rem; margin-top: .5rem; cursor: pointer; }
+        .report-actions { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; }
+        .errorlist { color: #a00; }
+        h1 { font-size: 1.8rem; }
+        h2 { font-size: 1.2rem; margin-bottom: .25rem; }
+        h3 { font-size: 1.05rem; margin: 0 0 .5rem; }
+        .location-heading { break-after: avoid; page-break-after: avoid; }
+        .location-heading p { margin-top: 0; }
+        .item { border-top: 1px solid #aaa; padding: .8rem 0; break-inside: avoid; page-break-inside: avoid; overflow-wrap: anywhere; }
+        .facts { display: flex; flex-wrap: wrap; gap: .5rem 2rem; }
+        .description { margin: .5rem 0; }
+        figure { display: inline-block; vertical-align: top; margin: .5rem .5rem 0 0; max-width: 100%; break-inside: avoid; }
+        img { max-width: 60mm; max-height: 45mm; width: auto; height: auto; object-fit: contain; }
+        figcaption { font-size: .85em; max-width: 60mm; }
+        @page { size: A4; margin: 14mm; }
+        @media print {
+            body { margin: 0; padding: 0; max-width: none; font-size: 10pt; }
+            .controls { display: none !important; }
+            a { color: inherit; text-decoration: none; }
+            h1 { font-size: 18pt; }
+            h2 { font-size: 13pt; }
+        }
+    </style>
+</head>
+<body>
+    <div class="controls">
+        <a href="{% url 'index_locations' %}">{% trans "Locations" %}</a>
+        {% if selected_locations %}
+            <div class="report-actions">
+                <button type="button" id="print-inventory">{% trans "Print / Save as PDF" %}</button>
+                <form method="get">
+                    {% for location in selected_locations %}
+                        <input type="hidden" name="locations" value="{{ location.pk }}">
+                    {% endfor %}
+                    {% if include_children %}
+                        <button type="submit">{% trans "Only selected locations" %}</button>
+                    {% else %}
+                        <button type="submit" name="include_children" value="1">{% trans "Also include child locations" %}</button>
+                    {% endif %}
+                </form>
+            </div>
+        {% else %}
+            <form method="get">
+                {{ form.as_p }}
+                <p>{% trans "Hold Ctrl (Windows/Linux) or Command (Mac) to select multiple locations." %}</p>
+                <button type="submit">{% trans "Show inventory" %}</button>
+            </form>
+        {% endif %}
+    </div>
+
+    <h1>{% trans "Printable inventory" %}</h1>
+    {% if selected_locations %}
+        <p><strong>{% trans "Selected locations" %}:</strong>
+            {% for location in selected_locations %}{{ location.unique_identifier }} — {{ location.name }}{% if not forloop.last %}; {% endif %}{% endfor %}
+        </p>
+        <p>{% if include_children %}{% trans "Includes all child locations." %}{% else %}{% trans "Only items stored directly at the selected locations." %}{% endif %} {% trans "Generated" %}: {{ generated_at|date:"SHORT_DATETIME_FORMAT" }}</p>
+        {% regroup entries by location as location_groups %}
+        {% for group in location_groups %}
+            <section>
+                <div class="location-heading">
+                    <h2>{% trans "Location" %}: {{ group.grouper.unique_identifier }}</h2>
+                    <p>{{ group.grouper.descriptive_identifier }}</p>
+                </div>
+                {% for entry in group.list %}
+                    <article class="item">
+                        <h3>{{ entry.item }}</h3>
+                        <div class="facts">
+                            <span><strong>{% trans "Amount" %}:</strong> {{ entry.amount_text }}</span>
+                            <span><strong>{% trans "Location identifier" %}:</strong> {{ entry.location.unique_identifier }}</span>
+                            {% if entry.item.sale_price != None %}
+                                <span><strong>{% trans "Price per unit" %}:</strong> {{ entry.item.sale_price|floatformat:2 }} € / {{ entry.item.measurement_unit.short }}</span>
+                            {% endif %}
+                            {% with sale_value=entry.sale_value %}
+                                {% if sale_value != None %}
+                                    <span><strong>{% if entry.amount < 0 %}{% trans "Estimated sale value" %}{% else %}{% trans "Sale value" %}{% endif %}:</strong> {% if entry.amount < 0 %}~{% endif %}{{ sale_value|floatformat:2 }} €</span>
+                                {% endif %}
+                            {% endwith %}
+                        </div>
+                        {% if entry.item.description %}
+                            <div class="description">{{ entry.item.description|linebreaksbr }}</div>
+                        {% endif %}
+                        {% for image in entry.item.itemimage_set.all %}
+                            {% if image.image %}
+                                <figure>
+                                    <img src="{{ image.image.url }}" alt="{{ image.description|default:entry.item }}" loading="eager">
+                                    {% if image.description %}<figcaption>{{ image.description }}</figcaption>{% endif %}
+                                </figure>
+                            {% endif %}
+                        {% endfor %}
+                    </article>
+                {% endfor %}
+            </section>
+        {% empty %}
+            <p>{% if include_children %}{% trans "No items in the selected locations or their child locations." %}{% else %}{% trans "No items in the selected locations." %}{% endif %}</p>
+        {% endfor %}
+    {% else %}
+        <p>{% trans "Select locations above to generate a printable inventory." %}</p>
+    {% endif %}
+    <script>
+        const printButton = document.getElementById('print-inventory');
+        if (printButton) {
+            printButton.addEventListener('click', async () => {
+                printButton.disabled = true;
+                await Promise.all(Array.from(document.images, image => {
+                    if (image.complete) return Promise.resolve();
+                    return new Promise(resolve => {
+                        image.addEventListener('load', resolve, {once: true});
+                        image.addEventListener('error', resolve, {once: true});
+                    });
+                }));
+                printButton.disabled = false;
+                window.print();
+            });
+        }
+    </script>
+</body>
+</html>

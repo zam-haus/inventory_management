@@ -44,6 +44,44 @@ class LocationAutocomplete(autocomplete.Select2QuerySetView):
 
         return qs
 
+class PrintableInventoryView(UserPassesTestMixin, View):
+    def test_func(self):
+        return not self.request.user.is_anonymous or self.request.session.get(
+            "is_zam_local", False
+        )
+
+    def get(self, request):
+        form = forms.PrintableInventoryForm(request.GET if request.GET else None)
+        include_children = request.GET.get("include_children") == "1"
+        context = {"form": form, "include_children": include_children}
+        if form.is_valid():
+            selected_locations = list(form.cleaned_data["locations"])
+            location_ids = {location.pk for location in selected_locations}
+            if include_children:
+                # Unique child identifiers need not start with their parent's.
+                children = {}
+                for pk, parent_id in models.Location.objects.order_by().values_list(
+                    "pk", "parent_location_id"
+                ):
+                    children.setdefault(parent_id, []).append(pk)
+                pending = list(location_ids)
+                while pending:
+                    for child_id in children.get(pending.pop(), []):
+                        if child_id not in location_ids:
+                            location_ids.add(child_id)
+                            pending.append(child_id)
+
+            context.update(
+                selected_locations=selected_locations,
+                generated_at=timezone.now(),
+                entries=models.ItemLocation.objects.filter(location_id__in=location_ids)
+                .select_related("location", "item", "item__measurement_unit")
+                .prefetch_related("item__itemimage_set")
+                .order_by("location__locatable_identifier", "item__name", "item_id"),
+            )
+        return render(request, "inventory/inventory_print.html", context)
+
+
 class DetailLocationView(DetailView):
     model = models.Location
     # (request, pk, unique_identifier):

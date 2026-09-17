@@ -1,80 +1,147 @@
 {% extends 'base.html' %}
+{% load i18n static thumbnail %}
 
-{% load django_bootstrap5 i18n %}
-{% load thumbnail %}
-
-{% block item_nav %}
-    {% if user.is_authenticated and object.type.moveable %}
-        <ul class="nav nav-tabs">
-            <li class="nav-item">
-                <a class="nav-link active" aria-current="page" href="#">{% trans "view" %}</a>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link" aria-current="page" href="{% url 'location_move' pk=object.id %}">{% trans "move" %}</a>
-            </li>
-        </ul>
-    {% endif %}
+{% block bootstrap5_extra_head %}
+    {{ block.super }}
+    <link rel="stylesheet" href="{% static 'inventory/location_detail.css' %}">
 {% endblock %}
 
-{% block title %}
-    {% trans "Location" %}:  {{ object.unique_identifier }}
-{% endblock %}
+{% block title %}{% trans "Location" %}: {{ object.unique_identifier }}{% endblock %}
+{% block admin_url %}{{ object.get_admin_url }}{% endblock %}
 
-{% if form.instance.id %}
-{% block admin_url %}
-{{ object.get_admin_url }}
+{% block page_header %}
+    <header class="location-header">
+        <nav aria-label="{% trans 'Location navigation' %}" class="location-breadcrumb">
+            <a href="{% url 'index_locations' %}">{% trans "Locations" %}</a>
+            {% if object.parent_location %}
+                <span aria-hidden="true">/</span>
+                <a href="{{ object.parent_location.get_absolute_url }}">{{ object.parent_location }}</a>
+            {% endif %}
+        </nav>
+        <div class="location-heading">
+            <div class="location-heading-text">
+                <p class="location-eyebrow">{% trans "Location" %} · {{ object.type.name }}</p>
+                <h1>{{ object.name }}</h1>
+                <button type="button" class="location-identifier location-help" data-bs-toggle="tooltip" title="{% trans 'Unique identifier for this storage location, used on labels and to find the location in the inventory.' %}">{{ object.unique_identifier }} <span aria-hidden="true">ⓘ</span></button>
+            </div>
+            <div class="location-actions">
+                {% if user.is_authenticated %}
+                    {% if object.type.moveable %}
+                        <a class="btn btn-outline-secondary" href="{% url 'location_move' pk=object.id %}">{% trans "Move location" %}</a>
+                    {% else %}
+                        <span class="location-disabled-action location-help" tabindex="0" role="button" aria-disabled="true" aria-label="{% trans 'Move location' %}" aria-describedby="location-move-unavailable" data-bs-toggle="tooltip" title="{% blocktrans with location_type=object.type.name %}Moving is disabled for location type “{{ location_type }}”.{% endblocktrans %}">
+                            <button class="btn btn-outline-secondary" type="button" disabled aria-hidden="true">{% trans "Move location" %}</button>
+                        </span>
+                    {% endif %}
+                {% endif %}
+                <a class="btn btn-outline-secondary location-print" href="{% url 'print_inventory' %}?locations={{ object.pk }}" aria-label="{% trans 'Print inventory' %}" data-bs-toggle="tooltip" title="{% trans 'Print inventory' %}"><span aria-hidden="true">🖨️</span></a>
+            </div>
+        </div>
+        {% if user.is_authenticated and not object.type.moveable %}
+            <span id="location-move-unavailable" class="visually-hidden">{% blocktrans with location_type=object.type.name %}Moving is disabled for location type “{{ location_type }}”.{% endblocktrans %}</span>
+        {% endif %}
+    </header>
 {% endblock %}
-{% endif %}
 
 {% block content %}
-    <p>{{ object.name }} ({{ object.type.name }})</p>
-    <p>{{ object.descriptive_identifier }}</p>
-    <p>{{ object.description }}</p>
-    {% if object.parent_location %}
-        <p><a href="{{ object.parent_location.get_absolute_url }}">{{ object.parent_location }}</a></p>
-    {% else %}
-        <p>{% trans "root location (has no parent)" %}</p>
-    {% endif %}
-    
-    {% if object.get_lablary_url %}
-        <img height="150em" src="{{ object.get_lablary_url }}"/>
-    {% endif %}
+    {% with entries=object.itemlocation_set.all children=object.children.all %}
+    <div class="location-detail">
+        <section class="location-overview" aria-label="{% trans 'Location details' %}">
+            <div>
+                <h2 class="location-eyebrow">{% trans "Location path" %} <button type="button" class="location-help location-help-icon" aria-label="{% trans 'Explain location path' %}" data-bs-toggle="tooltip" title="{% trans 'The full path from the top-level location to this storage location. Short identifiers are shown in square brackets.' %}"><span aria-hidden="true">ⓘ</span></button></h2>
+                <p class="location-path">{{ object.descriptive_identifier }}</p>
+                {% if not object.parent_location %}
+                    <p class="location-muted location-root">{% trans "root location (has no parent)" %}</p>
+                {% endif %}
+                {% if object.description %}
+                    <div class="location-description">{{ object.description|linebreaksbr }}</div>
+                {% endif %}
+            </div>
+            {% with label_url=object.get_lablary_url %}
+                {% if label_url %}
+                    <details class="location-label">
+                        <summary>{% trans "Label preview" %}</summary>
+                        <a href="{{ label_url }}">
+                            <img src="{{ label_url }}" alt="{% blocktrans with identifier=object.unique_identifier %}Label for {{ identifier }}{% endblocktrans %}" loading="lazy">
+                        </a>
+                    </details>
+                {% endif %}
+            {% endwith %}
+        </section>
 
-    <h2>{% trans "Sub-Locations" %}</h2>
-    <ul>
-    {% for subloc in object.children.all %}
-        <li><a href="{{ subloc.get_absolute_url }}">{{ subloc.unique_identifier }} {{ subloc.name }}</a>
-    {% empty %}
-        {% trans "No sub-locations." %}
-    {% endfor %}
-    </ul>
+        <div class="location-layout">
+            <section class="location-panel" aria-labelledby="location-items-heading">
+                <div class="location-panel-heading">
+                    <div class="location-panel-title-row">
+                        <h2 id="location-items-heading">{% trans "Items" %} <span class="location-count">{{ entries|length }}</span></h2>
+                        <a class="btn btn-primary location-add-item" href="{% url 'create_item' %}?location_id={{ object.pk }}" data-bs-toggle="tooltip" title="{% trans 'Add an item at this location' %}" aria-label="{% trans 'Add an item at this location' %}"><span aria-hidden="true">+</span></a>
+                    </div>
+                    <p class="location-muted">{% trans "Only items stored directly at this location are shown." %}
+                    </p>
+                </div>
+                {% if entries %}
+                    <div class="location-item-columns" aria-hidden="true">
+                        <span>{% trans "Item" %}</span>
+                        <span>{% trans "Amount" %}</span>
+                        <span>{% trans "Photos" %}</span>
+                    </div>
+                    <ul class="location-items">
+                        {% for entry in entries %}
+                            <li class="location-item">
+                                <div class="location-item-info">
+                                    <h3><a href="{{ entry.item.get_absolute_url }}">{{ entry.item }}</a></h3>
+                                    {% if entry.item.description %}
+                                        <p class="location-item-description location-muted">{{ entry.item.description|truncatechars:160 }}</p>
+                                    {% endif %}
+                                    {% if entry.item.sale_price != None %}
+                                        <p class="location-item-price"><span class="location-muted">{% trans "Price per unit" %}:</span> {{ entry.item.sale_price|floatformat:2 }} € / {{ entry.item.measurement_unit.short }}</p>
+                                    {% endif %}
+                                </div>
+                                <div class="location-amount"><span class="visually-hidden">{% trans "Amount" %}: </span>{{ entry.amount_text }}</div>
+                                <div class="location-photos">
+                                    {% for image in entry.item.itemimage_set.all %}
+                                        {% thumbnail image.image "160x160" as im %}
+                                            <a href="{{ image.image.url }}" class="location-photo">
+                                                <img src="{{ im.url }}" width="80" height="80" alt="{{ image.description|default:entry.item }}" loading="lazy">
+                                            </a>
+                                        {% endthumbnail %}
+                                    {% empty %}
+                                        <span class="location-muted location-no-images">{% trans "No images" %}</span>
+                                    {% endfor %}
+                                </div>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                {% else %}
+                    <div class="location-empty">
+                        <p>{% trans "No items located here." %}</p>
+                    </div>
+                {% endif %}
+            </section>
 
-    <h2>{% trans "Items" %}</h2>
-    <div>
-    <table>
-    {% for il in object.itemlocation_set.all %}
-        <tr>
-            <td><a href="{{ il.item.get_absolute_url }}">{{ il.item }}</a></td>
-            <td>{{ il.amount_text }}</td>
-            <td>
-                {% for image in il.item.itemimage_set.all %}
-                    {% thumbnail image.image "200x200" as im %}
-                        {% spaceless %}
-                            <a class="img-link" href="{{ image.image.url }}">
-                                <img src="{{ im.url }}" class="img-thumbnail img-fluid" style="max-width: 100px;" alt="{{ image.description }}" data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-original-title="{{ image.description }}">
+            <section class="location-panel location-children" aria-labelledby="location-children-heading">
+                <div class="location-panel-heading">
+                    <h2 id="location-children-heading">{% trans "Sub-Locations" %} <span class="location-count">{{ children|length }}</span></h2>
+                </div>
+                <ul class="location-child-list">
+                    {% for child in children %}
+                        <li>
+                            <a href="{{ child.get_absolute_url }}">
+                                <span><span class="location-child-name">{{ child.name }}</span><span class="location-child-identifier">{{ child.unique_identifier }}</span></span>
+                                <span class="location-child-arrow" aria-hidden="true">→</span>
                             </a>
-                        {% endspaceless %}
-                    {% endthumbnail %}
-                {% endfor %}
-            </td>
-            <!--<td><a href="TODO">{% trans "Take" %}</a></td>
-            <td><a href="TODO">{% trans "Move" %}</a></td>-->
-    {% empty %}
-        {% trans "No items located here." %}
-    {% endfor %}
-    </table>
-    {% trans "Items at sub-locations are not included!" %}
+                        </li>
+                    {% empty %}
+                        <li class="location-empty location-muted">{% trans "No sub-locations." %}</li>
+                    {% endfor %}
+                </ul>
+            </section>
+        </div>
     </div>
-    
-    <p><a href="{% url 'create_item' %}?location_id={{ object.pk }}">{% trans "Add item..." %}</a></p>
+    {% endwith %}
+{% endblock %}
+
+{% block bootstrap5_extra_script %}
+    {{ block.super }}
+    <script src="{% static 'inventory/location_detail.js' %}"></script>
 {% endblock %}
