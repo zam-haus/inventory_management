@@ -1,10 +1,8 @@
-version: "3.10"
-
 services:
   db:
-    image: postgres
+    image: postgres:18
     volumes:
-      - ./data/db:/var/lib/postgresql/data
+      - ./data/db:/var/lib/postgresql
     env_file:
       - ".env"
     healthcheck:
@@ -13,6 +11,9 @@ services:
       timeout: 5s
       retries: 5
     restart: unless-stopped
+    networks:
+      - default
+
   web:
     image: nginx
     volumes:
@@ -20,10 +21,13 @@ services:
       - ./data/media:/media_files
       - ./data/static:/static_files
     ports:
-      - "127.0.0.1:80:80"
+      - "80:80"
     depends_on:
       - python
     restart: unless-stopped
+    networks:
+      - default
+
   python:
     build: .
     volumes:
@@ -34,4 +38,7 @@ services:
       db:
         condition: service_healthy
     restart: unless-stopped
-
+    networks:
+      - default
+networks:
+  default:
