@@ -1,0 +1,60 @@
+{% extends 'base.html' %}
+{% load django_bootstrap5 i18n static %}
+
+{% block bootstrap5_extra_head %}
+    {{ block.super }}
+    <link rel="stylesheet" href="{% static 'inventory/location_detail.css' %}">
+{% endblock %}
+
+{% block title %}{% trans "Move locations here" %}: {{ object.unique_identifier }}{% endblock %}
+{% block admin_url %}{{ object.get_admin_url }}{% endblock %}
+
+{% block page_header %}
+    <header class="location-header">
+        <nav aria-label="{% trans 'Location navigation' %}" class="location-breadcrumb">
+            <a href="{% url 'index_locations' %}">{% trans "Locations" %}</a>
+            <span aria-hidden="true">/</span>
+            <a href="{{ object.get_absolute_url }}">{{ object.name }}</a>
+        </nav>
+        <div class="location-heading">
+            <div class="location-heading-text">
+                <p class="location-eyebrow">{% trans "Move locations here" %} · {{ object.type.name }}</p>
+                <h1>{{ object.name }}</h1>
+                <button type="button" class="location-identifier location-help" data-bs-toggle="tooltip" title="{% trans 'Unique identifier for this storage location, used on labels and to find the location in the inventory.' %}">{{ object.unique_identifier }} <span aria-hidden="true">ⓘ</span></button>
+            </div>
+            <div class="location-actions">
+                <a class="btn btn-outline-secondary" href="{{ object.get_absolute_url }}">{% trans "Cancel" %}</a>
+            </div>
+        </div>
+    </header>
+{% endblock %}
+
+{% block content %}
+    <div class="location-detail location-move">
+        <section class="location-overview" aria-label="{% trans 'Destination' %}">
+            <div>
+                <h2 class="location-eyebrow">{% trans "Destination" %}</h2>
+                <p class="location-path">{{ object.descriptive_identifier }}</p>
+            </div>
+        </section>
+        <section class="location-panel" aria-labelledby="move-locations-heading">
+            <div class="location-panel-heading">
+                <h2 id="move-locations-heading">{% trans "Move locations here" %}</h2>
+                <p class="location-muted">{% trans "Stored items and child locations remain assigned to each moved location. Duplicate entries are processed once." %}</p>
+            </div>
+            <form class="location-move-form" method="post" novalidate>
+                {% csrf_token %}
+                {% bootstrap_form form %}
+                <p class="location-muted mt-2">{% blocktrans with scanner_url="https://play.google.com/store/apps/details?id=io.rami.barcodekeyboard&hl=en-US" %}On Android, try the <a href="{{ scanner_url }}" target="_blank" rel="noopener noreferrer">pretix barcode scanner keyboard</a> to scan location labels into this field.{% endblocktrans %}</p>
+                <div class="location-actions mt-3">
+                    <button class="btn btn-primary" type="submit">{% trans "Move locations here" %}</button>
+                </div>
+            </form>
+        </section>
+    </div>
+{% endblock %}
+
+{% block bootstrap5_extra_script %}
+    {{ block.super }}
+    <script src="{% static 'inventory/location_detail.js' %}"></script>
+{% endblock %}

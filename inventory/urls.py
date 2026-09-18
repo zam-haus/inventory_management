@@ -8,6 +8,7 @@ from . import views
 
 urlpatterns = [
     path("", views.index, name="index"),
+    path("loc/move-here/<int:pk>", views.LocationsMoveHereView.as_view(), name="locations_move_here"),
 	path(
         "loc/<int:pk>",
         views.DetailLocationView.as_view(),

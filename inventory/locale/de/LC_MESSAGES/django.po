@@ -518,3 +518,47 @@ msgstr "Nach Standortname oder Kennung suchen und den neuen übergeordneten Stan
 
 msgid "Search for a location…"
 msgstr "Standort suchen…"
+
+msgid "Locations to move here"
+msgstr "Hierher zu verschiebende Standorte"
+
+msgid "Enter unique identifiers, locatable identifiers, numeric IDs or /loc URLs. Separate entries with spaces, newlines, tabs or semicolons."
+msgstr "Eindeutige Kennungen, vollständige Standortkennungen, numerische IDs oder /loc-URLs eingeben. Einträge durch Leerzeichen, Zeilenumbrüche, Tabulatoren oder Semikolons trennen."
+
+msgid "Enter at least one location."
+msgstr "Mindestens einen Standort eingeben."
+
+msgid "Ambiguous identifier; use the location URL."
+msgstr "Mehrdeutige Kennung; bitte die Standort-URL verwenden."
+
+msgid "Location not found."
+msgstr "Standort nicht gefunden."
+
+msgid "This location cannot contain sub-locations."
+msgstr "Dieser Standort kann keine Unterstandorte enthalten."
+
+msgid "Moving is disabled for this location type."
+msgstr "Das Verschieben ist für diesen Standorttyp deaktiviert."
+
+msgid "Moving would create conflicting location identifiers."
+msgstr "Beim Verschieben würden widersprüchliche Standortkennungen entstehen."
+
+#, python-format
+msgid "Locations moved: %(successes)d. Errors: %(errors)d."
+msgstr "Standorte verschoben: %(successes)d. Fehler: %(errors)d."
+
+msgid "Edit and retry failed entries"
+msgstr "Fehlerhafte Einträge bearbeiten und erneut versuchen"
+
+msgid "Move locations into this location"
+msgstr "Standorte hierher verschieben"
+
+msgid "Move locations here"
+msgstr "Standorte hierher verschieben"
+
+msgid "Stored items and child locations remain assigned to each moved location. Duplicate entries are processed once."
+msgstr "Sachen und Unterstandorte bleiben dem jeweils verschobenen Standort zugeordnet. Doppelte Einträge werden einmal verarbeitet."
+
+#, python-format
+msgid "On Android, try the <a href=\"%(scanner_url)s\" target=\"_blank\" rel=\"noopener noreferrer\">pretix barcode scanner keyboard</a> to scan location labels into this field."
+msgstr "Unter Android kannst du mit der <a href=\"%(scanner_url)s\" target=\"_blank\" rel=\"noopener noreferrer\">pretix Barcode-Scanner-Tastatur</a> Standortetiketten direkt in dieses Feld scannen."

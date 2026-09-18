@@ -5,7 +5,7 @@ from crispy_forms import layout, bootstrap
 from crispy_bootstrap5.bootstrap5 import FloatingField
 from django.core.exceptions import ValidationError
 from django.forms import (
-    FileInput, Form, HiddenInput, IntegerField, ModelChoiceField, ModelForm,
+    CharField, FileInput, Form, HiddenInput, IntegerField, ModelChoiceField, ModelForm,
     ModelMultipleChoiceField, RegexField, SelectMultiple, Textarea, TextInput,
 )
 from django.forms.utils import ErrorList
@@ -295,6 +295,21 @@ class AdminLocationForm(ModelForm):
         }
 
     id = IntegerField(widget=HiddenInput(), required = False)
+
+class LocationsMoveHereForm(Form):
+    identifiers = CharField(
+        label=_("Locations to move here"),
+        max_length=20000,
+        widget=Textarea(attrs={"rows": 8, "autofocus": True}),
+        help_text=_("Enter unique identifiers, locatable identifiers, numeric IDs or /loc URLs. Separate entries with spaces, newlines, tabs or semicolons."),
+    )
+
+    def clean_identifiers(self):
+        identifiers = [value for value in re.split(r"[\s;]+", self.cleaned_data["identifiers"]) if value]
+        if not identifiers:
+            raise ValidationError(_("Enter at least one location."))
+        return identifiers
+
 
 class LocationMoveForm(ModelForm):
     class Meta:

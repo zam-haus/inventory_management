@@ -1,14 +1,17 @@
 from random import randint, choice
+from urllib.parse import urlencode
 
+from django.contrib import messages
 from django.utils import timezone
-from django.db import transaction
+from django.db import IntegrityError, transaction
 from django.http import HttpResponse, JsonResponse, HttpResponseForbidden
-from django.shortcuts import render, redirect
-from django.urls import reverse_lazy
+from django.shortcuts import get_object_or_404, render, redirect
+from django.urls import reverse, reverse_lazy
 from django.views import View
 from django.views.generic import ListView, DetailView, UpdateView
 from django.views.generic.edit import DeleteView
-from django.core.exceptions import ObjectDoesNotExist
+from django.core.exceptions import ObjectDoesNotExist, PermissionDenied, ValidationError
+from django.utils.html import format_html, format_html_join
 import extra_views
 from django.utils.translation import gettext_lazy as _
 from django.contrib.auth.mixins import UserPassesTestMixin
@@ -16,6 +19,7 @@ from django.db.models import Q
 from dal import autocomplete
 from . import forms
 from . import models
+from .location_lookup import resolve_location_reference
 
 # Create your views here.
 
@@ -117,6 +121,84 @@ class LocationMoveView(UpdateView):
         if not self.get_object().type.moveable:
             return HttpResponseForbidden("This Location is not allowed to be moved in the Frontend.")
         return super().post(request, *args, **kwargs)
+
+class LocationsMoveHereView(UserPassesTestMixin, View):
+    def test_func(self):
+        return check_user_is_allowed(self.request)
+
+    def get_parent(self, pk):
+        parent = get_object_or_404(models.Location.objects.select_related("type"), pk=pk)
+        if parent.type.no_sublocations:
+            raise PermissionDenied(_("This location cannot contain sub-locations."))
+        return parent
+
+    def get(self, request, pk):
+        parent = self.get_parent(pk)
+        form = forms.LocationsMoveHereForm(initial={"identifiers": request.GET.get("identifiers", "")})
+        return render(request, "inventory/locations_move_here.html", {"object": parent, "form": form})
+
+    def post(self, request, pk):
+        parent = self.get_parent(pk)
+        form = forms.LocationsMoveHereForm(request.POST)
+        if not form.is_valid():
+            return render(request, "inventory/locations_move_here.html", {"object": parent, "form": form})
+
+        pending, failures, seen = [], [], set()
+        # Resolve the entire batch before moving anything changes identifiers.
+        for value in form.cleaned_data["identifiers"]:
+            try:
+                location = resolve_location_reference(value)
+            except ValidationError as error:
+                failures.append((value, " ".join(error.messages)))
+            else:
+                if location.pk not in seen:
+                    pending.append((value, location.pk))
+                    seen.add(location.pk)
+
+        successes = 0
+        for value, location_pk in pending:
+            try:
+                with transaction.atomic():
+                    location = models.Location.objects.select_for_update().get(pk=location_pk)
+                    if not location.type.moveable:
+                        raise ValidationError(_("Moving is disabled for this location type."))
+                    location.parent_location = parent
+                    # Computed identifiers are refreshed by save(), including descendants.
+                    location.full_clean(exclude=[
+                        "unique_identifier", "locatable_identifier", "descriptive_identifier",
+                    ])
+                    location.save()
+            except ValidationError as error:
+                failures.append((value, " ".join(error.messages)))
+            except models.Location.DoesNotExist:
+                failures.append((value, _("Location not found.")))
+            except IntegrityError:
+                failures.append((value, _("Moving would create conflicting location identifiers.")))
+            else:
+                successes += 1
+
+        summary = _("Locations moved: %(successes)d. Errors: %(errors)d.") % {
+            "successes": successes, "errors": len(failures),
+        }
+        if failures:
+            move_url = reverse("locations_move_here", kwargs={"pk": parent.pk})
+
+            def retry_url(values):
+                return move_url + "?" + urlencode({"identifiers": "\n".join(values)})
+
+            failed_entries = format_html_join(
+                "", '<li><a href="{}">{}</a>: {}</li>',
+                ((retry_url([value]), value, reason) for value, reason in failures),
+            )
+            messages.warning(request, format_html(
+                '{}<ul class="mb-2">{}</ul><a href="{}">{}</a>',
+                summary, failed_entries, retry_url([value for value, _reason in failures]),
+                _("Edit and retry failed entries"),
+            ))
+        else:
+            messages.success(request, summary)
+        return redirect(parent)
+
 
 def view_item(request, pk):
     return redirect(reverse_lazy("update_item", args=[pk]))

@@ -1,0 +1,6 @@
+{
+  "node_modules": "data/static/node_modules",
+  "dependencies": {
+    "simplelightbox": "^2.14.0"
+  }
+}

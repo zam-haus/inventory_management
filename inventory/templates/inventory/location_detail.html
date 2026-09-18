@@ -22,7 +22,7 @@
             <div class="location-heading-text">
                 <p class="location-eyebrow">{% trans "Location" %} · {{ object.type.name }}</p>
                 <h1>{{ object.name }}</h1>
-                <button type="button" class="location-identifier location-help" data-bs-toggle="tooltip" title="{% trans 'Unique identifier for this storage location, used on labels and to find the location in the inventory.' %}">{{ object.unique_identifier }} <span aria-hidden="true">ⓘ</span></button>
+                <span class="location-identifier">{{ object.unique_identifier }} <button type="button" class="location-help location-help-icon" data-bs-toggle="tooltip" aria-label="{% trans 'Unique identifier for this storage location, used on labels and to find the location in the inventory.' %}" title="{% trans 'Unique identifier for this storage location, used on labels and to find the location in the inventory.' %}"><span aria-hidden="true">ⓘ</span></button></span>
             </div>
             <div class="location-actions">
                 {% if user.is_authenticated %}
@@ -121,7 +121,16 @@
 
             <section class="location-panel location-children" aria-labelledby="location-children-heading">
                 <div class="location-panel-heading">
-                    <h2 id="location-children-heading">{% trans "Sub-Locations" %} <span class="location-count">{{ children|length }}</span></h2>
+                    <div class="location-panel-title-row">
+                        <h2 id="location-children-heading">{% trans "Sub-Locations" %} <span class="location-count">{{ children|length }}</span></h2>
+                        {% if user.is_authenticated or request.session.is_zam_local %}
+                            {% if not object.type.no_sublocations %}
+                                <a class="btn btn-outline-secondary location-move-here" href="{% url 'locations_move_here' pk=object.pk %}" data-bs-toggle="tooltip" title="{% trans 'Move locations into this location' %}" aria-label="{% trans 'Move locations into this location' %}"><span aria-hidden="true">📥</span></a>
+                            {% else %}
+                                <span class="location-disabled-action location-help" tabindex="0" role="button" aria-disabled="true" aria-label="{% trans 'Move locations into this location' %}" data-bs-toggle="tooltip" title="{% trans 'This location cannot contain sub-locations.' %}"><button class="btn btn-outline-secondary location-move-here" type="button" disabled aria-hidden="true">📥</button></span>
+                            {% endif %}
+                        {% endif %}
+                    </div>
                 </div>
                 <ul class="location-child-list">
                     {% for child in children %}

@@ -1,12 +1,168 @@
 from decimal import Decimal
+from html import unescape
+import re
+from urllib.parse import parse_qs, urlsplit
 
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import AnonymousUser
-from django.test import RequestFactory, TestCase
+from django.test import Client, RequestFactory, TestCase, override_settings
 from django.urls import resolve, reverse
 from django.utils.translation import override
 
 from .models import Item, ItemImage, ItemLocation, Location, LocationType, MeasurementUnit
+
+
+@override_settings(
+    MIDDLEWARE=[
+        "django.contrib.sessions.middleware.SessionMiddleware",
+        "django.middleware.csrf.CsrfViewMiddleware",
+        "django.contrib.auth.middleware.AuthenticationMiddleware",
+        "django.contrib.messages.middleware.MessageMiddleware",
+    ],
+    LANGUAGE_CODE="en",
+)
+class LocationsMoveHereTests(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        cls.room_type = LocationType.objects.create(name="Room", unique=True, moveable=True)
+        cls.box_type = LocationType.objects.create(name="Box", moveable=True)
+        cls.source = Location.objects.create(type=cls.room_type, name="Source", short_name="SRC")
+        cls.parent = Location.objects.create(type=cls.room_type, name="Destination", short_name="DST")
+        cls.box = Location.objects.create(type=cls.box_type, name="Box", short_name="B", parent_location=cls.source)
+        cls.child = Location.objects.create(type=cls.box_type, name="Child", short_name="C", parent_location=cls.box)
+        cls.unique = Location.objects.create(type=cls.room_type, name="Unique", short_name="U", parent_location=cls.source)
+        cls.user = get_user_model().objects.create_user(username="mover")
+
+    def setUp(self):
+        self.client.force_login(self.user)
+        self.url = reverse("locations_move_here", kwargs={"pk": self.parent.pk})
+
+    def post(self, identifiers):
+        return self.client.post(self.url, {"identifiers": identifiers}, follow=True)
+
+    def test_action_and_get_do_not_move_locations(self):
+        response = self.client.get(self.parent.get_absolute_url())
+        self.assertContains(response, f'href="{self.url}"')
+        self.assertContains(response, "📥")
+        response = self.client.get(self.url, {"identifiers": self.box.unique_identifier})
+        self.assertContains(response, self.box.unique_identifier)
+        self.box.refresh_from_db()
+        self.assertEqual(self.box.parent_location_id, self.source.pk)
+
+    def test_identifiers_separators_deduplication_and_snapshot_resolution(self):
+        values = f"{self.box.unique_identifier};{self.child.unique_identifier}\n{self.unique.locatable_identifier}\t{self.unique.unique_identifier} {self.box.pk}"
+        response = self.post(values)
+        self.assertRedirects(response, self.parent.get_absolute_url())
+        self.assertContains(response, "Locations moved: 3. Errors: 0.")
+        for location in (self.box, self.child, self.unique):
+            location.refresh_from_db()
+            self.assertEqual(location.parent_location_id, self.parent.pk)
+
+    def test_urls_follow_routing_and_accept_outdated_identifiers(self):
+        stale_url = reverse("view_location", args=[self.box.pk, "outdated"])
+        numeric_url = reverse("view_location2", args=[self.unique.pk])
+        response = self.post(f"https://inv.zam.haus{stale_url}?scan=1#label;{numeric_url}")
+        self.assertContains(response, "Locations moved: 2. Errors: 0.")
+        self.child.refresh_from_db()
+        self.assertEqual(self.child.parent_location_id, self.box.pk)
+        self.assertEqual(self.child.unique_identifier, "DST.B.C")
+
+    def test_partial_success_messages_and_retry_round_trip(self):
+        bad = '<img/src=x/onerror=alert(1)>'
+        missing = "UNKNOWN"
+        response = self.post(f"{self.box.unique_identifier};{missing};{bad};999999999999999999999999999999")
+        self.assertContains(response, "Locations moved: 1. Errors: 3.")
+        self.assertNotContains(response, bad)
+        self.assertContains(response, "&lt;img/src=x/onerror=alert(1)&gt;")
+        links = [unescape(link) for link in re.findall(r'href="([^"]+)"', response.content.decode())]
+        retries = [link for link in links if link.startswith(self.url + "?")]
+        self.assertEqual(len(retries), 4)
+        values = parse_qs(urlsplit(retries[-1]).query)["identifiers"][0]
+        self.assertEqual(values, f"{missing}\n{bad}\n999999999999999999999999999999")
+        retry = self.client.get(retries[-1])
+        self.assertEqual(retry.context["form"]["identifiers"].value(), values)
+        # Messages survive the redirect but disappear after being displayed.
+        self.assertNotContains(self.client.get(self.parent.get_absolute_url()), "Locations moved:")
+
+    def test_self_and_ancestor_moves_are_rejected(self):
+        self.url = reverse("locations_move_here", kwargs={"pk": self.child.pk})
+        response = self.post(f"{self.child.pk};{self.box.pk};{self.source.pk}")
+        self.assertContains(response, "Locations moved: 0. Errors: 3.")
+        self.child.refresh_from_db()
+        self.assertEqual(self.child.parent_location_id, self.box.pk)
+
+    def test_immovable_and_conflicting_locations_do_not_block_valid_moves(self):
+        fixed_type = LocationType.objects.create(name="Fixed", unique=True)
+        fixed = Location.objects.create(type=fixed_type, name="Fixed", short_name="FIX")
+        Location.objects.create(type=self.box_type, name="Existing", short_name="B", parent_location=self.parent)
+        response = self.post(f"{fixed.pk};{self.box.pk};{self.unique.pk}")
+        self.assertContains(response, "Locations moved: 1. Errors: 2.")
+        self.box.refresh_from_db()
+        fixed.refresh_from_db()
+        self.assertEqual(self.box.parent_location_id, self.source.pk)
+        self.assertIsNone(fixed.parent_location_id)
+
+    def test_only_location_detail_urls_are_accepted(self):
+        response = self.post(f"/item/{self.box.pk};/loc/move/{self.box.pk};https://[broken;/loc/9999999999999999999999999999")
+        self.assertContains(response, "Locations moved: 0. Errors: 4.")
+
+    def test_database_identifier_conflict_rolls_back_only_that_move(self):
+        Location.objects.create(type=self.room_type, name="Conflict", short_name="DST.B")
+        response = self.post(f"{self.box.pk};{self.unique.pk}")
+        self.assertContains(response, "Locations moved: 1. Errors: 1.")
+        self.box.refresh_from_db()
+        self.child.refresh_from_db()
+        self.assertEqual(self.box.parent_location_id, self.source.pk)
+        self.assertEqual(self.child.unique_identifier, "SRC.B.C")
+
+    def test_numeric_identifiers_take_priority_over_database_ids(self):
+        numeric = Location.objects.create(
+            type=self.room_type, name="Numeric label", short_name=str(self.box.pk),
+        )
+        response = self.post(str(self.box.pk))
+        self.assertContains(response, "Locations moved: 1. Errors: 0.")
+        numeric.refresh_from_db()
+        self.box.refresh_from_db()
+        self.assertEqual(numeric.parent_location_id, self.parent.pk)
+        self.assertEqual(self.box.parent_location_id, self.source.pk)
+
+    def test_ambiguous_identifier_requires_url(self):
+        Location.objects.create(
+            type=self.room_type, name="Ambiguous", short_name="SRC.U", parent_location=self.parent,
+        )
+        response = self.post("SRC.U")
+        self.assertContains(response, "Locations moved: 0. Errors: 1.")
+        self.assertContains(response, "Ambiguous identifier; use the location URL.")
+        self.assertContains(self.post(self.unique.get_absolute_url()), "Locations moved: 1. Errors: 0.")
+
+    def test_empty_input_does_not_redirect_or_move(self):
+        response = self.post(" ; \n\t;")
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Enter at least one location.")
+        self.box.refresh_from_db()
+        self.assertEqual(self.box.parent_location_id, self.source.pk)
+
+    def test_parent_that_cannot_have_children_is_rejected(self):
+        self.room_type.no_sublocations = True
+        self.room_type.save()
+        self.assertEqual(self.client.get(self.url).status_code, 403)
+        self.assertEqual(self.client.post(self.url, {"identifiers": str(self.box.pk)}).status_code, 403)
+
+    def test_anonymous_remote_requests_cannot_move_but_local_requests_can(self):
+        self.client.logout()
+        self.assertEqual(self.client.get(self.url).status_code, 302)
+        self.assertEqual(self.client.post(self.url, {"identifiers": str(self.box.pk)}).status_code, 302)
+        self.box.refresh_from_db()
+        self.assertEqual(self.box.parent_location_id, self.source.pk)
+        session = self.client.session
+        session["is_zam_local"] = True
+        session.save()
+        self.assertContains(self.post(str(self.box.pk)), "Locations moved: 1. Errors: 0.")
+
+    def test_csrf_is_required(self):
+        client = Client(enforce_csrf_checks=True)
+        client.force_login(self.user)
+        self.assertEqual(client.post(self.url, {"identifiers": str(self.box.pk)}).status_code, 403)
 
 
 class PrintableInventoryTests(TestCase):
