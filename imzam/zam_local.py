@@ -1,54 +1,42 @@
-import threading
-import json
 import ipaddress
+import logging
+import socket
+from time import monotonic
 
+from django.conf import settings
 from ipware import get_client_ip
 
 from accounts.groups import remember_zam_membership
 
-from pymaybe import maybe
-
-from . import settings
-
-from paho.mqtt import client as mqttc
+logger = logging.getLogger(__name__)
 
 
 class ZAMLocalMiddleware:
     def __init__(self, get_response):
         self.get_response = get_response
 
-        # One-time configuration and initialization.
-        self.zam_ips = []
+        self._networks = ()
+        self._expires_at = 0
 
-        self.mqtt_thread = threading.Thread(target=self.mqtt_connect_and_loop)
-        self.mqtt_thread.start()
-    
-    def mqtt_connect_and_loop(self):
-        c = mqttc.Client(**settings.MQTT_CLIENT_KWARGS)
-        if settings.MQTT_ZAMIP_SERVER_SSL:
-            c.tls_set()
-        c.username_pw_set(**settings.MQTT_ZAMIP_PASSWORD_AUTH)
-        c.on_connect = self.on_connect
-        c.on_message = self.on_message
-        c.connect(**settings.MQTT_ZAMIP_SERVER_KWARGS)
-        c.loop_forever()
-
-    def on_connect(self, client, userdata, flags, rc):
-        # Subscribing in on_connect() means that if we lose the connection and
-        # reconnect then subscriptions will be renewed.
-        client.subscribe('locator/#')
-        
-    def on_message(self, client, userdata, message):
-        self.set_current_zam_ips(
-            maybe(json.loads(message.payload))['ip_addresses'].or_else([]))
-    
-    def set_current_zam_ips(self, zam_ips):
-        ip_ranges = []
-        for ip in zam_ips:
-            ip_ranges.append(
-                ipaddress.ip_network(ip, strict=False)
-            )
-        self.zam_ips = ip_ranges
+    def get_networks(self):
+        if monotonic() >= self._expires_at:
+            networks = []
+            for source in settings.ZAM_LOCAL_SOURCES:
+                try:
+                    networks.append(ipaddress.ip_network(source, strict=False))
+                except ValueError:
+                    try:
+                        # Resolve all IPv4 (A) records, rather than just the first.
+                        addresses = socket.gethostbyname_ex(source)[2]
+                    except OSError:
+                        logger.warning("Could not resolve ZAM-local hostname %s", source)
+                        continue
+                    networks.extend(ipaddress.ip_network(address) for address in addresses)
+            # Replace expired results even when DNS fails; stale addresses must
+            # not grant membership. Other configured sources still work.
+            self._networks = tuple(networks)
+            self._expires_at = monotonic() + settings.ZAM_LOCAL_DNS_CACHE_SECONDS
+        return self._networks
 
     def __call__(self, request):
         # Consume legacy session state before another network check can overwrite it.
@@ -58,18 +46,20 @@ class ZAMLocalMiddleware:
         if user.is_authenticated and user.is_zam_local:
             return self.get_response(request)
 
-        current_addr, _ = get_client_ip(request)
-        try:
-            address = ipaddress.ip_address(current_addr)
-        except ValueError:
-            is_local = False
-        else:
-            is_local = any(address in network for network in self.zam_ips)
+        is_local = was_local
+        if not is_local:
+            current_addr, _ = get_client_ip(request)
+            try:
+                address = ipaddress.ip_address(current_addr)
+            except ValueError:
+                is_local = False
+            else:
+                is_local = any(address in network for network in self.get_networks())
 
         if user.is_authenticated:
-            if was_local or is_local:
+            if is_local:
                 remember_zam_membership(user)
-        elif was_local or is_local:
+        elif is_local:
             # Keep a pending visit across the login redirect. This grants no access
             # to anonymous users and is consumed once they authenticate.
             request.session["is_zam_local"] = True

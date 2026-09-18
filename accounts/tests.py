@@ -3,19 +3,18 @@ from unittest.mock import patch
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import AnonymousUser, Group, Permission
 from django.http import HttpResponse
-from django.test import RequestFactory, TestCase
+from django.test import RequestFactory, TestCase, override_settings
 
 from accounts.auth import CustomOidcAuthenticationBackend
 from accounts.groups import ZAM_LOCAL_GROUP_NAME
 from imzam.zam_local import ZAMLocalMiddleware
 
 
+@override_settings(ZAM_LOCAL_SOURCES=["192.0.2.0/24"])
 class ZAMMembershipTests(TestCase):
     def setUp(self):
         self.user = get_user_model().objects.create_user(username="visitor")
-        with patch("imzam.zam_local.threading.Thread.start"):
-            self.middleware = ZAMLocalMiddleware(lambda request: HttpResponse())
-        self.middleware.set_current_zam_ips(["192.0.2.0/24"])
+        self.middleware = ZAMLocalMiddleware(lambda request: HttpResponse())
 
     def visit(self, user=None, session=None, address="198.51.100.1"):
         request = RequestFactory().get("/")
@@ -44,7 +43,9 @@ class ZAMMembershipTests(TestCase):
         self.assertTrue(self.user.is_zam_local)
         self.assertTrue(self.user.has_perm("inventory.add_item"))
         self.assertFalse(self.user.has_perm("inventory.delete_item"))
-        self.visit(user=get_user_model().objects.get(pk=self.user.pk), address=None)
+        with patch.object(self.middleware, "get_networks") as resolve:
+            self.visit(user=get_user_model().objects.get(pk=self.user.pk), address=None)
+        resolve.assert_not_called()
         self.assertTrue(get_user_model().objects.get(pk=self.user.pk).is_zam_local)
         self.assertFalse(self.user.is_staff)
 
@@ -76,3 +77,10 @@ class ZAMMembershipTests(TestCase):
         backend.update_groups(self.user, {"groups": ["Other team"]})
         backend.update_groups(self.user, {})
         self.assertTrue(self.user.is_zam_local)
+
+    @override_settings(ZAM_LOCAL_SOURCES=["das.zam.haus"])
+    def test_a_record_match_assigns_persistent_membership(self):
+        with patch("imzam.zam_local.socket.gethostbyname_ex", return_value=("das.zam.haus", [], ["198.51.100.1"])):
+            self.visit()
+        self.assertTrue(self.user.is_zam_local)
+        self.assertTrue(self.user.has_perm("inventory.add_item"))

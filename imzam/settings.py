@@ -244,14 +244,13 @@ MQTT_PASSWORD_AUTH = dict(
 # this topic is write-restricted on mqtt.zam.haus
 MQTT_PRINTER_TOPIC = "im-label-print-queue/"
 
-MQTT_ZAMIP_SERVER_KWARGS = dict(
-    host=os.getenv("MQTT_ZAMIP_SERVER_HOSTNAME", "mqtt.sesam.zam.haus"),
-    port=int(os.getenv("MQTT_ZAMIP_SERVER_PORT", "443")),
-    keepalive=120)
-MQTT_ZAMIP_SERVER_SSL=parse_bool(os.getenv("MQTT_SERVER_SSL", "true"))
-MQTT_ZAMIP_PASSWORD_AUTH = dict(
-    username=os.getenv("MQTT_ZAMIP_USERNAME", "inv.zam.haus-django"),
-    password=os.getenv("MQTT_ZAMIP_PASSWORD", ""))
+# ZAM membership: hostnames (all A records), IP addresses, or CIDR networks.
+ZAM_LOCAL_SOURCES = [
+    source.strip()
+    for source in os.getenv("ZAM_LOCAL_SOURCES", "das.zam.haus").split(",")
+    if source.strip()
+]
+ZAM_LOCAL_DNS_CACHE_SECONDS = int(os.getenv("ZAM_LOCAL_DNS_CACHE_SECONDS", "60"))
 
 
 # Overwrite default settings with local_settings.py configuration
