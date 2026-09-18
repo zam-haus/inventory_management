@@ -15,6 +15,7 @@ from dal import autocomplete
 
 from . import models
 from .forms import AdminLocationForm, AdminItemLocationForm
+from .soft_delete_admin import SoftDeleteAdminMixin
 
 # Register your models here.
 admin.site.register(models.LocationType)
@@ -35,8 +36,19 @@ class LocationLabelTemplateAdmin(admin.ModelAdmin):
 admin.site.register(models.LocationLabelTemplate, LocationLabelTemplateAdmin)
 
 
+class LocationInlineFormSet(forms.BaseInlineFormSet):
+    def clean(self):
+        super().clean()
+        for form in self.forms:
+            location = form.instance
+            if location.pk and form.cleaned_data.get("DELETE"):
+                current = models.Location.objects.get(pk=location.pk)
+                current.validate_deletion(hard=current.is_deleted)
+
+
 class LocationInline(admin.TabularInline):
     model = models.Location
+    formset = LocationInlineFormSet
     verbose_name = "location's child"
     verbose_name_plural = "location's children"
 
@@ -45,8 +57,8 @@ class LocationInline(admin.TabularInline):
         CharField: {"widget": forms.TextInput(attrs={"size": 20})},
     }
 
-class LocationAdmin(admin.ModelAdmin):
-    list_display = ("locatable_identifier", "name", "descriptive_identifier")
+class LocationAdmin(SoftDeleteAdminMixin, admin.ModelAdmin):
+    list_display = ("locatable_identifier", "name", "descriptive_identifier", "deleted_status")
     ordering = ("locatable_identifier",)
     readonly_fields = ("label_image_tag",)
     search_fields = ('locatable_identifier', 'name')
@@ -162,7 +174,7 @@ admin.site.register(models.Location, LocationAdmin)
 class MassAddLocationsForm(forms.Form):
     parent_location = forms.ModelChoiceField(
         label="Parent location",
-        queryset=models.Location.objects.all(),
+        queryset=models.Location.active.all(),
         widget=autocomplete.ModelSelect2(
             url='parent_location_autocomplete',
             forward=['id'],
@@ -291,7 +303,8 @@ class ItemFileInline(admin.TabularInline):
     extra = 0
 
 
-class ItemAdmin(admin.ModelAdmin):
+class ItemAdmin(SoftDeleteAdminMixin, admin.ModelAdmin):
+    list_display = ("name", "deleted_status")
     inlines = [ItemBarcodeInline, ItemImageInline, ItemFileInline, ItemLocationInline]
     formfield_overrides = {
         TextField: {"widget": forms.Textarea(attrs={"rows": 3, "cols": 60})},

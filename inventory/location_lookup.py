@@ -19,9 +19,9 @@ def resolve_location_reference(value):
             if match.url_name not in ("view_location", "view_location2"):
                 raise ValueError
             pk = Location._meta.pk.clean(match.kwargs["pk"], None)
-            return Location.objects.get(pk=pk)
+            return Location.active.get(pk=pk)
 
-        matches = Location.objects.filter(
+        matches = Location.active.filter(
             Q(unique_identifier=value) | Q(locatable_identifier=value)
         )
         # A numeric label is an identifier first, a database ID only as fallback.
@@ -29,7 +29,7 @@ def resolve_location_reference(value):
             return matches.get()
         if value.isdecimal():
             pk = Location._meta.pk.clean(value, None)
-            return Location.objects.get(pk=pk)
+            return Location.active.get(pk=pk)
     except Location.MultipleObjectsReturned:
         raise ValidationError(_("Ambiguous identifier; use the location URL."))
     except (Location.DoesNotExist, Resolver404, ValueError, ValidationError):

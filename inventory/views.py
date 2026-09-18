@@ -15,7 +15,7 @@ from django.utils.html import format_html, format_html_join
 import extra_views
 from django.utils.translation import gettext_lazy as _
 from django.contrib.auth.mixins import UserPassesTestMixin
-from django.db.models import Q
+from django.db.models import Prefetch, Q
 from dal import autocomplete
 from . import forms
 from . import models
@@ -34,9 +34,9 @@ class LocationAutocomplete(autocomplete.Select2QuerySetView):
     def get_queryset(self):
         # Do not forget to filter out results depending on the logged-in user or other criteria
         if not check_user_is_allowed(self.request):
-            return models.Location.objects.none()
+            return models.Location.active.none()
 
-        qs = models.Location.objects.all()
+        qs = models.Location.active.all()
 
         # `self.q` is the search term from the user, provided by DAL.
         if self.q:
@@ -64,7 +64,7 @@ class PrintableInventoryView(UserPassesTestMixin, View):
             if include_children:
                 # Unique child identifiers need not start with their parent's.
                 children = {}
-                for pk, parent_id in models.Location.objects.order_by().values_list(
+                for pk, parent_id in models.Location.active.order_by().values_list(
                     "pk", "parent_location_id"
                 ):
                     children.setdefault(parent_id, []).append(pk)
@@ -78,7 +78,7 @@ class PrintableInventoryView(UserPassesTestMixin, View):
             context.update(
                 selected_locations=selected_locations,
                 generated_at=timezone.now(),
-                entries=models.ItemLocation.objects.filter(location_id__in=location_ids)
+                entries=models.ItemLocation.objects.filter(location_id__in=location_ids, item__is_deleted=False)
                 .select_related("location", "item", "item__measurement_unit")
                 .prefetch_related("item__itemimage_set")
                 .order_by("location__locatable_identifier", "item__name", "item_id"),
@@ -88,6 +88,10 @@ class PrintableInventoryView(UserPassesTestMixin, View):
 
 class DetailLocationView(DetailView):
     model = models.Location
+    queryset = models.Location.active.prefetch_related(
+        Prefetch("children", queryset=models.Location.active.all()),
+        Prefetch("itemlocation_set", queryset=models.ItemLocation.objects.filter(item__is_deleted=False).select_related("item__measurement_unit").prefetch_related("item__itemimage_set")),
+    )
     # (request, pk, unique_identifier):
     # Prio 1
     # return HttpResponse("Here should be an overview of items stored at this location.")
@@ -110,6 +114,7 @@ class LocationMoveView(UpdateView):
     template_name = 'inventory/location_move.html'
     form_class = forms.LocationMoveForm
     model = models.Location
+    queryset = models.Location.active.all()
     def test_func(self):
         return check_user_is_allowed(self.request)
 
@@ -127,7 +132,7 @@ class LocationsMoveHereView(UserPassesTestMixin, View):
         return check_user_is_allowed(self.request)
 
     def get_parent(self, pk):
-        parent = get_object_or_404(models.Location.objects.select_related("type"), pk=pk)
+        parent = get_object_or_404(models.Location.active.select_related("type"), pk=pk)
         if parent.type.no_sublocations:
             raise PermissionDenied(_("This location cannot contain sub-locations."))
         return parent
@@ -159,7 +164,7 @@ class LocationsMoveHereView(UserPassesTestMixin, View):
         for value, location_pk in pending:
             try:
                 with transaction.atomic():
-                    location = models.Location.objects.select_for_update().get(pk=location_pk)
+                    location = models.Location.active.select_for_update().get(pk=location_pk)
                     if not location.type.moveable:
                         raise ValidationError(_("Moving is disabled for this location type."))
                     location.parent_location = parent
@@ -204,6 +209,9 @@ def view_item(request, pk):
     return redirect(reverse_lazy("update_item", args=[pk]))
 class DetailItemView(DetailView):
     model = models.Item
+    queryset = models.Item.active.prefetch_related(Prefetch(
+        "itemlocation_set", queryset=models.ItemLocation.objects.filter(location__is_deleted=False).select_related("location"),
+    ))
 
 
 def category_json(request, pk):
@@ -239,7 +247,7 @@ class CreateItemView(UserPassesTestMixin, extra_views.CreateWithInlinesView):
             location_id = self.request.GET.get("location_id")
             try:
                 location_id = int(location_id)
-                return models.Location.objects.get(pk=location_id)
+                return models.Location.active.get(pk=location_id)
             except (ValueError, models.Location.DoesNotExist):
                 pass
         return None
@@ -263,6 +271,7 @@ class CreateItemView(UserPassesTestMixin, extra_views.CreateWithInlinesView):
 
 class UpdateItemView(UserPassesTestMixin, extra_views.UpdateWithInlinesView):
     model = models.Item
+    queryset = models.Item.active.all()
     inlines = [forms.ItemImageInline, forms.ItemLocationInline]
     template_name = "inventory/item_formset.html"
     form_class = forms.ItemForm  # Changed to ItemForm
@@ -280,6 +289,9 @@ class UpdateItemView(UserPassesTestMixin, extra_views.UpdateWithInlinesView):
 
 class AnnotateItemView(UserPassesTestMixin, UpdateView):
     model = models.Item
+    queryset = models.Item.active.prefetch_related(Prefetch(
+        "itemlocation_set", queryset=models.ItemLocation.objects.filter(location__is_deleted=False).select_related("location"),
+    ))
     template_name = "inventory/item_annotate_form.html"
     form_class = forms.ItemLocationForm
     factory_kwargs = {
@@ -294,7 +306,7 @@ class AnnotateItemView(UserPassesTestMixin, UpdateView):
         if self.request.POST and "save_next" in self.request.POST:
             # redirect to next incomplete
             incomplete = models.Item.filter_incomplete(ordered=True)
-            next_incomplete = incomplete & models.Item.objects.filter(pk__gt=self.object.pk)
+            next_incomplete = incomplete & models.Item.active.filter(pk__gt=self.object.pk)
             if not next_incomplete:
                 next_incomplete = incomplete
             return reverse_lazy("annotate_item", args=[incomplete[randint(0, incomplete.count() -1)].pk])
@@ -303,6 +315,7 @@ class AnnotateItemView(UserPassesTestMixin, UpdateView):
 
 class SearchableItemListView(ListView):
     model = models.Item
+    queryset = models.Item.active.all()
     exact_query = False
     wrong_lookup = False
     paginate_by = 25
@@ -319,15 +332,17 @@ class SearchableItemListView(ListView):
         return ctxt
     def get_queryset(self):
         try:
-            queryset = super().get_queryset()
+            queryset = super().get_queryset().prefetch_related(Prefetch(
+                "itemlocation_set", queryset=models.ItemLocation.objects.filter(location__is_deleted=False).select_related("location"),
+            ))
             query = self.request.GET.get('q')
             if query:
                 queryset = queryset.filter(
                     Q(name__icontains=query) |
                     Q(description__icontains=query) |
                     Q(category__name__icontains=query) |
-                    Q(itemlocation__location__unique_identifier__icontains=query) |
-                    Q(itemlocation__location__name__icontains=query) |
+                    Q(itemlocation__location__is_deleted=False, itemlocation__location__unique_identifier__icontains=query) |
+                    Q(itemlocation__location__is_deleted=False, itemlocation__location__name__icontains=query) |
                     Q(itemimage__ocr_text__icontains=query)
                 )
             return queryset
@@ -352,6 +367,9 @@ class SearchableLocationListView(
     search_date_fields = []
     sort_fields = ["unique_identifier"]
     model = models.Location
+    queryset = models.Location.active.prefetch_related(Prefetch(
+        "itemlocation_set", queryset=models.ItemLocation.objects.filter(item__is_deleted=False),
+    ))
     exact_query = False
     wrong_lookup = False
     paginate_by = 100
@@ -372,8 +390,8 @@ class SearchableLocationListView(
 class ParentLocationAutocompleteView(autocomplete.Select2QuerySetView):
     def get_queryset(self):
         if not check_user_is_allowed(self.request):
-            return models.Location.objects.none()
-        qs = models.Location.objects.filter(type__no_sublocations = False)
+            return models.Location.active.none()
+        qs = models.Location.active.filter(type__no_sublocations = False)
         if self.q:
             qs = qs.filter(Q(name__icontains=self.q) | Q(unique_identifier__icontains=self.q))
         return qs

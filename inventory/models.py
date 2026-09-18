@@ -3,11 +3,12 @@ from string import Template
 import urllib.parse
 
 from inventory.ocr_util import ocr_on_image_path
+from .soft_delete import SoftDeleteModel
 from paho.mqtt import client as mqttc
 from pydoc import describe
 from typing_extensions import Required
 from xml.etree.ElementTree import Comment
-from django.db import models
+from django.db import models, transaction
 from django.core import validators
 from computedfields.models import ComputedFieldsModel, computed
 from django.forms import ValidationError
@@ -25,7 +26,7 @@ from sorl.thumbnail import delete
 # Create your models here.
 
 
-class Item(models.Model):
+class Item(SoftDeleteModel):
     class Meta:
         verbose_name = _("item")
         verbose_name_plural = _("items")
@@ -78,7 +79,7 @@ class Item(models.Model):
     def filter_incomplete(cls, ordered=False):
         # prefilter:
         # only with image(s)
-        relevant_items = cls.objects.filter(itemimage__isnull=False, itemlocation__isnull=False)
+        relevant_items = cls.active.filter(itemimage__isnull=False, itemlocation__location__is_deleted=False)
 
         # filter with complete information
         relevant_items = relevant_items.exclude(name__isnull=False, sale_price__isnull=False)
@@ -157,11 +158,13 @@ class ItemImage(models.Model):
 
 
 @receiver(pre_delete, sender=ItemImage)
-def delete_image(sender, instance, **kwargs):
-    # Pass false so FileField doesn't save the model.
-    if instance.image:
-        delete(instance.image, delete_file=False)  # delete thumbnails
-        instance.image.delete(False)
+def delete_image(sender, instance, using, **kwargs):
+    image = instance.image
+    if image:
+        def cleanup():
+            delete(image, delete_file=False)
+            image.delete(save=False)
+        transaction.on_commit(cleanup, using=using)
 
 
 class ItemFile(models.Model):
@@ -170,11 +173,11 @@ class ItemFile(models.Model):
     item = models.ForeignKey("Item", on_delete=models.CASCADE, verbose_name=_("file"))
 
 
-@receiver(pre_delete, sender=ItemImage)
-def delete_image(sender, instance, **kwargs):
-    # Pass false so FileField doesn't save the model.
-    if instance.image:
-        instance.image.delete(False)
+@receiver(pre_delete, sender=ItemFile)
+def delete_file(sender, instance, using, **kwargs):
+    file = instance.file
+    if file:
+        transaction.on_commit(lambda: file.delete(save=False), using=using)
 
 
 class ItemBarcode(models.Model):
@@ -386,7 +389,7 @@ class LocationLabelTemplate(models.Model):
         return self.name
 
 
-class Location(ComputedFieldsModel):
+class Location(SoftDeleteModel, ComputedFieldsModel):
     class Meta:
         verbose_name = _("location")
         verbose_name_plural = _("locations")
@@ -434,6 +437,12 @@ class Location(ComputedFieldsModel):
     )
 
     def clean(self):
+        if self.is_deleted and self.pk and (
+            self.children.filter(is_deleted=False).exists() or self.itemlocation_set.exists()
+        ):
+            raise ValidationError({"is_deleted": _("The location is not empty and cannot be deleted.")})
+        if not self.is_deleted and self.parent_location and self.parent_location.is_deleted:
+            raise ValidationError({"parent_location": _("Deleted locations cannot be used as destinations.")})
         # ensure cycle-free tree
         cur = self
         while cur.parent_location:
@@ -478,6 +487,12 @@ class Location(ComputedFieldsModel):
             raise ValidationError(
                 {"parent_location": "Non-unique locations must have a parent location."}
             )
+
+    def validate_deletion(self, *, hard=False, soft_ids=(), hard_ids=()):
+        children = self.children.all() if hard else self.children.filter(is_deleted=False)
+        excluded = set(hard_ids) if hard else set(soft_ids) | set(hard_ids)
+        if children.exclude(pk__in=excluded).exists() or self.itemlocation_set.exists():
+            raise ValidationError(_("The location is not empty and cannot be deleted."))
 
     def __str__(self):
         return self.descriptive_identifier

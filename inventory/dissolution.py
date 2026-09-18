@@ -10,8 +10,8 @@ from .models import ItemLocation, Location
 
 class DissolutionPlan:
     def __init__(self, root, recursive=False, lock=False):
-        locations = Location.objects.select_related("type").order_by("pk")
-        entries = ItemLocation.objects.select_related("item__measurement_unit", "location").prefetch_related("item__itemimage_set").order_by("pk")
+        locations = Location.active.select_related("type").order_by("pk")
+        entries = ItemLocation.objects.filter(location__is_deleted=False).select_related("item__measurement_unit", "location").prefetch_related("item__itemimage_set").order_by("pk")
         if lock:
             locations = locations.select_for_update(of=("self",))
             entries = entries.select_for_update(of=("self",))
@@ -48,7 +48,7 @@ class DissolutionPlan:
               loc.unique_identifier, loc.type_id, loc.type.moveable,
               loc.type.no_sublocations, loc.type.unique) for loc in self.locations.values()],
             [(entry.pk, entry.item_id, entry.location_id, str(entry.amount),
-              entry.item.name, entry.item.measurement_unit_id)
+              entry.item.name, entry.item.measurement_unit_id, entry.item.is_deleted)
              for entry in self.entries.values()],
         ]
         return hashlib.sha256(json.dumps(state).encode()).hexdigest()
@@ -150,14 +150,14 @@ class DissolutionPlan:
             progress = False
             # Empty descendants are deleted before their parents.
             for pk in pending_deletes[:]:
-                location = Location.objects.get(pk=pk)
-                if not location.children.exists() and not location.itemlocation_set.exists():
+                location = Location.active.get(pk=pk)
+                if not location.children.filter(is_deleted=False).exists() and not location.itemlocation_set.exists():
                     location.delete()
                     pending_deletes.remove(pk)
                     progress = True
             for pk, destination in pending_moves[:]:
-                location = Location.objects.get(pk=pk)
-                location.parent_location = Location.objects.get(pk=destination)
+                location = Location.active.get(pk=pk)
+                location.parent_location = Location.active.get(pk=destination)
                 try:
                     location.full_clean(exclude=["unique_identifier", "locatable_identifier", "descriptive_identifier"])
                 except ValidationError:
@@ -168,7 +168,7 @@ class DissolutionPlan:
             if not progress:
                 raise ValidationError(_("These location moves or deletions conflict. Review the destinations and empty locations."))
 
-        root = Location.objects.get(pk=self.root.pk)
-        if root.children.exists() or root.itemlocation_set.exists():
+        root = Location.active.get(pk=self.root.pk)
+        if root.children.filter(is_deleted=False).exists() or root.itemlocation_set.exists():
             raise ValidationError(_("The location is not empty and cannot be deleted."))
         root.delete()

@@ -53,7 +53,7 @@ class DissolveLocationTests(TestCase):
         return self.client.post(self.url, {"stage": "confirm", "plan": response.context["plan_token"], **extra})
 
     def assert_unchanged(self):
-        self.assertTrue(Location.objects.filter(pk=self.root.pk).exists())
+        self.assertTrue(Location.active.filter(pk=self.root.pk).exists())
         self.child.refresh_from_db()
         self.stock.refresh_from_db()
         self.assertEqual(self.child.parent_location_id, self.root.pk)
@@ -85,7 +85,8 @@ class DissolveLocationTests(TestCase):
     def test_confirmation_moves_contents_then_deletes_empty_root(self):
         response = self.confirm(self.client.post(self.url, self.data()))
         self.assertRedirects(response, self.parent.get_absolute_url())
-        self.assertFalse(Location.objects.filter(pk=self.root.pk).exists())
+        self.assertFalse(Location.active.filter(pk=self.root.pk).exists())
+        self.assertTrue(Location.objects.get(pk=self.root.pk).is_deleted)
         self.stock.refresh_from_db()
         self.child.refresh_from_db()
         self.leaf.refresh_from_db()
@@ -103,7 +104,8 @@ class DissolveLocationTests(TestCase):
         self.assertContains(response, "Nested item")
         self.assert_unchanged()
         self.confirm(response)
-        self.assertFalse(Location.objects.filter(pk__in=[self.root.pk, self.child.pk, self.leaf.pk]).exists())
+        self.assertFalse(Location.active.filter(pk__in=[self.root.pk, self.child.pk, self.leaf.pk]).exists())
+        self.assertEqual(Location.objects.filter(pk__in=[self.root.pk, self.child.pk, self.leaf.pk], is_deleted=True).count(), 3)
         self.assertFalse(ItemLocation.objects.filter(pk__in=[self.stock.pk, self.nested_stock.pk]).exists())
         self.assertEqual(Item.objects.filter(pk__in=[self.item.pk, self.nested_item.pk]).count(), 2)
 
@@ -136,7 +138,7 @@ class DissolveLocationTests(TestCase):
         data[f"location_{self.child.pk}_delete"] = True
         response = self.client.post(self.url, data)
         self.confirm(response)
-        self.assertFalse(Location.objects.filter(pk=self.child.pk).exists())
+        self.assertFalse(Location.active.filter(pk=self.child.pk).exists())
         self.leaf.refresh_from_db()
         self.nested_stock.refresh_from_db()
         self.assertEqual(self.leaf.parent_location_id, self.destination.pk)
@@ -240,7 +242,7 @@ class DissolveLocationTests(TestCase):
         response = self.client.post(self.url, {"stage": "review"})
         self.assertTrue(Location.objects.filter(pk=self.destination.pk).exists())
         self.assertRedirects(self.confirm(response), reverse("index_locations"))
-        self.assertFalse(Location.objects.filter(pk=self.destination.pk).exists())
+        self.assertFalse(Location.active.filter(pk=self.destination.pk).exists())
 
     def test_authentication_and_csrf(self):
         self.client.logout()

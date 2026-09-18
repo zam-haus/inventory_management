@@ -4,6 +4,7 @@ from crispy_forms.helper import FormHelper
 from crispy_forms import layout, bootstrap
 from crispy_bootstrap5.bootstrap5 import FloatingField
 from django.core.exceptions import ValidationError
+from django.db.models import Q
 from django.forms import (
     BooleanField, CharField, FileInput, Form, HiddenInput, IntegerField, ModelChoiceField, ModelForm,
     ModelMultipleChoiceField, RegexField, SelectMultiple, Textarea, TextInput,
@@ -35,7 +36,7 @@ class LocationMultipleChoiceField(ModelMultipleChoiceField):
 
 class PrintableInventoryForm(Form):
     locations = LocationMultipleChoiceField(
-        queryset=Location.objects.all(),
+        queryset=Location.active.all(),
         label=_("Locations"),
         help_text=_("Select one or more locations."),
         widget=SelectMultiple(attrs={"size": 12}),
@@ -62,6 +63,7 @@ class ItemForm(ModelForm):
     class Meta:
         model = Item
         fields = "__all__"
+        exclude = ["is_deleted"]
         widgets = {
             "description": Textarea(attrs={"rows": 3}),
             #'sale_price': TextInput(attrs={'type':'number', 'pattern':'[0-9,\.]*'})
@@ -223,6 +225,10 @@ class ItemImageInline(InlineFormSetFactory):
 
 
 class AdminItemLocationForm(ModelForm):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["location"].queryset = Location.active.all()
+
     class Meta:
         model = ItemLocation
         fields = ('__all__')
@@ -240,6 +246,7 @@ class ItemLocationForm(ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.fields["location"].queryset = Location.active.all()
         if "location" in self.initial and not "instance" in kwargs:
             self.fields["location"].disabled = True
 
@@ -263,6 +270,7 @@ class ItemLocationInline(InlineFormSetFactory):
 
     def construct_formset(self):
         formset = super().construct_formset()
+        formset.queryset = formset.queryset.filter(location__is_deleted=False)
         formset.helper = FormHelper()
         formset.helper.form_tag = False
         formset.helper.disable_csrf = True
@@ -287,6 +295,13 @@ class ItemLocationInline(InlineFormSetFactory):
         return formset
 
 class AdminLocationForm(ModelForm):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Retain the current parent when inspecting an archived hierarchy.
+        self.fields["parent_location"].queryset = Location.objects.filter(
+            Q(is_deleted=False) | Q(pk=self.instance.parent_location_id)
+        )
+
     class Meta:
         model = Location
         fields = ('__all__')
@@ -300,7 +315,7 @@ class DissolveLocationForm(Form):
     def __init__(self, *args, plan, **kwargs):
         super().__init__(*args, **kwargs)
         self.plan = plan
-        destinations = Location.objects.exclude(pk=plan.root.pk)
+        destinations = Location.active.exclude(pk=plan.root.pk)
 
         def destination_field(queryset):
             return ModelChoiceField(
@@ -363,7 +378,7 @@ class LocationMoveForm(ModelForm):
     parent_location = ModelChoiceField(
         label=_("Destination"),
         help_text=_("Search by location name or identifier and select the new parent location."),
-        queryset=Location.objects.filter(type__no_sublocations = False),
+        queryset=Location.active.filter(type__no_sublocations = False),
         widget=autocomplete.ModelSelect2(
             url='parent_location_autocomplete',
             forward=['id'],

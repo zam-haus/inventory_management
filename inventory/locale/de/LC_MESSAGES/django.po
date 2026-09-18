@@ -682,3 +682,25 @@ msgstr "Zurück zur Bearbeitung"
 
 msgid "Confirm moves and deletions"
 msgstr "Verschiebungen und Löschungen bestätigen"
+
+msgid "deleted"
+msgstr "gelöscht"
+
+msgid "Deleted locations cannot be used as destinations."
+msgstr "Gelöschte Standorte können nicht als Ziel verwendet werden."
+
+msgid "Not deleted"
+msgstr "Nicht gelöscht"
+
+msgid "Deleted"
+msgstr "Gelöscht"
+
+msgid "All"
+msgstr "Alle"
+
+#, python-format
+msgid "Mark as deleted: %(object)s"
+msgstr "Als gelöscht markieren: %(object)s"
+
+msgid "Permanently delete (including related records):"
+msgstr "Endgültig löschen (einschließlich zugehöriger Datensätze):"

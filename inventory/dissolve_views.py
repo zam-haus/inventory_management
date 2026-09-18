@@ -26,11 +26,11 @@ class DissolveLocationView(UserPassesTestMixin, View):
         })
 
     def get(self, request, pk):
-        plan = DissolutionPlan(get_object_or_404(Location, pk=pk), request.GET.get("recursive") == "1")
+        plan = DissolutionPlan(get_object_or_404(Location.active, pk=pk), request.GET.get("recursive") == "1")
         return self.show_plan(request, plan)
 
     def post(self, request, pk):
-        root = get_object_or_404(Location, pk=pk)
+        root = get_object_or_404(Location.active, pk=pk)
         stage = request.POST.get("stage", "review")
         recursive = request.POST.get("recursive") == "1"
         if stage in ("confirm", "edit"):
@@ -55,7 +55,7 @@ class DissolveLocationView(UserPassesTestMixin, View):
                 else:
                     messages.success(request, _("Location dissolved. Planned moves and deletions were completed."))
                     if root.parent_location_id:
-                        return redirect(Location.objects.get(pk=root.parent_location_id))
+                        return redirect(Location.active.get(pk=root.parent_location_id))
                     return redirect("index_locations")
             # Preserve the reviewed choices when going back or after a failed confirmation.
             data = {}
