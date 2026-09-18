@@ -5,7 +5,7 @@ from crispy_forms import layout, bootstrap
 from crispy_bootstrap5.bootstrap5 import FloatingField
 from django.core.exceptions import ValidationError
 from django.forms import (
-    CharField, FileInput, Form, HiddenInput, IntegerField, ModelChoiceField, ModelForm,
+    BooleanField, CharField, FileInput, Form, HiddenInput, IntegerField, ModelChoiceField, ModelForm,
     ModelMultipleChoiceField, RegexField, SelectMultiple, Textarea, TextInput,
 )
 from django.forms.utils import ErrorList
@@ -295,6 +295,50 @@ class AdminLocationForm(ModelForm):
         }
 
     id = IntegerField(widget=HiddenInput(), required = False)
+
+class DissolveLocationForm(Form):
+    def __init__(self, *args, plan, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.plan = plan
+        destinations = Location.objects.exclude(pk=plan.root.pk)
+
+        def destination_field(queryset):
+            return ModelChoiceField(
+                label=_("Destination"), queryset=queryset, required=False,
+                widget=autocomplete.ModelSelect2(
+                    url="location-autocomplete",
+                    attrs={"data-width": "100%", "data-placeholder": _("Search for a location…")},
+                ),
+            )
+
+        self.fields["bulk_destination"] = destination_field(destinations)
+        self.rows = []
+        for row in plan.rows:
+            key = row["key"]
+            self.fields[key + "_delete"] = BooleanField(label=_("Delete"), required=False)
+            queryset = destinations
+            if row["kind"] == "location":
+                queryset = queryset.exclude(pk=row["object"].pk).filter(type__no_sublocations=False)
+            self.fields[key + "_destination"] = destination_field(queryset)
+            if self.is_bound and self[key + "_delete"].value():
+                self.fields[key + "_destination"].disabled = True
+            self.rows.append({**row, "delete": self[key + "_delete"], "destination": self[key + "_destination"]})
+
+    def clean(self):
+        cleaned = super().clean()
+        operations = []
+        for row in self.plan.rows:
+            key = row["key"]
+            action = "delete" if cleaned.get(key + "_delete") else "move"
+            destination = cleaned.get(key + "_destination")
+            if action == "move" and destination is None:
+                self.add_error(key + "_destination", _("Choose a destination."))
+            operations.append([row["kind"], row["object"].pk, action, destination.pk if destination and action == "move" else None])
+        if not self.errors:
+            self.plan.validate(operations)
+            cleaned["operations"] = operations
+        return cleaned
+
 
 class LocationsMoveHereForm(Form):
     identifiers = CharField(

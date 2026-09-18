@@ -562,3 +562,123 @@ msgstr "Sachen und Unterstandorte bleiben dem jeweils verschobenen Standort zuge
 #, python-format
 msgid "On Android, try the <a href=\"%(scanner_url)s\" target=\"_blank\" rel=\"noopener noreferrer\">pretix barcode scanner keyboard</a> to scan location labels into this field."
 msgstr "Unter Android kannst du mit der <a href=\"%(scanner_url)s\" target=\"_blank\" rel=\"noopener noreferrer\">pretix Barcode-Scanner-Tastatur</a> Standortetiketten direkt in dieses Feld scannen."
+
+msgid "Dissolve location"
+msgstr "Standort auflösen"
+
+msgid "Action"
+msgstr "Aktion"
+
+msgid "Delete"
+msgstr "Löschen"
+
+msgid "Choose a destination."
+msgstr "Bitte einen Zielstandort auswählen."
+
+msgid "The inventory changed. Review the plan again."
+msgstr "Der Bestand hat sich geändert. Bitte den Plan erneut prüfen."
+
+msgid "Choose an action for every entry."
+msgstr "Bitte für jeden Eintrag eine Aktion auswählen."
+
+msgid "Choose a destination for every entry to move."
+msgstr "Bitte für jeden zu verschiebenden Eintrag einen Zielstandort auswählen."
+
+msgid "This destination cannot contain sub-locations."
+msgstr "Dieser Zielstandort kann keine Unterstandorte enthalten."
+
+msgid "A location selected for deletion still has sub-locations. Move or delete them first."
+msgstr "Ein zum Löschen ausgewählter Standort hat noch Unterstandorte. Diese zuerst verschieben oder löschen."
+
+msgid "Location tree may not contain cycles."
+msgstr "Der Standortbaum darf keine Zyklen enthalten."
+
+msgid "A location selected for deletion still contains items. Move or delete its stock entries first."
+msgstr "Ein zum Löschen ausgewählter Standort enthält noch Sachen. Die Bestandszuordnungen zuerst verschieben oder löschen."
+
+msgid "The same item would have two stock entries at one destination. Choose another destination; quantities are not merged automatically."
+msgstr "Dieselbe Sache hätte zwei Bestandszuordnungen an einem Zielstandort. Bitte ein anderes Ziel auswählen; Mengen werden nicht automatisch zusammengeführt."
+
+msgid "Two sub-locations would have the same short name at the destination."
+msgstr "Zwei Unterstandorte hätten am Ziel denselben Kurznamen."
+
+msgid "These stock moves depend on each other. Choose different destinations."
+msgstr "Diese Bestandsverschiebungen hängen voneinander ab. Bitte andere Zielstandorte auswählen."
+
+msgid "These location moves or deletions conflict. Review the destinations and empty locations."
+msgstr "Diese Standortverschiebungen oder Löschungen stehen im Konflikt. Bitte die Zielstandorte und zu leerenden Standorte prüfen."
+
+msgid "The location is not empty and cannot be deleted."
+msgstr "Der Standort ist nicht leer und kann nicht gelöscht werden."
+
+msgid "The confirmation expired or is invalid. Review the plan again."
+msgstr "Die Bestätigung ist abgelaufen oder ungültig. Bitte den Plan erneut prüfen."
+
+msgid "The plan conflicts with the current inventory. No changes were saved."
+msgstr "Der Plan steht im Konflikt mit dem aktuellen Bestand. Es wurden keine Änderungen gespeichert."
+
+msgid "Location dissolved. Planned moves and deletions were completed."
+msgstr "Standort aufgelöst. Die geplanten Verschiebungen und Löschungen wurden ausgeführt."
+
+msgid "Stock entry"
+msgstr "Bestandszuordnung"
+
+msgid "1. Plan moves and deletions"
+msgstr "1. Verschiebungen und Löschungen planen"
+
+msgid "Choose a destination or deletion for each entry. Nothing changes until you confirm on the next page."
+msgstr "Für jeden Eintrag ein Ziel oder das Löschen auswählen. Erst nach der Bestätigung auf der nächsten Seite wird etwas geändert."
+
+msgid "Deleting a stock entry removes only its association with the location, never the item itself. Locations can only be deleted once empty. Moving a sub-location keeps its remaining contents together."
+msgstr "Das Löschen einer Bestandszuordnung entfernt nur die Zuordnung zum Standort, niemals die Sache selbst. Standorte können nur leer gelöscht werden. Beim Verschieben eines Unterstandorts bleibt sein verbleibender Inhalt zusammen."
+
+msgid "Include all descendants and their stock entries"
+msgstr "Alle Unterstandorte und deren Bestandszuordnungen einbeziehen"
+
+msgid "Reload list"
+msgstr "Liste neu laden"
+
+msgid "Apply to all entries"
+msgstr "Auf alle Einträge anwenden"
+
+msgid "Use destination for all"
+msgstr "Ziel für alle übernehmen"
+
+msgid "Set all to delete"
+msgstr "Alle zum Löschen markieren"
+
+msgid "These shortcuts only fill the form. You can adjust each entry before reviewing."
+msgstr "Diese Schaltflächen füllen nur das Formular aus. Jeder Eintrag kann vor der Prüfung noch angepasst werden."
+
+msgid "Entries to handle"
+msgstr "Zu bearbeitende Einträge"
+
+msgid "This location is already empty. Continue to review its deletion."
+msgstr "Dieser Standort ist bereits leer. Weiter zur Prüfung seiner Löschung."
+
+msgid "Review moves and deletions"
+msgstr "Verschiebungen und Löschungen prüfen"
+
+msgid "2. Confirm and dissolve"
+msgstr "2. Bestätigen und auflösen"
+
+msgid "Review every move and deletion below. Confirming applies the whole plan and finally deletes the empty location. Cancelling changes nothing."
+msgstr "Bitte alle folgenden Verschiebungen und Löschungen prüfen. Die Bestätigung führt den gesamten Plan aus und löscht abschließend den leeren Standort. Beim Abbrechen wird nichts geändert."
+
+msgid "Only stock entries are deleted; the items themselves are kept."
+msgstr "Es werden nur Bestandszuordnungen gelöscht; die Sachen selbst bleiben erhalten."
+
+msgid "To be deleted"
+msgstr "Wird gelöscht"
+
+msgid "Deleted last, only when completely empty."
+msgstr "Wird zuletzt gelöscht, nur wenn vollständig leer."
+
+msgid "To be moved"
+msgstr "Wird verschoben"
+
+msgid "Back to editing"
+msgstr "Zurück zur Bearbeitung"
+
+msgid "Confirm moves and deletions"
+msgstr "Verschiebungen und Löschungen bestätigen"

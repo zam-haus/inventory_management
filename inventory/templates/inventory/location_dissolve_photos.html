@@ -1,0 +1,18 @@
+{% load i18n thumbnail %}
+{% if row.kind == 'item' %}
+    <div class="location-photos">
+        {% for image in row.object.item.itemimage_set.all %}
+            <a href="{{ image.image.url }}" class="location-photo" target="_blank" rel="noopener noreferrer">
+                {% thumbnail image.image "160x160" as im %}
+                    <img src="{{ im.url }}" width="72" height="72" alt="{{ image.description|default:row.object.item }}" loading="lazy">
+                {% empty %}
+                    <img src="{{ image.image.url }}" width="72" height="72" alt="{{ image.description|default:row.object.item }}" loading="lazy">
+                {% endthumbnail %}
+            </a>
+        {% empty %}
+            <span class="location-muted">{% trans "No images" %}</span>
+        {% endfor %}
+    </div>
+{% else %}
+    <span class="location-muted">—</span>
+{% endif %}

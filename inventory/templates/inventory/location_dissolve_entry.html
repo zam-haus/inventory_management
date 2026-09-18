@@ -1,0 +1,7 @@
+{% if row.kind == 'item' %}
+    <strong><a href="{{ row.object.item.get_absolute_url }}">{{ row.object.item }}</a></strong>
+    <div class="location-muted">{{ row.object.location.descriptive_identifier }}</div>
+{% else %}
+    <strong><a href="{{ row.object.get_absolute_url }}">{{ row.object.name }}</a></strong>
+    <div class="location-muted">{{ row.object.locatable_identifier }}</div>
+{% endif %}

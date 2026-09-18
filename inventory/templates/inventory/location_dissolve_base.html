@@ -1,0 +1,42 @@
+{% extends 'base.html' %}
+{% load i18n static %}
+
+{% block bootstrap5_extra_head %}
+    {{ block.super }}
+    {{ form.media.css }}
+    <link rel="stylesheet" href="{% static 'inventory/location_detail.css' %}">
+{% endblock %}
+{% block title %}{% trans "Dissolve location" %}: {{ object.unique_identifier }}{% endblock %}
+{% block admin_url %}{{ object.get_admin_url }}{% endblock %}
+{% block page_header %}
+    <header class="location-header">
+        <nav aria-label="{% trans 'Location navigation' %}" class="location-breadcrumb">
+            <a href="{% url 'index_locations' %}">{% trans "Locations" %}</a>
+            <span aria-hidden="true">/</span>
+            <a href="{{ object.get_absolute_url }}">{{ object.name }}</a>
+        </nav>
+        <div class="location-heading">
+            <div class="location-heading-text">
+                <p class="location-eyebrow">{% trans "Dissolve location" %}</p>
+                <h1>{{ object.name }}</h1>
+                <span class="location-identifier">{{ object.unique_identifier }}</span>
+            </div>
+            <div class="location-actions">
+                <a class="btn btn-outline-secondary" href="{{ object.get_absolute_url }}">{% trans "Cancel" %}</a>
+            </div>
+        </div>
+    </header>
+{% endblock %}
+{% block content %}
+    <div class="location-detail location-dissolve">
+        {% block dissolution_content %}{% endblock %}
+    </div>
+{% endblock %}
+{% block bootstrap5_extra_script %}
+    {{ block.super }}
+    {% if form %}
+        <script src="{% static 'static_jquery/js/jquery.min.js' %}"></script>
+        {{ form.media.js }}
+        <script src="{% static 'inventory/location_dissolve.js' %}"></script>
+    {% endif %}
+{% endblock %}

@@ -35,6 +35,9 @@
                     {% endif %}
                 {% endif %}
                 <a class="btn btn-outline-secondary location-print" href="{% url 'print_inventory' %}?locations={{ object.pk }}" aria-label="{% trans 'Print inventory' %}" data-bs-toggle="tooltip" title="{% trans 'Print inventory' %}"><span aria-hidden="true">🖨️</span></a>
+                {% if user.is_authenticated or request.session.is_zam_local %}
+                    <a class="btn btn-outline-danger location-print" href="{% url 'location_dissolve' pk=object.pk %}" aria-label="{% trans 'Dissolve location' %}" data-bs-toggle="tooltip" title="{% trans 'Dissolve location' %}"><span aria-hidden="true">❌</span></a>
+                {% endif %}
             </div>
         </div>
         {% if user.is_authenticated and not object.type.moveable %}

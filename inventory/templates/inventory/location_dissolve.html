@@ -1,0 +1,68 @@
+{% extends 'inventory/location_dissolve_base.html' %}
+{% load i18n django_bootstrap5 %}
+
+{% block dissolution_content %}
+    <section class="location-overview">
+        <div>
+            <h2 class="location-eyebrow">{% trans "1. Plan moves and deletions" %}</h2>
+            <p>{% trans "Choose a destination or deletion for each entry. Nothing changes until you confirm on the next page." %}</p>
+            <p class="location-muted">{% trans "Deleting a stock entry removes only its association with the location, never the item itself. Locations can only be deleted once empty. Moving a sub-location keeps its remaining contents together." %}</p>
+            <form method="get" class="d-flex flex-wrap gap-3 align-items-center">
+                <div class="form-check">
+                    <input class="form-check-input" id="recursive" type="checkbox" name="recursive" value="1" {% if recursive %}checked{% endif %}>
+                    <label class="form-check-label" for="recursive">{% trans "Include all descendants and their stock entries" %}</label>
+                </div>
+                <button class="btn btn-outline-secondary" type="submit">{% trans "Reload list" %}</button>
+            </form>
+        </div>
+    </section>
+    <form method="post" id="dissolve-plan" novalidate>
+        {% csrf_token %}
+        <input type="hidden" name="recursive" value="{% if recursive %}1{% else %}0{% endif %}">
+        {% bootstrap_form_errors form %}
+        {% if form.rows %}
+            <section class="location-panel mb-3" aria-labelledby="bulk-heading">
+                <div class="location-panel-heading">
+                    <h2 id="bulk-heading">{% trans "Apply to all entries" %}</h2>
+                    <div class="dissolve-bulk mt-3">
+                        <div>{% bootstrap_field form.bulk_destination %}</div>
+                        <button class="btn btn-outline-primary" type="button" id="dissolve-fill">{% trans "Use destination for all" %}</button>
+                        <button class="btn btn-outline-danger" type="button" id="dissolve-delete-all">{% trans "Set all to delete" %}</button>
+                    </div>
+                    <p class="location-muted">{% trans "These shortcuts only fill the form. You can adjust each entry before reviewing." %}</p>
+                </div>
+            </section>
+            <section class="location-panel" aria-labelledby="entries-heading">
+                <div class="location-panel-heading"><h2 id="entries-heading">{% trans "Entries to handle" %} <span class="location-count">{{ form.rows|length }}</span></h2></div>
+                <div class="table-responsive" role="region" aria-labelledby="entries-heading" tabindex="0">
+                    <table class="table dissolve-table dissolve-plan-table mb-0">
+                        <colgroup><col class="dissolve-entry-col"><col class="dissolve-amount-col"><col class="dissolve-photos-col"><col class="dissolve-destination-col"><col class="dissolve-delete-col"></colgroup>
+                        <thead><tr>
+                            <th scope="col">{% trans "Item" %} / {% trans "Location" %}</th>
+                            <th scope="col">{% trans "Amount" %}</th>
+                            <th scope="col">{% trans "Photos" %}</th>
+                            <th scope="col">{% trans "Destination" %}</th>
+                            <th scope="col" class="text-center">{% trans "Delete" %}</th>
+                        </tr></thead>
+                        <tbody>
+                            {% for row in form.rows %}
+                                <tr data-dissolve-row>
+                                    <th scope="row">{% include 'inventory/location_dissolve_entry.html' %}</th>
+                                    <td>{% if row.kind == 'item' %}{{ row.object.amount_text }}{% else %}—{% endif %}</td>
+                                    <td>{% include 'inventory/location_dissolve_photos.html' %}</td>
+                                    <td data-destination>{% bootstrap_field row.destination show_label=False %}</td>
+                                    <td data-delete class="dissolve-delete-cell">{% bootstrap_field row.delete show_label=False %}</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        {% else %}
+            <p>{% trans "This location is already empty. Continue to review its deletion." %}</p>
+        {% endif %}
+        <div class="location-actions mt-3">
+            <button class="btn btn-primary" type="submit" name="stage" value="review">{% trans "Review moves and deletions" %}</button>
+        </div>
+    </form>
+{% endblock %}

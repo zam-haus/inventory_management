@@ -4,10 +4,12 @@ from django.urls import path, include
 from django.views.generic.base import TemplateView
 
 from . import views
+from .dissolve_views import DissolveLocationView
 
 
 urlpatterns = [
     path("", views.index, name="index"),
+    path("loc/dissolve/<int:pk>", DissolveLocationView.as_view(), name="location_dissolve"),
     path("loc/move-here/<int:pk>", views.LocationsMoveHereView.as_view(), name="locations_move_here"),
 	path(
         "loc/<int:pk>",

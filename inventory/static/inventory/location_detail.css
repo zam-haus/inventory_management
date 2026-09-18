@@ -69,6 +69,23 @@
 .location-empty { padding: 1.5rem 1.2rem; border-top: 1px solid var(--location-border); }
 .location-empty p { margin-bottom: 1rem; }
 .location-move-form { padding: 0 1.2rem 1.2rem; }
+.dissolve-table { min-width: 36rem; table-layout: fixed; }
+.dissolve-plan-table { min-width: 48rem; }
+.dissolve-table > :not(caption) > * > * { padding: .8rem 1rem; vertical-align: top; }
+.dissolve-table thead th { background: #f7f9fb; font-size: .875rem; }
+.dissolve-table tbody th { font-weight: normal; }
+.dissolve-table .mb-3 { margin-bottom: 0 !important; }
+.dissolve-entry-col { width: 29%; }
+.dissolve-amount-col { width: 12%; }
+.dissolve-photos-col { width: 17%; }
+.dissolve-destination-col { width: 30%; }
+.dissolve-delete-col { width: 12%; }
+.dissolve-delete-cell .form-check { display: flex; justify-content: center; padding-left: 0; }
+.dissolve-delete-cell .form-check-input { float: none; margin-left: 0; width: 1.25rem; height: 1.25rem; cursor: pointer; }
+.dissolve-bulk { display: flex; flex-wrap: wrap; gap: .75rem; align-items: center; }
+.dissolve-bulk > div { flex: 1 1 18rem; min-width: 0; }
+.location-dissolve .select2-container { max-width: 100%; }
+.location-dissolve .select2-selection--single { min-height: 38px; }
 .location-move-form .select2-container { max-width: 100%; }
 .location-move-form .select2-container .select2-selection--single { min-height: 44px; height: auto; border-color: var(--location-border); border-radius: .375rem; }
 .location-move-form .select2-container .select2-selection__rendered { padding-top: .45rem; padding-bottom: .45rem; white-space: normal; line-height: 1.5; }
