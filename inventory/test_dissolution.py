@@ -1,6 +1,7 @@
 from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
+from django.contrib.auth.models import Permission
 from django.core.exceptions import ValidationError
 from django.test import Client, TestCase, override_settings
 from django.urls import reverse
@@ -33,6 +34,10 @@ class DissolveLocationTests(TestCase):
         cls.stock = ItemLocation.objects.create(item=cls.item, location=cls.root, amount=-25)
         cls.nested_stock = ItemLocation.objects.create(item=cls.nested_item, location=cls.leaf, amount=-9999)
         cls.user = get_user_model().objects.create_user(username="dissolver")
+        cls.user.user_permissions.add(*Permission.objects.filter(
+            content_type__app_label="inventory",
+            codename__in=["delete_location", "change_location", "change_itemlocation", "delete_itemlocation"],
+        ))
 
     def setUp(self):
         self.client.force_login(self.user)

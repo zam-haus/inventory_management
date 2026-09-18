@@ -78,7 +78,8 @@ class ItemForm(ModelForm):
     def __init__(self, data=None, files=None, auto_id='id_%s', prefix=None,
                  initial=None, error_class=ErrorList, label_suffix=None,
                  empty_permitted=False, instance=None, use_required_attribute=None,
-                 renderer=None):
+                 renderer=None, user=None):
+        self.user = user
         # initial barcode_data
         if instance is not None:
             barcode_data_string = ""
@@ -96,6 +97,9 @@ class ItemForm(ModelForm):
                          empty_permitted, instance, use_required_attribute,
                          renderer)
 
+        if user is not None and not any(user.has_perm(f"inventory.{action}_itembarcode") for action in ("add", "delete")):
+            self.fields["barcode_data"].disabled = True
+
         self.helper = FormHelper()
         self.helper.form_tag = False
         self.helper.disable_csrf = True
@@ -112,6 +116,28 @@ class ItemForm(ModelForm):
                 css_class="row"),
             bootstrap.FieldWithButtons("barcode_data")
         )
+
+    def clean_barcode_data(self):
+        value = self.cleaned_data["barcode_data"]
+        if self.user is None:
+            return value
+        desired = set()
+        for line in value.splitlines():
+            parts = line.split()
+            if parts:
+                desired.add((parts[0], parts[1] if len(parts) == 2 else None))
+        existing = set(self.instance.itembarcode_set.values_list("data", "type__name")) if self.instance.pk else set()
+        required = set()
+        if desired - existing:
+            required.add("inventory.add_itembarcode")
+        if existing - desired:
+            required.add("inventory.delete_itembarcode")
+        type_names = {name for _data, name in desired if name is not None}
+        if type_names - set(BarcodeType.objects.filter(name__in=type_names).values_list("name", flat=True)):
+            required.add("inventory.add_barcodetype")
+        if not self.user.has_perms(required):
+            raise ValidationError(_("You do not have permission to make these barcode changes."))
+        return value
 
     def save(self, commit=True):
         # process barcode_data
@@ -144,7 +170,7 @@ class ItemForm(ModelForm):
 class ItemAnnotationForm(ModelForm):
     class Meta:
         model = Item
-        fields = ["name", "description", "measurement_unit", "sale_price"]
+        fields = ["name", "category", "description", "measurement_unit", "sale_price"]
         widgets = {
             "description": Textarea(attrs={"rows": 3}),
             #'sale_price': TextInput(attrs={'type':'number', 'pattern':'[0-9,\.]*'})
@@ -202,7 +228,7 @@ class ItemImageInline(InlineFormSetFactory):
                 layout.HTML(
                     """
                     {% load static %}
-                    <div class="col-md-5" data-bs-toggle="modal" data-bs-target="#camera_modal">
+                    <div class="col-md-5" {% if not formset_form.image.field.disabled %}data-bs-toggle="modal" data-bs-target="#camera_modal"{% endif %}>
                     <img class="img-responsive" width="100%" src=
                     {% if formset_form.image.value %}
                         "{{ MEDIA_URL }}{{ formset_form.image.value }}"
@@ -312,7 +338,8 @@ class AdminLocationForm(ModelForm):
     id = IntegerField(widget=HiddenInput(), required = False)
 
 class DissolveLocationForm(Form):
-    def __init__(self, *args, plan, **kwargs):
+    def __init__(self, *args, plan, user, **kwargs):
+        self.user = user
         super().__init__(*args, **kwargs)
         self.plan = plan
         destinations = Location.active.exclude(pk=plan.root.pk)
@@ -328,16 +355,29 @@ class DissolveLocationForm(Form):
 
         self.fields["bulk_destination"] = destination_field(destinations)
         self.rows = []
+        self.can_move_rows = False
+        self.can_delete_rows = False
         for row in plan.rows:
             key = row["key"]
-            self.fields[key + "_delete"] = BooleanField(label=_("Delete"), required=False)
+            model = "location" if row["kind"] == "location" else "itemlocation"
+            can_delete = user.has_perm(f"inventory.delete_{model}")
+            can_move = user.has_perm(f"inventory.change_{model}")
+            self.can_move_rows |= can_move
+            self.can_delete_rows |= can_delete
+            self.fields[key + "_delete"] = BooleanField(label=_("Delete"), required=False, disabled=not can_delete)
+            if not can_delete:
+                self.fields[key + "_delete"].widget.attrs["title"] = _("You do not have permission to delete this entry.")
             queryset = destinations
             if row["kind"] == "location":
                 queryset = queryset.exclude(pk=row["object"].pk).filter(type__no_sublocations=False)
             self.fields[key + "_destination"] = destination_field(queryset)
-            if self.is_bound and self[key + "_delete"].value():
+            if not can_move:
+                self.fields[key + "_destination"].widget.attrs["data-move-forbidden"] = "true"
+                self.fields[key + "_destination"].widget.attrs["title"] = _("You do not have permission to move this entry.")
+            if not can_move or (self.is_bound and self[key + "_delete"].value()):
                 self.fields[key + "_destination"].disabled = True
             self.rows.append({**row, "delete": self[key + "_delete"], "destination": self[key + "_destination"]})
+        self.fields["bulk_destination"].disabled = not self.can_move_rows
 
     def clean(self):
         cleaned = super().clean()
@@ -346,6 +386,10 @@ class DissolveLocationForm(Form):
             key = row["key"]
             action = "delete" if cleaned.get(key + "_delete") else "move"
             destination = cleaned.get(key + "_destination")
+            model = "location" if row["kind"] == "location" else "itemlocation"
+            verb = "delete" if action == "delete" else "change"
+            if not self.user.has_perm(f"inventory.{verb}_{model}"):
+                self.add_error(None, _("You do not have permission for the selected action."))
             if action == "move" and destination is None:
                 self.add_error(key + "_destination", _("Choose a destination."))
             operations.append([row["kind"], row["object"].pk, action, destination.pk if destination and action == "move" else None])

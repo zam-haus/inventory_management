@@ -21,7 +21,9 @@
                 <h1>{{ object }}</h1>
             </div>
             <div class="item-actions">
+                {% if perms.inventory.change_item %}
                 <a class="btn btn-primary" href="{% url 'update_item' object.pk %}">{% trans "Edit item" %}</a>
+                {% endif %}
             </div>
         </div>
     </header>

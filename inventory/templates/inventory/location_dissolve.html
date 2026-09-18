@@ -26,8 +26,8 @@
                     <h2 id="bulk-heading">{% trans "Apply to all entries" %}</h2>
                     <div class="dissolve-bulk mt-3">
                         <div>{% bootstrap_field form.bulk_destination %}</div>
-                        <button class="btn btn-outline-primary" type="button" id="dissolve-fill">{% trans "Use destination for all" %}</button>
-                        <button class="btn btn-outline-danger" type="button" id="dissolve-delete-all">{% trans "Set all to delete" %}</button>
+                        <button class="btn btn-outline-primary" type="button" id="dissolve-fill" {% if not form.can_move_rows %}disabled{% endif %}>{% trans "Use destination for all" %}</button>
+                        <button class="btn btn-outline-danger" type="button" id="dissolve-delete-all" {% if not form.can_delete_rows %}disabled{% endif %}>{% trans "Set all to delete" %}</button>
                     </div>
                     <p class="location-muted">{% trans "These shortcuts only fill the form. You can adjust each entry before reviewing." %}</p>
                 </div>

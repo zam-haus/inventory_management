@@ -103,7 +103,7 @@ class LocationSoftDeletionTests(TestCase):
         form = ItemLocationForm({"location": self.archived.pk, "amount": 1})
         self.assertFalse(form.is_valid())
         self.assertNotIn(self.archived, LocationMoveForm().fields["parent_location"].queryset)
-        form = DissolveLocationForm(plan=DissolutionPlan(self.parent))
+        form = DissolveLocationForm(plan=DissolutionPlan(self.parent), user=self.user)
         self.assertNotIn(self.archived, form.fields["bulk_destination"].queryset)
         self.assertEqual(len(form.rows), 1)
         response = self.client.post(reverse("locations_move_here", args=[self.live.pk]), {"identifiers": "OLD"}, follow=True)

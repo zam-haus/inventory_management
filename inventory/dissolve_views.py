@@ -1,5 +1,5 @@
 from django.contrib import messages
-from django.contrib.auth.mixins import UserPassesTestMixin
+from django.contrib.auth.mixins import PermissionRequiredMixin
 from django.core import signing
 from django.core.exceptions import ValidationError
 from django.db import DataError, IntegrityError, transaction
@@ -10,19 +10,17 @@ from django.views import View
 from .dissolution import DissolutionPlan
 from .forms import DissolveLocationForm
 from .models import Location
-from .views import check_user_is_allowed
+from .permissions import require_dissolution_permissions
 
 
-class DissolveLocationView(UserPassesTestMixin, View):
+class DissolveLocationView(PermissionRequiredMixin, View):
+    permission_required = "inventory.delete_location"
     salt = "inventory.dissolve-location"
-
-    def test_func(self):
-        return check_user_is_allowed(self.request)
 
     def show_plan(self, request, plan, form=None):
         return render(request, "inventory/location_dissolve.html", {
             "object": plan.root, "recursive": plan.recursive,
-            "form": form if form is not None else DissolveLocationForm(plan=plan),
+            "form": form if form is not None else DissolveLocationForm(plan=plan, user=request.user),
         })
 
     def get(self, request, pk):
@@ -43,6 +41,7 @@ class DissolveLocationView(UserPassesTestMixin, View):
                 messages.error(request, _("The confirmation expired or is invalid. Review the plan again."))
                 return redirect("location_dissolve", pk=pk)
             if stage == "confirm":
+                require_dissolution_permissions(request.user, payload["operations"])
                 try:
                     with transaction.atomic():
                         plan = DissolutionPlan(root, recursive, lock=True)
@@ -63,13 +62,14 @@ class DissolveLocationView(UserPassesTestMixin, View):
                 data[f"{kind}_{row_pk}_delete"] = action == "delete"
                 data[f"{kind}_{row_pk}_destination"] = destination or ""
             plan = DissolutionPlan(root, recursive)
-            return self.show_plan(request, plan, DissolveLocationForm(data, plan=plan))
+            return self.show_plan(request, plan, DissolveLocationForm(data, plan=plan, user=request.user))
 
         plan = DissolutionPlan(root, recursive)
-        form = DissolveLocationForm(request.POST, plan=plan)
+        form = DissolveLocationForm(request.POST, plan=plan, user=request.user)
         if not form.is_valid():
             return self.show_plan(request, plan, form)
         operations = form.cleaned_data["operations"]
+        require_dissolution_permissions(request.user, operations)
         token = signing.dumps({
             "root": pk, "recursive": recursive, "operations": operations,
             "fingerprint": plan.fingerprint(),

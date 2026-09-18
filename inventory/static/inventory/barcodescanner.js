@@ -5,7 +5,7 @@ let barcode_textarea = document.querySelector("#id_barcode_data")
 let barcode_use_selected_button = document.querySelector("#barcode_use_selected")
 let barcode_result_thumbnails = document.querySelector("#result_strip_thumbnails");
 
-if (barcode_textarea){
+if (barcode_textarea && !barcode_textarea.disabled){
 	let button = document.createElement("button");
 	button.setAttribute('type', 'button');
 	button.setAttribute('class', 'btn btn-primary');

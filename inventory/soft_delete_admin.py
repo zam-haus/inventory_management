@@ -1,5 +1,5 @@
 from django.contrib import admin
-from django.core.exceptions import ValidationError
+from django.core.exceptions import PermissionDenied, ValidationError
 from django.utils.translation import gettext_lazy as _
 
 
@@ -26,6 +26,17 @@ class DeletedObjectFilter(admin.SimpleListFilter):
 
 class SoftDeleteAdminMixin:
     list_filter = (DeletedObjectFilter,)
+
+    def get_readonly_fields(self, request, obj=None):
+        fields = list(super().get_readonly_fields(request, obj))
+        if not self.has_delete_permission(request, obj):
+            fields.append("is_deleted")
+        return fields
+
+    def save_model(self, request, obj, form, change):
+        if "is_deleted" in form.changed_data and not self.has_delete_permission(request, obj):
+            raise PermissionDenied
+        super().save_model(request, obj, form, change)
 
     @admin.display(description=_("deleted"), ordering="is_deleted", empty_value="")
     def deleted_status(self, obj):

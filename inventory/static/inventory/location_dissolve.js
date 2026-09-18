@@ -8,7 +8,7 @@
     });
     const sync = row => {
         const {deletion, destination} = controls(row);
-        destination.disabled = deletion.checked;
+        destination.disabled = deletion.checked || destination.dataset.moveForbidden === "true";
     };
     rows.forEach(row => {
         controls(row).deletion.addEventListener('change', () => sync(row));
@@ -16,6 +16,7 @@
     });
     document.getElementById('dissolve-delete-all')?.addEventListener('click', () => {
         rows.forEach(row => {
+            if (controls(row).deletion.disabled) return;
             controls(row).deletion.checked = true;
             sync(row);
         });
@@ -30,6 +31,7 @@
         }
         rows.forEach(row => {
             const {deletion, destination} = controls(row);
+            if (destination.dataset.moveForbidden === "true") return;
             deletion.checked = false;
             sync(row);
             let option = Array.from(destination.options).find(option => option.value === selected.value);

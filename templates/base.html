@@ -31,7 +31,7 @@
             {% if user.is_authenticated %}
             {{ user.username }}
             {% endif %}
-            {% if request.session.is_zam_local %}
+            {% if user.is_zam_local %}
             (ZAM)
             {% endif %}
           </span>

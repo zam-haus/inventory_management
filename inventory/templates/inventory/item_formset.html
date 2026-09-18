@@ -69,17 +69,15 @@
     {% load crispy_forms_tags %}
     {% crispy form %}
 
+    {% for inline in inlines %}
     <div class="mb-3">
-        <legend>{{ inlines.0.helper.form_title }}</legend>
-        {% crispy inlines.0 %}
+        <legend>{{ inline.helper.form_title }}</legend>
+        {% crispy inline %}
+        {% if inline.prefix == 'itemimage_set' and perms.inventory.add_itemimage %}
         <button id="add_image_button" type="button" class="btn btn-primary">{% trans 'Add additional image' %}</button>
+        {% endif %}
     </div>
-
-    <div class="mb-3">
-        <legend>{{ inlines.1.helper.form_title }}</legend>
-        {% crispy inlines.1 %}
-    </div>
-    
+    {% endfor %}
 
     <input type="submit" name="save" value="{% trans 'Save' %}" class="btn btn-primary mb-3">
     {% if request.GET and request.GET.location_id %}
@@ -91,14 +89,14 @@
 {% block bootstrap5_extra_head %}
     {{ block.super }}
     {{ form.media.css }}
-    {{ inlines.1.media.css }}
+    {% for inline in inlines %}{{ inline.media.css }}{% endfor %}
 {% endblock %}
 
 {% block bootstrap5_extra_script %}
     {{ block.super }}
     <script type="text/javascript" src="{% static 'static_jquery/js/jquery.min.js' %}"></script>
     {{ form.media.js }}
-    {{ inlines.1.media.js }}
+    {% for inline in inlines %}{{ inline.media.js }}{% endfor %}
 
 <script type="text/javascript" src="{% static 'inventory/camera.js' %}"></script>
 <script type="text/javascript" src="{% static 'inventory/autocomplete.js' %}"></script>

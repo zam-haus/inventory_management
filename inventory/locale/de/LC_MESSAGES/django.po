@@ -704,3 +704,15 @@ msgstr "Als gelöscht markieren: %(object)s"
 
 msgid "Permanently delete (including related records):"
 msgstr "Endgültig löschen (einschließlich zugehöriger Datensätze):"
+
+msgid "You do not have permission to make these barcode changes."
+msgstr "Du hast keine Berechtigung für diese Barcode-Änderungen."
+
+msgid "You do not have permission to delete this entry."
+msgstr "Du hast keine Berechtigung, diesen Eintrag zu löschen."
+
+msgid "You do not have permission to move this entry."
+msgstr "Du hast keine Berechtigung, diesen Eintrag zu verschieben."
+
+msgid "You do not have permission for the selected action."
+msgstr "Du hast keine Berechtigung für die ausgewählte Aktion."

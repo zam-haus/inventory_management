@@ -19,12 +19,13 @@
         </div>
         </form>
     </div>
-    {% if incomplete_count %}
+    {% if incomplete_count and perms.inventory.change_item %}
         <div class='col-3'>
             <a href="{% url "annotate_item" incomplete_first_pk %}">Help annotate incomplete item descriptions ({{ incomplete_count }})</a>
         </div>
     {% endif %}
 </div>
+{% if perms.inventory.add_item %}
 <div class="row mb-3">
     <div class="col">
         <a href="{% url 'create_item' %}" class="btn btn-primary">
@@ -32,6 +33,7 @@
         </a>
     </div>
 </div>
+{% endif %}
 <table class="table table-striped">
     <thead><tr>
         <th scope="col">{% trans "Name" %}</td>

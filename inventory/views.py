@@ -14,28 +14,22 @@ from django.core.exceptions import ObjectDoesNotExist, PermissionDenied, Validat
 from django.utils.html import format_html, format_html_join
 import extra_views
 from django.utils.translation import gettext_lazy as _
-from django.contrib.auth.mixins import UserPassesTestMixin
+from django.contrib.auth.mixins import PermissionRequiredMixin
+from django.contrib.auth.decorators import permission_required
 from django.db.models import Prefetch, Q
 from dal import autocomplete
 from . import forms
 from . import models
 from .location_lookup import resolve_location_reference
+from .permissions import ItemEditorPermissionMixin
 
 # Create your views here.
-
-def check_user_is_allowed(request):
-    return ((not request.user.is_anonymous) or #we are logged in
-            request.session.get('is_zam_local', False)) #we are in local lan
 
 def index(request):
     return render(request, "inventory/index.html")
 
 class LocationAutocomplete(autocomplete.Select2QuerySetView):
     def get_queryset(self):
-        # Do not forget to filter out results depending on the logged-in user or other criteria
-        if not check_user_is_allowed(self.request):
-            return models.Location.active.none()
-
         qs = models.Location.active.all()
 
         # `self.q` is the search term from the user, provided by DAL.
@@ -48,12 +42,7 @@ class LocationAutocomplete(autocomplete.Select2QuerySetView):
 
         return qs
 
-class PrintableInventoryView(UserPassesTestMixin, View):
-    def test_func(self):
-        return not self.request.user.is_anonymous or self.request.session.get(
-            "is_zam_local", False
-        )
-
+class PrintableInventoryView(View):
     def get(self, request):
         form = forms.PrintableInventoryForm(request.GET if request.GET else None)
         include_children = request.GET.get("include_children") == "1"
@@ -107,16 +96,16 @@ class DetailLocationView(DetailView):
         return self.render_to_response(context)
 
 
+@permission_required("inventory.change_location", raise_exception=True)
 def update_location(request, pk, unique_identifier):
-    pass
+    return redirect("location_move", pk=pk)
 
-class LocationMoveView(UpdateView):
+class LocationMoveView(PermissionRequiredMixin, UpdateView):
+    permission_required = "inventory.change_location"
     template_name = 'inventory/location_move.html'
     form_class = forms.LocationMoveForm
     model = models.Location
     queryset = models.Location.active.all()
-    def test_func(self):
-        return check_user_is_allowed(self.request)
 
     def get(self, request, *args, **kwargs):
         if not self.get_object().type.moveable:
@@ -127,9 +116,8 @@ class LocationMoveView(UpdateView):
             return HttpResponseForbidden("This Location is not allowed to be moved in the Frontend.")
         return super().post(request, *args, **kwargs)
 
-class LocationsMoveHereView(UserPassesTestMixin, View):
-    def test_func(self):
-        return check_user_is_allowed(self.request)
+class LocationsMoveHereView(PermissionRequiredMixin, View):
+    permission_required = "inventory.change_location"
 
     def get_parent(self, pk):
         parent = get_object_or_404(models.Location.active.select_related("type"), pk=pk)
@@ -223,7 +211,8 @@ def category_json(request, pk):
         'parent_category': c.parent_category.pk if c.parent_category else None,
     })
 
-class CreateItemView(UserPassesTestMixin, extra_views.CreateWithInlinesView):
+class CreateItemView(ItemEditorPermissionMixin, extra_views.CreateWithInlinesView):
+    permission_required = "inventory.add_item"
     model = models.Item
     inlines = [forms.ItemImageInline, forms.ItemLocationInline]
     template_name = "inventory/item_formset.html"
@@ -265,11 +254,9 @@ class CreateItemView(UserPassesTestMixin, extra_views.CreateWithInlinesView):
             self.kwargs["initial"] = [{"location": location}]
         return super().construct_inlines()
 
-    def test_func(self):
-        return check_user_is_allowed(self.request)
 
-
-class UpdateItemView(UserPassesTestMixin, extra_views.UpdateWithInlinesView):
+class UpdateItemView(ItemEditorPermissionMixin, extra_views.UpdateWithInlinesView):
+    permission_required = "inventory.change_item"
     model = models.Item
     queryset = models.Item.active.all()
     inlines = [forms.ItemImageInline, forms.ItemLocationInline]
@@ -283,24 +270,20 @@ class UpdateItemView(UserPassesTestMixin, extra_views.UpdateWithInlinesView):
     def get_success_url(self):
         return self.object.get_absolute_url()
 
-    def test_func(self):
-        return check_user_is_allowed(self.request)
 
-
-class AnnotateItemView(UserPassesTestMixin, UpdateView):
+class AnnotateItemView(PermissionRequiredMixin, UpdateView):
+    permission_required = "inventory.change_item"
     model = models.Item
     queryset = models.Item.active.prefetch_related(Prefetch(
         "itemlocation_set", queryset=models.ItemLocation.objects.filter(location__is_deleted=False).select_related("location"),
     ))
     template_name = "inventory/item_annotate_form.html"
-    form_class = forms.ItemLocationForm
+    form_class = forms.ItemAnnotationForm
     factory_kwargs = {
         "extra": 1, #possible usage for additional related item
     }
     extra_context = {"title": _("Update Item")}
 
-    def test_func(self):
-        return check_user_is_allowed(self.request)
 
     def get_success_url(self):
         if self.request.POST and "save_next" in self.request.POST:
@@ -353,12 +336,8 @@ class SearchableItemListView(ListView):
             return self.model.objects.none()
 
 
-    def test_func(self):
-        return check_user_is_allowed(self.request)
-
 
 class SearchableLocationListView(
-        UserPassesTestMixin,
         extra_views.SearchableListMixin,
         extra_views.SortableListMixin,
         ListView):
@@ -374,23 +353,9 @@ class SearchableLocationListView(
     wrong_lookup = False
     paginate_by = 100
 
-    def test_func(self):
-        return check_user_is_allowed(self.request)
-
-
-#class DeleteItemView(UserPassesTestMixin, DeleteView):
-#    model = models.Item
-#    success_url = reverse_lazy('index_items')
-#    template_name = 'inventory/item_confirm_delete.html'
-#
-#    def test_func(self):
-#        return check_user_is_allowed(self.request)
-
 
 class ParentLocationAutocompleteView(autocomplete.Select2QuerySetView):
     def get_queryset(self):
-        if not check_user_is_allowed(self.request):
-            return models.Location.active.none()
         qs = models.Location.active.filter(type__no_sublocations = False)
         if self.q:
             qs = qs.filter(Q(name__icontains=self.q) | Q(unique_identifier__icontains=self.q))

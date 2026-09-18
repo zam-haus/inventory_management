@@ -4,6 +4,8 @@ import ipaddress
 
 from ipware import get_client_ip
 
+from accounts.groups import remember_zam_membership
+
 from pymaybe import maybe
 
 from . import settings
@@ -49,29 +51,26 @@ class ZAMLocalMiddleware:
         self.zam_ips = ip_ranges
 
     def __call__(self, request):
-        # Code to be executed for each request before
-        # the view (and later middleware) are called.
+        # Consume legacy session state before another network check can overwrite it.
+        was_local = request.session.pop("is_zam_local", False)
+        request.session.pop("last_seen_remote_addr", None)
+        user = request.user
+        if user.is_authenticated and user.is_zam_local:
+            return self.get_response(request)
 
-        s = request.session
         current_addr, _ = get_client_ip(request)
-        print("current_addr", current_addr)
+        try:
+            address = ipaddress.ip_address(current_addr)
+        except ValueError:
+            is_local = False
+        else:
+            is_local = any(address in network for network in self.zam_ips)
 
-        # If request ip changed
-        if current_addr is not None and \
-                current_addr != s.get('last_seen_remote_addr'):
-            # recheck locality, set zam_local accordingly
-            s.last_seen_remote_addr = current_addr
-            for ip in self.zam_ips:
-                print(ip)
-                if ipaddress.ip_address(current_addr) in ip:
-                    s['is_zam_local'] = True
-                    break
-            else:
-                s['is_zam_local'] = False
-
-        response = self.get_response(request)
-
-        # Code to be executed for each request/response after
-        # the view is called.
-
-        return response
+        if user.is_authenticated:
+            if was_local or is_local:
+                remember_zam_membership(user)
+        elif was_local or is_local:
+            # Keep a pending visit across the login redirect. This grants no access
+            # to anonymous users and is consumed once they authenticate.
+            request.session["is_zam_local"] = True
+        return self.get_response(request)

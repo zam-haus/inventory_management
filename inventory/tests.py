@@ -4,7 +4,7 @@ import re
 from urllib.parse import parse_qs, urlsplit
 
 from django.contrib.auth import get_user_model
-from django.contrib.auth.models import AnonymousUser
+from django.contrib.auth.models import AnonymousUser, Permission
 from django.test import Client, RequestFactory, TestCase, override_settings
 from django.urls import resolve, reverse
 from django.utils.translation import override
@@ -32,6 +32,7 @@ class LocationsMoveHereTests(TestCase):
         cls.child = Location.objects.create(type=cls.box_type, name="Child", short_name="C", parent_location=cls.box)
         cls.unique = Location.objects.create(type=cls.room_type, name="Unique", short_name="U", parent_location=cls.source)
         cls.user = get_user_model().objects.create_user(username="mover")
+        cls.user.user_permissions.add(Permission.objects.get(codename="change_location", content_type__app_label="inventory"))
 
     def setUp(self):
         self.client.force_login(self.user)
@@ -148,7 +149,7 @@ class LocationsMoveHereTests(TestCase):
         self.assertEqual(self.client.get(self.url).status_code, 403)
         self.assertEqual(self.client.post(self.url, {"identifiers": str(self.box.pk)}).status_code, 403)
 
-    def test_anonymous_remote_requests_cannot_move_but_local_requests_can(self):
+    def test_anonymous_requests_cannot_move_even_with_a_local_session(self):
         self.client.logout()
         self.assertEqual(self.client.get(self.url).status_code, 302)
         self.assertEqual(self.client.post(self.url, {"identifiers": str(self.box.pk)}).status_code, 302)
@@ -157,7 +158,9 @@ class LocationsMoveHereTests(TestCase):
         session = self.client.session
         session["is_zam_local"] = True
         session.save()
-        self.assertContains(self.post(str(self.box.pk)), "Locations moved: 1. Errors: 0.")
+        self.assertEqual(self.client.post(self.url, {"identifiers": str(self.box.pk)}).status_code, 302)
+        self.box.refresh_from_db()
+        self.assertEqual(self.box.parent_location_id, self.source.pk)
 
     def test_csrf_is_required(self):
         client = Client(enforce_csrf_checks=True)
@@ -326,8 +329,7 @@ class PrintableInventoryTests(TestCase):
 
     def test_access_matches_location_list(self):
         response = self.report([self.root], user=AnonymousUser())
-        self.assertEqual(response.status_code, 302)
-        self.assertIn("next=", response.url)
+        self.assertContains(response, "Screw photo")
         self.assertContains(self.report([self.root], user=AnonymousUser(), local=True), "Screw photo")
 
     def test_german_quantity_labels(self):

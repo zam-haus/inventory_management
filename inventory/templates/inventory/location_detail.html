@@ -25,7 +25,7 @@
                 <span class="location-identifier">{{ object.unique_identifier }} <button type="button" class="location-help location-help-icon" data-bs-toggle="tooltip" aria-label="{% trans 'Unique identifier for this storage location, used on labels and to find the location in the inventory.' %}" title="{% trans 'Unique identifier for this storage location, used on labels and to find the location in the inventory.' %}"><span aria-hidden="true">ⓘ</span></button></span>
             </div>
             <div class="location-actions">
-                {% if user.is_authenticated %}
+                {% if perms.inventory.change_location %}
                     {% if object.type.moveable %}
                         <a class="btn btn-outline-secondary" href="{% url 'location_move' pk=object.id %}">{% trans "Move location" %}</a>
                     {% else %}
@@ -35,12 +35,12 @@
                     {% endif %}
                 {% endif %}
                 <a class="btn btn-outline-secondary location-print" href="{% url 'print_inventory' %}?locations={{ object.pk }}" aria-label="{% trans 'Print inventory' %}" data-bs-toggle="tooltip" title="{% trans 'Print inventory' %}"><span aria-hidden="true">🖨️</span></a>
-                {% if user.is_authenticated or request.session.is_zam_local %}
+                {% if perms.inventory.delete_location %}
                     <a class="btn btn-outline-danger location-print" href="{% url 'location_dissolve' pk=object.pk %}" aria-label="{% trans 'Dissolve location' %}" data-bs-toggle="tooltip" title="{% trans 'Dissolve location' %}"><span aria-hidden="true">❌</span></a>
                 {% endif %}
             </div>
         </div>
-        {% if user.is_authenticated and not object.type.moveable %}
+        {% if perms.inventory.change_location and not object.type.moveable %}
             <span id="location-move-unavailable" class="visually-hidden">{% blocktrans with location_type=object.type.name %}Moving is disabled for location type “{{ location_type }}”.{% endblocktrans %}</span>
         {% endif %}
     </header>
@@ -77,7 +77,9 @@
                 <div class="location-panel-heading">
                     <div class="location-panel-title-row">
                         <h2 id="location-items-heading">{% trans "Items" %} <span class="location-count">{{ entries|length }}</span></h2>
+                        {% if perms.inventory.add_item and perms.inventory.add_itemlocation %}
                         <a class="btn btn-primary location-add-item" href="{% url 'create_item' %}?location_id={{ object.pk }}" data-bs-toggle="tooltip" title="{% trans 'Add an item at this location' %}" aria-label="{% trans 'Add an item at this location' %}"><span aria-hidden="true">+</span></a>
+                        {% endif %}
                     </div>
                     <p class="location-muted">{% trans "Only items stored directly at this location are shown." %}
                     </p>
@@ -126,7 +128,7 @@
                 <div class="location-panel-heading">
                     <div class="location-panel-title-row">
                         <h2 id="location-children-heading">{% trans "Sub-Locations" %} <span class="location-count">{{ children|length }}</span></h2>
-                        {% if user.is_authenticated or request.session.is_zam_local %}
+                        {% if perms.inventory.change_location %}
                             {% if not object.type.no_sublocations %}
                                 <a class="btn btn-outline-secondary location-move-here" href="{% url 'locations_move_here' pk=object.pk %}" data-bs-toggle="tooltip" title="{% trans 'Move locations into this location' %}" aria-label="{% trans 'Move locations into this location' %}"><span aria-hidden="true">📥</span></a>
                             {% else %}

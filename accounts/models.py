@@ -20,6 +20,12 @@ class User(AbstractUser):
         null=True, blank=True,
         help_text=_("This field contains the newest known data about this user. It might be outdated, though."))
 
+    @property
+    def is_zam_local(self):
+        from .groups import ZAM_LOCAL_GROUP_NAME
+
+        return self.groups.filter(name=ZAM_LOCAL_GROUP_NAME).exists()
+
     def set_password(self, raw_password):
         super().set_password(raw_password=raw_password)
         self.password_last_changed = timezone.now()

@@ -10,6 +10,7 @@ from django.template.defaultfilters import urlencode
 from mozilla_django_oidc.auth import OIDCAuthenticationBackend
 
 from accounts.models import User
+from accounts.groups import ZAM_LOCAL_GROUP_NAME
 from django.conf import settings
 from pymaybe import maybe
 
@@ -79,7 +80,9 @@ class CustomOidcAuthenticationBackend(OIDCAuthenticationBackend):
 
     def update_groups(self, user, claims, save_user=True):
         # create any non-existent groups
-        for gn in claims['groups']:
+        for gn in claims.get('groups', []):
+            if gn == ZAM_LOCAL_GROUP_NAME:
+                continue
             try:
                 g = Group.objects.get(name=gn)
             except Group.DoesNotExist:

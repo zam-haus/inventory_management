@@ -59,6 +59,34 @@ To get started do the following:
     `python manage.py runserver`
 8. You can now login through the admin interface at `/admin`. This will also log you in to the frontend. The frontend login link will not work (as it relies on a working OIDC setup).
 
+## Permissions
+
+Frontend lists, details, searches, autocomplete and printable inventories are public.
+Editing requires login and Django's `add`, `change` or `delete` permission for the
+relevant model. Assign permissions to groups in **Admin → Authentication and
+Authorization → Groups**, then assign users to those groups. Superusers retain
+full access; being logged in or being staff alone does not grant inventory editing.
+
+Item metadata, photos, barcodes and stock entries have separate model permissions.
+For example, creating an item at a location requires `add_item` and
+`add_itemlocation`. Moving locations requires `change_location`. Dissolving a
+location requires `delete_location`, plus `change_location` / `change_itemlocation`
+for moves and `delete_itemlocation` for stock removal. Permissions are checked
+again when confirming a dissolution. Changing the deleted flag in admin also
+requires the corresponding delete permission.
+
+Migration `accounts.0002_zam_local_group` creates the reserved **ZAM-local** group
+with add and change permissions for inventory models, but no delete permissions.
+Its permissions can subsequently be adjusted in admin. A logged-in user joins this
+group after detection on the ZAM network or when carrying an existing
+`is_zam_local` session flag; that flag is then consumed. Anonymous local visits can
+be remembered through the login redirect, but do not permit anonymous editing.
+Membership belongs to the user and persists across logins and network changes.
+SSO claims cannot assign this reserved group, and SSO updates never remove it.
+The `(ZAM)` indicator reads group membership rather than session state.
+
+Apply migrations with `python manage.py migrate` when deploying this change.
+
 ## Label Printing
 Print jobs are passed to the printer via MQTT. A simple print server, listening to a (currently) hard-coded topic on mqtt.zam.haus and passing them onto a (currently) hard-coded printer is implemented by `print_server.py`. A more flexible (and complex) solution is planned.
 

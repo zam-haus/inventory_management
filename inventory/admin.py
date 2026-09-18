@@ -1,4 +1,5 @@
 from django.contrib import admin
+from django.contrib.auth.mixins import PermissionRequiredMixin
 from django import forms
 from django.urls import path
 from django.db.models import TextField, CharField
@@ -46,7 +47,7 @@ class LocationInlineFormSet(forms.BaseInlineFormSet):
                 current.validate_deletion(hard=current.is_deleted)
 
 
-class LocationInline(admin.TabularInline):
+class LocationInline(SoftDeleteAdminMixin, admin.TabularInline):
     model = models.Location
     formset = LocationInlineFormSet
     verbose_name = "location's child"
@@ -222,7 +223,8 @@ class MassAddLocationsForm(forms.Form):
         return sub_type
 
 
-class MassAddLocationsAdminView(FormView):
+class MassAddLocationsAdminView(PermissionRequiredMixin, FormView):
+    permission_required = "inventory.add_location"
     form_class = MassAddLocationsForm
     template_name = "admin/inventory/location_massadd.html"
     success_url = "/admin/inventory/location"
