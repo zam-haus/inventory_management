@@ -84,3 +84,28 @@ class ZAMMembershipTests(TestCase):
             self.visit()
         self.assertTrue(self.user.is_zam_local)
         self.assertTrue(self.user.has_perm("inventory.add_item"))
+
+
+class OidcProfileTests(TestCase):
+    @override_settings(OIDC_ADMIN_GROUPS=["admins"], OIDC_STAFF_GROUPS=["staff"])
+    def test_profile_groups_and_roles_set_and_clear_admin_flags(self):
+        user = get_user_model().objects.create_user(username="profile")
+        backend = object.__new__(CustomOidcAuthenticationBackend)
+        claims = {"email": "profile@example.org", "given_name": "Test", "family_name": "User"}
+        backend.update_profile(user, {**claims, "groups": ["admins"], "roles": ["staff"]})
+        user.refresh_from_db()
+        self.assertTrue(user.is_superuser)
+        self.assertTrue(user.is_staff)
+        backend.update_profile(user, claims)
+        user.refresh_from_db()
+        self.assertFalse(user.is_superuser)
+        self.assertFalse(user.is_staff)
+
+    @override_settings(OIDC_CLAIM_REFERENCE_KEY="directory_id")
+    def test_missing_claim_does_not_match_local_users(self):
+        user = get_user_model().objects.create_user(username="local")
+        backend = object.__new__(CustomOidcAuthenticationBackend)
+        self.assertFalse(backend.filter_users_by_claims({}).exists())
+        user.directory_reference = "directory-123"
+        user.save()
+        self.assertEqual(list(backend.filter_users_by_claims({"directory_id": "directory-123"})), [user])

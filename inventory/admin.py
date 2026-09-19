@@ -1,24 +1,21 @@
-from django.contrib import admin
-from django.contrib.auth.mixins import PermissionRequiredMixin
-from django import forms
-from django.urls import path
-from django.db.models import TextField, CharField
-from django.views.generic import FormView
-from django.db import transaction
-from django.core.exceptions import ValidationError
-from django.contrib.admin.views.decorators import staff_member_required
-from django.utils.decorators import method_decorator
-from django.shortcuts import redirect
-from django.urls import reverse
-from django.contrib import messages
 from dal import autocomplete
-
+from django import forms
+from django.contrib import admin, messages
+from django.contrib.admin.views.decorators import staff_member_required
+from django.contrib.auth.mixins import PermissionRequiredMixin
+from django.core.exceptions import ValidationError
+from django.db import transaction
+from django.db.models import CharField, TextField
+from django.shortcuts import redirect
+from django.urls import path, reverse
+from django.utils.decorators import method_decorator
+from django.views.generic import FormView
 
 from . import models
-from .forms import AdminLocationForm, AdminItemLocationForm
+from .forms import AdminItemLocationForm, AdminLocationForm
 from .soft_delete_admin import SoftDeleteAdminMixin
 
-# Register your models here.
+
 admin.site.register(models.LocationType)
 admin.site.register(models.MeasurementUnit)
 admin.site.register(models.BarcodeType)
@@ -65,22 +62,17 @@ class LocationAdmin(SoftDeleteAdminMixin, admin.ModelAdmin):
     search_fields = ('locatable_identifier', 'name')
     actions = ["send_to_printer_action", "send_to_printer_twice_action"]
     inlines = [LocationInline]
-    inlines_popup = []
     form = AdminLocationForm
 
     def get_form(self, request, obj=None, **kwargs):
-        form = super(LocationAdmin, self).get_form(request, obj, **kwargs)
-        id = 0
-        if obj:
-            id = obj.id
-        form.base_fields['id'].initial = id
+        form = super().get_form(request, obj, **kwargs)
+        form.base_fields["id"].initial = obj.pk if obj else 0
         return form
 
     def get_inlines(self, request, obj):
         if "_to_field" in request.GET and "_popup" in request.GET:
             return []
-        else:
-            return self.inlines
+        return self.inlines
 
     def get_urls(self):
         urls = super().get_urls()
@@ -123,50 +115,27 @@ class LocationAdmin(SoftDeleteAdminMixin, admin.ModelAdmin):
 
     @admin.action(description="Print location labels")
     def send_to_printer_action(self, request, queryset):
-        successes, fails = 0, []
-        for loc in queryset:
-            try:
-                loc.send_to_printer()
-                successes += 1
-            except Exception as e:
-                fails.append(str(e))
-        if successes:
-            messages.add_message(
-                request, messages.INFO, "Sent {} label(s) to printer.".format(successes)
-            )
-        if fails:
-            for emsg in set(fails):
-                messages.add_message(
-                    request,
-                    messages.ERROR,
-                    "Failed sending {} label(s) to printer: {}".format(
-                        fails.count(emsg), emsg
-                    ),
-                )
+        self._print_labels(request, queryset, copies=1)
 
     @admin.action(description="Print location labels twice (2x)")
     def send_to_printer_twice_action(self, request, queryset):
-        successes, fails = 0, []
-        for loc in queryset:
+        self._print_labels(request, queryset, copies=2)
+
+    def _print_labels(self, request, queryset, copies):
+        successes, failures = 0, []
+        for location in queryset:
             try:
-                loc.send_to_printer()
-                loc.send_to_printer()
-                successes += 2
-            except Exception as e:
-                fails.append(str(e))
+                for _ in range(copies):
+                    location.send_to_printer()
+                successes += copies
+            except Exception as error:
+                failures.append(str(error))
         if successes:
-            messages.add_message(
-                request, messages.INFO, "Sent {} label(s) to printer.".format(successes)
+            messages.info(request, f"Sent {successes} label(s) to printer.")
+        for error in set(failures):
+            messages.error(
+                request, f"Failed sending {failures.count(error)} label(s) to printer: {error}",
             )
-        if fails:
-            for emsg in set(fails):
-                messages.add_message(
-                    request,
-                    messages.ERROR,
-                    "Failed sending {} label(s) to printer: {}".format(
-                        fails.count(emsg), emsg
-                    ),
-                )
 
 
 admin.site.register(models.Location, LocationAdmin)
@@ -241,8 +210,6 @@ class MassAddLocationsAdminView(PermissionRequiredMixin, FormView):
     @transaction.atomic
     def form_valid(self, form):
         data = form.cleaned_data
-        print(data)
-        # create a list of locations
         loc_type = data["location_type"]
         sub_type = data["sub_type"]
 
@@ -250,33 +217,30 @@ class MassAddLocationsAdminView(PermissionRequiredMixin, FormView):
         for name, short_name in loc_type.generate_names(
             data["count"], start=data["sequence_start"]
         ):
-            l = models.Location()
-            l.name = name
-            l.short_name = short_name
-            l.type = loc_type
-            l.parent_location = data["parent_location"]
-            l.label_template = data["label_template"] or None
-            l.description = data['description'] or ""
-            l.save()
+            location = models.Location.objects.create(
+                name=name,
+                short_name=short_name,
+                type=loc_type,
+                parent_location=data["parent_location"],
+                label_template=data["label_template"],
+                description=data["description"] or "",
+            )
             if data["print"]:
-                for i in range(data["print_multiple"] or 1):
-                    l.send_to_printer()
+                for _ in range(data["print_multiple"] or 1):
+                    location.send_to_printer()
 
             # create sub-locations
-            print(sub_type)
             if sub_type is not None:
-                print("subtype")
                 for name, short_name in sub_type.generate_names(data["sub_count"]):
-                    print(name, short_name)
-                    sl = models.Location()
-                    sl.name = name
-                    sl.short_name = short_name
-                    sl.type = sub_type
-                    sl.parent_location = l
-                    sl.label_template = data["sub_label_template"] or None
-                    sl.save()
+                    child = models.Location.objects.create(
+                        name=name,
+                        short_name=short_name,
+                        type=sub_type,
+                        parent_location=location,
+                        label_template=data["sub_label_template"],
+                    )
                     if data["sub_print"]:
-                        sl.send_to_printer()
+                        child.send_to_printer()
 
         return super().form_valid(form)
 

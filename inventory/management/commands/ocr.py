@@ -2,9 +2,8 @@ import logging
 import multiprocessing as mp
 import sys
 from datetime import datetime
-from multiprocessing import Pool
 
-from django.core.management.base import BaseCommand, CommandError
+from django.core.management.base import BaseCommand
 from django.utils.timezone import make_aware
 from tqdm import tqdm
 
@@ -43,7 +42,7 @@ class Command(BaseCommand):
         formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
         handler.setFormatter(formatter)
         return logger
-        
+
     def get_images_filtered(self, rerun, since_parsed):
         filters = {}
         if not rerun:
@@ -55,15 +54,14 @@ class Command(BaseCommand):
     def handle(self, *args, rerun=False, since=None,  **kwargs):
         self.get_logger()
         since_parsed = self.parse_since_argument(since)
-        mp.set_start_method("fork")
         logger.info("Collecting image paths...")
         id_to_path = {image.id : image.image.path for image in self.get_images_filtered(rerun, since_parsed)}
         logger.info(f"Running OCR on {len(id_to_path)} images")
         logger.info("")
-        with Pool(4) as pool:
-            id_to_ocr_text = dict(list(tqdm(pool.imap(func=run_ocr, iterable=id_to_path.items()), total=len(id_to_path))))
+        with mp.get_context("fork").Pool(4) as pool:
+            id_to_ocr_text = dict(tqdm(pool.imap(func=run_ocr, iterable=id_to_path.items()), total=len(id_to_path)))
         logging.info("Writing results to database")
         for image_id, ocr_text in tqdm(id_to_ocr_text.items()):
             image_db = ItemImage.objects.get(id=image_id)
             image_db.update_ocr_text(ocr_text)
-        
+

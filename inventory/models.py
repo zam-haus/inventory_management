@@ -2,28 +2,22 @@ from datetime import datetime
 from string import Template
 import urllib.parse
 
-from inventory.ocr_util import ocr_on_image_path
-from .soft_delete import SoftDeleteModel
-from paho.mqtt import client as mqttc
-from pydoc import describe
-from typing_extensions import Required
-from xml.etree.ElementTree import Comment
-from django.db import models, transaction
-from django.core import validators
 from computedfields.models import ComputedFieldsModel, computed
-from django.forms import ValidationError
-from django.urls import reverse
-from django.utils.html import escape
-from django.utils.safestring import mark_safe
 from django.conf import settings
-from django.utils.translation import gettext_lazy as _
-from django.utils.timezone import make_aware
+from django.core import validators
+from django.core.exceptions import ValidationError
+from django.db import models, transaction
 from django.db.models.signals import pre_delete
-from django.dispatch.dispatcher import receiver
+from django.dispatch import receiver
+from django.urls import reverse
+from django.utils import timezone
+from django.utils.html import format_html
+from django.utils.translation import gettext_lazy as _
+from paho.mqtt import client as mqttc
 from sorl.thumbnail import delete
 
-
-# Create your models here.
+from .ocr_util import ocr_on_image_path
+from .soft_delete import SoftDeleteModel
 
 
 class Item(SoftDeleteModel):
@@ -32,12 +26,8 @@ class Item(SoftDeleteModel):
         verbose_name_plural = _("items")
         ordering = ["id"]
 
-    # TODO use UUID as id?
-    # id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     name = models.CharField(_("item name"), max_length=512, blank=True, null=True)
     description = models.TextField(_("description"), blank=True)
-    # TODO implement signal for automatic adoption by parent_location
-    # https://stackoverflow.com/questions/43857902/django-set-foreign-key-to-parent_location-value-on-delete
     category = models.ForeignKey(
         "Category",
         on_delete=models.SET_NULL,
@@ -74,7 +64,7 @@ class Item(SoftDeleteModel):
             "admin:inventory_item_change",
             args=(self.pk,),
         )
-    
+
     @classmethod
     def filter_incomplete(cls, ordered=False):
         # prefilter:
@@ -93,7 +83,7 @@ class Item(SoftDeleteModel):
             relevant_items = relevant_items.annotate(
                 amount=models.Sum(models.functions.math.Abs('itemlocation__amount')))
             relevant_items = relevant_items.order_by('-pl_count', '-amount')
-        
+
         return relevant_items
 
 
@@ -105,8 +95,6 @@ class Category(ComputedFieldsModel):
 
     name = models.CharField(_("category name"), max_length=512)
     description = models.TextField(blank=True)
-    # TODO implement signal for automatic adoption by parent_location
-    # https://stackoverflow.com/questions/43857902/django-set-foreign-key-to-parent_location-value-on-delete
     parent_category = models.ForeignKey(
         "self",
         verbose_name=_("parent category"),
@@ -140,15 +128,12 @@ class ItemImage(models.Model):
     ocr_timestamp = models.DateTimeField(blank=True, null=True)
 
     def image_tag(self, location=None):
-        return mark_safe(
-            '<img src="%s" width="512" />' % escape(self.image.url)
-        )
+        return format_html('<img src="{}" width="512" />', self.image.url)
     image_tag.short_description = "Image"
-    image_tag.allow_tags = True
 
     def update_ocr_text(self, ocr_text):
         self.ocr_text = ocr_text
-        self.ocr_timestamp = make_aware(datetime.utcnow())
+        self.ocr_timestamp = timezone.now()
         self.save()
 
     def run_ocr(self):
@@ -181,10 +166,6 @@ def delete_file(sender, instance, using, **kwargs):
 
 
 class ItemBarcode(models.Model):
-    # Enable after inital data cleanup:
-    # class Meta:
-    #     unique_together = [['data', 'type']]
-
     data = models.TextField(_("data"))
     type = models.ForeignKey(
         "BarcodeType",
@@ -362,11 +343,8 @@ class LocationLabelTemplate(models.Model):
         )
 
     def image_tag(self, location=None):
-        return mark_safe(
-            '<img width="100%%" src="%s" />' % escape(self.get_lablary_url(location))
-        )
+        return format_html('<img width="100%" src="{}" />', self.get_lablary_url(location))
     image_tag.short_description = "Rendered label"
-    image_tag.allow_tags = True
 
 
     def send_to_printer(self, location=None):
@@ -564,7 +542,7 @@ class Location(SoftDeleteModel, ComputedFieldsModel):
             "view_location",
             kwargs={"pk": self.pk, "unique_identifier": self.unique_identifier},
         )
-    
+
     def get_admin_url(self):
         return reverse(
             "admin:inventory_location_change",

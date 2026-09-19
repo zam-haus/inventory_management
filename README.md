@@ -85,6 +85,20 @@ Membership belongs to the user and persists across logins and network changes.
 SSO claims cannot assign this reserved group, and SSO updates never remove it.
 The `(ZAM)` indicator reads group membership rather than session state.
 
+Local detection matches the client IP against all DNS A records of `das.zam.haus`
+by default. Configure `ZAM_LOCAL_SOURCES` as a list in local settings, for example:
+
+```python
+ZAM_LOCAL_SOURCES = ["das.zam.haus", "another.example.org", "192.0.2.5", "198.51.100.0/24", "2001:db8::/32"]
+```
+
+Alternatively, set the `ZAM_LOCAL_SOURCES` environment variable to a comma-separated
+list. Literal addresses and CIDR ranges support IPv4 and IPv6; hostname lookups use
+IPv4 A records. An empty list disables new network-based grants. DNS results are
+cached per worker for `ZAM_LOCAL_DNS_CACHE_SECONDS` (default: 60 seconds; 0 disables
+caching). Failed lookups do not match clients or retain expired addresses; other
+configured sources still work. Existing group members need no DNS lookup.
+
 Apply migrations with `python manage.py migrate` when deploying this change.
 
 ## Label Printing

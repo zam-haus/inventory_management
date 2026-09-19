@@ -1,9 +1,7 @@
 import uuid
 
-from django.db import models
-
 from django.contrib.auth.models import AbstractUser
-
+from django.db import models
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
@@ -31,7 +29,7 @@ class User(AbstractUser):
         self.password_last_changed = timezone.now()
 
     def set_unusable_password(self):
-        super(User, self).set_unusable_password()
+        super().set_unusable_password()
         self.password_last_changed = timezone.now()
 
     def __str__(self):

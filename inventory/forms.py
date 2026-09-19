@@ -9,10 +9,8 @@ from django.forms import (
     BooleanField, CharField, FileInput, Form, HiddenInput, IntegerField, ModelChoiceField, ModelForm,
     ModelMultipleChoiceField, RegexField, SelectMultiple, Textarea, TextInput,
 )
-from django.forms.utils import ErrorList
 from extra_views import InlineFormSetFactory
 from django.utils.translation import gettext_lazy as _
-from django.utils import timezone
 from dal import autocomplete
 
 
@@ -66,7 +64,6 @@ class ItemForm(ModelForm):
         exclude = ["is_deleted"]
         widgets = {
             "description": Textarea(attrs={"rows": 3}),
-            #'sale_price': TextInput(attrs={'type':'number', 'pattern':'[0-9,\.]*'})
         }
 
     barcode_data = RegexField(
@@ -75,27 +72,14 @@ class ItemForm(ModelForm):
         required=False,
     )
 
-    def __init__(self, data=None, files=None, auto_id='id_%s', prefix=None,
-                 initial=None, error_class=ErrorList, label_suffix=None,
-                 empty_permitted=False, instance=None, use_required_attribute=None,
-                 renderer=None, user=None):
+    def __init__(self, *args, user=None, **kwargs):
+        super().__init__(*args, **kwargs)
         self.user = user
-        # initial barcode_data
-        if instance is not None:
-            barcode_data_string = ""
-            for bc in instance.itembarcode_set.all():
-                barcode_data_string += bc.data
-                if bc.type is not None:
-                    barcode_data_string += " " + bc.type.name
-                barcode_data_string += '\n'
-            if initial is None:
-                initial = {}
-            initial['barcode_data'] = barcode_data_string
-
-        super().__init__(data, files, auto_id, prefix,
-                         initial, error_class, label_suffix,
-                         empty_permitted, instance, use_required_attribute,
-                         renderer)
+        if self.instance.pk:
+            self.initial['barcode_data'] = ''.join(
+                barcode.data + (f" {barcode.type.name}" if barcode.type else "") + '\n'
+                for barcode in self.instance.itembarcode_set.select_related("type")
+            )
 
         if user is not None and not any(user.has_perm(f"inventory.{action}_itembarcode") for action in ("add", "delete")):
             self.fields["barcode_data"].disabled = True
@@ -140,11 +124,10 @@ class ItemForm(ModelForm):
         return value
 
     def save(self, commit=True):
-        # process barcode_data
         instance = super().save(commit=commit)
         if commit:
             # Add missing barcodes
-            bc_list = []  # list of processed barcodes
+            bc_list = []
             for barcode in self.cleaned_data["barcode_data"].split("\n"):
                 barcode = barcode.split()
                 if not barcode:
@@ -153,8 +136,6 @@ class ItemForm(ModelForm):
                     barcode_type = BarcodeType.objects.get_or_create(name=barcode[1])[0]
                 else:
                     barcode_type = None
-                # get_or_create prevents inserting all entries twice, unclear why it happens
-                # otherwise
                 ItemBarcode.objects.get_or_create(
                     item=self.instance, data=barcode[0], type=barcode_type
                 )
@@ -173,7 +154,6 @@ class ItemAnnotationForm(ModelForm):
         fields = ["name", "category", "description", "measurement_unit", "sale_price"]
         widgets = {
             "description": Textarea(attrs={"rows": 3}),
-            #'sale_price': TextInput(attrs={'type':'number', 'pattern':'[0-9,\.]*'})
         }
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -205,7 +185,6 @@ class ItemImageInline(InlineFormSetFactory):
     model = ItemImage
     fields = ["description", "image"]
     description_defaults = ["Price label", "Packaged", "Single item (unpacked)"]
-    #initial = [{"description": d} for d in description_defaults]
     factory_kwargs = {
         "extra": 3,
         "can_order": False,
@@ -257,7 +236,7 @@ class AdminItemLocationForm(ModelForm):
 
     class Meta:
         model = ItemLocation
-        fields = ('__all__')
+        fields = "__all__"
         widgets = {
             'location': autocomplete.ModelSelect2(url='location-autocomplete')
         }
@@ -273,12 +252,8 @@ class ItemLocationForm(ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["location"].queryset = Location.active.all()
-        if "location" in self.initial and not "instance" in kwargs:
+        if "location" in self.initial and "instance" not in kwargs:
             self.fields["location"].disabled = True
-
-    def save(self, commit=True):  # Add default value for commit
-        instance = super().save(commit=commit)  # Pass commit parameter
-        return instance
 
 class ItemLocationInline(InlineFormSetFactory):
     model = ItemLocation
@@ -291,7 +266,7 @@ class ItemLocationInline(InlineFormSetFactory):
 
     def __init__(self, parent_model, request, instance, view_kwargs=None, view=None):
         super().__init__(parent_model, request, instance, view_kwargs, view)
-        if "initial" in view_kwargs:
+        if view_kwargs and "initial" in view_kwargs:
             self.initial = view_kwargs["initial"]
 
     def construct_formset(self):
@@ -303,21 +278,18 @@ class ItemLocationInline(InlineFormSetFactory):
         formset.helper.include_media = False
         formset.helper.form_title = "Item Storage Locations"
         formset.helper.layout = layout.Layout(
-    layout.Div(
-        layout.Div(
-            bootstrap.Field("location"),
-            css_class='col-md-6'),
-        layout.Div(
-            # change to use FieldWithButtons modified from floating fields
-            bootstrap.FieldWithButtons(
-                "amount",
-                layout.HTML('<span class="amount_print_meas_unit ms-2 text-nowrap"></span>')
+            layout.Div(
+                layout.Div(bootstrap.Field("location"), css_class='col-md-6'),
+                layout.Div(
+                    bootstrap.FieldWithButtons(
+                        "amount",
+                        layout.HTML('<span class="amount_print_meas_unit ms-2 text-nowrap"></span>'),
+                    ),
+                    css_class='col-md-6',
+                ),
+                css_class='row',
             ),
-            css_class='col-md-6'
-        ),
-        css_class='row',
-    )
-)
+        )
         return formset
 
 class AdminLocationForm(ModelForm):
@@ -330,7 +302,7 @@ class AdminLocationForm(ModelForm):
 
     class Meta:
         model = Location
-        fields = ('__all__')
+        fields = "__all__"
         widgets = {
             'parent_location': autocomplete.ModelSelect2(url='parent_location_autocomplete', forward=['id'])
         }

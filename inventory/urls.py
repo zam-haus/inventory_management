@@ -1,6 +1,6 @@
 from django.conf import settings
 from django.conf.urls.static import static
-from django.urls import path, include
+from django.urls import path
 from django.views.generic.base import TemplateView
 
 from . import views
@@ -11,12 +11,12 @@ urlpatterns = [
     path("", views.index, name="index"),
     path("loc/dissolve/<int:pk>", DissolveLocationView.as_view(), name="location_dissolve"),
     path("loc/move-here/<int:pk>", views.LocationsMoveHereView.as_view(), name="locations_move_here"),
-	path(
+    path(
         "loc/<int:pk>",
         views.DetailLocationView.as_view(),
         name="view_location2",
     ),
-	path(
+    path(
         "loc/move/<int:pk>",
         views.LocationMoveView.as_view(),
         name="location_move",
@@ -37,9 +37,6 @@ urlpatterns = [
     path("item/", views.SearchableItemListView.as_view(), name="index_items"),
     path("item/<int:pk>", views.DetailItemView.as_view(), name="view_item"),
     path("item/<int:pk>/annotate", views.AnnotateItemView.as_view(), name="annotate_item"),
-    #path("item/<int:pk>/delete", views.DeleteItemView.as_view(), name="delete_item"),
-    #path('item/<int:pk>/move', views.move_item, name='move_item'),
-    #path('item/<int:pk>/take', views.takee_item, name='take_item'),
     path("item/<int:pk>/update", views.UpdateItemView.as_view(), name="update_item"),
     path("category/<int:pk>.json", views.category_json, name="category_json"),
     path("parent_location_autocomplete", views.ParentLocationAutocompleteView.as_view(), name="parent_location_autocomplete"),

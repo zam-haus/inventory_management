@@ -1,29 +1,30 @@
-from random import randint, choice
+import logging
+from random import randint
 from urllib.parse import urlencode
 
-from django.contrib import messages
-from django.utils import timezone
-from django.db import IntegrityError, transaction
-from django.http import HttpResponse, JsonResponse, HttpResponseForbidden
-from django.shortcuts import get_object_or_404, render, redirect
-from django.urls import reverse, reverse_lazy
-from django.views import View
-from django.views.generic import ListView, DetailView, UpdateView
-from django.views.generic.edit import DeleteView
-from django.core.exceptions import ObjectDoesNotExist, PermissionDenied, ValidationError
-from django.utils.html import format_html, format_html_join
 import extra_views
-from django.utils.translation import gettext_lazy as _
-from django.contrib.auth.mixins import PermissionRequiredMixin
-from django.contrib.auth.decorators import permission_required
-from django.db.models import Prefetch, Q
 from dal import autocomplete
-from . import forms
-from . import models
+from django.contrib import messages
+from django.contrib.auth.decorators import permission_required
+from django.contrib.auth.mixins import PermissionRequiredMixin
+from django.core.exceptions import PermissionDenied, ValidationError
+from django.db import IntegrityError, transaction
+from django.db.models import Prefetch, Q
+from django.http import HttpResponseForbidden, JsonResponse
+from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse, reverse_lazy
+from django.utils import timezone
+from django.utils.html import format_html, format_html_join
+from django.utils.translation import gettext_lazy as _
+from django.views import View
+from django.views.generic import DetailView, ListView, UpdateView
+
+from . import forms, models
 from .location_lookup import resolve_location_reference
 from .permissions import ItemEditorPermissionMixin
 
-# Create your views here.
+
+logger = logging.getLogger(__name__)
 
 def index(request):
     return render(request, "inventory/index.html")
@@ -81,12 +82,6 @@ class DetailLocationView(DetailView):
         Prefetch("children", queryset=models.Location.active.all()),
         Prefetch("itemlocation_set", queryset=models.ItemLocation.objects.filter(item__is_deleted=False).select_related("item__measurement_unit").prefetch_related("item__itemimage_set")),
     )
-    # (request, pk, unique_identifier):
-    # Prio 1
-    # return HttpResponse("Here should be an overview of items stored at this location.")
-
-    # TODO
-    # * inform user, if redirect with changed unique_identifier occurred
 
     def get(self, request, *args, **kwargs):
         self.object = self.get_object()
@@ -193,8 +188,6 @@ class LocationsMoveHereView(PermissionRequiredMixin, View):
         return redirect(parent)
 
 
-def view_item(request, pk):
-    return redirect(reverse_lazy("update_item", args=[pk]))
 class DetailItemView(DetailView):
     model = models.Item
     queryset = models.Item.active.prefetch_related(Prefetch(
@@ -221,18 +214,16 @@ class CreateItemView(ItemEditorPermissionMixin, extra_views.CreateWithInlinesVie
 
     def get_success_url(self):
         location = self._get_location()
-        if location is not None \
-                and self.request.POST and "save_and_mark" in self.request.POST:
-            # redirect to location
-            return reverse_lazy('view_location', args=[location.id, location.unique_identifier])
+        if location is not None and "save_and_mark" in self.request.POST:
+            return location.get_absolute_url()
         # Preserve location_id
         url = reverse_lazy("create_item")
-        if self.request.GET and "location_id" in self.request.GET and location:
-            url += "?location_id=%s" % self._get_location().id
+        if location is not None:
+            url += "?" + urlencode({"location_id": location.pk})
         return url
 
     def _get_location(self):
-        if self.request.GET and "location_id" in self.request.GET:
+        if "location_id" in self.request.GET:
             location_id = self.request.GET.get("location_id")
             try:
                 location_id = int(location_id)
@@ -261,10 +252,7 @@ class UpdateItemView(ItemEditorPermissionMixin, extra_views.UpdateWithInlinesVie
     queryset = models.Item.active.all()
     inlines = [forms.ItemImageInline, forms.ItemLocationInline]
     template_name = "inventory/item_formset.html"
-    form_class = forms.ItemForm  # Changed to ItemForm
-    factory_kwargs = {
-        "extra": 1, #possible usage for additional related
-    }
+    form_class = forms.ItemForm
     extra_context = {"title": _("Update Item")}
 
     def get_success_url(self):
@@ -279,38 +267,32 @@ class AnnotateItemView(PermissionRequiredMixin, UpdateView):
     ))
     template_name = "inventory/item_annotate_form.html"
     form_class = forms.ItemAnnotationForm
-    factory_kwargs = {
-        "extra": 1, #possible usage for additional related item
-    }
     extra_context = {"title": _("Update Item")}
 
 
     def get_success_url(self):
-        if self.request.POST and "save_next" in self.request.POST:
-            # redirect to next incomplete
+        if "save_next" in self.request.POST:
             incomplete = models.Item.filter_incomplete(ordered=True)
-            next_incomplete = incomplete & models.Item.active.filter(pk__gt=self.object.pk)
-            if not next_incomplete:
-                next_incomplete = incomplete
-            return reverse_lazy("annotate_item", args=[incomplete[randint(0, incomplete.count() -1)].pk])
+            count = incomplete.count()
+            if count:
+                return reverse_lazy("annotate_item", args=[incomplete[randint(0, count - 1)].pk])
         return reverse_lazy("annotate_item", args=[self.object.pk])
 
 
 class SearchableItemListView(ListView):
     model = models.Item
     queryset = models.Item.active.all()
-    exact_query = False
-    wrong_lookup = False
     paginate_by = 25
     template_name = "inventory/item_list.html"
 
-    def get_context_data(self):
-        ctxt = super().get_context_data()
+    def get_context_data(self, **kwargs):
+        ctxt = super().get_context_data(**kwargs)
         incomplete = models.Item.filter_incomplete()
-        if (len(incomplete) != 0):
+        count = incomplete.count()
+        if count:
             ctxt.update({
-                'incomplete_count': incomplete.count(),
-                'incomplete_first_pk': incomplete[randint(0, incomplete.count() - 1)].pk
+                'incomplete_count': count,
+                'incomplete_first_pk': incomplete[randint(0, count - 1)].pk
             })
         return ctxt
     def get_queryset(self):
@@ -329,19 +311,15 @@ class SearchableItemListView(ListView):
                     Q(itemimage__ocr_text__icontains=query)
                 )
             return queryset
-        except Exception as e:
-            # Log the error
-            print(f"Error in SearchableItemListView: {str(e)}")
-            # Return empty queryset instead of failing
+        except Exception:
+            logger.exception("Failed to search inventory items")
             return self.model.objects.none()
-
 
 
 class SearchableLocationListView(
         extra_views.SearchableListMixin,
         extra_views.SortableListMixin,
         ListView):
-    # matching criteria can be defined along with fields
     search_fields = ["locatable_identifier", "name", "descriptive_identifier"]
     search_date_fields = []
     sort_fields = ["unique_identifier"]
@@ -349,8 +327,6 @@ class SearchableLocationListView(
     queryset = models.Location.active.prefetch_related(Prefetch(
         "itemlocation_set", queryset=models.ItemLocation.objects.filter(item__is_deleted=False),
     ))
-    exact_query = False
-    wrong_lookup = False
     paginate_by = 100
 
 
@@ -362,21 +338,20 @@ class ParentLocationAutocompleteView(autocomplete.Select2QuerySetView):
         return qs
 
     def get_results(self, context):
-        self_id_str = self.forwarded.get('id', None)
-        if self_id_str == None:
-            return super().get_results(context)
         try:
-            self_id = int(self_id_str)
-        except ValueError:
-            self_id = 0
+            self_id = int(self.forwarded.get('id'))
+        except (TypeError, ValueError):
+            return super().get_results(context)
         if self_id == 0:
             return super().get_results(context)
-        sorted_out = [self_id]
+        sorted_out = {self_id}
         while True:
             old_count = len(sorted_out)
-            sorted_out.extend([x.pk for x in context['object_list'] if x.pk not in sorted_out and x.parent_location != None and x.parent_location.pk in sorted_out])
-            new_count = len(sorted_out)
-            if (old_count == new_count):
+            sorted_out.update(
+                location.pk for location in context['object_list']
+                if location.parent_location_id in sorted_out
+            )
+            if len(sorted_out) == old_count:
                 break
         context['object_list'] = [x for x in context['object_list'] if x.pk not in sorted_out]
         return super().get_results(context)

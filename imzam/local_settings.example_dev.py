@@ -3,7 +3,6 @@
 from pathlib import Path
 
 DEBUG = True
-TEMPLATE_DEBUG = True
 ALLOWED_HOSTS = ['127.0.0.1']
 
 # If label printing is to be tested:

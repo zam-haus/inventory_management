@@ -1,18 +1,16 @@
-import json
-from logging import getLogger
 from itertools import chain
+from logging import getLogger
 
-from django.contrib.auth.models import Permission, Group
-from django.db import transaction, IntegrityError
-from django.http import HttpRequest
+from django.conf import settings
+from django.contrib.auth.models import Group
 from django.core.exceptions import PermissionDenied
+from django.db import IntegrityError, transaction
+from django.http import HttpRequest
 from django.template.defaultfilters import urlencode
 from mozilla_django_oidc.auth import OIDCAuthenticationBackend
 
-from accounts.models import User
 from accounts.groups import ZAM_LOCAL_GROUP_NAME
-from django.conf import settings
-from pymaybe import maybe
+from accounts.models import User
 
 log = getLogger(__name__)
 
@@ -20,11 +18,10 @@ log = getLogger(__name__)
 class CustomOidcAuthenticationBackend(OIDCAuthenticationBackend):
     def filter_users_by_claims(self, claims):
         try:
-            users = User.objects.filter(
-                directory_reference=self.get_directory_reference(claims))
-            return users
-        except:
-            return self.UserModel.objects.none()
+            reference = self.get_directory_reference(claims)
+        except KeyError:
+            return User.objects.none()
+        return User.objects.filter(directory_reference=reference)
 
     def create_user(self, claims):
         with transaction.atomic():
@@ -39,7 +36,7 @@ class CustomOidcAuthenticationBackend(OIDCAuthenticationBackend):
                 msg = "User creation failed for {}. Username already exists, " \
                     "but not linked to this reference: {}".format(
                         user.username, user.directory_reference)
-                log.warn(msg)
+                log.warning(msg)
                 raise PermissionDenied(msg)
             self.update_user(user, claims, save_user=False)
             user.save()
@@ -49,7 +46,6 @@ class CustomOidcAuthenticationBackend(OIDCAuthenticationBackend):
         return claims[settings.OIDC_CLAIM_REFERENCE_KEY]
 
     def update_user(self, user, claims, save_user=True):
-        # super(CustomOidcAuthenticationBackend, self).update_user(user, claims)
         user.latest_directory_data = claims
         self.update_profile(user, claims, save_user=False)
         self.update_groups(user, claims, save_user=False)
@@ -63,32 +59,18 @@ class CustomOidcAuthenticationBackend(OIDCAuthenticationBackend):
             user.email = None
         user.first_name = claims.get("given_name")
         user.last_name = claims.get("family_name")
-        for g in chain(claims.get('groups', []), claims.get('roles', [])):
-            if g in settings.OIDC_ADMIN_GROUPS:
-                user.is_superuser = True
-                break
-        else:
-            user.is_superuser = False
-        for g in chain(claims.get('groups', []), claims.get('roles', [])):
-            if g in settings.OIDC_STAFF_GROUPS:
-                user.is_staff = True
-                break
-        else:
-            user.is_staff = False
+        groups = list(chain(claims.get('groups', []), claims.get('roles', [])))
+        user.is_superuser = any(group in settings.OIDC_ADMIN_GROUPS for group in groups)
+        user.is_staff = any(group in settings.OIDC_STAFF_GROUPS for group in groups)
         if save_user:
             user.save()
 
     def update_groups(self, user, claims, save_user=True):
-        # create any non-existent groups
-        for gn in claims.get('groups', []):
-            if gn == ZAM_LOCAL_GROUP_NAME:
+        for name in claims.get('groups', []):
+            if name == ZAM_LOCAL_GROUP_NAME:
                 continue
-            try:
-                g = Group.objects.get(name=gn)
-            except Group.DoesNotExist:
-                g = Group(name=gn)
-                g.save()
-            user.groups.add(g)
+            group, _ = Group.objects.get_or_create(name=name)
+            user.groups.add(group)
         if save_user:
             user.save()
 
@@ -96,5 +78,4 @@ class CustomOidcAuthenticationBackend(OIDCAuthenticationBackend):
 def provider_logout(request: HttpRequest):
     keycloak_logout_url = settings.OIDC_OP_LOGOUT_URL
     redirect_url = request.build_absolute_uri(settings.LOGOUT_REDIRECT_URL)
-    return_url = keycloak_logout_url.format(urlencode(redirect_url))
-    return return_url
+    return keycloak_logout_url.format(urlencode(redirect_url))

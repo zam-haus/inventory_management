@@ -1,10 +1,8 @@
 #!/usr/bin/env python3
 from paho.mqtt import client as mqttc
 
-# import zpl
 import subprocess
 import random
-import copy
 import string
 
 from imzam import settings
@@ -22,7 +20,7 @@ def on_message(client, userdata, message):
 
 
 def run_server():
-    client_kwargs = copy.copy(settings.MQTT_CLIENT_KWARGS)
+    client_kwargs = settings.MQTT_CLIENT_KWARGS.copy()
     # Randomize client id
     client_kwargs['client_id'] += '_' + \
         "".join(random.choices(string.ascii_letters + string.digits, k=8))
