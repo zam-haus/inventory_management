@@ -5,12 +5,15 @@ from django.views.generic.base import TemplateView
 
 from . import views
 from .dissolve_views import DissolveLocationView
+from .location_overview_views import LocationHistoryView, LocationOverviewUpdateView
 
 
 urlpatterns = [
     path("", views.index, name="index"),
     path("loc/dissolve/<int:pk>", DissolveLocationView.as_view(), name="location_dissolve"),
     path("loc/move-here/<int:pk>", views.LocationsMoveHereView.as_view(), name="locations_move_here"),
+    path("loc/<int:pk>/overview/", LocationOverviewUpdateView.as_view(), name="location_overview_update"),
+    path("loc/<int:pk>/history/", LocationHistoryView.as_view(), name="location_history"),
     path(
         "loc/<int:pk>",
         views.DetailLocationView.as_view(),

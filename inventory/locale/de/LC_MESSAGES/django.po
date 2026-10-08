@@ -716,3 +716,194 @@ msgstr "Du hast keine Berechtigung, diesen Eintrag zu verschieben."
 
 msgid "You do not have permission for the selected action."
 msgstr "Du hast keine Berechtigung für die ausgewählte Aktion."
+
+msgid "Location history"
+msgstr "Standortverlauf"
+
+msgid "Back to location"
+msgstr "Zurück zum Standort"
+
+msgid "Unknown user"
+msgstr "Unbekannte Person"
+
+msgid "Before"
+msgstr "Vorher"
+
+msgid "After"
+msgstr "Nachher"
+
+msgid "Not set"
+msgstr "Nicht angegeben"
+
+msgid "Overview photo"
+msgstr "Übersichtsfoto"
+
+msgid "Previous overview photo"
+msgstr "Vorheriges Übersichtsfoto"
+
+msgid "Updated overview photo"
+msgstr "Aktualisiertes Übersichtsfoto"
+
+msgid "No changes have been recorded for this location yet."
+msgstr "Für diesen Standort wurden noch keine Änderungen aufgezeichnet."
+
+msgid "History pages"
+msgstr "Seiten des Standortverlaufs"
+
+msgid "Previous"
+msgstr "Zurück"
+
+msgid "Next"
+msgstr "Weiter"
+
+#, python-format
+msgid "Page %(number)s of %(total)s"
+msgstr "Seite %(number)s von %(total)s"
+
+msgid "Summary"
+msgstr "Zusammenfassung"
+
+msgid "Edit summary"
+msgstr "Zusammenfassung bearbeiten"
+
+#, python-format
+msgid "Summary of %(location)s"
+msgstr "Zusammenfassung von %(location)s"
+
+msgid "No summary added yet."
+msgstr "Noch keine Zusammenfassung vorhanden."
+
+msgid "Edit location summary"
+msgstr "Standortzusammenfassung bearbeiten"
+
+msgid "Take an overview photo of everything stored here. Keep the frame within this location; you can crop the photo before saving."
+msgstr "Nimm ein Übersichtsfoto von allem auf, was hier gelagert wird. Begrenze den Bildausschnitt auf diesen Standort; vor dem Speichern kannst du das Foto zuschneiden."
+
+msgid "Take or select a photo"
+msgstr "Foto aufnehmen oder auswählen"
+
+msgid "Choose from photo library"
+msgstr "Aus der Fotomediathek auswählen"
+
+msgid "Crop photo (optional)"
+msgstr "Foto zuschneiden (optional)"
+
+msgid "Loading photo…"
+msgstr "Foto wird geladen …"
+
+msgid "Photo ready. It will be uploaded when you save."
+msgstr "Foto bereit. Es wird beim Speichern hochgeladen."
+
+msgid "This photo could not be opened. Try a JPEG or PNG photo, or choose another file."
+msgstr "Dieses Foto konnte nicht geöffnet werden. Verwende ein JPEG- oder PNG-Foto oder wähle eine andere Datei."
+
+msgid "The photo could not be prepared. Try another photo or turn off cropping."
+msgstr "Das Foto konnte nicht vorbereitet werden. Wähle ein anderes Foto oder deaktiviere den Zuschnitt."
+
+msgid "Saving failed. Check your connection and try again."
+msgstr "Speichern fehlgeschlagen. Prüfe deine Verbindung und versuche es erneut."
+
+msgid "Please correct the errors below."
+msgstr "Bitte korrigiere die folgenden Fehler."
+
+msgid "Overview photo preview"
+msgstr "Vorschau des Übersichtsfotos"
+
+msgid "Drag a rectangle around this location, or adjust its edges below. Only the selected area will be uploaded."
+msgstr "Ziehe ein Rechteck um diesen Standort oder passe die Ränder unten an. Nur der ausgewählte Bereich wird hochgeladen."
+
+msgid "Photo crop selection"
+msgstr "Auswahl des Bildausschnitts"
+
+msgid "Left edge"
+msgstr "Linker Rand"
+
+msgid "Right edge"
+msgstr "Rechter Rand"
+
+msgid "Top edge"
+msgstr "Oberer Rand"
+
+msgid "Bottom edge"
+msgstr "Unterer Rand"
+
+msgid "Use full photo"
+msgstr "Ganzes Foto verwenden"
+
+msgid "Remove overview photo"
+msgstr "Übersichtsfoto entfernen"
+
+msgid "All changes are saved together."
+msgstr "Alle Änderungen werden gemeinsam gespeichert."
+
+msgid "Save summary"
+msgstr "Zusammenfassung speichern"
+
+msgid "summary"
+msgstr "Zusammenfassung"
+
+msgid "The summary must be a single line."
+msgstr "Die Zusammenfassung darf nur eine Zeile enthalten."
+
+msgid "overview photo"
+msgstr "Übersichtsfoto"
+
+msgid "Overview updated"
+msgstr "Übersicht aktualisiert"
+
+msgid "location history entry"
+msgstr "Standortverlaufseintrag"
+
+msgid "location history entries"
+msgstr "Standortverlaufseinträge"
+
+msgid "Physical description"
+msgstr "Physische Beschreibung"
+
+msgid "physical description"
+msgstr "Physische Beschreibung"
+
+msgid "Choose a new photo or remove the current photo, not both."
+msgstr "Wähle entweder ein neues Foto aus oder entferne das aktuelle Foto. Beides gleichzeitig ist nicht möglich."
+
+msgid "Location summary saved."
+msgstr "Standortzusammenfassung gespeichert."
+
+msgid "Stored here"
+msgstr "Hier lagert"
+
+msgid "Location type"
+msgstr "Standorttyp"
+
+msgid "Rotate right"
+msgstr "Nach rechts drehen"
+
+msgid "Rotate 90° right and reset the crop selection."
+msgstr "Um 90° nach rechts drehen und den Zuschnitt zurücksetzen."
+
+msgid "Photo rotated. Adjust the crop if needed before saving."
+msgstr "Foto gedreht. Passe den Zuschnitt bei Bedarf vor dem Speichern an."
+
+msgid "Close"
+msgstr "Schließen"
+
+msgid "Location type properties"
+msgstr "Eigenschaften des Standorttyps"
+
+msgid "Moving"
+msgstr "Verschieben"
+
+msgid "Moving is allowed for this location type."
+msgstr "Verschieben ist für diesen Standorttyp erlaubt."
+
+msgid "This location can contain sub-locations."
+msgstr "Dieser Standort kann Unterstandorte enthalten."
+
+msgid "Unique identifier"
+msgstr "Eindeutige Kennung"
+
+msgid "The unique identifier is independent of the parent location."
+msgstr "Die eindeutige Kennung ist unabhängig vom übergeordneten Standort."
+
+msgid "The unique identifier includes the parent location’s identifier."
+msgstr "Die eindeutige Kennung enthält die Kennung des übergeordneten Standorts."

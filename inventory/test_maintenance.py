@@ -58,13 +58,13 @@ class MaintenanceRegressionTests(TestCase):
         )
         response = self.client.post(reverse("admin:inventory_location_massadd"), {
             "location_type": room_type.pk, "sequence_start": "1", "count": "2",
-            "sub_type": box_type.pk, "sub_count": "2", "description": "Storage",
+            "sub_type": box_type.pk, "sub_count": "2", "physical_description": "Storage",
         })
         self.assertEqual(response.status_code, 302)
         self.assertEqual(set(Location.objects.values_list("unique_identifier", flat=True)), {
             "R1", "R2", "R1.B0", "R1.B1", "R2.B0", "R2.B1",
         })
-        self.assertEqual(Location.objects.filter(parent_location=None, description="Storage").count(), 2)
+        self.assertEqual(Location.objects.filter(parent_location=None, physical_description="Storage").count(), 2)
 
     def test_finishing_last_incomplete_item_keeps_annotation_page_available(self):
         unit = MeasurementUnit.objects.create(name="Piece", short="pc")

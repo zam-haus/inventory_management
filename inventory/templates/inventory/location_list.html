@@ -50,6 +50,7 @@
             <a href="{{ object.get_absolute_url }}" data-bs-toggle="tooltip" title="" data-bs-original-title="{{ object.descriptive_identifier }}">
                 {{ object.name }}
             </a>
+            {% if object.summary %}<div class="small text-muted">{{ object.summary }}</div>{% endif %}
         </td>
         <td>
             {{ object.itemlocation_set.count }}

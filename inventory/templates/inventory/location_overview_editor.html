@@ -1,0 +1,70 @@
+{% load i18n %}
+<section id="location-overview-editor" class="location-overview-editor" tabindex="-1" aria-labelledby="location-overview-editor-title" data-open="{{ overview_editor_open|yesno:'true,false' }}">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+            <form action="{% url 'location_overview_update' object.pk %}" method="post" enctype="multipart/form-data" id="location-overview-form">
+                {% csrf_token %}
+                <div class="modal-header">
+                    <h2 class="modal-title fs-5" id="location-overview-editor-title">{% trans "Edit location summary" %}</h2>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" data-overview-enhanced hidden aria-label="{% trans 'Cancel' %}"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-danger" role="alert" data-overview-errors{% if not overview_form.non_field_errors %} hidden{% endif %}>
+                        {% for error in overview_form.non_field_errors %}<p>{{ error }}</p>{% endfor %}
+                    </div>
+                    <div class="mb-3">
+                        <div class="location-overview-field-heading">
+                            <label for="{{ overview_form.summary.id_for_label }}" class="form-label">{% trans "Summary" %}</label>
+                            <span class="location-muted" data-overview-count aria-hidden="true">0 / 50</span>
+                        </div>
+                        {{ overview_form.summary }}
+                        <div class="text-danger" data-overview-field-errors="summary">{{ overview_form.summary.errors }}</div>
+                    </div>
+                    <fieldset class="location-overview-photo-field">
+                        <legend class="form-label">{% trans "Overview photo" %}</legend>
+                        <p class="form-text mt-0" id="location-overview-photo-help">{% trans "Take an overview photo of everything stored here. Keep the frame within this location; you can crop the photo before saving." %}</p>
+                        <label for="id_overview_photo" class="form-label">{% trans "Take or select a photo" %}</label>
+                        <input type="file" name="overview_photo" id="id_overview_photo" class="form-control" accept="image/*" capture="environment" aria-describedby="location-overview-photo-help">
+                        <div class="location-overview-photo-actions mt-2" data-overview-enhanced hidden>
+                            <button type="button" class="btn btn-outline-secondary btn-sm" data-overview-library>{% trans "Choose from photo library" %}</button>
+                            <input type="file" accept="image/*" data-overview-library-input hidden aria-label="{% trans 'Choose from photo library' %}">
+                            <button type="button" class="btn btn-outline-secondary btn-sm" data-overview-crop-toggle aria-expanded="false" aria-controls="location-overview-crop" disabled>{% trans "Crop photo (optional)" %}</button>
+                            <button type="button" class="btn btn-outline-secondary btn-sm" data-overview-rotate="1" title="{% trans 'Rotate 90° right and reset the crop selection.' %}" disabled><span aria-hidden="true">↷</span> {% trans "Rotate right" %}</button>
+                        </div>
+                        <div class="text-danger" data-overview-field-errors="overview_photo">{{ overview_form.overview_photo.errors }}</div>
+                        <p class="form-text" role="status" data-overview-photo-status
+                           data-loading="{% trans 'Loading photo…' %}"
+                           data-ready="{% trans 'Photo ready. It will be uploaded when you save.' %}"
+                           data-rotated="{% trans 'Photo rotated. Adjust the crop if needed before saving.' %}"
+                           data-invalid="{% trans 'This photo could not be opened. Try a JPEG or PNG photo, or choose another file.' %}"
+                           data-photo-error="{% trans 'The photo could not be prepared. Try another photo or turn off cropping.' %}"
+                           data-network-error="{% trans 'Saving failed. Check your connection and try again.' %}"
+                           data-validation-error="{% trans 'Please correct the errors below.' %}"></p>
+                        <img class="location-overview-edit-preview" data-overview-preview{% if object.overview_photo %} src="{{ object.overview_photo.url }}"{% else %} hidden{% endif %} alt="{% trans 'Overview photo preview' %}">
+                        <div id="location-overview-crop" class="location-overview-crop" hidden>
+                            <p class="form-text" id="location-overview-crop-help">{% trans "Drag a rectangle around this location, or adjust its edges below. Only the selected area will be uploaded." %}</p>
+                            <canvas data-overview-canvas aria-label="{% trans 'Photo crop selection' %}" aria-describedby="location-overview-crop-help"></canvas>
+                            <div class="location-overview-crop-sliders">
+                                <label>{% trans "Left edge" %}<input type="range" min="0" max="99" value="0" data-crop-edge="left"></label>
+                                <label>{% trans "Right edge" %}<input type="range" min="1" max="100" value="100" data-crop-edge="right"></label>
+                                <label>{% trans "Top edge" %}<input type="range" min="0" max="99" value="0" data-crop-edge="top"></label>
+                                <label>{% trans "Bottom edge" %}<input type="range" min="1" max="100" value="100" data-crop-edge="bottom"></label>
+                            </div>
+                            <button type="button" class="btn btn-outline-secondary btn-sm" data-overview-reset-crop>{% trans "Use full photo" %}</button>
+                        </div>
+                        <div class="form-check mt-3" data-overview-remove{% if not object.overview_photo and not overview_form.remove_photo.value %} hidden{% endif %}>
+                            {{ overview_form.remove_photo }}
+                            <label class="form-check-label" for="{{ overview_form.remove_photo.id_for_label }}">{% trans "Remove overview photo" %}</label>
+                        </div>
+                        <div class="text-danger" data-overview-field-errors="remove_photo">{{ overview_form.remove_photo.errors }}</div>
+                    </fieldset>
+                </div>
+                <div class="modal-footer">
+                    <span class="location-muted me-auto">{% trans "All changes are saved together." %}</span>
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal" data-overview-enhanced hidden>{% trans "Cancel" %}</button>
+                    <button type="submit" class="btn btn-primary" data-overview-save>{% trans "Save summary" %}</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</section>

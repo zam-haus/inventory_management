@@ -1,0 +1,60 @@
+{% load i18n %}
+<div class="modal fade location-metadata" id="location-metadata" tabindex="-1" aria-labelledby="location-metadata-title" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title fs-4" id="location-metadata-title">{% trans "Location details" %}</h2>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{% trans 'Close' %}"></button>
+            </div>
+            <div class="modal-body">
+                <div class="location-metadata-grid">
+                    <dl class="location-metadata-field">
+                        <dt>{% trans "Location type" %}</dt>
+                        <dd>
+                            {{ object.type.name }}
+                            {% if not object.parent_location %}
+                                <p class="location-muted location-root">{% trans "root location (has no parent)" %}</p>
+                            {% endif %}
+                        </dd>
+                    </dl>
+                    {% if object.physical_description %}
+                        <dl class="location-metadata-field">
+                            <dt>{% trans "Physical description" %}</dt>
+                            <dd>{{ object.physical_description|linebreaksbr }}</dd>
+                        </dl>
+                    {% endif %}
+                    {% with label_url=object.get_lablary_url %}
+                        {% if label_url %}
+                            <figure class="location-metadata-label">
+                                <figcaption>{% trans "Label preview" %}</figcaption>
+                                <a href="{{ label_url }}">
+                                    <img src="{{ label_url }}" alt="{% blocktrans with identifier=object.unique_identifier %}Label for {{ identifier }}{% endblocktrans %}" loading="lazy">
+                                </a>
+                            </figure>
+                        {% endif %}
+                    {% endwith %}
+                </div>
+                <section class="location-type-details" aria-labelledby="location-type-properties-heading">
+                    <h3 class="fs-5" id="location-type-properties-heading">{% trans "Location type properties" %}</h3>
+                    <dl class="location-type-properties">
+                        <div>
+                            <dt>{% trans "Moving" %}</dt>
+                            <dd>{% if object.type.moveable %}{% trans "Moving is allowed for this location type." %}{% else %}{% trans "Moving is disabled for this location type." %}{% endif %}</dd>
+                        </div>
+                        <div>
+                            <dt>{% trans "Sub-Locations" %}</dt>
+                            <dd>{% if object.type.no_sublocations %}{% trans "This location cannot contain sub-locations." %}{% else %}{% trans "This location can contain sub-locations." %}{% endif %}</dd>
+                        </div>
+                        <div>
+                            <dt>{% trans "Unique identifier" %}</dt>
+                            <dd>{% if object.type.unique %}{% trans "The unique identifier is independent of the parent location." %}{% else %}{% trans "The unique identifier includes the parent location’s identifier." %}{% endif %}</dd>
+                        </div>
+                    </dl>
+                </section>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">{% trans "Close" %}</button>
+            </div>
+        </div>
+    </div>
+</div>

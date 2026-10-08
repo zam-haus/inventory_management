@@ -32,4 +32,5 @@ class ItemDeletionMigrationTests(TransactionTestCase):
             self.assertEqual(dict(Item.objects.values_list("pk", "is_deleted")), expected)
             self.assertEqual(apps.get_model("inventory", "ItemLocation").objects.count(), count)
         finally:
-            MigrationExecutor(connection).migrate(after)
+            executor = MigrationExecutor(connection)
+            executor.migrate(executor.loader.graph.leaf_nodes())

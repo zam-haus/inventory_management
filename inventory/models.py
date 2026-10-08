@@ -1,12 +1,14 @@
 from datetime import datetime
+from pathlib import Path
 from string import Template
 import urllib.parse
+from uuid import uuid4
 
 from computedfields.models import ComputedFieldsModel, computed
 from django.conf import settings
 from django.core import validators
 from django.core.exceptions import ValidationError
-from django.db import models, transaction
+from django.db import models, router, transaction
 from django.db.models.signals import pre_delete
 from django.dispatch import receiver
 from django.urls import reverse
@@ -367,6 +369,11 @@ class LocationLabelTemplate(models.Model):
         return self.name
 
 
+def get_location_overview_upload_path(instance, filename):
+    # Every replacement gets its own path so earlier history snapshots stay valid.
+    return f"locations/{instance.pk}/overview/{uuid4().hex}{Path(filename).suffix.lower()}"
+
+
 class Location(SoftDeleteModel, ComputedFieldsModel):
     class Meta:
         verbose_name = _("location")
@@ -395,7 +402,17 @@ class Location(SoftDeleteModel, ComputedFieldsModel):
         ],
     )
 
-    description = models.TextField(_("description"), blank=True)
+    physical_description = models.TextField(_("physical description"), blank=True)
+    summary = models.CharField(
+        _("summary"), max_length=50, blank=True,
+        validators=[validators.RegexValidator(
+            r"[\r\n]", inverse_match=True,
+            message=_("The summary must be a single line."),
+        )],
+    )
+    overview_photo = models.ImageField(
+        _("overview photo"), upload_to=get_location_overview_upload_path, blank=True,
+    )
 
     label_template = models.ForeignKey(
         "LocationLabelTemplate",
@@ -413,6 +430,28 @@ class Location(SoftDeleteModel, ComputedFieldsModel):
         blank=True,
         verbose_name=_("parent location"),
     )
+
+    def save(self, *args, actor=None, **kwargs):
+        using = kwargs.get("using") or router.db_for_write(type(self), instance=self)
+        fields = ("summary", "overview_photo")
+        actor = actor or getattr(self, "_history_actor", None)
+        with transaction.atomic(using=using):
+            previous = None
+            if self.pk:
+                previous = type(self).objects.using(using).select_for_update().filter(pk=self.pk).values(*fields).first()
+            result = super().save(*args, **kwargs)
+            current = type(self).objects.using(using).values(*fields).get(pk=self.pk)
+            # Capture edits from every model save; authored creation also records
+            # an initial overview. Unattributed imports keep their existing data.
+            if previous is None and actor is not None:
+                previous = dict.fromkeys(fields, "")
+            if previous is not None and previous != current:
+                LocationHistory.objects.using(using).create(
+                    location=self, actor=actor,
+                    actor_name=actor.get_username() if actor is not None else "",
+                    before=previous, after=current,
+                )
+            return result
 
     def clean(self):
         if self.is_deleted and self.pk and (
@@ -548,6 +587,37 @@ class Location(SoftDeleteModel, ComputedFieldsModel):
             "admin:inventory_location_change",
             args=(self.pk,),
         )
+
+
+class LocationHistory(models.Model):
+    class EventType(models.TextChoices):
+        OVERVIEW_UPDATED = "overview_updated", _("Overview updated")
+
+    location = models.ForeignKey(Location, on_delete=models.CASCADE, related_name="history")
+    actor = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL)
+    actor_name = models.CharField(max_length=150, blank=True)
+    created_at = models.DateTimeField(default=timezone.now, db_index=True)
+    event_type = models.CharField(max_length=40, choices=EventType.choices, default=EventType.OVERVIEW_UPDATED)
+    before = models.JSONField(default=dict)
+    after = models.JSONField(default=dict)
+
+    class Meta:
+        ordering = ("-created_at", "-pk")
+        default_permissions = ("view",)
+        verbose_name = _("location history entry")
+        verbose_name_plural = _("location history entries")
+
+    def _photo_url(self, snapshot):
+        name = snapshot.get("overview_photo")
+        return Location._meta.get_field("overview_photo").storage.url(name) if name else ""
+
+    @property
+    def before_photo_url(self):
+        return self._photo_url(self.before)
+
+    @property
+    def after_photo_url(self):
+        return self._photo_url(self.after)
 
 
 class ItemLocation(models.Model):

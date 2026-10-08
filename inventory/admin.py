@@ -9,6 +9,7 @@ from django.db.models import CharField, TextField
 from django.shortcuts import redirect
 from django.urls import path, reverse
 from django.utils.decorators import method_decorator
+from django.utils.translation import gettext_lazy as _
 from django.views.generic import FormView
 
 from . import models
@@ -59,10 +60,20 @@ class LocationAdmin(SoftDeleteAdminMixin, admin.ModelAdmin):
     list_display = ("locatable_identifier", "name", "descriptive_identifier", "deleted_status")
     ordering = ("locatable_identifier",)
     readonly_fields = ("label_image_tag",)
-    search_fields = ('locatable_identifier', 'name')
+    search_fields = ('locatable_identifier', 'name', 'summary', 'physical_description')
     actions = ["send_to_printer_action", "send_to_printer_twice_action"]
     inlines = [LocationInline]
     form = AdminLocationForm
+
+    def save_model(self, request, obj, form, change):
+        obj._history_actor = request.user
+        super().save_model(request, obj, form, change)
+
+    def save_formset(self, request, form, formset, change):
+        if formset.model is models.Location:
+            for inline_form in formset.forms:
+                inline_form.instance._history_actor = request.user
+        super().save_formset(request, form, formset, change)
 
     def get_form(self, request, obj=None, **kwargs):
         form = super().get_form(request, obj, **kwargs)
@@ -166,7 +177,7 @@ class MassAddLocationsForm(forms.Form):
     )
     sequence_start = forms.CharField(max_length=32)
     count = forms.IntegerField()
-    description = forms.CharField(required=False)
+    physical_description = forms.CharField(label=_("Physical description"), required=False)
     print = forms.BooleanField(label="print main lables", required=False)
     print_multiple = forms.IntegerField(label="print multiple", required=False)
 
@@ -223,7 +234,7 @@ class MassAddLocationsAdminView(PermissionRequiredMixin, FormView):
                 type=loc_type,
                 parent_location=data["parent_location"],
                 label_template=data["label_template"],
-                description=data["description"] or "",
+                physical_description=data["physical_description"] or "",
             )
             if data["print"]:
                 for _ in range(data["print_multiple"] or 1):

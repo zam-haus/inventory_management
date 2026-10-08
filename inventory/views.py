@@ -38,7 +38,9 @@ class LocationAutocomplete(autocomplete.Select2QuerySetView):
             query = self.q
             qs = qs.filter(
                 Q(name__icontains=query) |
-                Q(unique_identifier__icontains=query)
+                Q(unique_identifier__icontains=query) |
+                Q(summary__icontains=query) |
+                Q(physical_description__icontains=query)
             )
 
         return qs
@@ -82,6 +84,12 @@ class DetailLocationView(DetailView):
         Prefetch("children", queryset=models.Location.active.all()),
         Prefetch("itemlocation_set", queryset=models.ItemLocation.objects.filter(item__is_deleted=False).select_related("item__measurement_unit").prefetch_related("item__itemimage_set")),
     )
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        if self.request.user.has_perm("inventory.change_location"):
+            context.setdefault("overview_form", forms.LocationOverviewForm(instance=self.object))
+        return context
 
     def get(self, request, *args, **kwargs):
         self.object = self.get_object()
@@ -320,7 +328,10 @@ class SearchableLocationListView(
         extra_views.SearchableListMixin,
         extra_views.SortableListMixin,
         ListView):
-    search_fields = ["locatable_identifier", "name", "descriptive_identifier"]
+    search_fields = [
+        "locatable_identifier", "name", "descriptive_identifier",
+        "summary", "physical_description",
+    ]
     search_date_fields = []
     sort_fields = ["unique_identifier"]
     model = models.Location
@@ -334,7 +345,10 @@ class ParentLocationAutocompleteView(autocomplete.Select2QuerySetView):
     def get_queryset(self):
         qs = models.Location.active.filter(type__no_sublocations = False)
         if self.q:
-            qs = qs.filter(Q(name__icontains=self.q) | Q(unique_identifier__icontains=self.q))
+            qs = qs.filter(
+                Q(name__icontains=self.q) | Q(unique_identifier__icontains=self.q) |
+                Q(summary__icontains=self.q) | Q(physical_description__icontains=self.q)
+            )
         return qs
 
     def get_results(self, context):

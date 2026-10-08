@@ -32,6 +32,34 @@ class LocationMultipleChoiceField(ModelMultipleChoiceField):
         return super().clean(value)
 
 
+class LocationOverviewForm(ModelForm):
+    remove_photo = BooleanField(
+        required=False, label=_("Remove overview photo"),
+    )
+
+    class Meta:
+        model = Location
+        fields = ["summary", "overview_photo"]
+        widgets = {
+            "summary": TextInput(attrs={"class": "form-control", "maxlength": 50}),
+            "overview_photo": FileInput(attrs={"accept": "image/*", "capture": "environment"}),
+        }
+
+    def clean(self):
+        cleaned = super().clean()
+        if cleaned.get("remove_photo") and self.files.get("overview_photo"):
+            self.add_error("overview_photo", _("Choose a new photo or remove the current photo, not both."))
+        return cleaned
+
+    def save(self, commit=True):
+        location = super().save(commit=False)
+        if self.cleaned_data.get("remove_photo"):
+            location.overview_photo = ""
+        if commit:
+            location.save()
+        return location
+
+
 class PrintableInventoryForm(Form):
     locations = LocationMultipleChoiceField(
         queryset=Location.active.all(),

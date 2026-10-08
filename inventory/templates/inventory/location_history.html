@@ -1,0 +1,143 @@
+{% extends 'base.html' %}
+{% load i18n static %}
+
+{% block bootstrap5_extra_head %}
+    {{ block.super }}
+    <link rel="stylesheet" href="{% static 'inventory/location_detail.css' %}">
+    <link rel="stylesheet" href="{% static 'inventory/location_history.css' %}">
+{% endblock %}
+
+{% block title %}{% trans "Location history" %}: {{ object.unique_identifier }}{% endblock %}
+{% block admin_url %}{{ object.get_admin_url }}{% endblock %}
+
+{% block page_header %}
+    <header class="location-header">
+        <nav aria-label="{% trans 'Location navigation' %}" class="location-breadcrumb">
+            <a href="{% url 'index_locations' %}">{% trans "Locations" %}</a>
+            <span aria-hidden="true">/</span>
+            <a href="{{ object.get_absolute_url }}">{{ object.name }}</a>
+        </nav>
+        <div class="location-heading">
+            <div class="location-heading-text">
+                <p class="location-eyebrow">{% trans "Location history" %}</p>
+                <h1>{{ object.name }}</h1>
+                <span class="location-identifier">{{ object.unique_identifier }}</span>
+            </div>
+            <div class="location-actions">
+                <a class="btn btn-outline-secondary" href="{{ object.get_absolute_url }}">{% trans "Back to location" %}</a>
+            </div>
+        </div>
+    </header>
+{% endblock %}
+
+{% block content %}
+    <div class="location-detail location-history">
+        {% trans "Unknown user" as unknown_actor %}
+        <ol class="location-history-events">
+            {% for event in page_obj %}
+                <li>
+                    <article class="location-panel" aria-labelledby="history-event-{{ event.pk }}">
+                        <header class="location-panel-heading">
+                            <h2 id="history-event-{{ event.pk }}">{{ event.get_event_type_display }}</h2>
+                            <p class="location-muted">
+                                <time datetime="{{ event.created_at|date:'c' }}">{{ event.created_at|date:'DATETIME_FORMAT' }}</time>
+                                · {% firstof event.actor_name event.actor.get_full_name event.actor.username unknown_actor %}
+                            </p>
+                        </header>
+
+                        {% if event.event_type == 'overview_updated' %}
+                            {% if event.before.summary != event.after.summary %}
+                                <section class="location-history-change" aria-labelledby="history-summary-{{ event.pk }}">
+                                    <h3 id="history-summary-{{ event.pk }}">{% trans "Summary" %}</h3>
+                                    <div class="location-history-comparison">
+                                        <div>
+                                            <h4>{% trans "Before" %}</h4>
+                                            {% if event.before.summary %}
+                                                <p>{{ event.before.summary }}</p>
+                                            {% else %}
+                                                <p class="location-muted">{% trans "Not set" %}</p>
+                                            {% endif %}
+                                        </div>
+                                        <div>
+                                            <h4>{% trans "After" %}</h4>
+                                            {% if event.after.summary %}
+                                                <p>{{ event.after.summary }}</p>
+                                            {% else %}
+                                                <p class="location-muted">{% trans "Not set" %}</p>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </section>
+                            {% endif %}
+
+                            {% if event.before.overview_photo != event.after.overview_photo %}
+                                <section class="location-history-change" aria-labelledby="history-photo-{{ event.pk }}">
+                                    <h3 id="history-photo-{{ event.pk }}">{% trans "Overview photo" %}</h3>
+                                    <div class="location-history-comparison">
+                                        <div>
+                                            <h4>{% trans "Before" %}</h4>
+                                            {% if event.before_photo_url %}
+                                                <a href="{{ event.before_photo_url }}"><img src="{{ event.before_photo_url }}" alt="{% trans 'Previous overview photo' %}" loading="lazy" decoding="async"></a>
+                                            {% else %}
+                                                <p class="location-muted">{% trans "Not set" %}</p>
+                                            {% endif %}
+                                        </div>
+                                        <div>
+                                            <h4>{% trans "After" %}</h4>
+                                            {% if event.after_photo_url %}
+                                                <a href="{{ event.after_photo_url }}"><img src="{{ event.after_photo_url }}" alt="{% trans 'Updated overview photo' %}" loading="lazy" decoding="async"></a>
+                                            {% else %}
+                                                <p class="location-muted">{% trans "Not set" %}</p>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </section>
+                            {% endif %}
+                        {% else %}
+                            <div class="location-history-change location-history-comparison">
+                                <div>
+                                    <h3>{% trans "Before" %}</h3>
+                                    <dl class="location-history-values">
+                                        {% for field, value in event.before.items %}
+                                            <dt>{{ field }}</dt><dd>{{ value|default_if_none:'' }}</dd>
+                                        {% empty %}
+                                            <dd class="location-muted">{% trans "Not set" %}</dd>
+                                        {% endfor %}
+                                    </dl>
+                                </div>
+                                <div>
+                                    <h3>{% trans "After" %}</h3>
+                                    <dl class="location-history-values">
+                                        {% for field, value in event.after.items %}
+                                            <dt>{{ field }}</dt><dd>{{ value|default_if_none:'' }}</dd>
+                                        {% empty %}
+                                            <dd class="location-muted">{% trans "Not set" %}</dd>
+                                        {% endfor %}
+                                    </dl>
+                                </div>
+                            </div>
+                        {% endif %}
+                    </article>
+                </li>
+            {% empty %}
+                <li class="location-panel">
+                    <div class="location-panel-heading">
+                        <p class="location-muted">{% trans "No changes have been recorded for this location yet." %}</p>
+                    </div>
+                </li>
+            {% endfor %}
+        </ol>
+
+        {% if page_obj.has_other_pages %}
+            <nav class="location-history-pagination" aria-label="{% trans 'History pages' %}">
+                {% if page_obj.has_previous %}
+                    <a class="btn btn-outline-secondary" href="?page={{ page_obj.previous_page_number }}" rel="prev">{% trans "Previous" %}</a>
+                {% endif %}
+                <span class="location-muted">{% blocktrans with number=page_obj.number total=page_obj.paginator.num_pages %}Page {{ number }} of {{ total }}{% endblocktrans %}</span>
+                {% if page_obj.has_next %}
+                    <a class="btn btn-outline-secondary" href="?page={{ page_obj.next_page_number }}" rel="next">{% trans "Next" %}</a>
+                {% endif %}
+            </nav>
+        {% endif %}
+    </div>
+{% endblock %}
