@@ -3,7 +3,7 @@
 
 {% block bootstrap5_extra_head %}
     {{ block.super }}
-    <link rel="stylesheet" href="{% static 'inventory/simple-lightbox.min.css' %}">
+    <link rel="stylesheet" href="{% static 'inventory/photo_lightbox.css' %}">
     <link rel="stylesheet" href="{% static 'inventory/item_detail.css' %}">
 {% endblock %}
 
@@ -68,7 +68,7 @@
                         {% if images %}<p class="item-muted">{% trans "Click a photo to enlarge it; click again to close. Use arrow keys or swipe to browse." %}</p>{% endif %}
                     </div>
                     {% if images %}
-                        <div class="item-gallery" data-gallery-label="{% trans 'Photos' %}" data-close-label="{% trans 'Close photo' %}" data-previous-label="{% trans 'Previous photo' %}" data-next-label="{% trans 'Next photo' %}" data-error-message="{% trans 'Image could not be loaded.' %}">
+                        <div class="item-gallery" data-gallery-label="{% trans 'Photos' %}" data-close-label="{% trans 'Close photo' %}" data-previous-label="{% trans 'Previous photo' %}" data-next-label="{% trans 'Next photo' %}" data-error-message="{% trans 'Image could not be loaded.' %}" data-retry-label="{% trans 'Try again' %}" data-loading-label="{% trans 'Loading photo…' %}">
                             {% for image in images %}
                                 {% if image.image %}
                                     <figure>
@@ -139,6 +139,6 @@
 {% block bootstrap5_extra_script %}
     {{ block.super }}
     <script src="{% static 'inventory/location_detail.js' %}"></script>
-    <script src="{% static 'inventory/simple-lightbox.min.js' %}"></script>
+    <script src="{% static 'inventory/photo_lightbox.js' %}"></script>
     <script src="{% static 'inventory/item_detail.js' %}"></script>
 {% endblock %}

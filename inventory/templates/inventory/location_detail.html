@@ -3,6 +3,7 @@
 
 {% block bootstrap5_extra_head %}
     {{ block.super }}
+    <link rel="stylesheet" href="{% static 'inventory/photo_lightbox.css' %}">
     <link rel="stylesheet" href="{% static 'inventory/location_detail.css' %}">
     <link rel="stylesheet" href="{% static 'inventory/location_overview.css' %}">
     <link rel="stylesheet" href="{% static 'inventory/location_quick_items.css' %}">
@@ -66,7 +67,7 @@
 
 {% block content %}
     {% with children=object.children.all %}
-    <div class="location-detail">
+    <div class="location-detail" data-lightbox-gallery-label="{% trans 'Photos' %}" data-lightbox-close-label="{% trans 'Close photo' %}" data-lightbox-previous-label="{% trans 'Previous photo' %}" data-lightbox-next-label="{% trans 'Next photo' %}" data-lightbox-error-message="{% trans 'Image could not be loaded.' %}" data-lightbox-retry-label="{% trans 'Try again' %}" data-lightbox-loading-label="{% trans 'Loading photo…' %}">
         <div class="location-layout{% if object.type.no_sublocations and not children %} location-layout-single{% endif %}">
             <section class="location-panel location-stored" aria-labelledby="location-stored-heading">
                 <div class="location-panel-heading">
@@ -184,6 +185,7 @@
 
 {% block bootstrap5_extra_script %}
     {{ block.super }}
+    <script src="{% static 'inventory/photo_lightbox.js' %}"></script>
     <script src="{% static 'inventory/location_detail.js' %}"></script>
     {% if perms.inventory.change_location %}<script src="{% static 'inventory/location_overview.js' %}"></script>{% endif %}
     {% if can_manage_quick_items %}<script src="{% static 'inventory/location_quick_items.js' %}"></script>{% endif %}

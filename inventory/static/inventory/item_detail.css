@@ -61,10 +61,7 @@
 .item-header a:focus-visible,
 .item-detail a:focus-visible,
 .item-help:focus-visible { outline: 3px solid #0d6efd; outline-offset: 3px; }
-.item-lightbox .sl-image img { cursor: zoom-out; }
-.item-lightbox .sl-image:has(.item-image-ocr[open]) { touch-action: pan-y; }
-.item-lightbox button { min-width: 44px; min-height: 44px; }
-.item-lightbox button:focus-visible { outline: 3px solid #0d6efd; outline-offset: 3px; }
+.item-lightbox .photo-lightbox-figure:has(.item-image-ocr[open]) { touch-action: pan-y; }
 
 @media (pointer: coarse) {
     .item-image-ocr > summary { width: 44px; height: 44px; }
