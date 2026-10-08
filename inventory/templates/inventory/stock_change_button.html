@@ -1,0 +1,7 @@
+{% load i18n l10n %}{% with item=entry.item location=entry.location.unique_identifier %}<a class="btn btn-outline-primary stock-change-button" href="{% url 'stock_change' entry.pk %}?next={{ request.get_full_path|urlencode }}"
+   data-stock-change data-item="{{ item }}" data-location="{{ location }}"
+   data-amount="{% if entry.amount != None %}{{ entry.amount|unlocalize }}{% endif %}" data-kind="{{ entry.amount_kind }}" data-amount-text="{{ entry.amount_text }}"
+   data-unit="{{ item.measurement_unit.short }}" data-price="{% if item.sale_price != None %}{{ item.sale_price|unlocalize }}{% endif %}"
+   data-last-stock="{{ entry.is_last_stock|yesno:'true,false' }}"
+   data-bs-toggle="tooltip" title="{% trans 'Remove or add stock' %}"
+   aria-label="{% blocktrans %}Remove or add stock of {{ item }} at {{ location }}{% endblocktrans %}"><span aria-hidden="true">🛒</span></a>{% endwith %}

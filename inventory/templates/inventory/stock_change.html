@@ -1,0 +1,32 @@
+{% extends 'base.html' %}
+{% load i18n static l10n %}
+
+{% block bootstrap5_extra_head %}
+    {{ block.super }}
+    <link rel="stylesheet" href="{% static 'inventory/stock_change.css' %}">
+{% endblock %}
+
+{% block title %}{% trans "Change stock" %}: {{ entry.item }}{% endblock %}
+
+{% block content %}
+    <div class="stock-change-page">
+        <h1 class="fs-3"><span aria-hidden="true">🛒</span> {% trans "Change stock" %}</h1>
+        <p class="stock-change-subject"><a href="{{ entry.item.get_absolute_url }}">{{ entry.item }}</a> · <a href="{{ entry.location.get_absolute_url }}">{{ entry.location.unique_identifier }}</a></p>
+        <form method="post" action="{% url 'stock_change' entry.pk %}" class="stock-change-form" {% include 'inventory/stock_change_form_attrs.html' %}
+              data-amount="{% if entry.amount != None %}{{ entry.amount|unlocalize }}{% endif %}" data-kind="{{ entry.amount_kind }}" data-amount-text="{{ entry.amount_text }}"
+              data-unit="{{ entry.item.measurement_unit.short }}" data-price="{% if entry.item.sale_price != None %}{{ entry.item.sale_price|unlocalize }}{% endif %}"
+              data-last-stock="{{ is_last_stock|yesno:'true,false' }}">
+            {% csrf_token %}
+            {% include 'inventory/stock_change_fields.html' %}
+            <div class="stock-change-actions">
+                <a class="btn btn-outline-secondary" href="{{ next }}">{% trans "Cancel" %}</a>
+                <button type="submit" class="btn btn-primary" data-change-submit>{% trans "Save" %}</button>
+            </div>
+        </form>
+    </div>
+{% endblock %}
+
+{% block bootstrap5_extra_script %}
+    {{ block.super }}
+    <script src="{% static 'inventory/stock_change.js' %}"></script>
+{% endblock %}

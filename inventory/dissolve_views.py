@@ -9,8 +9,9 @@ from django.views import View
 
 from .dissolution import DissolutionPlan
 from .forms import DissolveLocationForm
-from .models import Location
+from .models import Location, StockChange
 from .permissions import require_dissolution_permissions
+from .stock_log import stock_changes
 
 
 class DissolveLocationView(PermissionRequiredMixin, View):
@@ -47,7 +48,9 @@ class DissolveLocationView(PermissionRequiredMixin, View):
                         plan = DissolutionPlan(root, recursive, lock=True)
                         if payload["fingerprint"] != plan.fingerprint():
                             raise ValidationError(_("The inventory changed. Review the plan again."))
-                        plan.apply(payload["operations"])
+                        with stock_changes(actor=request.user, source=StockChange.Source.DISSOLUTION,
+                                           decrease_reason=StockChange.Reason.OTHER):
+                            plan.apply(payload["operations"])
                 except (ValidationError, IntegrityError, DataError) as error:
                     explanation = " ".join(error.messages) if isinstance(error, ValidationError) else _("The plan conflicts with the current inventory. No changes were saved.")
                     messages.error(request, explanation)

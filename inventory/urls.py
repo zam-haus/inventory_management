@@ -7,6 +7,7 @@ from . import views
 from .dissolve_views import DissolveLocationView
 from .location_overview_views import LocationHistoryView, LocationOverviewUpdateView
 from .quick_item_views import QuickItemCreateView, QuickItemDeleteView, QuickItemUpdateView
+from .stock_change_views import StockChangeView
 
 
 urlpatterns = [
@@ -18,6 +19,7 @@ urlpatterns = [
     path("loc/<int:pk>/quick-items/", QuickItemCreateView.as_view(), name="quick_item_create"),
     path("quick-items/<int:pk>/", QuickItemUpdateView.as_view(), name="quick_item_update"),
     path("quick-items/<int:pk>/delete/", QuickItemDeleteView.as_view(), name="quick_item_delete"),
+    path("stock/<int:pk>/change/", StockChangeView.as_view(), name="stock_change"),
     path(
         "loc/<int:pk>",
         views.DetailLocationView.as_view(),

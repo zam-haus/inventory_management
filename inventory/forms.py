@@ -5,8 +5,9 @@ from crispy_bootstrap5.bootstrap5 import FloatingField
 from django.core.exceptions import ValidationError
 from django.db.models import Q
 from django.forms import (
-    BooleanField, CharField, FileInput, Form, HiddenInput, IntegerField, ModelChoiceField, ModelForm,
-    ModelMultipleChoiceField, RegexField, SelectMultiple, Textarea, TextInput,
+    BooleanField, CharField, CheckboxInput, ChoiceField, DecimalField, FileInput, Form, HiddenInput,
+    IntegerField, ModelChoiceField, ModelForm, ModelMultipleChoiceField, NumberInput, RadioSelect,
+    RegexField, SelectMultiple, Textarea, TextInput, UUIDField,
 )
 from extra_views import InlineFormSetFactory
 from django.utils.translation import gettext_lazy as _
@@ -15,7 +16,7 @@ from dal import autocomplete
 
 from .keyboard_layouts import layout_corrections
 from .location_lookup import scan_prefix
-from .models import BarcodeType, Item, ItemBarcode, ItemImage, ItemLocation, Location
+from .models import BarcodeType, Item, ItemBarcode, ItemImage, ItemLocation, Location, StockChange
 
 
 class LocationMultipleChoiceField(ModelMultipleChoiceField):
@@ -447,3 +448,75 @@ class LocationMoveForm(ModelForm):
     )
 
     id = IntegerField(widget=HiddenInput(), required = False)
+
+
+class StockChangeForm(Form):
+    """Remove or add stock at one location; `entry` is the stock entry, locked by the view."""
+
+    direction = ChoiceField(
+        label=_("Change"), choices=StockChange.Direction.choices,
+        widget=RadioSelect(attrs={"class": "btn-check"}),
+    )
+    amount = DecimalField(
+        label=_("Amount"), required=False, min_value=0, max_digits=16, decimal_places=3,
+        widget=NumberInput(attrs={"class": "form-control", "step": "any", "min": "0", "inputmode": "decimal"}),
+    )
+    complete = BooleanField(
+        label=_("Remove everything stored at this location"), required=False,
+        widget=CheckboxInput(attrs={"class": "form-check-input"}),
+    )
+    reason = ChoiceField(label=_("Reason"), choices=StockChange.Reason.choices)
+    note = CharField(
+        label=_("Note (optional)"), required=False, max_length=500,
+        widget=Textarea(attrs={"class": "form-control", "rows": 2, "maxlength": 500}),
+    )
+    request_id = UUIDField(required=False, widget=HiddenInput)
+
+    def __init__(self, *args, entry=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.entry = entry
+
+    def reasons(self):
+        """The reason radio buttons, grouped by direction."""
+        value = self["reason"].value()
+        return [
+            {"direction": direction, "choices": [
+                {"value": reason.value, "label": reason.label, "id": f"id_reason_{reason.value}", "checked": value == reason}
+                for reason in StockChange.REASONS[direction]
+            ]}
+            for direction in StockChange.Direction
+        ]
+
+    def clean(self):
+        cleaned = super().clean()
+        direction, reason = cleaned.get("direction"), cleaned.get("reason")
+        if direction and reason and reason not in StockChange.REASONS[direction]:
+            self.add_error("reason", _("Choose a reason that fits the change."))
+        if self.entry is None or not direction or "amount" in self.errors:
+            return cleaned
+        stock, kind = self.entry.amount, self.entry.amount_kind
+        amount = cleaned.get("amount")
+        complete = bool(cleaned.get("complete")) and direction == StockChange.Direction.DECREASE
+        cleaned["estimated"] = False
+        if direction == StockChange.Direction.DECREASE and kind == "precise":
+            if complete:
+                # "Everything" is unambiguous, even if the stock changed meanwhile.
+                amount = stock
+            elif amount is None:
+                self.add_error("amount", _("Enter the amount."))
+            elif amount <= 0:
+                self.add_error("amount", _("Enter an amount greater than zero."))
+            elif amount > stock:
+                self.add_error("amount", _("Only %(amount)s are stored here.") % {"amount": self.entry.amount_text})
+            elif amount == stock:
+                complete = True
+        else:
+            # Estimates have no upper bound (see change_stock()); a changed
+            # amount is always counted, never estimated.
+            if amount is None and not complete:
+                self.add_error("amount", _("Enter the amount."))
+            elif amount is not None and amount <= 0:
+                self.add_error("amount", _("Enter an amount greater than zero."))
+            cleaned["estimated"] = bool(complete and kind == "estimate" and amount == abs(stock))
+        cleaned["amount"], cleaned["complete"] = amount, complete
+        return cleaned

@@ -22,6 +22,7 @@ from django.views.generic import DetailView, ListView, UpdateView
 from . import forms, models
 from .location_lookup import resolve_location_reference
 from .permissions import QUICK_ITEM_PERMISSIONS, ItemEditorPermissionMixin
+from .stock_change_views import mark_last_stock
 
 
 logger = logging.getLogger(__name__)
@@ -91,6 +92,9 @@ class DetailLocationView(DetailView):
         context["quick_entries"] = [entry for entry in entries if entry.is_quick_item]
         context["entries"] = [entry for entry in entries if not entry.is_quick_item]
         context["can_manage_quick_items"] = self.request.user.has_perms(QUICK_ITEM_PERMISSIONS)
+        if self.request.user.has_perm("inventory.add_stockchange"):
+            mark_last_stock(context["entries"])
+            context["stock_change_form"] = forms.StockChangeForm()
         if self.request.user.has_perm("inventory.change_location"):
             context.setdefault("overview_form", forms.LocationOverviewForm(instance=self.object))
         return context
@@ -205,6 +209,14 @@ class DetailItemView(DetailView):
     queryset = models.Item.active.prefetch_related(Prefetch(
         "itemlocation_set", queryset=models.ItemLocation.objects.filter(location__is_deleted=False).select_related("location"),
     ))
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["entries"] = list(self.object.itemlocation_set.all())
+        if self.request.user.has_perm("inventory.add_stockchange"):
+            mark_last_stock(context["entries"])
+            context["stock_change_form"] = forms.StockChangeForm()
+        return context
 
 
 def category_json(request, pk):

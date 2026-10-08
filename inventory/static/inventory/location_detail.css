@@ -79,6 +79,9 @@
 .location-count { padding: .2rem .5rem; border-radius: 1rem; background: #edf2f7; color: #485460; font-size: .8rem; font-weight: 600; }
 .location-item-columns,
 .location-item { display: grid; grid-template-columns: minmax(0, 1fr) minmax(5rem, .35fr) minmax(0, .8fr); gap: 1rem; padding: 1rem 1.2rem; align-items: start; }
+.location-items-changeable.location-item-columns,
+.location-items-changeable .location-item { grid-template-columns: minmax(0, 1fr) minmax(5rem, .35fr) minmax(0, .8fr) 44px; }
+.location-item-actions { display: flex; justify-content: flex-end; }
 .location-item-columns { padding-top: .65rem; padding-bottom: .65rem; background: #f7f9fb; border-top: 1px solid var(--location-border); font-size: .8rem; font-weight: 600; color: var(--location-muted); }
 .location-items,
 .location-child-list { list-style: none; margin: 0; padding: 0; }
@@ -156,6 +159,9 @@
     .location-amount { margin-top: .2rem; }
     .location-photos { grid-column: 1 / -1; }
     .location-photos:has(.location-no-images) { display: none; }
+    .location-items-changeable .location-item { grid-template-columns: minmax(0, 1fr) minmax(0, auto); }
+    .location-items-changeable .location-photos { grid-column: 1; }
+    .location-items-changeable .location-item-actions { grid-column: 2; }
     .location-child-list a { padding: 1rem; }
 }
 .location-scan-button { min-height: 44px; margin-top: .25rem; }

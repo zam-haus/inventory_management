@@ -1042,3 +1042,224 @@ msgid ""
 msgstr ""
 "Halte den EAN-Barcode des Produkts vor die Kamera. Jeder gescannte Code wird "
 "in das Barcode-Feld übernommen."
+
+msgid "change"
+msgstr "Änderung"
+
+msgid "everything (amount unknown)"
+msgstr "alles (Menge unbekannt)"
+
+msgid "unknown amount"
+msgstr "unbekannte Menge"
+
+msgid "stock"
+msgstr "Bestand"
+
+msgid "removed from location"
+msgstr "vom Standort entfernt"
+
+msgid "sale value"
+msgstr "Verkaufswert"
+
+msgid "unknown"
+msgstr "unbekannt"
+
+msgid "stock change"
+msgstr "Bestandsänderung"
+
+msgid "stock changes"
+msgstr "Bestandsänderungen"
+
+msgid "Change"
+msgstr "Änderung"
+
+msgid "Remove everything stored at this location"
+msgstr "Alles an diesem Standort entnehmen"
+
+msgid "Reason"
+msgstr "Grund"
+
+msgid "Note (optional)"
+msgstr "Notiz (optional)"
+
+msgid "Choose a reason that fits the change."
+msgstr "Wähle einen Grund, der zur Änderung passt."
+
+msgid "Enter the amount."
+msgstr "Gib die Menge ein."
+
+msgid "Enter an amount greater than zero."
+msgstr "Gib eine Menge größer als null ein."
+
+#, python-format
+msgid "Only %(amount)s are stored here."
+msgstr "Hier sind nur %(amount)s gelagert."
+
+msgid "Removal"
+msgstr "Entnahme"
+
+msgid "Restock"
+msgstr "Zugang"
+
+msgid "Sale"
+msgstr "Verkauf"
+
+msgid "ZAM's own use"
+msgstr "Eigenbedarf des ZAM"
+
+msgid "Recount (lost or correction)"
+msgstr "Nachzählung (verloren oder Korrektur)"
+
+msgid "Destruction"
+msgstr "Vernichtung"
+
+msgid "Other"
+msgstr "Sonstiges"
+
+msgid "Purchase"
+msgstr "Einkauf"
+
+msgid "Donation"
+msgstr "Spende"
+
+msgid "Recount (found or unknown origin)"
+msgstr "Nachzählung (gefunden oder Herkunft unbekannt)"
+
+msgid "Stock dialog"
+msgstr "Bestandsdialog"
+
+msgid "Item form"
+msgstr "Sachformular"
+
+msgid "Admin"
+msgstr "Admin"
+
+msgid "Location dissolution"
+msgstr "Standortauflösung"
+
+msgid "date"
+msgstr "Datum"
+
+msgid "user"
+msgstr "Benutzer"
+
+msgid "direction"
+msgstr "Richtung"
+
+msgid "reason"
+msgstr "Grund"
+
+msgid "note"
+msgstr "Notiz"
+
+msgid "source"
+msgstr "Quelle"
+
+msgid "location name"
+msgstr "Standortname"
+
+msgid "amount before"
+msgstr "Menge vorher"
+
+msgid "amount after"
+msgstr "Menge nachher"
+
+msgid "changed amount"
+msgstr "geänderte Menge"
+
+msgid "Always positive; empty if unknown."
+msgstr "Immer positiv; leer, wenn unbekannt."
+
+msgid "estimated"
+msgstr "geschätzt"
+
+msgid "This stock change was already saved."
+msgstr "Diese Bestandsänderung wurde bereits gespeichert."
+
+#, python-format
+msgid "Removed everything of “%(item)s” from %(location)s."
+msgstr "Alles von „%(item)s“ aus %(location)s entnommen."
+
+#, python-format
+msgid "Added %(amount)s of “%(item)s” to %(location)s."
+msgstr "%(amount)s von „%(item)s“ zu %(location)s hinzugefügt."
+
+#, python-format
+msgid "Removed %(amount)s of “%(item)s” from %(location)s."
+msgstr "%(amount)s von „%(item)s“ aus %(location)s entnommen."
+
+#, python-format
+msgid "No stock is left, so “%(item)s” was deleted."
+msgstr "Es ist kein Bestand mehr übrig, daher wurde „%(item)s“ gelöscht."
+
+msgid "Change stock"
+msgstr "Bestand ändern"
+
+msgid "Remove or add stock"
+msgstr "Bestand entnehmen oder hinzufügen"
+
+#, python-format
+msgid "Remove or add stock of %(item)s at %(location)s"
+msgstr "Bestand von %(item)s an %(location)s entnehmen oder hinzufügen"
+
+msgid "Do you remove or add stock?"
+msgstr "Entnimmst du Bestand oder fügst du welchen hinzu?"
+
+msgid "Remove stock"
+msgstr "Entnehmen"
+
+msgid "Add stock"
+msgstr "Hinzufügen"
+
+#, python-format
+msgid "At most %(amount)s can be removed."
+msgstr "Höchstens %(amount)s können entnommen werden."
+
+msgid "The stored estimate changes by this amount and remains an estimate. If nothing would be left, it becomes “few”."
+msgstr "Die Schätzung ändert sich um diese Menge und bleibt eine Schätzung. Bliebe nichts übrig, wird sie zu „wenige“."
+
+msgid "The stored amount is not known exactly and stays unchanged; only your change is logged."
+msgstr "Die gelagerte Menge ist nicht genau bekannt und bleibt unverändert; nur deine Änderung wird protokolliert."
+
+msgid "This is the last stock of this item. Removing everything deletes the item."
+msgstr "Das ist der letzte Bestand dieser Sache. Wird alles entnommen, wird die Sache gelöscht."
+
+msgid "When removing"
+msgstr "Bei Entnahme"
+
+msgid "When adding"
+msgstr "Beim Hinzufügen"
+
+msgid "Prefilled with the estimate. Enter the counted amount if you know it."
+msgstr "Mit der Schätzung vorausgefüllt. Gib die gezählte Menge ein, wenn du sie kennst."
+
+msgid "Optional: enter the counted amount if you know it."
+msgstr "Optional: Gib die gezählte Menge ein, wenn du sie kennst."
+
+#, python-format
+msgid "Stored afterwards: %(amount)s"
+msgstr "Danach gelagert: %(amount)s"
+
+msgid "Removed amount"
+msgstr "Entnommene Menge"
+
+msgid "Added amount"
+msgstr "Hinzugefügte Menge"
+
+msgid "Remove"
+msgstr "Entnehmen"
+
+msgid "Add"
+msgstr "Hinzufügen"
+
+msgid "unknown, no price is set for this item"
+msgstr "unbekannt, für diese Sache ist kein Preis angegeben"
+
+msgid "unknown, enter the amount"
+msgstr "unbekannt, gib die Menge ein"
+
+msgid "Saving…"
+msgstr "Wird gespeichert…"
+
+msgid "The stock change could not be saved. Reload the page and try again."
+msgstr "Die Bestandsänderung konnte nicht gespeichert werden. Lade die Seite neu und versuche es erneut."

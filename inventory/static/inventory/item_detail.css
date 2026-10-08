@@ -53,6 +53,8 @@
 .item-location-heading { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: .5rem 1rem; margin-bottom: .65rem; }
 .item-location-heading h3 { min-width: 0; flex: 1 1 8rem; font-size: 1rem; line-height: 1.5; margin: 0; }
 .item-location-heading a { display: inline-block; padding: .25rem 0; }
+.item-location-row { display: flex; align-items: center; justify-content: space-between; gap: .75rem; }
+.item-location-where { flex: 1 1 auto; min-width: 0; }
 .item-amount { max-width: 100%; padding: .25rem .5rem; border-radius: .35rem; background: #edf2f7; font-size: .9rem; font-variant-numeric: tabular-nums; }
 .item-location-identifier { font-size: .85rem; }
 .item-location-path { margin: .5rem 0 0; }

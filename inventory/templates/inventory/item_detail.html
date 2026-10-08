@@ -5,6 +5,7 @@
     {{ block.super }}
     <link rel="stylesheet" href="{% static 'inventory/photo_lightbox.css' %}">
     <link rel="stylesheet" href="{% static 'inventory/item_detail.css' %}">
+    {% if stock_change_form %}<link rel="stylesheet" href="{% static 'inventory/stock_change.css' %}">{% endif %}
 {% endblock %}
 
 {% block title %}{{ object }}{% endblock %}
@@ -30,7 +31,7 @@
 {% endblock %}
 
 {% block content %}
-    {% with images=object.itemimage_set.all entries=object.itemlocation_set.all %}
+    {% with images=object.itemimage_set.all %}
     <div class="item-detail">
         <dl class="item-overview">
             <div>
@@ -118,8 +119,13 @@
                                 <h3><a href="{{ entry.location.get_absolute_url }}">{{ entry.location.name }}</a></h3>
                                 <span class="item-amount"><span class="visually-hidden">{% trans "Amount" %}: </span>{{ entry.amount_text }}</span>
                             </div>
-                            <button type="button" class="item-location-identifier item-help" data-bs-toggle="tooltip" title="{% trans 'Unique identifier for this storage location, used on labels and to find the location in the inventory.' %}">{{ entry.location.unique_identifier }} <span aria-hidden="true">ⓘ</span></button>
-                            <p class="item-location-path item-muted">{{ entry.location.descriptive_identifier }}</p>
+                            <div class="item-location-row">
+                                <div class="item-location-where">
+                                    <button type="button" class="item-location-identifier item-help" data-bs-toggle="tooltip" title="{% trans 'Unique identifier for this storage location, used on labels and to find the location in the inventory.' %}">{{ entry.location.unique_identifier }} <span aria-hidden="true">ⓘ</span></button>
+                                    <p class="item-location-path item-muted">{{ entry.location.descriptive_identifier }}</p>
+                                </div>
+                                {% if stock_change_form and not entry.is_quick_item %}{% include 'inventory/stock_change_button.html' %}{% endif %}
+                            </div>
                             {% with sale_value=entry.sale_value %}
                                 {% if sale_value != None %}
                                     <p class="item-sale-value"><span class="item-muted">{% if entry.amount < 0 %}{% trans "Estimated sale value" %}{% else %}{% trans "Sale value" %}{% endif %}:</span> {% if entry.amount < 0 %}~{% endif %}{{ sale_value|floatformat:2 }} €</p>
@@ -134,6 +140,7 @@
         </div>
     </div>
     {% endwith %}
+    {% if stock_change_form %}{% include 'inventory/stock_change_dialog.html' %}{% endif %}
 {% endblock %}
 
 {% block bootstrap5_extra_script %}
@@ -141,4 +148,5 @@
     <script src="{% static 'inventory/location_detail.js' %}"></script>
     <script src="{% static 'inventory/photo_lightbox.js' %}"></script>
     <script src="{% static 'inventory/item_detail.js' %}"></script>
+    {% if stock_change_form %}<script src="{% static 'inventory/stock_change.js' %}"></script>{% endif %}
 {% endblock %}

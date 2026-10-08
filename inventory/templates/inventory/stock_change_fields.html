@@ -1,0 +1,55 @@
+{% load i18n %}
+{# The fields of a stock change, shared by the dialog and the fallback page. #}
+<input type="hidden" name="next" value="{{ next }}">
+{{ form.request_id }}
+<div class="alert alert-danger" role="alert" data-change-errors{% if not form.non_field_errors %} hidden{% endif %}>
+    {% for error in form.non_field_errors %}<p class="mb-0">{{ error }}</p>{% endfor %}
+</div>
+<fieldset class="stock-change-direction">
+    <legend class="form-label fs-6">{% trans "Do you remove or add stock?" %}</legend>
+    <div class="stock-change-direction-options">
+        <input type="radio" class="btn-check" name="direction" id="id_direction_decrease" value="decrease" required{% if form.direction.value == "decrease" %} checked{% endif %}>
+        <label class="btn btn-outline-danger stock-change-decrease" for="id_direction_decrease"><span class="stock-change-symbol" aria-hidden="true">↓ −</span> {% trans "Remove stock" %}</label>
+        <input type="radio" class="btn-check" name="direction" id="id_direction_increase" value="increase" required{% if form.direction.value == "increase" %} checked{% endif %}>
+        <label class="btn btn-outline-success stock-change-increase" for="id_direction_increase"><span class="stock-change-symbol" aria-hidden="true">↑ +</span> {% trans "Add stock" %}</label>
+    </div>
+    <div class="text-danger small" data-change-field-errors="direction">{% for error in form.direction.errors %}<p class="mb-0">{{ error }}</p>{% endfor %}</div>
+</fieldset>
+<div class="stock-change-details" data-change-details>
+    <p class="stock-change-stock"><span class="stock-change-muted">{% trans "Stored here" %}:</span> <strong data-change-stock>{{ entry.amount_text }}</strong></p>
+    <div class="mb-3">
+        <label class="form-label" for="{{ form.amount.id_for_label }}" data-change-amount-label>{{ form.amount.label }}</label>
+        <div class="input-group">
+            <span class="input-group-text stock-change-sign" data-change-sign aria-hidden="true"></span>
+            {{ form.amount }}
+            <span class="input-group-text" data-change-unit>{{ entry.item.measurement_unit.short }}</span>
+        </div>
+        <div class="text-danger small" data-change-field-errors="amount">{% for error in form.amount.errors %}<p class="mb-0">{{ error }}</p>{% endfor %}</div>
+        <p class="form-text mb-0" data-change-amount-hint>{% if entry %}{% if entry.amount_kind == "precise" %}{% blocktrans with amount=entry.amount_text %}At most {{ amount }} can be removed.{% endblocktrans %}{% elif entry.amount_kind == "estimate" %}{% trans "The stored estimate changes by this amount and remains an estimate. If nothing would be left, it becomes “few”." %}{% else %}{% trans "The stored amount is not known exactly and stays unchanged; only your change is logged." %}{% endif %}{% endif %}</p>
+        <p class="form-text mb-0" data-change-after hidden></p>
+    </div>
+    <div class="form-check mb-3" data-change-decrease-only>
+        {{ form.complete }}
+        <label class="form-check-label" for="{{ form.complete.id_for_label }}">{{ form.complete.label }}</label>
+        <p class="form-text mb-0" data-change-complete-hint hidden></p>
+    </div>
+    <div class="alert alert-warning py-2" data-change-last-stock{% if not is_last_stock %} hidden{% endif %}>{% trans "This is the last stock of this item. Removing everything deletes the item." %}</div>
+    <p class="stock-change-value" role="status" data-change-value hidden></p>
+    <fieldset class="mb-3">
+        <legend class="form-label fs-6 mb-2">{{ form.reason.label }}</legend>
+        {% for group in form.reasons %}
+            <div class="stock-change-reasons" data-change-reasons="{{ group.direction }}">
+                <p class="stock-change-reason-group" data-change-reason-heading>{% if group.direction == "decrease" %}{% trans "When removing" %}{% else %}{% trans "When adding" %}{% endif %}</p>
+                {% for choice in group.choices %}
+                    <div class="form-check"><input type="radio" class="form-check-input" name="reason" value="{{ choice.value }}" id="{{ choice.id }}" required{% if choice.checked %} checked{% endif %}><label class="form-check-label" for="{{ choice.id }}">{{ choice.label }}</label></div>
+                {% endfor %}
+            </div>
+        {% endfor %}
+        <div class="text-danger small" data-change-field-errors="reason">{% for error in form.reason.errors %}<p class="mb-0">{{ error }}</p>{% endfor %}</div>
+    </fieldset>
+    <div>
+        <label class="form-label" for="{{ form.note.id_for_label }}">{{ form.note.label }}</label>
+        {{ form.note }}
+        <div class="text-danger small" data-change-field-errors="note">{% for error in form.note.errors %}<p class="mb-0">{{ error }}</p>{% endfor %}</div>
+    </div>
+</div>

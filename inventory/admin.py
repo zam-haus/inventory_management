@@ -9,12 +9,14 @@ from django.db.models import CharField, TextField
 from django.shortcuts import redirect
 from django.urls import path, reverse
 from django.utils.decorators import method_decorator
+from django.utils.html import format_html
 from django.utils.translation import gettext_lazy as _
 from django.views.generic import FormView
 
 from . import models
 from .forms import AdminItemLocationForm, AdminLocationForm
 from .soft_delete_admin import SoftDeleteAdminMixin
+from .stock_log import stock_changes
 
 
 admin.site.register(models.LocationType)
@@ -280,12 +282,107 @@ class ItemFileInline(admin.TabularInline):
     extra = 0
 
 
+class StockChangeDisplayMixin:
+    """Read-only presentation shared by the stock log and its item inline."""
+
+    @admin.display(description=_("change"), ordering="amount")
+    def change(self, obj):
+        sign, arrow, color = ("+", "↑", "#198754") if obj.is_increase else ("−", "↓", "#dc3545")
+        if obj.amount is None:
+            amount = _("everything (amount unknown)") if obj.entry_removed else _("unknown amount")
+        else:
+            amount = ("~" if obj.is_estimate else "") + obj.amount_text(obj.amount)
+        return format_html('<span style="color: {}; font-weight: 600">{} {}{}</span>', color, arrow, sign, amount)
+
+    @admin.display(description=_("stock"))
+    def stock(self, obj):
+        after = _("removed from location") if obj.entry_removed else obj.amount_text(obj.amount_after)
+        return f"{obj.amount_text(obj.amount_before)} → {after}"
+
+    @admin.display(description=_("sale value"), ordering="sale_value")
+    def sale_value_text(self, obj):
+        if obj.sale_value is None:
+            return _("unknown")
+        return ("~" if obj.is_estimate else "") + f"{obj.sale_value} €"
+
+
+class StockChangeInline(StockChangeDisplayMixin, admin.TabularInline):
+    model = models.StockChange
+    fk_name = "item"
+    extra = 0
+    can_delete = False
+    fields = ("created_at", "location_name", "change", "stock", "reason", "note", "sale_value_text", "actor")
+    readonly_fields = fields
+    verbose_name_plural = _("stock changes")
+
+    def has_add_permission(self, request, obj=None):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+
 class ItemAdmin(SoftDeleteAdminMixin, admin.ModelAdmin):
     list_display = ("name", "deleted_status")
-    inlines = [ItemBarcodeInline, ItemImageInline, ItemFileInline, ItemLocationInline]
+    inlines = [ItemBarcodeInline, ItemImageInline, ItemFileInline, ItemLocationInline, StockChangeInline]
     formfield_overrides = {
         TextField: {"widget": forms.Textarea(attrs={"rows": 3, "cols": 60})},
     }
 
+    def stock_change_context(self, request):
+        # Amounts edited here are corrections; they are logged as recounts.
+        return stock_changes(actor=request.user, source=models.StockChange.Source.ADMIN,
+                             decrease_reason=models.StockChange.Reason.RECOUNT_LOST)
+
+    def save_formset(self, request, form, formset, change):
+        with self.stock_change_context(request):
+            super().save_formset(request, form, formset, change)
+
+    def delete_model(self, request, obj):
+        with self.stock_change_context(request):
+            super().delete_model(request, obj)
+
+    def delete_queryset(self, request, queryset):
+        with self.stock_change_context(request):
+            super().delete_queryset(request, queryset)
+
 
 admin.site.register(models.Item, ItemAdmin)
+
+
+@admin.register(models.StockChange)
+class StockChangeAdmin(StockChangeDisplayMixin, admin.ModelAdmin):
+    list_display = ("created_at", "item_link", "location_name", "change", "reason", "sale_value_text", "actor", "source")
+    list_filter = ("direction", "reason", "source", "entry_removed", "created_at")
+    date_hierarchy = "created_at"
+    search_fields = ("item_name", "location_name", "note", "actor__username")
+    fields = (
+        "created_at", "actor", "direction", "reason", "note", "source", "item_link", "location_link",
+        "change", "stock", "unit_price", "sale_value_text",
+    )
+    readonly_fields = fields
+
+    @admin.display(description=_("item"), ordering="item_name")
+    def item_link(self, obj):
+        if obj.item_id is None:
+            return obj.item_name
+        return format_html('<a href="{}">{}</a>', obj.item.get_admin_url(), obj.item_name)
+
+    @admin.display(description=_("location"), ordering="location_name")
+    def location_link(self, obj):
+        if obj.location_id is None:
+            return obj.location_name
+        return format_html('<a href="{}">{}</a>', obj.location.get_admin_url(), obj.location_name)
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related("item", "location", "actor")
+
+    # The log is append-only; entries are created by the inventory itself.
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False

@@ -7,6 +7,7 @@
     <link rel="stylesheet" href="{% static 'inventory/location_detail.css' %}">
     <link rel="stylesheet" href="{% static 'inventory/location_overview.css' %}">
     <link rel="stylesheet" href="{% static 'inventory/location_quick_items.css' %}">
+    {% if stock_change_form %}<link rel="stylesheet" href="{% static 'inventory/stock_change.css' %}">{% endif %}
 {% endblock %}
 
 {% block title %}{% trans "Location" %}: {{ object.unique_identifier }}{% endblock %}
@@ -107,12 +108,13 @@
                         </p>
                     </div>
                     {% if entries %}
-                        <div class="location-item-columns" aria-hidden="true">
+                        <div class="location-item-columns{% if stock_change_form %} location-items-changeable{% endif %}" aria-hidden="true">
                             <span>{% trans "Item" %}</span>
                             <span>{% trans "Amount" %}</span>
                             <span>{% trans "Photos" %}</span>
+                            {% if stock_change_form %}<span></span>{% endif %}
                         </div>
-                        <ul class="location-items">
+                        <ul class="location-items{% if stock_change_form %} location-items-changeable{% endif %}">
                             {% for entry in entries %}
                                 <li class="location-item">
                                     <div class="location-item-info">
@@ -136,6 +138,7 @@
                                             <span class="location-muted location-no-images">{% trans "No images" %}</span>
                                         {% endfor %}
                                     </div>
+                                    {% if stock_change_form %}<div class="location-item-actions">{% include 'inventory/stock_change_button.html' %}</div>{% endif %}
                                 </li>
                             {% endfor %}
                         </ul>
@@ -181,6 +184,7 @@
     {% endwith %}
     {% include 'inventory/location_metadata.html' %}
     {% if perms.inventory.change_location %}{% include 'inventory/location_overview_editor.html' %}{% endif %}
+    {% if stock_change_form %}{% include 'inventory/stock_change_dialog.html' %}{% endif %}
 {% endblock %}
 
 {% block bootstrap5_extra_script %}
@@ -189,4 +193,5 @@
     <script src="{% static 'inventory/location_detail.js' %}"></script>
     {% if perms.inventory.change_location %}<script src="{% static 'inventory/location_overview.js' %}"></script>{% endif %}
     {% if can_manage_quick_items %}<script src="{% static 'inventory/location_quick_items.js' %}"></script>{% endif %}
+    {% if stock_change_form %}<script src="{% static 'inventory/stock_change.js' %}"></script>{% endif %}
 {% endblock %}

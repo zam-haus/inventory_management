@@ -1,0 +1,30 @@
+.stock-change-button { display: inline-flex; align-items: center; justify-content: center; flex: 0 0 44px; width: 44px; height: 44px; padding: 0; font-size: 1.25rem; line-height: 1; }
+.stock-change-heading { min-width: 0; }
+.stock-change-subject { margin: .25rem 0 0; color: #59636e; overflow-wrap: anywhere; }
+.stock-change-muted { color: #59636e; }
+.stock-change-direction { margin-bottom: 1rem; }
+.stock-change-direction-options { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .5rem; }
+.stock-change-direction-options .btn { display: flex; align-items: center; justify-content: center; gap: .5rem; min-height: 52px; font-weight: 600; white-space: normal; }
+.stock-change-symbol { font-size: 1.35rem; font-weight: 700; line-height: 1; white-space: nowrap; }
+.stock-change-decrease .stock-change-symbol { color: #dc3545; }
+.stock-change-increase .stock-change-symbol { color: #198754; }
+.btn-check:checked + .stock-change-decrease .stock-change-symbol,
+.btn-check:checked + .stock-change-increase .stock-change-symbol { color: #fff; }
+.stock-change-sign { min-width: 2.5rem; justify-content: center; font-weight: 700; }
+.stock-change-form[data-direction="decrease"] .stock-change-sign { color: #fff; background: #dc3545; border-color: #dc3545; }
+.stock-change-form[data-direction="increase"] .stock-change-sign { color: #fff; background: #198754; border-color: #198754; }
+.stock-change-form[data-direction=""] .stock-change-sign { display: none; }
+.stock-change-stock { margin-bottom: 1rem; font-variant-numeric: tabular-nums; }
+.stock-change-form .form-check { min-height: 44px; display: flex; align-items: flex-start; flex-wrap: wrap; gap: 0 .5rem; padding-left: 0; }
+.stock-change-form .form-check-input { flex: 0 0 auto; width: 1.25rem; height: 1.25rem; margin: .1rem 0 0; float: none; }
+.stock-change-form .form-check-label { flex: 1 1 0; min-width: 0; }
+.stock-change-form .form-check > .form-text { flex-basis: 100%; padding-left: 1.75rem; }
+.stock-change-reasons { clear: left; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 13rem), 1fr)); gap: 0 1rem; }
+.stock-change-reasons + .stock-change-reasons { margin-top: .5rem; }
+.stock-change-reasons .form-check { min-height: 36px; }
+.stock-change-reason-group { grid-column: 1 / -1; margin: 0 0 .25rem; color: #59636e; font-size: .875rem; font-weight: 600; }
+.stock-change-value { padding: .5rem .75rem; border-radius: .35rem; background: #edf2f7; font-variant-numeric: tabular-nums; }
+.stock-change-page { max-width: 40rem; padding-block: 1rem 2.5rem; }
+.stock-change-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: .5rem; margin-top: 1.5rem; }
+.stock-change-actions .btn,
+.stock-change-modal .modal-footer .btn { min-height: 44px; }
