@@ -1,0 +1,60 @@
+{% load i18n %}
+{% if can_manage_quick_items or quick_entries %}
+<section class="location-quick-items" aria-labelledby="location-quick-items-heading" data-quick-items
+         data-text-network-error="{% trans 'Saving failed. Check your connection and try again.' %}"
+         data-text-save-error="{% trans 'The quick-item could not be saved.' %}"
+         data-text-added="{% blocktrans with name='{name}' %}“{{ name }}” added.{% endblocktrans %}"
+         data-text-deleted="{% blocktrans with name='{name}' %}Quick-item “{{ name }}” deleted.{% endblocktrans %}"
+         data-text-delete-scheduled="{% blocktrans with name='{name}' %}“{{ name }}” will be deleted. Select Undo to keep it.{% endblocktrans %}"
+         data-text-delete-undone="{% blocktrans with name='{name}' %}“{{ name }}” kept.{% endblocktrans %}"
+         data-text-details="{% blocktrans with name='{name}' %}Details for “{{ name }}”{% endblocktrans %}"
+         data-text-delete="{% blocktrans with name='{name}' %}Delete “{{ name }}”{% endblocktrans %}">
+    <div class="location-panel-heading">
+        <h3 id="location-quick-items-heading" class="fs-5">{% trans "Quick-items" %} <span class="location-count" data-quick-items-count>{{ quick_entries|length }}</span></h3>
+        <p class="location-muted">{% trans "Items known only by name. Open the details to add an amount and turn one into a regular item." %}</p>
+    </div>
+    {% if can_manage_quick_items %}
+        <ul class="location-quick-list" data-quick-items-list>
+            {% for entry in quick_entries %}
+                <li class="location-quick-item" data-quick-item data-update-url="{% url 'quick_item_update' entry.pk %}" data-delete-url="{% url 'quick_item_delete' entry.pk %}">
+                    <form class="location-quick-name" method="post" action="{% url 'quick_item_update' entry.pk %}">
+                        {% csrf_token %}
+                        <input type="text" name="name" value="{{ entry.item.name }}" maxlength="512" class="form-control" autocomplete="off" enterkeyhint="next" aria-label="{% trans 'Quick-item name' %}">
+                    </form>
+                    <a class="btn btn-outline-secondary location-quick-details" href="{{ entry.item.get_absolute_url }}" data-quick-details aria-label="{% blocktrans with name=entry.item.name %}Details for “{{ name }}”{% endblocktrans %}" title="{% trans 'Details' %}"><span aria-hidden="true">i</span></a>
+                    <form class="location-quick-delete-form" method="post" action="{% url 'quick_item_delete' entry.pk %}">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-outline-danger location-quick-delete" data-quick-delete aria-label="{% blocktrans with name=entry.item.name %}Delete “{{ name }}”{% endblocktrans %}" title="{% trans 'Delete' %}"><span aria-hidden="true">×</span></button>
+                        <button type="button" class="btn btn-outline-secondary location-quick-undo" data-quick-undo hidden>{% trans "Undo" %}</button>
+                    </form>
+                </li>
+            {% endfor %}
+            <li class="location-quick-item location-quick-new">
+                <form class="location-quick-name" method="post" action="{% url 'quick_item_create' object.pk %}" data-quick-items-create>
+                    {% csrf_token %}
+                    <input type="text" name="name" maxlength="512" class="form-control" autocomplete="off" enterkeyhint="enter" placeholder="{% trans 'Add a quick-item…' %}" aria-label="{% trans 'New quick-item name' %}">
+                </form>
+            </li>
+        </ul>
+        <template data-quick-item-template>
+            <li class="location-quick-item is-saving" data-quick-item>
+                <form class="location-quick-name" method="post">
+                    <input type="text" name="name" maxlength="512" class="form-control" autocomplete="off" enterkeyhint="next" aria-label="{% trans 'Quick-item name' %}">
+                </form>
+                <a class="btn btn-outline-secondary location-quick-details disabled" data-quick-details aria-disabled="true" title="{% trans 'Details' %}"><span aria-hidden="true">i</span></a>
+                <form class="location-quick-delete-form" method="post">
+                    <button type="submit" class="btn btn-outline-danger location-quick-delete" data-quick-delete title="{% trans 'Delete' %}"><span aria-hidden="true">×</span></button>
+                    <button type="button" class="btn btn-outline-secondary location-quick-undo" data-quick-undo hidden>{% trans "Undo" %}</button>
+                </form>
+            </li>
+        </template>
+        <p class="visually-hidden" role="status" data-quick-items-status></p>
+    {% else %}
+        <ul class="location-quick-readonly">
+            {% for entry in quick_entries %}
+                <li><a href="{{ entry.item.get_absolute_url }}">{{ entry.item.name }}</a></li>
+            {% endfor %}
+        </ul>
+    {% endif %}
+</section>
+{% endif %}

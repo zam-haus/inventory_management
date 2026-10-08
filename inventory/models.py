@@ -629,11 +629,17 @@ class ItemLocation(models.Model):
     location = models.ForeignKey(
         "Location", on_delete=models.CASCADE, verbose_name=_("location")
     )
+    # An unknown amount (NULL) marks a quick-item, created by title only on the
+    # location page; entering an amount turns it into a regular item.
     amount = models.DecimalField(
-        max_digits=16, decimal_places=3, verbose_name=_("amount"),
+        max_digits=16, decimal_places=3, verbose_name=_("amount"), null=True, blank=True,
         help_text=_("positive numbers are precise, negative numbers are rough estimates. "
-                    "-1 is 'few' and -9999 is 'many'.")
+                    "-1 is 'few' and -9999 is 'many'. Empty means unknown.")
     )
+
+    @property
+    def is_quick_item(self):
+        return self.amount is None
 
     @property
     def sale_value(self):
@@ -643,6 +649,8 @@ class ItemLocation(models.Model):
 
     @property
     def amount_without_zeros(self):
+        if self.amount is None:
+            return None
         for i in range(4):
             rounded_amount = round(self.amount, i)
             if rounded_amount == self.amount:
@@ -650,6 +658,8 @@ class ItemLocation(models.Model):
 
     @property
     def amount_text(self):
+        if self.amount is None:
+            return _("amount unknown")
         if self.amount < 0:
             if self.amount == -1:
                 unspecific_amount_string = _("few")

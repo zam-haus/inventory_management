@@ -1,0 +1,35 @@
+.location-quick-items { border-top: 1px solid var(--location-border); }
+.location-quick-items .location-panel-heading { padding-bottom: .75rem; }
+.location-quick-list,
+.location-quick-readonly { list-style: none; margin: 0; padding: 0 1.2rem 1.2rem; }
+.location-quick-item { position: relative; display: flex; align-items: center; gap: .4rem; padding: .2rem 0; }
+.location-quick-item form { margin: 0; }
+.location-quick-name { flex: 1 1 auto; min-width: 0; }
+.location-quick-name .form-control { min-height: 44px; }
+.location-quick-new .form-control { border-style: dashed; }
+.location-quick-details,
+.location-quick-delete { display: inline-flex; align-items: center; justify-content: center; flex: 0 0 44px; width: 44px; height: 44px; padding: 0; font-size: 1.15rem; line-height: 1; }
+.location-quick-details { font-family: Georgia, "Times New Roman", serif; font-style: italic; font-weight: 700; }
+.location-quick-delete-form { display: flex; flex: 0 0 auto; }
+.location-quick-undo { min-height: 44px; white-space: nowrap; }
+.location-quick-item.is-saving .form-control { color: var(--location-muted); }
+.location-quick-item.is-invalid .form-control { border-color: #dc3545; }
+.location-quick-item.is-pending-delete .form-control { color: var(--location-muted); text-decoration: line-through; background: #f7f9fb; }
+/* Shrinking bar shows how long the deletion can still be undone. */
+.location-quick-item.is-pending-delete::after {
+    content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 2px; background: #dc3545;
+    transform-origin: left; animation: location-quick-undo-window var(--quick-undo-delay, 5s) linear forwards;
+}
+@keyframes location-quick-undo-window { from { transform: scaleX(1); } to { transform: scaleX(0); } }
+@media (prefers-reduced-motion: reduce) {
+    .location-quick-item.is-pending-delete::after { animation: none; }
+}
+.location-quick-readonly li { padding: .35rem 0; border-bottom: 1px solid var(--location-border); }
+.location-quick-readonly li:last-child { border-bottom: 0; }
+.location-quick-items :focus-visible { outline: 3px solid #0d6efd; outline-offset: 2px; }
+
+@media (max-width: 575.98px) {
+    .location-quick-list,
+    .location-quick-readonly { padding: 0 1rem 1rem; }
+    .location-quick-item { gap: .3rem; }
+}

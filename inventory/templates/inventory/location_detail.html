@@ -5,6 +5,7 @@
     {{ block.super }}
     <link rel="stylesheet" href="{% static 'inventory/location_detail.css' %}">
     <link rel="stylesheet" href="{% static 'inventory/location_overview.css' %}">
+    <link rel="stylesheet" href="{% static 'inventory/location_quick_items.css' %}">
 {% endblock %}
 
 {% block title %}{% trans "Location" %}: {{ object.unique_identifier }}{% endblock %}
@@ -64,7 +65,7 @@
 {% endblock %}
 
 {% block content %}
-    {% with entries=object.itemlocation_set.all children=object.children.all %}
+    {% with children=object.children.all %}
     <div class="location-detail">
         <div class="location-layout">
             <section class="location-panel location-stored" aria-labelledby="location-stored-heading">
@@ -90,6 +91,8 @@
                         {% endif %}
                     </div>
                 </section>
+
+                {% include 'inventory/location_quick_items.html' %}
 
                 <section class="location-stored-items" aria-labelledby="location-items-heading">
                     <div class="location-panel-heading">
@@ -180,4 +183,5 @@
     {{ block.super }}
     <script src="{% static 'inventory/location_detail.js' %}"></script>
     {% if perms.inventory.change_location %}<script src="{% static 'inventory/location_overview.js' %}"></script>{% endif %}
+    {% if can_manage_quick_items %}<script src="{% static 'inventory/location_quick_items.js' %}"></script>{% endif %}
 {% endblock %}

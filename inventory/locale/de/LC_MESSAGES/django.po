@@ -907,3 +907,78 @@ msgstr "Die eindeutige Kennung ist unabhängig vom übergeordneten Standort."
 
 msgid "The unique identifier includes the parent location’s identifier."
 msgstr "Die eindeutige Kennung enthält die Kennung des übergeordneten Standorts."
+
+msgid "amount unknown"
+msgstr "Menge unbekannt"
+
+msgid ""
+"positive numbers are precise, negative numbers are rough estimates. -1 is "
+"'few' and -9999 is 'many'. Empty means unknown."
+msgstr ""
+"Positive Zahlen sind genau, negative Zahlen grobe Schätzungen. -1 bedeutet "
+"„wenige“ und -9999 „viele“. Leer bedeutet unbekannt."
+
+#, python-format
+msgid "Item names can have at most %(max)d characters."
+msgstr "Namen von Sachen dürfen höchstens %(max)d Zeichen lang sein."
+
+msgid "This item now has an amount. Open its details to change it."
+msgstr "Diese Sache hat inzwischen eine Menge. Öffne die Details, um sie zu ändern."
+
+msgid "This item has more details now. Open it to delete it."
+msgstr "Diese Sache hat inzwischen weitere Angaben. Öffne sie, um sie zu löschen."
+
+msgid "Enter a name for the quick-item."
+msgstr "Gib einen Namen für den Schnelleintrag ein."
+
+#, python-format
+msgid "Quick-item “%(name)s” deleted."
+msgstr "Schnelleintrag „%(name)s“ gelöscht."
+
+msgid "The quick-item could not be saved."
+msgstr "Der Schnelleintrag konnte nicht gespeichert werden."
+
+#, python-format
+msgid "“%(name)s” added."
+msgstr "„%(name)s“ hinzugefügt."
+
+#, python-format
+msgid "“%(name)s” will be deleted. Select Undo to keep it."
+msgstr "„%(name)s“ wird gelöscht. Wähle „Rückgängig“, um ihn zu behalten."
+
+#, python-format
+msgid "“%(name)s” kept."
+msgstr "„%(name)s“ behalten."
+
+#, python-format
+msgid "Details for “%(name)s”"
+msgstr "Details zu „%(name)s“"
+
+#, python-format
+msgid "Delete “%(name)s”"
+msgstr "„%(name)s“ löschen"
+
+msgid "Quick-items"
+msgstr "Schnelleinträge"
+
+msgid ""
+"Items known only by name. Open the details to add an amount and turn one "
+"into a regular item."
+msgstr ""
+"Sachen, von denen nur der Name bekannt ist. Öffne die Details und gib eine "
+"Menge an, um daraus eine reguläre Sache zu machen."
+
+msgid "Quick-item name"
+msgstr "Name des Schnelleintrags"
+
+msgid "Details"
+msgstr "Details"
+
+msgid "Undo"
+msgstr "Rückgängig"
+
+msgid "Add a quick-item…"
+msgstr "Schnelleintrag hinzufügen …"
+
+msgid "New quick-item name"
+msgstr "Name des neuen Schnelleintrags"

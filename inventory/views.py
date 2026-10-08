@@ -21,7 +21,7 @@ from django.views.generic import DetailView, ListView, UpdateView
 
 from . import forms, models
 from .location_lookup import resolve_location_reference
-from .permissions import ItemEditorPermissionMixin
+from .permissions import QUICK_ITEM_PERMISSIONS, ItemEditorPermissionMixin
 
 
 logger = logging.getLogger(__name__)
@@ -87,6 +87,10 @@ class DetailLocationView(DetailView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        entries = list(self.object.itemlocation_set.all())
+        context["quick_entries"] = [entry for entry in entries if entry.is_quick_item]
+        context["entries"] = [entry for entry in entries if not entry.is_quick_item]
+        context["can_manage_quick_items"] = self.request.user.has_perms(QUICK_ITEM_PERMISSIONS)
         if self.request.user.has_perm("inventory.change_location"):
             context.setdefault("overview_form", forms.LocationOverviewForm(instance=self.object))
         return context

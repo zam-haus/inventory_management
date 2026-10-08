@@ -5,6 +5,10 @@ from django.core.exceptions import PermissionDenied
 from django.db import transaction
 
 
+# Anyone who may create items may manage quick-items while they stay quick-items.
+QUICK_ITEM_PERMISSIONS = ("inventory.add_item", "inventory.add_itemlocation")
+
+
 def model_permission(model, action):
     return f"{model._meta.app_label}.{action}_{model._meta.model_name}"
 

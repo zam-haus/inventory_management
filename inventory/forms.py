@@ -282,6 +282,9 @@ class ItemLocationForm(ModelForm):
         self.fields["location"].queryset = Location.active.all()
         if "location" in self.initial and "instance" not in kwargs:
             self.fields["location"].disabled = True
+        # Only quick-items may keep an unknown amount; entering one makes them
+        # regular items, which cannot return to an unknown amount.
+        self.fields["amount"].required = not (self.instance.pk and self.instance.is_quick_item)
 
 class ItemLocationInline(InlineFormSetFactory):
     model = ItemLocation
