@@ -1,4 +1,3 @@
-import re
 
 from crispy_forms.helper import FormHelper
 from crispy_forms import layout, bootstrap
@@ -14,6 +13,8 @@ from django.utils.translation import gettext_lazy as _
 from dal import autocomplete
 
 
+from .keyboard_layouts import layout_corrections
+from .location_lookup import scan_prefix
 from .models import BarcodeType, Item, ItemBarcode, ItemImage, ItemLocation, Location
 
 
@@ -411,7 +412,13 @@ class LocationsMoveHereForm(Form):
     )
 
     def clean_identifiers(self):
-        identifiers = [value for value in re.split(r"[\s;]+", self.cleaned_data["identifiers"]) if value]
+        identifiers = []
+        for chunk in self.cleaned_data["identifiers"].split():
+            # A scanner with another keyboard layout may type ";" inside a URL.
+            if any(layout_corrections(chunk, scan_prefix())):
+                identifiers.append(chunk)
+            else:
+                identifiers.extend(value for value in chunk.split(";") if value)
         if not identifiers:
             raise ValidationError(_("Enter at least one location."))
         return identifiers

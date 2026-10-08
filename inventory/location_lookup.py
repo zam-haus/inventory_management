@@ -1,14 +1,40 @@
 from urllib.parse import unquote, urlsplit
 
+from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db.models import Q
 from django.urls import Resolver404, resolve
 from django.utils.translation import gettext_lazy as _
 
+from .keyboard_layouts import layout_corrections
 from .models import Location
 
 
+def scan_prefix():
+    return settings.DEFAULT_DOMAIN.rstrip("/") + "/"
+
+
 def resolve_location_reference(value):
+    """Resolve identifiers or a detail URL, also when scanned with a wrong keyboard layout."""
+    try:
+        return _resolve(value)
+    except ValidationError as error:
+        # Label URLs start with DEFAULT_DOMAIN; a garbled start reveals which
+        # scanner and host layouts were mixed up.
+        locations = set()
+        for corrected in layout_corrections(value, scan_prefix()):
+            try:
+                locations.add(_resolve(corrected))
+            except ValidationError:
+                pass
+        if len(locations) > 1:
+            raise ValidationError(_("Ambiguous scan; check the keyboard layout of the scanner."))
+        if locations:
+            return locations.pop()
+        raise error
+
+
+def _resolve(value):
     """Resolve identifiers or a detail URL, whose primary key wins over its slug."""
     try:
         if "/" in value:

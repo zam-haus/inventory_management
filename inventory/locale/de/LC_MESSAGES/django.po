@@ -982,3 +982,6 @@ msgstr "Schnelleintrag hinzufügen …"
 
 msgid "New quick-item name"
 msgstr "Name des neuen Schnelleintrags"
+
+msgid "Ambiguous scan; check the keyboard layout of the scanner."
+msgstr "Scan nicht eindeutig; prüfe die Tastaturbelegung des Scanners."
