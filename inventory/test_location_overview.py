@@ -364,6 +364,23 @@ class LocationOverviewTests(TestCase):
         self.assertNotIn(path, list(html_elements(metadata)))
         self.assertIn(self.location.descriptive_identifier, str(path))
 
+    def test_sublocation_panel_is_hidden_when_the_type_forbids_sublocations(self):
+        self.client.logout()
+        leaf = LocationType.objects.create(name="Box", unique=True, no_sublocations=True)
+        box = Location.objects.create(type=leaf, name="Parts box", short_name="BOX")
+        response = self.client.get(box.get_absolute_url())
+        self.assertNotContains(response, 'id="location-children-heading"')
+        self.assertContains(response, "location-layout-single")
+        response = self.client.get(self.location.get_absolute_url())
+        self.assertContains(response, 'id="location-children-heading"')
+        self.assertNotContains(response, "location-layout-single")
+        # Sub-locations from before the type changed must stay reachable.
+        child = Location.objects.create(type=self.location.type, parent_location=box, name="Old child", short_name="OLD")
+        response = self.client.get(box.get_absolute_url())
+        self.assertContains(response, 'id="location-children-heading"')
+        self.assertContains(response, child.get_absolute_url())
+        self.assertNotContains(response, "location-layout-single")
+
     def test_metadata_modal_explains_the_current_location_type(self):
         self.client.logout()
         parent = Location.objects.create(type=self.location.type, name="Parent", short_name="PARENT")

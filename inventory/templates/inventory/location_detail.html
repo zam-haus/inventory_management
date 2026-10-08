@@ -67,7 +67,7 @@
 {% block content %}
     {% with children=object.children.all %}
     <div class="location-detail">
-        <div class="location-layout">
+        <div class="location-layout{% if object.type.no_sublocations and not children %} location-layout-single{% endif %}">
             <section class="location-panel location-stored" aria-labelledby="location-stored-heading">
                 <div class="location-panel-heading">
                     <h2 id="location-stored-heading" class="fs-4">{% trans "Stored here" %}</h2>
@@ -146,6 +146,8 @@
                 </section>
             </section>
 
+            {# Types without sub-locations need no panel, unless older data still has some. #}
+            {% if not object.type.no_sublocations or children %}
             <section class="location-panel location-children" aria-labelledby="location-children-heading">
                 <div class="location-panel-heading">
                     <div class="location-panel-title-row">
@@ -172,6 +174,7 @@
                     {% endfor %}
                 </ul>
             </section>
+            {% endif %}
         </div>
     </div>
     {% endwith %}

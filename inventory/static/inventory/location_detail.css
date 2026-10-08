@@ -60,6 +60,7 @@
 .location-type-properties dt { font-weight: 600; }
 .location-type-properties dd { margin: 0; }
 .location-layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(15rem, .42fr); gap: 1.5rem; align-items: start; }
+.location-layout-single { grid-template-columns: minmax(0, 1fr); }
 .location-panel { min-width: 0; border: 1px solid var(--location-border); border-radius: .65rem; background: #fff; }
 .location-panel-heading { padding: 1.2rem; }
 .location-panel-title-row { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
