@@ -1,0 +1,11 @@
+{% load i18n static %}
+<script src="{% static 'inventory/barcode_scanner.js' %}"
+        data-ponyfill-src="{% static 'inventory/vendor/barcode-detector/barcode-detector-ponyfill.js' %}"
+        data-wasm-src="{% static 'inventory/vendor/barcode-detector/zxing_reader.wasm' %}"
+        data-label-close="{% trans 'Close' %}"
+        data-label-done="{% trans 'Done' %}"
+        data-label-starting="{% trans 'Starting camera…' %}"
+        data-label-denied="{% trans 'Camera access was denied. Allow the camera for this site in the browser settings, or type the codes instead.' %}"
+        data-label-no-camera="{% trans 'No camera is available. Type the codes instead.' %}"
+        data-label-insecure="{% trans 'The camera only works over a secure (https) connection.' %}"
+        data-label-unavailable="{% trans 'The scanner could not be loaded. Check your connection and try again.' %}"></script>

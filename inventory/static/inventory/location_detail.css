@@ -158,3 +158,4 @@
     .location-photos:has(.location-no-images) { display: none; }
     .location-child-list a { padding: 1rem; }
 }
+.location-scan-button { min-height: 44px; margin-top: .25rem; }

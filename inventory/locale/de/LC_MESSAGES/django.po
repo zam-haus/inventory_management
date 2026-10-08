@@ -559,10 +559,6 @@ msgstr "Standorte hierher verschieben"
 msgid "Stored items and child locations remain assigned to each moved location. Duplicate entries are processed once."
 msgstr "Sachen und Unterstandorte bleiben dem jeweils verschobenen Standort zugeordnet. Doppelte Einträge werden einmal verarbeitet."
 
-#, python-format
-msgid "On Android, try the <a href=\"%(scanner_url)s\" target=\"_blank\" rel=\"noopener noreferrer\">pretix barcode scanner keyboard</a> to scan location labels into this field."
-msgstr "Unter Android kannst du mit der <a href=\"%(scanner_url)s\" target=\"_blank\" rel=\"noopener noreferrer\">pretix Barcode-Scanner-Tastatur</a> Standortetiketten direkt in dieses Feld scannen."
-
 msgid "Dissolve location"
 msgstr "Standort auflösen"
 
@@ -988,3 +984,61 @@ msgstr "Scan nicht eindeutig; prüfe die Tastaturbelegung des Scanners."
 
 msgid "Try again"
 msgstr "Erneut versuchen"
+
+msgid "Done"
+msgstr "Fertig"
+
+msgid "Starting camera…"
+msgstr "Kamera wird gestartet …"
+
+msgid ""
+"Camera access was denied. Allow the camera for this site in the browser "
+"settings, or type the codes instead."
+msgstr ""
+"Der Kamerazugriff wurde verweigert. Erlaube die Kamera für diese Seite in "
+"den Browsereinstellungen oder gib die Codes von Hand ein."
+
+msgid "No camera is available. Type the codes instead."
+msgstr "Keine Kamera verfügbar. Gib die Codes stattdessen von Hand ein."
+
+msgid "The camera only works over a secure (https) connection."
+msgstr "Die Kamera funktioniert nur über eine sichere (https-)Verbindung."
+
+msgid "The scanner could not be loaded. Check your connection and try again."
+msgstr ""
+"Der Scanner konnte nicht geladen werden. Prüfe deine Verbindung und "
+"versuche es erneut."
+
+msgid "Scan location labels"
+msgstr "Standortetiketten scannen"
+
+msgid ""
+"Hold the QR code of a location label in front of the camera. Every scanned "
+"label is added to the list."
+msgstr ""
+"Halte den QR-Code eines Standortetiketts vor die Kamera. Jedes gescannte "
+"Etikett wird zur Liste hinzugefügt."
+
+#, python-format
+msgid "Added: %(code)s"
+msgstr "Hinzugefügt: %(code)s"
+
+#, python-format
+msgid "Already in the list: %(code)s"
+msgstr "Schon in der Liste: %(code)s"
+
+msgid "Scan QR codes"
+msgstr "QR-Codes scannen"
+
+msgid "Scan barcode"
+msgstr "Barcode scannen"
+
+msgid "Scan EAN barcodes"
+msgstr "EAN-Barcodes scannen"
+
+msgid ""
+"Hold the EAN barcode of the product in front of the camera. Every scanned "
+"code is added to the barcode field."
+msgstr ""
+"Halte den EAN-Barcode des Produkts vor die Kamera. Jeder gescannte Code wird "
+"in das Barcode-Feld übernommen."

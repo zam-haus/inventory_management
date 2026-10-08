@@ -4,6 +4,7 @@
 {% block bootstrap5_extra_head %}
     {{ block.super }}
     <link rel="stylesheet" href="{% static 'inventory/location_detail.css' %}">
+    <link rel="stylesheet" href="{% static 'inventory/barcode_scanner.css' %}">
 {% endblock %}
 
 {% block title %}{% trans "Move locations here" %}: {{ object.unique_identifier }}{% endblock %}
@@ -45,7 +46,11 @@
             <form class="location-move-form" method="post" novalidate>
                 {% csrf_token %}
                 {% bootstrap_form form %}
-                <p class="location-muted mt-2">{% blocktrans with scanner_url="https://play.google.com/store/apps/details?id=io.rami.barcodekeyboard&hl=en-US" %}On Android, try the <a href="{{ scanner_url }}" target="_blank" rel="noopener noreferrer">pretix barcode scanner keyboard</a> to scan location labels into this field.{% endblocktrans %}</p>
+                <button type="button" class="btn btn-outline-primary location-scan-button" data-scan-locations hidden
+                        data-title="{% trans 'Scan location labels' %}"
+                        data-hint="{% trans 'Hold the QR code of a location label in front of the camera. Every scanned label is added to the list.' %}"
+                        data-added="{% blocktrans with code='{code}' %}Added: {{ code }}{% endblocktrans %}"
+                        data-duplicate="{% blocktrans with code='{code}' %}Already in the list: {{ code }}{% endblocktrans %}"><span aria-hidden="true">📷</span> {% trans "Scan QR codes" %}</button>
                 <div class="location-actions mt-3">
                     <button class="btn btn-primary" type="submit">{% trans "Move locations here" %}</button>
                 </div>
@@ -57,4 +62,6 @@
 {% block bootstrap5_extra_script %}
     {{ block.super }}
     <script src="{% static 'inventory/location_detail.js' %}"></script>
+    {% include 'inventory/barcode_scanner_script.html' %}
+    <script src="{% static 'inventory/locations_move_here.js' %}"></script>
 {% endblock %}
