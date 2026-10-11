@@ -1,0 +1,463 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-10-11 20:32+0200\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: de\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+#: admin.py:19 admin.py:102 templates/zamid/info.html:13
+msgid "target"
+msgstr "Ziel"
+
+#: admin.py:23
+msgid "none"
+msgstr "keins"
+
+#: admin.py:42
+msgid "Only reserved IDs can be linked to a URL."
+msgstr "Nur reservierte IDs können mit einer URL verknüpft werden."
+
+#: admin.py:44 services.py:95
+msgid "Enter a valid http or https URL."
+msgstr "Gib eine gültige http- oder https-URL ein."
+
+#: admin.py:60
+msgid "Label"
+msgstr "Etikett"
+
+#: admin.py:61
+msgid "History"
+msgstr "Verlauf"
+
+#: admin.py:98 forms.py:43 models.py:53
+msgid "ID"
+msgstr "ID"
+
+#: admin.py:109
+msgid " (deleted)"
+msgstr " (gelöscht)"
+
+#: admin.py:112 templates/zamid/info.html:36
+msgid "QR code"
+msgstr "QR-Code"
+
+#: admin.py:128
+#, python-format
+msgid "Generated %(count)d IDs: %(codes)s"
+msgstr "%(count)d IDs erzeugt: %(codes)s"
+
+#: admin.py:136
+msgid "Generate ZAM IDs"
+msgstr "ZAM-IDs erzeugen"
+
+#: admin.py:147
+msgid "Retire selected IDs"
+msgstr "Ausgewählte IDs stilllegen"
+
+#: admin.py:154
+#, python-format
+msgid "Retired %(count)d IDs."
+msgstr "%(count)d IDs stillgelegt."
+
+#: admin.py:156
+msgid "Retire ZAM IDs"
+msgstr "ZAM-IDs stilllegen"
+
+#: admin.py:159
+msgid "Download labels (ZIP)"
+msgstr "Etiketten herunterladen (ZIP)"
+
+#: admin.py:171
+msgid "Download labels"
+msgstr "Etiketten herunterladen"
+
+#: admin_mixins.py:21
+#, python-format
+msgid "%(code)s is not a valid ID."
+msgstr "%(code)s ist keine gültige ID."
+
+#: admin_mixins.py:25 views.py:81 views.py:105
+#, python-format
+msgid "The ID %(code)s now belongs to %(target)s."
+msgstr "Die ID %(code)s gehört jetzt zu %(target)s."
+
+#: apps.py:7 models.py:79
+msgid "ZAM IDs"
+msgstr "ZAM-IDs"
+
+#: fields.py:10
+msgid "Invalid ID."
+msgstr "Ungültige ID."
+
+#: fields.py:11
+msgid "Check symbol does not match – typo?"
+msgstr "Prüfzeichen stimmt nicht – Tippfehler?"
+
+#: fields.py:51 models.py:78 templates/zamid/badge.html:6
+#: templates/zamid/info.html:4 templates/zamid/resolver.html:57
+msgid "ZAM ID"
+msgstr "ZAM-ID"
+
+#: forms.py:20 templates/zamid/claim.html:19
+msgid "Existing item"
+msgstr "Vorhandene Sache"
+
+#: forms.py:21
+msgid "Search for an item…"
+msgstr "Sache suchen…"
+
+#: forms.py:27 templates/zamid/claim.html:28
+msgid "Existing location"
+msgstr "Vorhandener Standort"
+
+#: forms.py:28
+msgid "Search for a location…"
+msgstr "Standort suchen…"
+
+#: forms.py:43
+msgid "Type the ID from a new label, or scan it."
+msgstr "ID von einem neuen Etikett eintippen oder scannen."
+
+#: forms.py:47
+msgid "Printer"
+msgstr "Drucker"
+
+#: forms.py:49
+msgid "Tape width"
+msgstr "Bandbreite"
+
+#: forms.py:56
+msgid "This printer does not support this tape width."
+msgstr "Dieser Drucker unterstützt diese Bandbreite nicht."
+
+#: forms.py:61
+msgid "Number of IDs"
+msgstr "Anzahl IDs"
+
+#: forms.py:62
+msgid "Batch"
+msgstr "Charge"
+
+#: forms.py:63
+msgid "Name of the label batch or print run."
+msgstr "Name der Etikettencharge oder des Druckauftrags."
+
+#: forms.py:67
+msgid "Note"
+msgstr "Notiz"
+
+#: models.py:42
+msgid "reserved"
+msgstr "reserviert"
+
+#: models.py:43
+msgid "assigned"
+msgstr "vergeben"
+
+#: models.py:44
+msgid "retired"
+msgstr "stillgelegt"
+
+#: models.py:54 templates/zamid/info.html:12
+msgid "status"
+msgstr "Status"
+
+#: models.py:57
+msgid "item"
+msgstr "Sache"
+
+#: models.py:59
+msgid "location"
+msgstr "Standort"
+
+#: models.py:60
+msgid "URL"
+msgstr "URL"
+
+#: models.py:61 templates/zamid/info.html:20
+msgid "batch"
+msgstr "Charge"
+
+#: models.py:62
+msgid "Label batch or print run."
+msgstr "Etikettencharge oder Druckauftrag."
+
+#: models.py:63 templates/zamid/info.html:25
+msgid "note"
+msgstr "Notiz"
+
+#: models.py:64 templates/zamid/info.html:21
+msgid "created at"
+msgstr "erstellt am"
+
+#: models.py:66
+msgid "created by"
+msgstr "erstellt von"
+
+#: models.py:67 templates/zamid/info.html:22
+msgid "printed at"
+msgstr "gedruckt am"
+
+#: models.py:68 templates/zamid/info.html:23
+msgid "assigned at"
+msgstr "vergeben am"
+
+#: models.py:70
+msgid "assigned by"
+msgstr "vergeben von"
+
+#: models.py:71 templates/zamid/info.html:24
+msgid "retired at"
+msgstr "stillgelegt am"
+
+#: models.py:73
+msgid "retired by"
+msgstr "stillgelegt von"
+
+#: models.py:83
+msgid "Can claim a ZAM ID for an item or location"
+msgstr "Kann eine ZAM-ID einer Sache oder einem Standort zuordnen"
+
+#: models.py:84
+msgid "Can generate ZAM IDs"
+msgstr "Kann ZAM-IDs erzeugen"
+
+#: models.py:85
+msgid "Can retire ZAM IDs"
+msgstr "Kann ZAM-IDs stilllegen"
+
+#: models.py:86
+msgid "Can link a ZAM ID to an arbitrary URL"
+msgstr "Kann eine ZAM-ID mit einer beliebigen URL verknüpfen"
+
+#: services.py:33
+#, python-format
+msgid "Generate between 1 and %(max)d IDs at a time."
+msgstr "Es können 1 bis %(max)d IDs auf einmal erzeugt werden."
+
+#: services.py:49
+#, python-format
+msgid "The ID %(code)s does not exist."
+msgstr "Die ID %(code)s existiert nicht."
+
+#: services.py:54
+#, python-format
+msgid "The ID %(code)s is already in use."
+msgstr "Die ID %(code)s ist bereits vergeben."
+
+#: services.py:56 services.py:107
+#, python-format
+msgid "The ID %(code)s has been retired."
+msgstr "Die ID %(code)s wurde stillgelegt."
+
+#: services.py:69
+msgid "This already has an ID. Retire it first."
+msgstr "Dies hat bereits eine ID. Lege sie zuerst still."
+
+#: services.py:77
+msgid "IDs cannot be claimed for this kind of object."
+msgstr "Für diese Art von Objekt können keine IDs vergeben werden."
+
+#: services.py:79
+msgid "Deleted objects cannot get an ID."
+msgstr "Gelöschte Objekte können keine ID bekommen."
+
+#: services.py:85
+#, python-format
+msgid "%(target)s already has the ID %(code)s. Retire it first."
+msgstr "%(target)s hat bereits die ID %(code)s. Lege sie zuerst still."
+
+#: templates/admin/zamid/zamid/action_form.html:5
+#: templates/admin/zamid/zamid/generate.html:5
+msgid "Home"
+msgstr "Start"
+
+#: templates/admin/zamid/zamid/action_form.html:13
+#, python-format
+msgid "%(counter)s ID selected:"
+msgid_plural "%(counter)s IDs selected:"
+msgstr[0] "%(counter)s ID ausgewählt:"
+msgstr[1] "%(counter)s IDs ausgewählt:"
+
+#: templates/admin/zamid/zamid/change_list.html:5
+msgid "Generate IDs"
+msgstr "IDs erzeugen"
+
+#: templates/admin/zamid/zamid/generate.html:14
+msgid ""
+"New IDs are reserved until a label is attached to an item, a location or a "
+"URL. They are never deleted."
+msgstr "Neue IDs bleiben reserviert, bis ihr Etikett einer Sache, einem Standort oder einer URL zugeordnet wird. Sie werden nie gelöscht."
+
+#: templates/admin/zamid/zamid/generate.html:20
+msgid "Generate"
+msgstr "Erzeugen"
+
+#: templates/zamid/badge.html:13
+msgid "Attach ZAM ID label"
+msgstr "ZAM-ID-Etikett zuordnen"
+
+#: templates/zamid/badge.html:17
+msgid "Scan ZAM ID label"
+msgstr "ZAM-ID-Etikett scannen"
+
+#: templates/zamid/badge.html:17
+msgid "Hold the new label in front of the camera."
+msgstr "Halte das neue Etikett vor die Kamera."
+
+#: templates/zamid/badge.html:18
+#, python-brace-format
+msgid "Scanned {code}"
+msgstr "{code} gescannt"
+
+#: templates/zamid/badge.html:18
+#, python-brace-format
+msgid "Already scanned {code}"
+msgstr "{code} bereits gescannt"
+
+#: templates/zamid/badge.html:19
+msgid "Scan label"
+msgstr "Etikett scannen"
+
+#: templates/zamid/badge.html:20
+msgid "Attach"
+msgstr "Zuordnen"
+
+#: templates/zamid/claim.html:9
+msgid "Claim ZAM ID"
+msgstr "ZAM-ID zuordnen"
+
+#: templates/zamid/claim.html:12
+msgid "New label"
+msgstr "Neues Etikett"
+
+#: templates/zamid/claim.html:13
+msgid ""
+"This label is not attached to anything yet. Choose what it belongs to. This "
+"link is permanent and cannot be changed later."
+msgstr "Dieses Etikett ist noch nichts zugeordnet. Wähle aus, wozu es gehört. Die Zuordnung ist dauerhaft und kann später nicht geändert werden."
+
+#: templates/zamid/claim.html:21
+msgid "Attach to item"
+msgstr "Sache zuordnen"
+
+#: templates/zamid/claim.html:30
+msgid "Attach to location"
+msgstr "Standort zuordnen"
+
+#: templates/zamid/claim.html:39
+msgid "New item"
+msgstr "Neue Sache"
+
+#: templates/zamid/claim.html:41
+msgid "Create item with this ID"
+msgstr "Sache mit dieser ID anlegen"
+
+#: templates/zamid/claim.html:45
+msgid "Create a new location with this ID (admin)"
+msgstr "Neuen Standort mit dieser ID anlegen (Admin)"
+
+#: templates/zamid/info.html:16
+msgid "deleted"
+msgstr "gelöscht"
+
+#: templates/zamid/info.html:18
+msgid "Claim"
+msgstr "Zuordnen"
+
+#: templates/zamid/info.html:27
+msgid "Labels"
+msgstr "Etiketten"
+
+#: templates/zamid/info.html:28
+msgid "Print in standard resolution, without scaling."
+msgstr "In Standardauflösung und ohne Skalierung drucken."
+
+#: templates/zamid/resolver.html:29
+msgid "Look up a ZAM ID"
+msgstr "ZAM-ID nachschlagen"
+
+#: templates/zamid/resolver.html:30
+msgid "Enter the six characters printed on the label, for example K7Q-4XD."
+msgstr "Gib die sechs Zeichen vom Etikett ein, zum Beispiel K7Q-4XD."
+
+#: templates/zamid/resolver.html:32
+msgid "Typo?"
+msgstr "Tippfehler?"
+
+#: templates/zamid/resolver.html:33
+#, python-format
+msgid "“%(q)s” is not a valid ID: the check symbol does not match."
+msgstr "„%(q)s“ ist keine gültige ID: Das Prüfzeichen stimmt nicht."
+
+#: templates/zamid/resolver.html:35
+msgid "Did you mean:"
+msgstr "Meintest du:"
+
+#: templates/zamid/resolver.html:39
+msgid "Invalid ID"
+msgstr "Ungültige ID"
+
+#: templates/zamid/resolver.html:40
+#, python-format
+msgid "“%(q)s” is not a ZAM ID. IDs have six characters, for example K7Q-4XD."
+msgstr "„%(q)s“ ist keine ZAM-ID. IDs haben sechs Zeichen, zum Beispiel K7Q-4XD."
+
+#: templates/zamid/resolver.html:42
+msgid "Unknown ID"
+msgstr "Unbekannte ID"
+
+#: templates/zamid/resolver.html:43
+#, python-format
+msgid "The ID <span class=\"code\">%(code)s</span> has not been issued."
+msgstr "Die ID <span class=\"code\">%(code)s</span> wurde nicht ausgegeben."
+
+#: templates/zamid/resolver.html:45
+msgid "Label no longer in use"
+msgstr "Etikett nicht mehr in Gebrauch"
+
+#: templates/zamid/resolver.html:46
+#, python-format
+msgid "The ID <span class=\"code\">%(code)s</span> has been retired."
+msgstr "Die ID <span class=\"code\">%(code)s</span> wurde stillgelegt."
+
+#: templates/zamid/resolver.html:47
+msgid "It last belonged to:"
+msgstr "Sie gehörte zuletzt zu:"
+
+#: templates/zamid/resolver.html:49
+msgid "No longer in the inventory"
+msgstr "Nicht mehr im Inventar"
+
+#: templates/zamid/resolver.html:50
+#, python-format
+msgid ""
+"What the ID <span class=\"code\">%(code)s</span> belongs to has been removed "
+"from the inventory."
+msgstr "Wozu die ID <span class=\"code\">%(code)s</span> gehört, wurde aus dem Inventar entfernt."
+
+#: templates/zamid/resolver.html:52
+msgid "Too many requests"
+msgstr "Zu viele Anfragen"
+
+#: templates/zamid/resolver.html:53
+msgid ""
+"Too many unknown IDs were looked up from your network. Please try again "
+"later."
+msgstr "Aus deinem Netzwerk wurden zu viele unbekannte IDs abgefragt. Bitte versuche es später noch einmal."
+
+#: templates/zamid/resolver.html:59
+msgid "Look up"
+msgstr "Nachschlagen"

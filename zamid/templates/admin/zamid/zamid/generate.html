@@ -1,0 +1,22 @@
+{% extends "admin/base_site.html" %}
+{% load i18n %}
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+    <a href="{% url 'admin:index' %}">{% trans 'Home' %}</a> ›
+    <a href="{% url 'admin:app_list' opts.app_label %}">{{ opts.app_config.verbose_name }}</a> ›
+    <a href="{% url 'admin:zamid_zamid_changelist' %}">{{ opts.verbose_name_plural|capfirst }}</a> ›
+    {{ title }}
+</div>
+{% endblock %}
+{% block content %}
+<form method="post">
+    {% csrf_token %}
+    <p>{% trans "New IDs are reserved until a label is attached to an item, a location or a URL. They are never deleted." %}</p>
+    <fieldset class="module aligned">
+        {% for field in form %}
+            <div class="form-row">{{ field.errors }}{{ field.label_tag }} {{ field }}{% if field.help_text %}<div class="help">{{ field.help_text }}</div>{% endif %}</div>
+        {% endfor %}
+    </fieldset>
+    <div class="submit-row"><input type="submit" class="default" value="{% trans 'Generate' %}"></div>
+</form>
+{% endblock %}
