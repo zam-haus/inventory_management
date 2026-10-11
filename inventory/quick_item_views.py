@@ -88,6 +88,7 @@ def hard_delete(entry):
     if (
         ItemLocation.objects.filter(item=item).exclude(pk=entry.pk).exists()
         or item.itemimage_set.exists() or item.itemfile_set.exists() or item.itembarcode_set.exists()
+        or item.zam_ids.exists()
     ):
         raise QuickItemError(_("This item has more details now. Open it to delete it."))
     # Bypass the soft delete: a quick-item carries nothing worth keeping.

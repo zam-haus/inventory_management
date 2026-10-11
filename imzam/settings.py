@@ -41,6 +41,16 @@ ADMINS = json.loads(os.getenv("ADMINS", "[]"))
 
 DEFAULT_DOMAIN = "https://inv.zam.haus"
 
+# ZAM IDs: hosts that serve only the QR resolver (they behave like DEFAULT_DOMAIN/id/).
+# Each must also be in ALLOWED_HOSTS. i.localhost / id.localhost help local testing.
+ZAMID_RESOLVER_HOSTS = [
+    host.strip()
+    for host in os.getenv("ZAMID_RESOLVER_HOSTS", "i.zam.haus,id.zam.haus,i.localhost,id.localhost").split(",")
+    if host.strip()
+]
+# Where resolver hosts redirect to; defaults to DEFAULT_DOMAIN.
+ZAMID_INVENTORY_BASE = os.getenv("ZAMID_INVENTORY_BASE")
+
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
 # https://docs.djangoproject.com/en/4.0/ref/settings/#std:setting-ALLOWED_HOSTS
@@ -66,6 +76,7 @@ INSTALLED_APPS = [
     "extra_views",
     "computedfields",
     "accounts",
+    "zamid.apps.ZamIdConfig",
     "django_bootstrap_icons",
     "sorl.thumbnail",
     "django_static_jquery",
@@ -84,6 +95,8 @@ COMPUTEDFIELDS_ALLOW_RECURSION = True
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    # Routes i.zam.haus / id.zam.haus to the ZAM ID resolver; before CommonMiddleware.
+    "zamid.middleware.ResolverHostMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",

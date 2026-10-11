@@ -19,6 +19,8 @@ from django.utils.translation import gettext_lazy as _
 from django.views import View
 from django.views.generic import DetailView, ListView, UpdateView
 
+from zamid.search import ZamIdSearchMixin
+
 from . import forms, models
 from .location_lookup import resolve_location_reference
 from .permissions import QUICK_ITEM_PERMISSIONS, ItemEditorPermissionMixin
@@ -303,7 +305,7 @@ class AnnotateItemView(PermissionRequiredMixin, UpdateView):
         return reverse_lazy("annotate_item", args=[self.object.pk])
 
 
-class SearchableItemListView(ListView):
+class SearchableItemListView(ZamIdSearchMixin, ListView):
     model = models.Item
     queryset = models.Item.active.all()
     paginate_by = 25
@@ -341,6 +343,7 @@ class SearchableItemListView(ListView):
 
 
 class SearchableLocationListView(
+        ZamIdSearchMixin,
         extra_views.SearchableListMixin,
         extra_views.SortableListMixin,
         ListView):

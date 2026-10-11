@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% load i18n static thumbnail %}
+{% load i18n static thumbnail zamid %}
 
 {% block bootstrap5_extra_head %}
     {{ block.super }}
@@ -60,6 +60,7 @@
                 {% if object.physical_description %}<p class="location-physical-description">{{ object.physical_description|linebreaksbr }}</p>{% endif %}
             </div>
         </div>
+        <div class="mt-2">{% zam_badge object %}</div>
         {% if perms.inventory.change_location and not object.type.moveable %}
             <span id="location-move-unavailable" class="visually-hidden">{% blocktrans with location_type=object.type.name %}Moving is disabled for location type “{{ location_type }}”.{% endblocktrans %}</span>
         {% endif %}

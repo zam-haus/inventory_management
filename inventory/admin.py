@@ -17,6 +17,7 @@ from . import models
 from .forms import AdminItemLocationForm, AdminLocationForm
 from .soft_delete_admin import SoftDeleteAdminMixin
 from .stock_log import stock_changes
+from zamid.admin_mixins import ClaimOnAddMixin
 
 
 admin.site.register(models.LocationType)
@@ -58,7 +59,7 @@ class LocationInline(SoftDeleteAdminMixin, admin.TabularInline):
         CharField: {"widget": forms.TextInput(attrs={"size": 20})},
     }
 
-class LocationAdmin(SoftDeleteAdminMixin, admin.ModelAdmin):
+class LocationAdmin(ClaimOnAddMixin, SoftDeleteAdminMixin, admin.ModelAdmin):
     list_display = ("locatable_identifier", "name", "descriptive_identifier", "deleted_status")
     ordering = ("locatable_identifier",)
     readonly_fields = ("label_image_tag",)
@@ -322,7 +323,7 @@ class StockChangeInline(StockChangeDisplayMixin, admin.TabularInline):
         return False
 
 
-class ItemAdmin(SoftDeleteAdminMixin, admin.ModelAdmin):
+class ItemAdmin(ClaimOnAddMixin, SoftDeleteAdminMixin, admin.ModelAdmin):
     list_display = ("name", "deleted_status")
     inlines = [ItemBarcodeInline, ItemImageInline, ItemFileInline, ItemLocationInline, StockChangeInline]
     formfield_overrides = {

@@ -31,6 +31,7 @@ class ZAMMembershipTests(TestCase):
             content_type__app_label="inventory",
             codename__regex=r"^(add|change)_",
         ).values_list("content_type__app_label", "codename"))
+        expected.add(("zamid", "claim_zamid"))  # zamid/migrations/0003_zam_local_claim
         self.assertEqual(actual, expected)
         self.assertTrue(actual)
 
