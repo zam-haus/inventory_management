@@ -1263,3 +1263,9 @@ msgstr "Wird gespeichert…"
 
 msgid "The stock change could not be saved. Reload the page and try again."
 msgstr "Die Bestandsänderung konnte nicht gespeichert werden. Lade die Seite neu und versuche es erneut."
+
+msgid "Editing the current photo. Your changes replace it when you save."
+msgstr "Du bearbeitest das aktuelle Foto. Beim Speichern ersetzen deine Änderungen es."
+
+msgid "The current photo could not be loaded for editing. Try again or choose a new photo."
+msgstr "Das aktuelle Foto konnte nicht zum Bearbeiten geladen werden. Versuche es erneut oder wähle ein neues Foto."

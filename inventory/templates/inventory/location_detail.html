@@ -85,7 +85,12 @@
                         {% if object.summary %}<p class="location-overview-summary">{{ object.summary }}</p>{% endif %}
                         {% if object.overview_photo %}
                             <a class="location-overview-photo" href="{{ object.overview_photo.url }}" target="_blank" rel="noopener">
-                                <img src="{{ object.overview_photo.url }}" alt="{% blocktrans with location=object.name %}Summary of {{ location }}{% endblocktrans %}" loading="lazy">
+                                {# Shown at most 24rem high; the link and lightbox open the full photo. #}
+                                {% thumbnail object.overview_photo "1600x768" upscale=False as im %}
+                                    <img src="{{ im.url }}" width="{{ im.width }}" height="{{ im.height }}" alt="{% blocktrans with location=object.name %}Summary of {{ location }}{% endblocktrans %}" loading="lazy">
+                                {% empty %}
+                                    <img src="{{ object.overview_photo.url }}" alt="{% blocktrans with location=object.name %}Summary of {{ location }}{% endblocktrans %}" loading="lazy">
+                                {% endthumbnail %}
                             </a>
                         {% endif %}
                         {% if not object.summary and not object.overview_photo %}

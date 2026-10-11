@@ -3,7 +3,7 @@
 .location-overview-body { padding: 0 1.2rem 1.2rem; }
 .location-overview-body > * + * { margin-top: 1rem; }
 .location-overview-photo { display: block; background: #f7f9fb; border-radius: .4rem; overflow: hidden; }
-.location-overview-photo img { display: block; width: 100%; max-height: 24rem; object-fit: contain; }
+.location-overview-photo img { display: block; width: 100%; height: auto; max-height: 24rem; object-fit: contain; }
 .location-overview-summary { font-weight: 600; font-size: 1.05rem; }
 .location-overview-body > :last-child { margin-bottom: 0; }
 .location-overview-editor { --location-muted: #59636e; }

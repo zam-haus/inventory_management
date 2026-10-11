@@ -1,3 +1,4 @@
+import re
 from io import BytesIO
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -261,6 +262,19 @@ class LocationOverviewTests(TestCase):
         self.assertContains(detail, self.location.physical_description)
         self.assertNotContains(detail, self.history_url)
         self.assertNotContains(detail, self.url)
+
+    def test_detail_shows_thumbnail_and_links_full_photo(self):
+        content = BytesIO()
+        Image.new("RGB", (2400, 1200), "blue").save(content, format="JPEG")
+        large = SimpleUploadedFile("large.jpg", content.getvalue(), content_type="image/jpeg")
+        self.client.post(self.url, self.data(overview_photo=large))
+        self.location.refresh_from_db()
+        detail = self.client.get(self.location.get_absolute_url()).content.decode()
+        link = re.search(r'<a class="location-overview-photo" href="([^"]+)"', detail).group(1)
+        image = re.search(r'<a class="location-overview-photo"[^>]*>\s*(?:\{#.*?#\}\s*)?<img src="([^"]+)" width="(\d+)" height="(\d+)"', detail, re.S)
+        self.assertEqual(link, self.location.overview_photo.url)
+        self.assertNotEqual(image.group(1), link)
+        self.assertEqual((image.group(2), image.group(3)), ("1536", "768"))
 
     def test_history_requires_view_permission_because_it_names_actors(self):
         self.client.post(self.url, self.data(summary="Recorded change"))

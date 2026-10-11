@@ -20,6 +20,8 @@
     const status = editor.querySelector('[data-overview-photo-status]');
     const counter = editor.querySelector('[data-overview-count]');
     let selectedFile = null;
+    // Set when the current photo is being cropped or rotated instead of a new one.
+    let editingExisting = false;
     let sourceImage = null;
     let photoURL = null;
     let photoGeneration = 0;
@@ -44,7 +46,8 @@
         editor.querySelectorAll('[data-bs-dismiss="modal"], input, [data-overview-library], [data-overview-reset-crop]').forEach(element => {
             element.disabled = submitting;
         });
-        cropToggle.disabled = submitting || imageLoading || !sourceImage || !context;
+        // The current photo can be edited too; it is loaded on first use.
+        cropToggle.disabled = submitting || imageLoading || !context || removeInput.checked || (!sourceImage && !existingPhoto);
         rotateButton.disabled = cropToggle.disabled;
     }
 
@@ -131,6 +134,7 @@
         sourceImage = null;
         quarterTurns = 0;
         selectedFile = null;
+        editingExisting = false;
         imageLoading = false;
         photoInput.value = '';
         libraryInput.value = '';
@@ -146,10 +150,11 @@
         updateBusy();
     }
 
-    async function selectPhoto(file) {
+    async function selectPhoto(file, {existing = false} = {}) {
         // Cancelling the native picker keeps the previously chosen photo.
         if (!file) return;
         clearNewPhoto();
+        editingExisting = existing;
         const generation = photoGeneration;
         imageLoading = true;
         updateBusy();
@@ -173,7 +178,7 @@
             preview.hidden = false;
             updatePhotoPreview();
             resetCrop();
-            status.textContent = status.dataset.ready;
+            status.textContent = existing ? status.dataset.editing : status.dataset.ready;
         } catch {
             if (generation !== photoGeneration) return;
             clearNewPhoto();
@@ -185,6 +190,42 @@
                 updateBusy();
             }
         }
+    }
+
+    async function loadExistingPhoto() {
+        // Fetching (rather than drawing the <img>) keeps the canvas exportable
+        // even if media files are served from another origin with CORS.
+        if (sourceImage) return true;
+        if (!existingPhoto || removeInput.checked || imageLoading || submitting) return false;
+        const generation = photoGeneration;
+        imageLoading = true;
+        updateBusy();
+        status.textContent = status.dataset.loading;
+        status.classList.remove('text-danger');
+        let file;
+        try {
+            const response = await fetch(existingPhoto, {credentials: 'same-origin'});
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+            const blob = await response.blob();
+            const name = new URL(existingPhoto, window.location.href).pathname.split('/').pop() || 'overview.jpg';
+            file = new File([blob], name, {type: blob.type});
+        } catch {
+            if (generation === photoGeneration) {
+                imageLoading = false;
+                updateBusy();
+                status.textContent = status.dataset.existingError;
+                status.classList.add('text-danger');
+            }
+            return false;
+        }
+        if (generation !== photoGeneration) return false;
+        await selectPhoto(file, {existing: true});
+        return Boolean(sourceImage);
+    }
+
+    function photoEdited() {
+        const cropped = cropEnabled && (crop.left > 0 || crop.top > 0 || crop.right < 100 || crop.bottom < 100);
+        return Boolean(quarterTurns) || cropped;
     }
 
     function pointerPosition(event) {
@@ -291,7 +332,8 @@
         updateBusy();
         let phase = 'photo';
         try {
-            if (selectedFile && !removeInput.checked) {
+            // The unchanged current photo is not uploaded again.
+            if (selectedFile && !removeInput.checked && (!editingExisting || photoEdited())) {
                 const photo = await photoToUpload();
                 data.set('overview_photo', photo, photo.name);
             }
@@ -332,8 +374,12 @@
     photoInput.addEventListener('change', () => { selectPhoto(photoInput.files[0]); });
     libraryInput.addEventListener('change', () => { selectPhoto(libraryInput.files[0]); });
     editor.querySelector('[data-overview-library]').addEventListener('click', () => { libraryInput.click(); });
-    cropToggle.addEventListener('click', () => { setCropEnabled(!cropEnabled); });
-    rotateButton.addEventListener('click', () => {
+    cropToggle.addEventListener('click', async () => {
+        if (!await loadExistingPhoto()) return;
+        setCropEnabled(!cropEnabled);
+    });
+    rotateButton.addEventListener('click', async () => {
+        if (!await loadExistingPhoto()) return;
         if (submitting || imageLoading || !sourceImage || !context) return;
         quarterTurns = (quarterTurns + 1) % 4;
         resetCrop();
@@ -344,6 +390,7 @@
     removeInput.addEventListener('change', () => {
         if (removeInput.checked) clearNewPhoto();
         preview.hidden = removeInput.checked || !preview.getAttribute('src');
+        updateBusy();
     });
     form.elements.summary.addEventListener('input', updateCounter);
     document.querySelectorAll('[data-overview-open]').forEach(trigger => {
@@ -364,6 +411,7 @@
         updateCounter();
     });
     updateCounter();
+    updateBusy();
     preview.hidden = removeInput.checked || !existingPhoto;
     if (editor.dataset.open === 'true' || window.location.hash === '#location-overview-editor') modal.show();
 })();
