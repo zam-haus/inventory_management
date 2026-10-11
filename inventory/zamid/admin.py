@@ -128,7 +128,9 @@ class ZamIdAdmin(admin.ModelAdmin):
         if target is None:
             return "–"
         deleted = gettext(" (deleted)") if obj.target_is_deleted else ""
-        return format_html('{}: <a href="{}">{}</a>{}', target._meta.verbose_name, target.get_absolute_url(), target, deleted)
+        opts = target._meta
+        url = reverse(f"admin:{opts.app_label}_{opts.model_name}_change", args=[target.pk])
+        return format_html('{}: <a href="{}">{}</a>{}', opts.verbose_name, url, target, deleted)
 
     @admin.display(description=_("label"))
     def label_preview(self, obj):

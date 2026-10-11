@@ -1670,10 +1670,7 @@ msgstr ""
 msgid "Look up"
 msgstr "Nachschlagen"
 
-#: inventory/models/item.py:61
-msgid "The item has a ZAM ID label and cannot be deleted permanently."
-msgstr "Die Sache hat ein ZAM-ID-Etikett und kann nicht endgültig gelöscht werden."
-
-#: inventory/models/location.py:326
-msgid "The location has a ZAM ID label and cannot be deleted permanently."
-msgstr "Der Standort hat ein ZAM-ID-Etikett und kann nicht endgültig gelöscht werden."
+#: inventory/models/zamid.py:173
+#, python-format
+msgid "Belonged to: %(kind)s “%(name)s” (#%(pk)s), deleted on %(date)s."
+msgstr "Gehörte zu: %(kind)s „%(name)s“ (#%(pk)s), gelöscht am %(date)s."

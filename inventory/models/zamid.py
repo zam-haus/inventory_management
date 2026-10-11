@@ -1,17 +1,26 @@
 """
 A ZAM ID is a permanent, opaque label code. It lives in its own table so codes
 can exist before they are attached (pre-printed labels) and stay reserved after
-retirement. Rows are never deleted and a set target never changes; this is
-enforced here, in services.py, and by database triggers (triggers.py).
+retirement. Rows are never deleted and a set target never changes to another
+one; this is enforced here, in services.py, and by database triggers
+(triggers.py). The one exception: when the target is deleted for good, its IDs
+are retired and unlinked, and the note records what they pointed at.
 """
 from django.conf import settings
 from django.db import IntegrityError, models
 from django.db.models import Q
-from django.utils.translation import gettext_lazy as _
+from django.db.models.signals import pre_delete
+from django.dispatch import receiver
+from django.utils import timezone
+from django.utils.formats import date_format
+from django.utils.translation import gettext, gettext_lazy as _
 
+from ..stock_log import current_stock_changes
 from ..zamid import core
 from ..zamid.fields import ZamIdField
 from ..zamid.targets import FK_TARGET_FIELDS, TARGET_FIELDS
+from .item import Item
+from .location import Location
 
 
 class ZamIdImmutable(IntegrityError):
@@ -53,9 +62,10 @@ class ZamId(models.Model):
     code = ZamIdField(_("ID"), primary_key=True)
     status = models.CharField(_("status"), max_length=8, choices=Status.choices,
                               default=Status.RESERVED, db_index=True)
-    item = models.ForeignKey("Item", on_delete=models.PROTECT, null=True, blank=True,
+    # SET_NULL only after release_deleted_target() has retired the ID (pre_delete below).
+    item = models.ForeignKey("Item", on_delete=models.SET_NULL, null=True, blank=True,
                              related_name="zam_ids", verbose_name=_("item"))
-    location = models.ForeignKey("Location", on_delete=models.PROTECT, null=True, blank=True,
+    location = models.ForeignKey("Location", on_delete=models.SET_NULL, null=True, blank=True,
                                  related_name="zam_ids", verbose_name=_("location"))
     url = models.URLField(_("URL"), max_length=2000, null=True, blank=True)
     batch = models.CharField(_("batch"), max_length=64, blank=True, db_index=True,
@@ -132,13 +142,44 @@ class ZamId(models.Model):
             raise ZamIdImmutable("The code of a ZAM ID cannot change.")
         if (loaded.get("status"), self.status) not in self.TRANSITIONS:
             raise ZamIdImmutable(f"A ZAM ID cannot go from {loaded.get('status')} to {self.status}.")
-        if loaded.get("status") != self.Status.RESERVED:
+        # A claimed ID keeps its target; it may only lose it while retired (target deleted).
+        unlinked = self.status == self.Status.RETIRED and self.target_field is None
+        if loaded.get("status") != self.Status.RESERVED and not unlinked:
             for field in TARGET_FIELDS:
                 if field in loaded and loaded[field] != self._target_value(field):
                     raise ZamIdImmutable("The target of a claimed ZAM ID cannot change.")
 
     def delete(self, *args, **kwargs):
         raise ZamIdImmutable("ZAM IDs are never deleted; retire them instead.")
+
+    @classmethod
+    def target_field_for(cls, obj):
+        """The column that can point at `obj` (an instance or a model class), or None."""
+        model = obj if isinstance(obj, type) else type(obj)
+        for field in FK_TARGET_FIELDS:
+            if issubclass(model, cls._meta.get_field(field).related_model):
+                return field
+        return None
+
+    @classmethod
+    def release_deleted_target(cls, target, using=None):
+        """
+        `target` is being deleted for good: retire its IDs, unlink them and note
+        what they pointed at, so the label still explains itself.
+        """
+        field = cls.target_field_for(target)
+        now = timezone.now()
+        actor = (current_stock_changes() or {}).get("actor")
+        note = gettext("Belonged to: %(kind)s “%(name)s” (#%(pk)s), deleted on %(date)s.") % {
+            "kind": target._meta.verbose_name, "name": target, "pk": target.pk,
+            "date": date_format(timezone.localtime(now), "SHORT_DATETIME_FORMAT"),
+        }
+        for zid in cls.objects.using(using).select_for_update().filter(**{field: target}):
+            if zid.status != cls.Status.RETIRED:
+                zid.status, zid.retired_at, zid.retired_by = cls.Status.RETIRED, now, actor
+            setattr(zid, field, None)
+            zid.note = f"{zid.note}\n{note}".strip()
+            zid.save(using=using)
 
     @property
     def display(self):
@@ -160,3 +201,10 @@ class ZamId(models.Model):
     def target_is_deleted(self):
         target = self.target
         return getattr(target, "is_deleted", False)
+
+
+@receiver(pre_delete, sender=Item)
+@receiver(pre_delete, sender=Location)
+def retire_ids_of_deleted_target(sender, instance, using, **kwargs):
+    # Soft deletion sends no signal: the ID stays assigned and resolves to a "deleted" page.
+    ZamId.release_deleted_target(instance, using)

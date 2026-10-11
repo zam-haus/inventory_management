@@ -234,8 +234,10 @@ plus text on a Brother P-touch label.
     location. Migration `inventory.0022` grants this permission to ZAM-local.
   * Only the admin (`assign_url_zamid`) can link an ID to an arbitrary URL.
   * A claimed ID is never relinked or deleted. Retiring keeps the link.
-  * Triggers in the database enforce this as well. Items and locations with IDs
-    can only be soft-deleted.
+  * Soft-deleting an item or location leaves its ID assigned; the resolver then
+    says it is no longer in the inventory. Deleting it permanently retires its
+    IDs, unlinks them and adds its name and number to their note.
+  * Triggers in the database enforce this as well.
 * **Lookup:** `item.zam_ids` / `location.zam_ids` (indexed). `inventory.zamid.lookup`
   provides `active_code(obj)` and `annotate_zam_code(queryset)`, which add no
   extra queries per row.

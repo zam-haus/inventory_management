@@ -106,7 +106,7 @@ class Migration(migrations.Migration):
                     models.ForeignKey(
                         blank=True,
                         null=True,
-                        on_delete=django.db.models.deletion.PROTECT,
+                        on_delete=django.db.models.deletion.SET_NULL,
                         related_name="zam_ids",
                         to="inventory.item",
                         verbose_name="item",
@@ -117,7 +117,7 @@ class Migration(migrations.Migration):
                     models.ForeignKey(
                         blank=True,
                         null=True,
-                        on_delete=django.db.models.deletion.PROTECT,
+                        on_delete=django.db.models.deletion.SET_NULL,
                         related_name="zam_ids",
                         to="inventory.location",
                         verbose_name="location",

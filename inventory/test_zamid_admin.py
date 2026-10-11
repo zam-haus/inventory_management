@@ -7,7 +7,7 @@ from django.test import TestCase, override_settings
 from django.urls import reverse
 
 from inventory.zamid import services
-from inventory.models import ZamId
+from inventory.models import Item, ZamId
 
 from .zamid.testing import SETTINGS, InventoryFixture, make_id
 
@@ -85,6 +85,19 @@ class AdminTests(InventoryFixture, TestCase):
         response = self.action("download_labels_action", [self.zid.code], apply=1, printer="E550W", tape=36)
         self.assertContains(response, "does not support")
 
+    def test_admin_hard_delete_of_item_retires_its_id(self):
+        url = reverse("admin:inventory_item_delete", args=[self.item.pk])
+        self.client.post(url, {"post": "yes"})  # first deletion is soft
+        self.assertEqual(ZamId.objects.get(pk=self.claimed.pk).status, "assigned")
+        response = self.client.post(url, {"post": "yes"})
+        self.assertEqual(response.status_code, 302)
+        self.assertFalse(Item.objects.filter(pk=self.item.pk).exists())
+        claimed = ZamId.objects.get(pk=self.claimed.pk)
+        self.assertEqual((claimed.status, claimed.item, claimed.retired_by), ("retired", None, self.admin))
+        self.assertIn(f"“Drill” (#{self.item.pk})", claimed.note)
+        response = self.client.get(self.change_url(claimed))
+        self.assertContains(response, f"(#{self.item.pk})")
+
     def test_change_page_shows_label_and_link(self):
         label = reverse("zamid_label", args=[self.zid.code]) + "?printer=P900&amp;tape=24"
         response = self.client.get(self.change_url(self.zid))
@@ -92,6 +105,9 @@ class AdminTests(InventoryFixture, TestCase):
         self.assertContains(response, f'href="{reverse("zamid_claim", args=[self.zid.code])}"')
         response = self.client.get(self.change_url(self.claimed))
         self.assertContains(response, '<a href="/id/12345V">/id/12345V</a>', html=True)
+        self.assertContains(response, f'href="{reverse("admin:inventory_item_change", args=[self.item.pk])}"')
+        response = self.client.get(reverse("admin:inventory_zamid_changelist"))
+        self.assertContains(response, f'href="{reverse("admin:inventory_item_change", args=[self.item.pk])}"')
         self.assertNotContains(response, reverse("zamid_claim", args=[self.claimed.code]))
 
     def test_info_label_and_qr(self):

@@ -10,7 +10,7 @@ from django.utils.translation import gettext as _
 
 from ..models import ZamId
 from . import core
-from .targets import CLAIMABLE_FIELDS, FK_TARGET_FIELDS
+from .targets import CLAIMABLE_FIELDS
 
 MAX_BATCH = 1000
 
@@ -19,13 +19,7 @@ class ZamIdError(Exception):
     """A state change that is not allowed; the message is meant for the user."""
 
 
-def target_field_for(obj):
-    """The ZamId column that can point at `obj` (an instance or a model class), or None."""
-    cls = obj if isinstance(obj, type) else type(obj)
-    for field in FK_TARGET_FIELDS:
-        if issubclass(cls, ZamId._meta.get_field(field).related_model):
-            return field
-    return None
+target_field_for = ZamId.target_field_for
 
 
 def generate_batch(count, batch="", user=None):

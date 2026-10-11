@@ -322,8 +322,6 @@ class Location(SoftDeleteModel, ComputedFieldsModel):
         excluded = set(hard_ids) if hard else set(soft_ids) | set(hard_ids)
         if children.exclude(pk__in=excluded).exists() or self.itemlocation_set.exists():
             raise ValidationError(_("The location is not empty and cannot be deleted."))
-        if hard and self.zam_ids.exists():
-            raise ValidationError(_("The location has a ZAM ID label and cannot be deleted permanently."))
 
     def __str__(self):
         return self.descriptive_identifier

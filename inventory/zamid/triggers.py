@@ -2,6 +2,8 @@
 Database triggers that keep ZAM IDs permanent even against raw SQL and
 QuerySet.update(): rows are never deleted, the code never changes, targets are
 set only while the row is reserved, and the lifecycle only moves forward.
+A claimed ID may lose its target only by becoming retired with no target at all,
+which is what deleting the target for good does (ZamId.release_deleted_target).
 
 Migrations pass the target columns that exist at that point in history, so a
 later migration that adds a target column calls install() again with the new list.
@@ -15,8 +17,14 @@ FORWARD_ONLY = (
 )
 
 
+def _relinked(columns, distinct):
+    """SQL: a claimed row's target changes other than by being unlinked on retirement."""
+    changed = " OR ".join(f"NEW.{c} {distinct} OLD.{c}" for c in columns)
+    unlinked = " AND ".join(["NEW.status = 'retired'", *(f"NEW.{c} IS NULL" for c in columns)])
+    return f"(OLD.status <> 'reserved' AND ({changed}) AND NOT ({unlinked}))"
+
+
 def _postgres(columns):
-    changed = " OR ".join(f"NEW.{c} IS DISTINCT FROM OLD.{c}" for c in columns)
     return [
         f"""
         CREATE OR REPLACE FUNCTION zamid_guard() RETURNS trigger AS $$
@@ -27,7 +35,7 @@ def _postgres(columns):
             IF NEW.code <> OLD.code THEN
                 RAISE EXCEPTION 'The code of a ZAM ID cannot change' USING ERRCODE = 'integrity_constraint_violation';
             END IF;
-            IF OLD.status <> 'reserved' AND ({changed}) THEN
+            IF {_relinked(columns, "IS DISTINCT FROM")} THEN
                 RAISE EXCEPTION 'The target of a claimed ZAM ID cannot change' USING ERRCODE = 'integrity_constraint_violation';
             END IF;
             IF {FORWARD_ONLY} THEN
@@ -45,13 +53,12 @@ def _postgres(columns):
 
 
 def _sqlite(columns):
-    changed = " OR ".join(f"NEW.{c} IS NOT OLD.{c}" for c in columns)
     return [
         "DROP TRIGGER IF EXISTS zamid_guard_update",
         "DROP TRIGGER IF EXISTS zamid_guard_delete",
         f"""
         CREATE TRIGGER zamid_guard_update BEFORE UPDATE ON {TABLE}
-        WHEN NEW.code <> OLD.code OR (OLD.status <> 'reserved' AND ({changed})) OR {FORWARD_ONLY}
+        WHEN NEW.code <> OLD.code OR {_relinked(columns, "IS NOT")} OR {FORWARD_ONLY}
         BEGIN SELECT RAISE(ABORT, 'ZAM IDs are permanent: code, target and lifecycle cannot be changed back'); END
         """,
         f"""

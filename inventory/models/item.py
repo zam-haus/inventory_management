@@ -2,7 +2,6 @@
 from datetime import datetime
 
 from computedfields.models import ComputedFieldsModel, computed
-from django.core.exceptions import ValidationError
 from django.db import models, transaction
 from django.db.models.signals import pre_delete
 from django.dispatch import receiver
@@ -54,11 +53,6 @@ class Item(SoftDeleteModel):
 
     def get_absolute_url(self):
         return reverse("view_item", kwargs={"pk": self.pk})
-
-    def validate_deletion(self, *, hard=False, soft_ids=(), hard_ids=()):
-        # A printed ZAM ID label keeps pointing here; see models/zamid.py.
-        if hard and self.zam_ids.exists():
-            raise ValidationError(_("The item has a ZAM ID label and cannot be deleted permanently."))
 
     def get_admin_url(self):
         return reverse(

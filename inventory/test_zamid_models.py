@@ -1,9 +1,11 @@
+from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError, connection, transaction
 from django.test import TestCase
 
-from inventory.models import Item, ItemLocation, Location
+from inventory.models import Item, ItemLocation, Location, StockChange
 from inventory.quick_item_views import QuickItemError, hard_delete
+from inventory.stock_log import stock_changes
 
 from inventory.zamid import lookup, services
 from inventory.models import ZamId, ZamIdImmutable
@@ -133,7 +135,7 @@ class ImmutabilityTests(InventoryFixture, TestCase):
 
     def test_retired_target_is_frozen(self):
         services.retire(self.zid.code, None)
-        self.raw("UPDATE inventory_zamid SET item_id = NULL WHERE code = %s", [self.zid.code])
+        self.raw("UPDATE inventory_zamid SET item_id = %s WHERE code = %s", [self.other_item.pk, self.zid.code])
         voided = make_id("12345")
         services.retire(voided.code, None)
         self.raw("UPDATE inventory_zamid SET url = 'https://zam.haus' WHERE code = %s", [voided.code])
@@ -154,6 +156,13 @@ class ImmutabilityTests(InventoryFixture, TestCase):
         with self.assertRaises(ZamIdImmutable):
             zid.save()
 
+    def test_unlinking_only_together_with_retirement(self):
+        self.raw("UPDATE inventory_zamid SET item_id = NULL WHERE code = %s", [self.zid.code])
+        with transaction.atomic(), connection.cursor() as cursor:
+            cursor.execute("UPDATE inventory_zamid SET status = 'retired', item_id = NULL WHERE code = %s",
+                           [self.zid.code])
+        self.raw("UPDATE inventory_zamid SET item_id = %s WHERE code = %s", [self.item.pk, self.zid.code])
+
     def test_metadata_stays_editable(self):
         ZamId.objects.filter(pk=self.zid.pk).update(note="on the left side", batch="roll-2")
         zid = ZamId.objects.get(pk=self.zid.pk)
@@ -166,23 +175,56 @@ class TargetDeletionTests(InventoryFixture, TestCase):
     @classmethod
     def setUpTestData(cls):
         cls.create_inventory()
-        services.claim(make_id("K7Q4X").code, cls.item, None)
-        services.claim(make_id("12345").code, cls.location, None)
+        cls.user = get_user_model().objects.create_user(username="admin")
+        cls.for_item = services.claim(make_id("K7Q4X").code, cls.item, None)
+        cls.for_location = services.claim(make_id("12345").code, cls.location, None)
 
-    def test_items_with_ids_are_only_soft_deleted(self):
+    def test_soft_delete_keeps_the_id(self):
         self.item.delete()
-        self.assertTrue(Item.objects.get(pk=self.item.pk).is_deleted)
-        with self.assertRaises(ValidationError):
-            self.item.delete()
-        self.assertTrue(Item.objects.filter(pk=self.item.pk).exists())
+        zid = ZamId.objects.get(pk=self.for_item.pk)
+        self.assertEqual((zid.status, zid.item), (ZamId.Status.ASSIGNED, self.item))
 
-    def test_locations_with_ids_are_only_soft_deleted(self):
+    def test_hard_delete_retires_and_unlinks(self):
+        pk = self.item.pk
+        self.item.delete()
+        with stock_changes(actor=self.user, source=StockChange.Source.ADMIN):
+            Item.objects.get(pk=pk).delete()
+        self.assertFalse(Item.objects.filter(pk=pk).exists())
+        zid = ZamId.objects.get(pk=self.for_item.pk)
+        self.assertEqual((zid.status, zid.target, zid.retired_by), (ZamId.Status.RETIRED, None, self.user))
+        for part in ("Drill", f"(#{pk})", str(Item._meta.verbose_name)):
+            self.assertIn(part, zid.note)
+
+    def test_already_retired_id_keeps_its_history(self):
+        retired = services.retire(self.for_item.code, None, "label damaged")
+        services.claim(make_id("ABCDE").code, self.item, None)
+        pk = self.item.pk
+        self.item.delete()
+        Item.objects.get(pk=pk).delete()
+        for zid in ZamId.objects.filter(pk__in=[retired.pk, "ABCDEM"]):
+            self.assertEqual((zid.status, zid.target), (ZamId.Status.RETIRED, None))
+            self.assertIn(f"(#{pk})", zid.note)
+        old = ZamId.objects.get(pk=retired.pk)
+        self.assertEqual(old.retired_at, retired.retired_at)
+        self.assertTrue(old.note.startswith("label damaged\n"))
+
+    def test_hard_delete_of_location(self):
+        pk = self.location.pk
         self.location.delete()
-        with self.assertRaises(ValidationError):
-            Location.objects.get(pk=self.location.pk).delete()
+        Location.objects.get(pk=pk).delete()
+        zid = ZamId.objects.get(pk=self.for_location.pk)
+        self.assertEqual((zid.status, zid.target), (ZamId.Status.RETIRED, None))
+        self.assertIn(f"(#{pk})", zid.note)
 
-    def test_quick_items_with_ids_are_kept(self):
-        entry = ItemLocation.objects.create(item=self.item, location=self.location, amount=1)
+    def test_failed_delete_leaves_the_id_alone(self):
+        self.location.delete()
+        ItemLocation.objects.create(item=self.other_item, location=self.location, amount=1)
+        with self.assertRaises(ValidationError):  # not empty
+            Location.objects.get(pk=self.location.pk).delete()
+        self.assertEqual(ZamId.objects.get(pk=self.for_location.pk).status, ZamId.Status.ASSIGNED)
+
+    def test_quick_items_with_ids_need_the_item_page(self):
+        entry = ItemLocation.objects.create(item=self.item, location=self.location, amount=None)
         with self.assertRaises(QuickItemError):
             hard_delete(entry)
 
