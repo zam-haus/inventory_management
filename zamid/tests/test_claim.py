@@ -78,31 +78,6 @@ class ClaimTests(InventoryFixture, TestCase):
         self.client.post(self.url, {"kind": "new_item", "new_item-name": "Orphan"})
         self.assertFalse(Item.objects.filter(name="Orphan").exists())
 
-    def test_claim_for_from_item_page(self):
-        url = reverse("zamid_claim_for", args=["item", self.item.pk])
-        self.assertEqual(self.client.post(url, {"code": "k7q-4xd"}).status_code, 302)
-        self.assertEqual(self.status(), ZamId.Status.RESERVED)  # anonymous: login redirect
-        self.client.force_login(self.member)
-        response = self.client.post(url, {"code": "K7Q4XR"}, follow=True)
-        self.assertContains(response, "Check symbol does not match")
-        response = self.client.post(url, {"code": "HTTPS://I.ZAM.HAUS/K7Q4XD"})
-        self.assertRedirects(response, self.item.get_absolute_url(), fetch_redirect_response=False)
-        self.assertEqual(ZamId.objects.get(pk=self.zid.pk).item, self.item)
-        self.assertEqual(self.client.post(reverse("zamid_claim_for", args=["url", 1]), {"code": "x"}).status_code, 404)
-
-    def test_badge(self):
-        page = self.item.get_absolute_url()
-        self.assertNotContains(self.client.get(page), "data-zamid-claim")
-        self.client.force_login(self.member)
-        self.assertContains(self.client.get(page), "data-zamid-claim")
-        services.claim(self.zid.code, self.item, None)
-        response = self.client.get(page)
-        self.assertContains(response, "K7Q-4XD")
-        self.assertNotContains(response, "data-zamid-claim")
-        self.client.logout()
-        self.assertContains(self.client.get(page), "K7Q-4XD")
-        self.assertContains(self.client.get(self.location.get_absolute_url()), "Workshop")
-
     def test_search_jumps_to_id(self):
         services.claim(self.zid.code, self.item, None)
         for url in (reverse("index_items"), reverse("index_locations")):

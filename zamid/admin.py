@@ -56,11 +56,11 @@ class ZamIdAdmin(admin.ModelAdmin):
     actions = ["retire_action", "download_labels_action"]
     change_list_template = "admin/zamid/zamid/change_list.html"
     fieldsets = [
-        (None, {"fields": ["display_code", "status", "target_link", "url", "qr_preview"]}),
+        (None, {"fields": ["label_preview", "display_code", "status", "id_link", "target_link", "url"]}),
         (_("Label"), {"fields": ["batch", "note", "printed_at"]}),
         (_("History"), {"fields": ["created_at", "created_by", "assigned_at", "assigned_by", "retired_at", "retired_by"]}),
     ]
-    readonly_fields = ["display_code", "status", "target_link", "qr_preview", "printed_at",
+    readonly_fields = ["label_preview", "display_code", "status", "id_link", "target_link", "printed_at",
                        "created_at", "created_by", "assigned_at", "assigned_by", "retired_at", "retired_by"]
 
     # IDs are created only by generating them, and never deleted.
@@ -109,9 +109,19 @@ class ZamIdAdmin(admin.ModelAdmin):
         deleted = gettext(" (deleted)") if obj.target_is_deleted else ""
         return format_html('{}: <a href="{}">{}</a>{}', target._meta.verbose_name, target.get_absolute_url(), target, deleted)
 
-    @admin.display(description=_("QR code"))
-    def qr_preview(self, obj):
-        return format_html('<img src="{}" width="120" height="120" alt="">', reverse("zamid_qr_svg", args=[obj.code]))
+    @admin.display(description=_("label"))
+    def label_preview(self, obj):
+        printer, tape = labels.PREVIEW
+        url = f"{reverse('zamid_label', args=[obj.code])}?printer={printer}&tape={tape}"
+        return format_html('<a href="{}"><img src="{}" alt="{}" style="height: 160px; max-width: 100%; '
+                           'object-fit: contain; outline: 1px solid var(--hairline-color)"></a>', url, url, obj.display)
+
+    @admin.display(description=_("link"))
+    def id_link(self, obj):
+        if obj.status == ZamId.Status.RESERVED:
+            return format_html('<a href="{}">{}</a>', reverse("zamid_claim", args=[obj.code]), gettext("Claim this ID"))
+        url = reverse("zamid_resolve", args=[obj.code])
+        return format_html('<a href="{}">{}</a>', url, url)
 
     # ------------------------------------------------------------ generate
     def get_urls(self):

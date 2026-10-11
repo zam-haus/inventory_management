@@ -1,5 +1,6 @@
 import io
 import tempfile
+from unittest import mock
 from pathlib import Path
 
 from django.core.management import call_command
@@ -7,6 +8,7 @@ from django.test import SimpleTestCase, TestCase
 from PIL import Image
 
 from zamid import core, labels, qr
+from zamid.labels import zamlabel
 from zamid.models import ZamId
 
 
@@ -26,6 +28,14 @@ class LabelTests(SimpleTestCase):
                 image = Image.open(io.BytesIO(labels.render("K7Q4XD", printer, tape)))
                 self.assertEqual((image.mode, image.height), ("1", pins))
                 self.assertEqual(round(image.info["dpi"][0]), dpi)
+
+    def test_memoized_rendering_is_identical(self):
+        uncached = {name: getattr(zamlabel, name).__wrapped__ for name in ("_font", "_cap_height", "vertical_logo")}
+        for printer, tape in (("E550W", 12), ("P900", 12)):
+            with self.subTest(printer=printer, tape=tape):
+                cached = labels.render("K7Q4XD", printer, tape)
+                with mock.patch.multiple(zamlabel, **uncached):
+                    self.assertEqual(labels.render("K7Q4XD", printer, tape), cached)
 
     def test_unknown_profile(self):
         with self.assertRaises(ValueError):

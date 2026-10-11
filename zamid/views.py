@@ -15,10 +15,9 @@ from django.views.decorators.http import require_safe
 from inventory.models import Item
 
 from . import core, labels, parsing, qr, services
-from .forms import ClaimCodeForm, ClaimItemForm, ClaimLocationForm, LabelForm, NewItemForm
+from .forms import ClaimItemForm, ClaimLocationForm, LabelForm, NewItemForm
 from .models import ZamId
 from .resolver_views import target_url
-from .targets import CLAIMABLE_FIELDS
 
 
 def get_zam_id(code):
@@ -38,6 +37,7 @@ class InfoView(PermissionRequiredMixin, View):
             "zid": zid,
             "target_url": target_url(request, zid),
             "label_profiles": sorted(labels.PROFILES),
+            "preview_printer": labels.PREVIEW[0], "preview_tape": labels.PREVIEW[1],
             "can_claim": zid.status == ZamId.Status.RESERVED and request.user.has_perm("zamid.claim_zamid"),
         })
 
@@ -84,28 +84,6 @@ class ClaimView(PermissionRequiredMixin, View):
         return redirect(target)
 
 
-class ClaimForView(PermissionRequiredMixin, View):
-    """Claim a typed or scanned ID from an item or location page."""
-    permission_required = "zamid.claim_zamid"
-
-    def post(self, request, kind, pk):
-        if kind not in CLAIMABLE_FIELDS:
-            raise Http404
-        model = ZamId._meta.get_field(kind).related_model
-        target = get_object_or_404(model.active, pk=pk)
-        form = ClaimCodeForm(request.POST)
-        if not form.is_valid():
-            messages.error(request, form.errors["code"][0])
-            return redirect(target)
-        try:
-            zid = services.claim(form.cleaned_data["code"], target, request.user)
-        except services.ZamIdError as e:
-            messages.error(request, str(e))
-        else:
-            messages.success(request, _("The ID %(code)s now belongs to %(target)s.") % {"code": zid.display, "target": target})
-        return redirect(target)
-
-
 class ItemAutocomplete(autocomplete.Select2QuerySetView):
     """Items that can still get an ID."""
 
@@ -148,4 +126,5 @@ class LabelView(PermissionRequiredMixin, View):
         printer, tape = form.cleaned_data["printer"], form.cleaned_data["tape"]
         response = HttpResponse(labels.render(zid.code, printer, tape), content_type="image/png")
         response["Content-Disposition"] = f'inline; filename="{labels.filename(zid.code, printer, tape)}"'
+        response["Cache-Control"] = "private, max-age=86400"
         return response

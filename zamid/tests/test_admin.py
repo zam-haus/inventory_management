@@ -85,8 +85,20 @@ class AdminTests(InventoryFixture, TestCase):
         response = self.action("download_labels_action", [self.zid.code], apply=1, printer="E550W", tape=36)
         self.assertContains(response, "does not support")
 
+    def test_change_page_shows_label_and_link(self):
+        label = reverse("zamid_label", args=[self.zid.code]) + "?printer=P900&amp;tape=24"
+        response = self.client.get(self.change_url(self.zid))
+        self.assertContains(response, label)
+        self.assertContains(response, f'href="{reverse("zamid_claim", args=[self.zid.code])}"')
+        response = self.client.get(self.change_url(self.claimed))
+        self.assertContains(response, '<a href="/id/12345V">/id/12345V</a>', html=True)
+        self.assertNotContains(response, reverse("zamid_claim", args=[self.claimed.code]))
+
     def test_info_label_and_qr(self):
-        self.assertContains(self.client.get(reverse("zamid_info", args=["k7q-4xd"])), "K7Q-4XD")
+        response = self.client.get(reverse("zamid_info", args=["k7q-4xd"]))
+        self.assertContains(response, "K7Q-4XD")
+        self.assertContains(response, reverse("zamid_label", args=[self.zid.code]) + "?printer=P900&amp;tape=24")
+        self.assertNotContains(response, "qr.svg")
         response = self.client.get(reverse("zamid_label", args=[self.zid.code]), {"printer": "P900", "tape": 24})
         self.assertEqual(response["Content-Type"], "image/png")
         self.client.logout()

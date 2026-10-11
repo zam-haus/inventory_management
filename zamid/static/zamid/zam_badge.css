@@ -1,5 +1,0 @@
-.zam-badge { display: flex; align-items: center; gap: .75rem; }
-.zam-badge img { image-rendering: pixelated; flex: none; }
-.zam-badge-claim { display: block; max-width: 22rem; }
-.zam-badge-eyebrow { display: block; font-size: .75rem; text-transform: uppercase; letter-spacing: .04em; color: var(--bs-secondary-color); }
-.zam-badge-code { font-family: var(--bs-font-monospace); font-weight: 700; font-size: 1.125rem; letter-spacing: .05em; }

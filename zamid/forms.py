@@ -5,7 +5,6 @@ from django.utils.translation import gettext_lazy as _
 from inventory.models import Item, Location
 
 from . import labels
-from .fields import ZamIdFormField
 from .services import MAX_BATCH
 
 
@@ -37,10 +36,6 @@ class NewItemForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["name"].required = True
-
-
-class ClaimCodeForm(forms.Form):
-    code = ZamIdFormField(label=_("ID"), help_text=_("Type the ID from a new label, or scan it."))
 
 
 class LabelForm(forms.Form):

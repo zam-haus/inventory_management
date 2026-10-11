@@ -2,11 +2,22 @@
 {% load i18n static %}
 
 {% block title %}{% trans "ZAM ID" %} {{ zid.display }}{% endblock %}
+{% block bootstrap5_extra_head %}
+    {{ block.super }}
+    <style>.zamid-label-preview { height: 160px; max-width: 100%; object-fit: contain; outline: 1px solid var(--bs-border-color); }</style>
+{% endblock %}
 {% block admin_url %}{% url 'admin:zamid_zamid_change' zid.code %}{% endblock %}
 
 {% block content %}
+{% url 'zamid_label' zid.code as label_url %}
+<p>
+    <a href="{{ label_url }}?printer={{ preview_printer }}&amp;tape={{ preview_tape }}">
+        <img src="{{ label_url }}?printer={{ preview_printer }}&amp;tape={{ preview_tape }}" class="zamid-label-preview"
+             alt="{% blocktrans with code=zid.display %}Label for {{ code }}{% endblocktrans %}">
+    </a>
+</p>
 <div class="row g-4">
-    <div class="col-md-8">
+    <div class="col-lg-8">
         <dl class="row">
             <dt class="col-sm-4">{% trans "status" %}</dt><dd class="col-sm-8">{{ zid.get_status_display }}</dd>
             <dt class="col-sm-4">{% trans "target" %}</dt>
@@ -30,9 +41,6 @@
                 <li class="list-inline-item"><a href="{% url 'zamid_label' zid.code %}?printer={{ printer }}&amp;tape={{ tape }}">PT-{{ printer }} {{ tape }} mm</a></li>
             {% endfor %}
         </ul>
-    </div>
-    <div class="col-md-4 text-center">
-        <img src="{% url 'zamid_qr_svg' zid.code %}" class="img-fluid" style="max-width: 200px" alt="{% trans 'QR code' %}">
     </div>
 </div>
 {% endblock %}

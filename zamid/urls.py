@@ -5,7 +5,6 @@ from . import resolver_views, views
 
 urlpatterns = [
     path("", resolver_views.lookup, name="zamid_lookup"),
-    path("claim-for/<str:kind>/<int:pk>/", views.ClaimForView.as_view(), name="zamid_claim_for"),
     path("item-autocomplete/", views.ItemAutocomplete.as_view(), name="zamid_item_autocomplete"),
     path("<str:code>/info/", views.InfoView.as_view(), name="zamid_info"),
     path("<str:code>/claim/", views.ClaimView.as_view(), name="zamid_claim"),

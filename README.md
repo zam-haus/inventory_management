@@ -228,9 +228,9 @@ plus text on a Brother P-touch label.
   redirect to and defaults to `DEFAULT_DOMAIN`.
 * **Lifecycle:** reserved → assigned → retired.
   * Only the admin (*Generate IDs*) and `manage.py zamid_generate` create IDs.
-  * Members with `zamid.claim_zamid` claim a reserved ID by scanning it, or on the
-    item or location page. Migration `zamid.0003` grants this permission to
-    ZAM-local.
+  * Members with `zamid.claim_zamid` claim a reserved ID by scanning it: the
+    resolver opens the claim page, which links it to an existing or new item or
+    location. Migration `zamid.0003` grants this permission to ZAM-local.
   * Only the admin (`assign_url_zamid`) can link an ID to an arbitrary URL.
   * A claimed ID is never relinked or deleted. Retiring keeps the link.
   * Triggers in the database enforce this as well. Items and locations with IDs
