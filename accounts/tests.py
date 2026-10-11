@@ -101,6 +101,16 @@ class OidcProfileTests(TestCase):
         self.assertFalse(user.is_superuser)
         self.assertFalse(user.is_staff)
 
+    def test_groups_missing_from_claim_are_removed(self):
+        user = get_user_model().objects.create_user(username="member")
+        backend = object.__new__(CustomOidcAuthenticationBackend)
+        backend.update_groups(user, {"groups": ["team a", "team b"]})
+        backend.update_groups(user, {"groups": ["team b", "team c"]})
+        self.assertEqual(set(user.groups.values_list("name", flat=True)), {"team b", "team c"})
+        backend.update_groups(user, {})
+        self.assertFalse(user.groups.exists())
+        self.assertTrue(Group.objects.filter(name="team a").exists())
+
     @override_settings(OIDC_CLAIM_REFERENCE_KEY="directory_id")
     def test_missing_claim_does_not_match_local_users(self):
         user = get_user_model().objects.create_user(username="local")

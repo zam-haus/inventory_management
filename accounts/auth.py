@@ -66,9 +66,11 @@ class CustomOidcAuthenticationBackend(OIDCAuthenticationBackend):
             user.save()
 
     def update_groups(self, user, claims, save_user=True):
-        for name in claims.get('groups', []):
-            if name == ZAM_LOCAL_GROUP_NAME:
-                continue
+        # The claim is authoritative for all groups except locally managed ones.
+        names = set(claims.get('groups', [])) - {ZAM_LOCAL_GROUP_NAME}
+        stale = user.groups.exclude(name=ZAM_LOCAL_GROUP_NAME).exclude(name__in=names)
+        user.groups.remove(*stale)
+        for name in names:
             group, _ = Group.objects.get_or_create(name=name)
             user.groups.add(group)
         if save_user:
