@@ -1,0 +1,61 @@
+/*
+ * Select2 autocompletes as Bootstrap 5 form controls (inventory.widgets.AutocompleteSelect).
+ *
+ * Select2 copies the <select>'s classes onto its selection box, so the box carries
+ * Bootstrap's .form-select (padding, font, line-height, chevron). Select2's own CSS
+ * (loaded via Django's admin vendor files) fixes that box at 28px with a 28px line
+ * height, which pushes the text down and out of the box. These rules key on
+ * .form-select, so admin autocompletes without it keep the admin styling, and
+ * they are specific enough to win regardless of stylesheet order.
+ */
+.select2-container:has(.select2-selection.form-select) {
+    min-width: 0;          /* dal sets 20em, which overflows narrow columns */
+    max-width: 100%;
+}
+
+.select2-container--default .select2-selection--single.form-select {
+    height: auto;          /* size comes from Bootstrap's padding and line-height */
+    min-height: calc(1.5em + .75rem + calc(var(--bs-border-width) * 2));
+    display: flex;         /* keeps the text centred if a page sets a larger min-height */
+    align-items: center;
+    border: var(--bs-border-width) solid var(--bs-border-color);
+    border-radius: var(--bs-border-radius);
+    background-color: var(--bs-body-bg);
+}
+
+.select2-container--default .select2-selection--single.form-select .select2-selection__rendered {
+    flex: 1;
+    min-width: 0;
+    padding: 0;
+    color: var(--bs-body-color);
+    line-height: inherit;
+}
+
+.select2-container--default .select2-selection--single.form-select .select2-selection__placeholder {
+    color: var(--bs-secondary-color);
+}
+
+.select2-container--default .select2-selection--single.form-select .select2-selection__clear {
+    margin-left: .5rem;
+    color: var(--bs-secondary-color);
+}
+
+/* Bootstrap's chevron (the .form-select background) replaces Select2's arrow. */
+.select2-container--default .select2-selection--single.form-select .select2-selection__arrow {
+    display: none;
+}
+
+.select2-container--default.select2-container--focus .select2-selection--single.form-select,
+.select2-container--default.select2-container--open .select2-selection--single.form-select {
+    border-color: #86b7fe;
+    outline: 0;
+    box-shadow: 0 0 0 .25rem rgba(13, 110, 253, .25);
+}
+
+.select2-container--default .select2-selection--single.form-select.is-invalid {
+    border-color: var(--bs-form-invalid-border-color);
+}
+
+.select2-container--default.select2-container--disabled .select2-selection--single.form-select {
+    background-color: var(--bs-secondary-bg);
+}

@@ -1,17 +1,15 @@
-from dal import autocomplete
 from django import forms
 from django.utils.translation import gettext_lazy as _
 
 
 from ..models import Item, Location
+from ..widgets import AutocompleteSelect
 from . import labels
 from .services import MAX_BATCH
 
 
 def _select2(url, placeholder):
-    return autocomplete.ModelSelect2(url=url, attrs={
-        "data-placeholder": placeholder, "data-allow-clear": 1, "data-width": "100%",
-    })
+    return AutocompleteSelect(url=url, attrs={"data-placeholder": placeholder, "data-allow-clear": 1})
 
 
 class ClaimItemForm(forms.Form):

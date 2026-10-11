@@ -17,6 +17,7 @@ from dal import autocomplete
 from .keyboard_layouts import layout_corrections
 from .location_lookup import scan_prefix
 from .models import BarcodeType, Item, ItemBarcode, ItemImage, ItemLocation, Location, StockChange
+from .widgets import AutocompleteSelect
 
 
 class LocationMultipleChoiceField(ModelMultipleChoiceField):
@@ -276,7 +277,7 @@ class ItemLocationForm(ModelForm):
         model = ItemLocation
         fields = ['location', 'amount']
         widgets = {
-            'location': autocomplete.ModelSelect2(url='location-autocomplete')
+            'location': AutocompleteSelect(url='location-autocomplete')
         }
 
     def __init__(self, *args, **kwargs):
@@ -352,9 +353,9 @@ class DissolveLocationForm(Form):
         def destination_field(queryset):
             return ModelChoiceField(
                 label=_("Destination"), queryset=queryset, required=False,
-                widget=autocomplete.ModelSelect2(
+                widget=AutocompleteSelect(
                     url="location-autocomplete",
-                    attrs={"data-width": "100%", "data-placeholder": _("Search for a location…")},
+                    attrs={"data-placeholder": _("Search for a location…")},
                 ),
             )
 
@@ -434,13 +435,12 @@ class LocationMoveForm(ModelForm):
         label=_("Destination"),
         help_text=_("Search by location name or identifier and select the new parent location."),
         queryset=Location.active.filter(type__no_sublocations = False),
-        widget=autocomplete.ModelSelect2(
+        widget=AutocompleteSelect(
             url='parent_location_autocomplete',
             forward=['id'],
             attrs={
                 'data-placeholder': _("Search for a location…"),
                 'data-allow-clear': 1,
-                'data-width': '100%',
             },
         ),
         blank=True,
