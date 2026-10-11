@@ -76,7 +76,6 @@ INSTALLED_APPS = [
     "extra_views",
     "computedfields",
     "accounts",
-    "zamid.apps.ZamIdConfig",
     "django_bootstrap_icons",
     "sorl.thumbnail",
     "django_static_jquery",
@@ -96,7 +95,7 @@ COMPUTEDFIELDS_ALLOW_RECURSION = True
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     # Routes i.zam.haus / id.zam.haus to the ZAM ID resolver; before CommonMiddleware.
-    "zamid.middleware.ResolverHostMiddleware",
+    "inventory.zamid.middleware.ResolverHostMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",

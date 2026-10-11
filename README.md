@@ -210,8 +210,9 @@ Apply migrations with `python manage.py migrate` when deploying this change.
 
 ## ZAM IDs
 
-The `zamid` app issues short, permanent label IDs such as `K7Q-4XD` (spec:
-`zamid/ZAM-ID-SPEC.md`). Each one is printed as a QR code for `HTTPS://I.ZAM.HAUS/K7Q4XD`
+ZAM IDs are short, permanent label IDs such as `K7Q-4XD` (spec:
+`inventory/zamid/ZAM-ID-SPEC.md`). The model is `inventory/models/zamid.py`;
+everything else is in `inventory/zamid/`. Each one is printed as a QR code for `HTTPS://I.ZAM.HAUS/K7Q4XD`
 plus text on a Brother P-touch label.
 
 * **Resolver:** `i.zam.haus/<id>`, `id.zam.haus/<id>` and `inv.zam.haus/id/<id>`
@@ -228,20 +229,20 @@ plus text on a Brother P-touch label.
   redirect to and defaults to `DEFAULT_DOMAIN`.
 * **Lifecycle:** reserved → assigned → retired.
   * Only the admin (*Generate IDs*) and `manage.py zamid_generate` create IDs.
-  * Members with `zamid.claim_zamid` claim a reserved ID by scanning it: the
+  * Members with `inventory.claim_zamid` claim a reserved ID by scanning it: the
     resolver opens the claim page, which links it to an existing or new item or
-    location. Migration `zamid.0003` grants this permission to ZAM-local.
+    location. Migration `inventory.0022` grants this permission to ZAM-local.
   * Only the admin (`assign_url_zamid`) can link an ID to an arbitrary URL.
   * A claimed ID is never relinked or deleted. Retiring keeps the link.
   * Triggers in the database enforce this as well. Items and locations with IDs
     can only be soft-deleted.
-* **Lookup:** `item.zam_ids` / `location.zam_ids` (indexed). `zamid.lookup`
+* **Lookup:** `item.zam_ids` / `location.zam_ids` (indexed). `inventory.zamid.lookup`
   provides `active_code(obj)` and `annotate_zam_code(queryset)`, which add no
   extra queries per row.
 * **Labels:** use the admin action *Download labels (ZIP)*, or run
   `manage.py zamid_labels --batch NAME --printer E550W --tape 12`. Print the PNGs
   in **standard** resolution, without scaling. Fonts (OFL) are in
-  `zamid/labels/fonts/`.
+  `inventory/zamid/labels/fonts/`.
 * **Other commands:** `zamid_check <input>…` and `zamid_retire <code>`.
 
 ## Label Printing

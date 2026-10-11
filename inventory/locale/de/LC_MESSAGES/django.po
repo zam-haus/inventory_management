@@ -1269,3 +1269,411 @@ msgstr "Du bearbeitest das aktuelle Foto. Beim Speichern ersetzen deine Änderun
 
 msgid "The current photo could not be loaded for editing. Try again or choose a new photo."
 msgstr "Das aktuelle Foto konnte nicht zum Bearbeiten geladen werden. Versuche es erneut oder wähle ein neues Foto."
+
+#: inventory/zamid/admin.py:19 inventory/zamid/admin.py:102 inventory/templates/inventory/zamid/info.html:23
+msgid "target"
+msgstr "Ziel"
+
+#: inventory/zamid/admin.py:23
+msgid "none"
+msgstr "keins"
+
+#: inventory/zamid/admin.py:42
+msgid "Only reserved IDs can be linked to a URL."
+msgstr "Nur reservierte IDs können mit einer URL verknüpft werden."
+
+#: inventory/zamid/admin.py:44 inventory/zamid/services.py:95
+msgid "Enter a valid http or https URL."
+msgstr "Gib eine gültige http- oder https-URL ein."
+
+#: inventory/zamid/admin.py:60
+msgid "Label"
+msgstr "Etikett"
+
+#: inventory/zamid/admin.py:98 inventory/models/zamid.py:53
+msgid "ID"
+msgstr "ID"
+
+#: inventory/zamid/admin.py:109
+msgid " (deleted)"
+msgstr " (gelöscht)"
+
+#: inventory/zamid/admin.py:112
+msgid "label"
+msgstr "Etikett"
+
+#: inventory/zamid/admin.py:119
+msgid "link"
+msgstr "Link"
+
+#: inventory/zamid/admin.py:122
+msgid "Claim this ID"
+msgstr "Diese ID zuordnen"
+
+#: inventory/zamid/admin.py:138
+#, python-format
+msgid "Generated %(count)d IDs: %(codes)s"
+msgstr "%(count)d IDs erzeugt: %(codes)s"
+
+#: inventory/zamid/admin.py:146
+msgid "Generate ZAM IDs"
+msgstr "ZAM-IDs erzeugen"
+
+#: inventory/zamid/admin.py:157
+msgid "Retire selected IDs"
+msgstr "Ausgewählte IDs stilllegen"
+
+#: inventory/zamid/admin.py:164
+#, python-format
+msgid "Retired %(count)d IDs."
+msgstr "%(count)d IDs stillgelegt."
+
+#: inventory/zamid/admin.py:166
+msgid "Retire ZAM IDs"
+msgstr "ZAM-IDs stilllegen"
+
+#: inventory/zamid/admin.py:169
+msgid "Download labels (ZIP)"
+msgstr "Etiketten herunterladen (ZIP)"
+
+#: inventory/zamid/admin.py:181
+msgid "Download labels"
+msgstr "Etiketten herunterladen"
+
+#: inventory/zamid/admin.py
+#, python-format
+msgid "%(code)s is not a valid ID."
+msgstr "%(code)s ist keine gültige ID."
+
+#: inventory/zamid/admin.py inventory/zamid/views.py:81
+#, python-format
+msgid "The ID %(code)s now belongs to %(target)s."
+msgstr "Die ID %(code)s gehört jetzt zu %(target)s."
+
+#: inventory/models/zamid.py:79
+msgid "ZAM IDs"
+msgstr "ZAM-IDs"
+
+#: inventory/zamid/fields.py:10
+msgid "Invalid ID."
+msgstr "Ungültige ID."
+
+#: inventory/zamid/fields.py:11
+msgid "Check symbol does not match – typo?"
+msgstr "Prüfzeichen stimmt nicht – Tippfehler?"
+
+#: inventory/zamid/fields.py:51 inventory/models/zamid.py:78 inventory/templates/inventory/zamid/info.html:4
+#: inventory/templates/inventory/zamid/resolver.html:57
+msgid "ZAM ID"
+msgstr "ZAM-ID"
+
+#: inventory/zamid/forms.py:19 inventory/templates/inventory/zamid/claim.html:18
+msgid "Existing item"
+msgstr "Vorhandene Sache"
+
+#: inventory/zamid/forms.py:20
+msgid "Search for an item…"
+msgstr "Sache suchen…"
+
+#: inventory/zamid/forms.py:26 inventory/templates/inventory/zamid/claim.html:27
+msgid "Existing location"
+msgstr "Vorhandener Standort"
+
+#: inventory/zamid/forms.py:42
+msgid "Printer"
+msgstr "Drucker"
+
+#: inventory/zamid/forms.py:44
+msgid "Tape width"
+msgstr "Bandbreite"
+
+#: inventory/zamid/forms.py:51
+msgid "This printer does not support this tape width."
+msgstr "Dieser Drucker unterstützt diese Bandbreite nicht."
+
+#: inventory/zamid/forms.py:56
+msgid "Number of IDs"
+msgstr "Anzahl IDs"
+
+#: inventory/zamid/forms.py:57
+msgid "Batch"
+msgstr "Charge"
+
+#: inventory/zamid/forms.py:58
+msgid "Name of the label batch or print run."
+msgstr "Name der Etikettencharge oder des Druckauftrags."
+
+#: inventory/zamid/forms.py:62
+msgid "Note"
+msgstr "Notiz"
+
+#: inventory/models/zamid.py:42
+msgid "reserved"
+msgstr "reserviert"
+
+#: inventory/models/zamid.py:43
+msgid "assigned"
+msgstr "vergeben"
+
+#: inventory/models/zamid.py:44
+msgid "retired"
+msgstr "stillgelegt"
+
+#: inventory/models/zamid.py:54 inventory/templates/inventory/zamid/info.html:22
+msgid "status"
+msgstr "Status"
+
+#: inventory/models/zamid.py:60
+msgid "URL"
+msgstr "URL"
+
+#: inventory/models/zamid.py:61 inventory/templates/inventory/zamid/info.html:30
+msgid "batch"
+msgstr "Charge"
+
+#: inventory/models/zamid.py:62
+msgid "Label batch or print run."
+msgstr "Etikettencharge oder Druckauftrag."
+
+#: inventory/models/zamid.py:64 inventory/templates/inventory/zamid/info.html:31
+msgid "created at"
+msgstr "erstellt am"
+
+#: inventory/models/zamid.py:66
+msgid "created by"
+msgstr "erstellt von"
+
+#: inventory/models/zamid.py:67 inventory/templates/inventory/zamid/info.html:32
+msgid "printed at"
+msgstr "gedruckt am"
+
+#: inventory/models/zamid.py:68 inventory/templates/inventory/zamid/info.html:33
+msgid "assigned at"
+msgstr "vergeben am"
+
+#: inventory/models/zamid.py:70
+msgid "assigned by"
+msgstr "vergeben von"
+
+#: inventory/models/zamid.py:71 inventory/templates/inventory/zamid/info.html:34
+msgid "retired at"
+msgstr "stillgelegt am"
+
+#: inventory/models/zamid.py:73
+msgid "retired by"
+msgstr "stillgelegt von"
+
+#: inventory/models/zamid.py:83
+msgid "Can claim a ZAM ID for an item or location"
+msgstr "Kann eine ZAM-ID einer Sache oder einem Standort zuordnen"
+
+#: inventory/models/zamid.py:84
+msgid "Can generate ZAM IDs"
+msgstr "Kann ZAM-IDs erzeugen"
+
+#: inventory/models/zamid.py:85
+msgid "Can retire ZAM IDs"
+msgstr "Kann ZAM-IDs stilllegen"
+
+#: inventory/models/zamid.py:86
+msgid "Can link a ZAM ID to an arbitrary URL"
+msgstr "Kann eine ZAM-ID mit einer beliebigen URL verknüpfen"
+
+#: inventory/zamid/services.py:33
+#, python-format
+msgid "Generate between 1 and %(max)d IDs at a time."
+msgstr "Es können 1 bis %(max)d IDs auf einmal erzeugt werden."
+
+#: inventory/zamid/services.py:49
+#, python-format
+msgid "The ID %(code)s does not exist."
+msgstr "Die ID %(code)s existiert nicht."
+
+#: inventory/zamid/services.py:54
+#, python-format
+msgid "The ID %(code)s is already in use."
+msgstr "Die ID %(code)s ist bereits vergeben."
+
+#: inventory/zamid/services.py:56 inventory/zamid/services.py:107
+#, python-format
+msgid "The ID %(code)s has been retired."
+msgstr "Die ID %(code)s wurde stillgelegt."
+
+#: inventory/zamid/services.py:69
+msgid "This already has an ID. Retire it first."
+msgstr "Dies hat bereits eine ID. Lege sie zuerst still."
+
+#: inventory/zamid/services.py:77
+msgid "IDs cannot be claimed for this kind of object."
+msgstr "Für diese Art von Objekt können keine IDs vergeben werden."
+
+#: inventory/zamid/services.py:79
+msgid "Deleted objects cannot get an ID."
+msgstr "Gelöschte Objekte können keine ID bekommen."
+
+#: inventory/zamid/services.py:85
+#, python-format
+msgid "%(target)s already has the ID %(code)s. Retire it first."
+msgstr "%(target)s hat bereits die ID %(code)s. Lege sie zuerst still."
+
+#: inventory/templates/admin/inventory/zamid/action_form.html:13
+#, python-format
+msgid "%(counter)s ID selected:"
+msgid_plural "%(counter)s IDs selected:"
+msgstr[0] "%(counter)s ID ausgewählt:"
+msgstr[1] "%(counter)s IDs ausgewählt:"
+
+#: inventory/templates/admin/inventory/zamid/change_list.html:5
+msgid "Generate IDs"
+msgstr "IDs erzeugen"
+
+#: inventory/templates/admin/inventory/zamid/generate.html:14
+msgid ""
+"New IDs are reserved until a label is attached to an item, a location or a "
+"URL. They are never deleted."
+msgstr ""
+"Neue IDs bleiben reserviert, bis ihr Etikett einer Sache, einem Standort "
+"oder einer URL zugeordnet wird. Sie werden nie gelöscht."
+
+#: inventory/templates/admin/inventory/zamid/generate.html:20
+msgid "Generate"
+msgstr "Erzeugen"
+
+#: inventory/templates/inventory/zamid/claim.html:9
+msgid "New label"
+msgstr "Neues Etikett"
+
+#: inventory/templates/inventory/zamid/claim.html:12
+msgid ""
+"This label is not attached to anything yet. Choose what it belongs to. This "
+"link is permanent and cannot be changed later."
+msgstr ""
+"Dieses Etikett ist noch nichts zugeordnet. Wähle aus, wozu es gehört. Die "
+"Zuordnung ist dauerhaft und kann später nicht geändert werden."
+
+#: inventory/templates/inventory/zamid/claim.html:20
+msgid "Attach to item"
+msgstr "Sache zuordnen"
+
+#: inventory/templates/inventory/zamid/claim.html:29
+msgid "Attach to location"
+msgstr "Standort zuordnen"
+
+#: inventory/templates/inventory/zamid/claim.html:38
+msgid "New item"
+msgstr "Neue Sache"
+
+#: inventory/templates/inventory/zamid/claim.html:40
+msgid "Create item with this ID"
+msgstr "Sache mit dieser ID anlegen"
+
+#: inventory/templates/inventory/zamid/claim.html:44
+msgid "Create a new location with this ID (admin)"
+msgstr "Neuen Standort mit dieser ID anlegen (Admin)"
+
+#: inventory/templates/inventory/zamid/info.html:16
+#, python-format
+msgid "Label for %(code)s"
+msgstr "Etikett für %(code)s"
+
+#: inventory/templates/inventory/zamid/info.html:28
+msgid "Claim"
+msgstr "Zuordnen"
+
+#: inventory/templates/inventory/zamid/info.html:37
+msgid "Labels"
+msgstr "Etiketten"
+
+#: inventory/templates/inventory/zamid/info.html:38
+msgid "Print in standard resolution, without scaling."
+msgstr "In Standardauflösung und ohne Skalierung drucken."
+
+#: inventory/templates/inventory/zamid/resolver.html:29
+msgid "Look up a ZAM ID"
+msgstr "ZAM-ID nachschlagen"
+
+#: inventory/templates/inventory/zamid/resolver.html:30
+msgid "Enter the six characters printed on the label, for example K7Q-4XD."
+msgstr "Gib die sechs Zeichen vom Etikett ein, zum Beispiel K7Q-4XD."
+
+#: inventory/templates/inventory/zamid/resolver.html:32
+msgid "Typo?"
+msgstr "Tippfehler?"
+
+#: inventory/templates/inventory/zamid/resolver.html:33
+#, python-format
+msgid "“%(q)s” is not a valid ID: the check symbol does not match."
+msgstr "„%(q)s“ ist keine gültige ID: Das Prüfzeichen stimmt nicht."
+
+#: inventory/templates/inventory/zamid/resolver.html:35
+msgid "Did you mean:"
+msgstr "Meintest du:"
+
+#: inventory/templates/inventory/zamid/resolver.html:39
+msgid "Invalid ID"
+msgstr "Ungültige ID"
+
+#: inventory/templates/inventory/zamid/resolver.html:40
+#, python-format
+msgid "“%(q)s” is not a ZAM ID. IDs have six characters, for example K7Q-4XD."
+msgstr ""
+"„%(q)s“ ist keine ZAM-ID. IDs haben sechs Zeichen, zum Beispiel K7Q-4XD."
+
+#: inventory/templates/inventory/zamid/resolver.html:42
+msgid "Unknown ID"
+msgstr "Unbekannte ID"
+
+#: inventory/templates/inventory/zamid/resolver.html:43
+#, python-format
+msgid "The ID <span class=\"code\">%(code)s</span> has not been issued."
+msgstr "Die ID <span class=\"code\">%(code)s</span> wurde nicht ausgegeben."
+
+#: inventory/templates/inventory/zamid/resolver.html:45
+msgid "Label no longer in use"
+msgstr "Etikett nicht mehr in Gebrauch"
+
+#: inventory/templates/inventory/zamid/resolver.html:46
+#, python-format
+msgid "The ID <span class=\"code\">%(code)s</span> has been retired."
+msgstr "Die ID <span class=\"code\">%(code)s</span> wurde stillgelegt."
+
+#: inventory/templates/inventory/zamid/resolver.html:47
+msgid "It last belonged to:"
+msgstr "Sie gehörte zuletzt zu:"
+
+#: inventory/templates/inventory/zamid/resolver.html:49
+msgid "No longer in the inventory"
+msgstr "Nicht mehr im Inventar"
+
+#: inventory/templates/inventory/zamid/resolver.html:50
+#, python-format
+msgid ""
+"What the ID <span class=\"code\">%(code)s</span> belongs to has been removed "
+"from the inventory."
+msgstr ""
+"Wozu die ID <span class=\"code\">%(code)s</span> gehört, wurde aus dem "
+"Inventar entfernt."
+
+#: inventory/templates/inventory/zamid/resolver.html:52
+msgid "Too many requests"
+msgstr "Zu viele Anfragen"
+
+#: inventory/templates/inventory/zamid/resolver.html:53
+msgid ""
+"Too many unknown IDs were looked up from your network. Please try again "
+"later."
+msgstr ""
+"Aus deinem Netzwerk wurden zu viele unbekannte IDs abgefragt. Bitte versuche "
+"es später noch einmal."
+
+#: inventory/templates/inventory/zamid/resolver.html:59
+msgid "Look up"
+msgstr "Nachschlagen"
+
+#: inventory/models/item.py:61
+msgid "The item has a ZAM ID label and cannot be deleted permanently."
+msgstr "Die Sache hat ein ZAM-ID-Etikett und kann nicht endgültig gelöscht werden."
+
+#: inventory/models/location.py:326
+msgid "The location has a ZAM ID label and cannot be deleted permanently."
+msgstr "Der Standort hat ein ZAM-ID-Etikett und kann nicht endgültig gelöscht werden."

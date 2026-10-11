@@ -1,0 +1,434 @@
+"""Storage locations, their types, label templates and change history."""
+from pathlib import Path
+from string import Template
+import urllib.parse
+from uuid import uuid4
+
+from computedfields.models import ComputedFieldsModel, computed
+from django.conf import settings
+from django.core import validators
+from django.core.exceptions import ValidationError
+from django.db import models, router, transaction
+from django.urls import reverse
+from django.utils import timezone
+from django.utils.html import format_html
+from django.utils.translation import gettext_lazy as _
+from paho.mqtt import client as mqttc
+
+from ..soft_delete import SoftDeleteModel
+
+
+class LocationType(models.Model):
+    class Meta:
+        verbose_name = _("location type")
+        verbose_name_plural = _("location types")
+
+    name = models.CharField(_("name"), max_length=64, unique=True)
+    # set if this Locations can not have sublocations (you can not put a box in a box)
+    no_sublocations = models.BooleanField(_("no sublocations flag"), default=False)
+    # allow this type to be moved from frontend
+    moveable = models.BooleanField(_("moveable flag"), default=False)
+    # set if Location.short is to be globally unique
+    unique = models.BooleanField(_("unique flag"), default=False)
+    # for automatic generation of unique names and short_names:
+    auto_name_prefix = models.CharField(
+        _("name prefix"), max_length=16, default="", blank=True
+    )
+    auto_short_name_prefix = models.CharField(
+        _("short name prefix"), max_length=4, default="", blank=True
+    )
+    auto_short_name_padding_length = models.IntegerField(
+        _("short name pedding"), default=0
+    )
+    auto_sequence = models.CharField(
+        _("sequence"),
+        max_length=128,
+        choices=[
+            ("0123456789", "Numeric (0-9)"),
+            ("abcdefghijklmnopqrstuvwxyz", "Letters lowercase (a-z)"),
+            ("ABCDEFGHIJKLMNOPQRSTUVWXYZ", "Letters lowercase (a-z)"),
+            (
+                "0123456789abcdefghijklmnopqrstuvwxyz",
+                "Alphanumeric lowercase (0-9, a-z)",
+            ),
+            ("0123456789abcdef", "Hexadecimal lowercase (0-9, a-f)"),
+        ],
+        null=True,
+        blank=True,
+    )
+
+    default_label_template = models.ForeignKey(
+        "LocationLabelTemplate",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        verbose_name=_("default label template"),
+    )
+
+    def int2str(self, i):
+        seq = self.auto_sequence
+        base = len(seq)
+        s = ""
+        remainder = int(i)
+        while remainder > 0:
+            s = seq[remainder % base] + s
+            remainder = remainder // base
+        if len(s) == 0:
+            s = self.auto_sequence[0]
+        return s
+
+    def str2int(self, s):
+        seq = self.auto_sequence
+        base = len(seq)
+        i = 0
+        for p, c in enumerate(s[::-1]):
+            i += base ** p * seq.index(c)
+        return i
+
+    def generate_names(self, count, start=None):
+        if start is None:
+            start = self.auto_sequence[0]
+
+        names = []
+        start_int = self.str2int(start)
+        for i in range(start_int, start_int + count):
+            index = self.int2str(i)
+            index_padded = (
+                max(0, (self.auto_short_name_padding_length - len(index)))
+                * self.auto_sequence[0]
+                + index
+            )
+
+            names.append(
+                (
+                    # name
+                    self.auto_name_prefix + " " + index,
+                    # short_name
+                    self.auto_short_name_prefix + index_padded,
+                )
+            )
+        return names
+
+    def __str__(self):
+        return self.name
+
+
+class LocationLabelTemplate(models.Model):
+    class Meta:
+        verbose_name = _("location label template")
+
+    name = models.CharField(_("name"), max_length=128)
+    zpl_template = models.TextField(
+        _("ZPL template"),
+        help_text=_(
+            "ZPL2 string, where $url, $unique_identifier, $locatable_identifier and "
+            "$descriptive_identifier will be replaced."
+        ),
+    )
+    label_width = models.IntegerField(_("Label width (mm)"))
+    label_height = models.IntegerField(_("Label height (mm)"))
+
+    def generate_label_zpl(self, location=None):
+        label_code = self.zpl_template
+        if location:
+            tmpl = Template(label_code)
+            label_code = tmpl.safe_substitute(
+                url=settings.DEFAULT_DOMAIN
+                + reverse(
+                    "view_location",
+                    kwargs={
+                        "pk": location.pk,
+                        "unique_identifier": location.unique_identifier,
+                    },
+                ),
+                unique_identifier=location.unique_identifier,
+                locatable_identifier=location.locatable_identifier,
+                descriptive_identifier=location.descriptive_identifier,
+            )
+        return label_code
+
+    def get_lablary_url(self, location=None):
+        return (
+            "http://api.labelary.com/v1/printers/8dpmm/labels/"
+            + "{:.1f}".format((self.label_width or 0) / 25.4)
+            + "x{:.1f}".format((self.label_height or 0) / 25.4)
+            + "/0/"
+            + urllib.parse.quote(self.generate_label_zpl(location))
+        )
+
+    def image_tag(self, location=None):
+        return format_html('<img width="100%" src="{}" />', self.get_lablary_url(location))
+    image_tag.short_description = "Rendered label"
+
+
+    def send_to_printer(self, location=None):
+        # TODO implement ZPL based replication of labels
+        # TODO implement compression
+        c = mqttc.Client(**settings.MQTT_CLIENT_KWARGS)
+        if settings.MQTT_SERVER_SSL:
+            c.tls_set()
+        if settings.MQTT_PASSWORD_AUTH:
+            c.username_pw_set(**settings.MQTT_PASSWORD_AUTH)
+        c.connect(**settings.MQTT_SERVER_KWARGS)
+        msg = c.publish(
+            settings.MQTT_PRINTER_TOPIC, payload=self.generate_label_zpl(location)
+        )
+        # Messages to forbidden topics wil be silently ignored! Nothing we can do about it.
+        msg.wait_for_publish()
+        c.disconnect()
+
+    def __str__(self):
+        return self.name
+
+
+def get_location_overview_upload_path(instance, filename):
+    # Every replacement gets its own path so earlier history snapshots stay valid.
+    return f"locations/{instance.pk}/overview/{uuid4().hex}{Path(filename).suffix.lower()}"
+
+
+class Location(SoftDeleteModel, ComputedFieldsModel):
+    class Meta:
+        verbose_name = _("location")
+        verbose_name_plural = _("locations")
+        ordering = ("locatable_identifier",)
+
+    type = models.ForeignKey(LocationType, on_delete=models.PROTECT)
+
+    name = models.CharField(
+        max_length=128,
+        validators=[
+            validators.RegexValidator(
+                r"[^a-zA-Z0-9 \-()]*",
+                message="Only numbers, letters and spaces allowed.",
+            )
+        ],
+        verbose_name=_("name"),
+    )
+    short_name = models.CharField(
+        _("short name"),
+        max_length=8,
+        validators=[
+            validators.RegexValidator(
+                "[^a-zA-Z0-9]*", message="Only numbers and letters allowed."
+            )
+        ],
+    )
+
+    physical_description = models.TextField(_("physical description"), blank=True)
+    summary = models.CharField(
+        _("summary"), max_length=50, blank=True,
+        validators=[validators.RegexValidator(
+            r"[\r\n]", inverse_match=True,
+            message=_("The summary must be a single line."),
+        )],
+    )
+    overview_photo = models.ImageField(
+        _("overview photo"), upload_to=get_location_overview_upload_path, blank=True,
+    )
+
+    label_template = models.ForeignKey(
+        "LocationLabelTemplate",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        verbose_name=_("label template"),
+    )
+
+    parent_location = models.ForeignKey(
+        "self",
+        related_name="children",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        verbose_name=_("parent location"),
+    )
+
+    def save(self, *args, actor=None, **kwargs):
+        using = kwargs.get("using") or router.db_for_write(type(self), instance=self)
+        fields = ("summary", "overview_photo")
+        actor = actor or getattr(self, "_history_actor", None)
+        with transaction.atomic(using=using):
+            previous = None
+            if self.pk:
+                previous = type(self).objects.using(using).select_for_update().filter(pk=self.pk).values(*fields).first()
+            result = super().save(*args, **kwargs)
+            current = type(self).objects.using(using).values(*fields).get(pk=self.pk)
+            # Capture edits from every model save; authored creation also records
+            # an initial overview. Unattributed imports keep their existing data.
+            if previous is None and actor is not None:
+                previous = dict.fromkeys(fields, "")
+            if previous is not None and previous != current:
+                LocationHistory.objects.using(using).create(
+                    location=self, actor=actor,
+                    actor_name=actor.get_username() if actor is not None else "",
+                    before=previous, after=current,
+                )
+            return result
+
+    def clean(self):
+        if self.is_deleted and self.pk and (
+            self.children.filter(is_deleted=False).exists() or self.itemlocation_set.exists()
+        ):
+            raise ValidationError({"is_deleted": _("The location is not empty and cannot be deleted.")})
+        if not self.is_deleted and self.parent_location and self.parent_location.is_deleted:
+            raise ValidationError({"parent_location": _("Deleted locations cannot be used as destinations.")})
+        # ensure cycle-free tree
+        cur = self
+        while cur.parent_location:
+            cur = cur.parent_location
+            if cur == self:
+                raise ValidationError(
+                    {"parent_location": "Location tree may not contain cycles."}
+                )
+
+        # ensure uniqueness on short_name and name per type, if type demands it
+        if self.type.unique:
+            # get all locations with a LocType defined as unique
+            unique_locs = Location.objects.exclude(pk=self.pk).filter(type__unique=True)
+            if self.short_name in unique_locs.values_list("short_name", flat=True):
+                raise ValidationError(
+                    {"short_name": "Short name must be unique, as defined by type."}
+                )
+            if self.short_name in unique_locs.values_list("name", flat=True):
+                raise ValidationError(
+                    {"name": "Name must be unique, as defined by type."}
+                )
+
+        # ensure uniqueness on short_name and name per parent
+        if self.parent_location:
+            # get all locations with a LocType defined as unique
+            sibling_locs = Location.objects.exclude(pk=self.pk).filter(
+                parent_location=self.parent_location
+            )
+            if self.short_name in sibling_locs.values_list("short_name", flat=True):
+                raise ValidationError(
+                    {
+                        "short_name": "Short name must be unique among all sibling locations."
+                    }
+                )
+            if self.short_name in sibling_locs.values_list("name", flat=True):
+                raise ValidationError(
+                    {"name": "Name must be unique among all sibling locations."}
+                )
+
+        # ensure that locations without a parent_location are of a unique type
+        if not self.parent_location and not self.type.unique:
+            raise ValidationError(
+                {"parent_location": "Non-unique locations must have a parent location."}
+            )
+
+    def validate_deletion(self, *, hard=False, soft_ids=(), hard_ids=()):
+        children = self.children.all() if hard else self.children.filter(is_deleted=False)
+        excluded = set(hard_ids) if hard else set(soft_ids) | set(hard_ids)
+        if children.exclude(pk__in=excluded).exists() or self.itemlocation_set.exists():
+            raise ValidationError(_("The location is not empty and cannot be deleted."))
+        if hard and self.zam_ids.exists():
+            raise ValidationError(_("The location has a ZAM ID label and cannot be deleted permanently."))
+
+    def __str__(self):
+        return self.descriptive_identifier
+
+    @computed(
+        models.CharField(_("unique identifier"), max_length=64, unique=True),
+        depends=[("self", ["short_name"]), ("parent_location", ["unique_identifier"])],
+    )
+    def unique_identifier(self):
+        if self.type.unique:
+            return self.short_name
+        return self.parent_location.unique_identifier + "." + self.short_name
+
+    @computed(
+        models.CharField(_("locatable identifier"), max_length=512, unique=True),
+        depends=[
+            ("self", ["short_name"]),
+            ("parent_location", ["locatable_identifier"]),
+        ],
+    )
+    def locatable_identifier(self):
+        if self.parent_location:
+            return self.parent_location.locatable_identifier + "." + self.short_name
+        return self.short_name
+
+    @computed(
+        models.CharField(_("descriptive identifier"), max_length=512),
+        depends=[
+            ("self", ["name", "short_name"]),
+            ("parent_location", ["descriptive_identifier"]),
+        ],
+    )
+    def descriptive_identifier(self):
+        if self.parent_location:
+            return (
+                self.parent_location.descriptive_identifier
+                + " "
+                + self.name
+                + f" [{self.short_name}]"
+            )
+        return self.name + f" [{self.short_name}]"
+
+    def label_image_tag(self):
+        if self.label_template:
+            return self.label_template.image_tag(self)
+        elif self.type.default_label_template:
+            return self.type.default_label_template.image_tag(self)
+        else:
+            return None
+
+    label_image_tag.short_description = "Label"
+
+    def get_lablary_url(self):
+        if self.label_template:
+            return self.label_template.get_lablary_url(self)
+        elif self.type.default_label_template:
+            return self.type.default_label_template.get_lablary_url(self)
+        else:
+            return None
+
+    def send_to_printer(self):
+        if self.label_template:
+            self.label_template.send_to_printer(self)
+        elif self.type.default_label_template:
+            self.type.default_label_template.send_to_printer(self)
+
+    def get_absolute_url(self):
+        return reverse(
+            "view_location",
+            kwargs={"pk": self.pk, "unique_identifier": self.unique_identifier},
+        )
+
+    def get_admin_url(self):
+        return reverse(
+            "admin:inventory_location_change",
+            args=(self.pk,),
+        )
+
+
+class LocationHistory(models.Model):
+    class EventType(models.TextChoices):
+        OVERVIEW_UPDATED = "overview_updated", _("Overview updated")
+
+    location = models.ForeignKey(Location, on_delete=models.CASCADE, related_name="history")
+    actor = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL)
+    actor_name = models.CharField(max_length=150, blank=True)
+    created_at = models.DateTimeField(default=timezone.now, db_index=True)
+    event_type = models.CharField(max_length=40, choices=EventType.choices, default=EventType.OVERVIEW_UPDATED)
+    before = models.JSONField(default=dict)
+    after = models.JSONField(default=dict)
+
+    class Meta:
+        ordering = ("-created_at", "-pk")
+        default_permissions = ("view",)
+        verbose_name = _("location history entry")
+        verbose_name_plural = _("location history entries")
+
+    def _photo_url(self, snapshot):
+        name = snapshot.get("overview_photo")
+        return Location._meta.get_field("overview_photo").storage.url(name) if name else ""
+
+    @property
+    def before_photo_url(self):
+        return self._photo_url(self.before)
+
+    @property
+    def after_photo_url(self):
+        return self._photo_url(self.after)

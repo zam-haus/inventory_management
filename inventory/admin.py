@@ -17,7 +17,7 @@ from . import models
 from .forms import AdminItemLocationForm, AdminLocationForm
 from .soft_delete_admin import SoftDeleteAdminMixin
 from .stock_log import stock_changes
-from zamid.admin_mixins import ClaimOnAddMixin
+from .zamid.admin import ClaimOnAddMixin  # also registers ZamIdAdmin
 
 
 admin.site.register(models.LocationType)

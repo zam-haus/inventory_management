@@ -1,8 +1,0 @@
-{% extends "admin/change_list.html" %}
-{% load i18n %}
-{% block object-tools-items %}
-    {% if perms.zamid.generate_zamid %}
-        <li><a href="{% url 'admin:zamid_zamid_generate' %}" class="addlink">{% trans "Generate IDs" %}</a></li>
-    {% endif %}
-    {{ block.super }}
-{% endblock %}

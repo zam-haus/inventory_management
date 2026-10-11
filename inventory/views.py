@@ -19,12 +19,11 @@ from django.utils.translation import gettext_lazy as _
 from django.views import View
 from django.views.generic import DetailView, ListView, UpdateView
 
-from zamid.search import ZamIdSearchMixin
-
 from . import forms, models
 from .location_lookup import resolve_location_reference
 from .permissions import QUICK_ITEM_PERMISSIONS, ItemEditorPermissionMixin
 from .stock_change_views import mark_last_stock
+from .zamid.search import ZamIdSearchMixin
 
 
 logger = logging.getLogger(__name__)

@@ -1,6 +1,6 @@
 from django.conf import settings
 from django.conf.urls.static import static
-from django.urls import path
+from django.urls import include, path
 from django.views.generic.base import TemplateView
 
 from . import views
@@ -50,6 +50,7 @@ urlpatterns = [
     path("category/<int:pk>.json", views.category_json, name="category_json"),
     path("parent_location_autocomplete", views.ParentLocationAutocompleteView.as_view(), name="parent_location_autocomplete"),
 
+    path("id/", include("inventory.zamid.urls")),
     path("robots.txt", TemplateView.as_view(template_name="inventory/robots.txt", content_type="text/plain")),
     path('location-autocomplete/', views.LocationAutocomplete.as_view(), name='location-autocomplete'),
 ]

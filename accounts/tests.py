@@ -30,8 +30,9 @@ class ZAMMembershipTests(TestCase):
         expected = set(Permission.objects.filter(
             content_type__app_label="inventory",
             codename__regex=r"^(add|change)_",
-        ).values_list("content_type__app_label", "codename"))
-        expected.add(("zamid", "claim_zamid"))  # zamid/migrations/0003_zam_local_claim
+        ).exclude(content_type__model="zamid").values_list("content_type__app_label", "codename"))
+        # ZAM IDs: only claiming (inventory/migrations/0022_zamid_triggers_and_claim)
+        expected.add(("inventory", "claim_zamid"))
         self.assertEqual(actual, expected)
         self.assertTrue(actual)
 
