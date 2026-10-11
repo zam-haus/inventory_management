@@ -3,9 +3,9 @@ from django.core.exceptions import ValidationError
 from django.db import IntegrityError, connection, transaction
 from django.test import TestCase
 
-from inventory.models import Item, ItemLocation, Location, StockChange
+from inventory.models import Item, ItemLocation, Location
 from inventory.quick_item_views import QuickItemError, hard_delete
-from inventory.stock_log import stock_changes
+from inventory.actor import acting_as
 
 from inventory.zamid import lookup, services
 from inventory.models import ZamId, ZamIdImmutable
@@ -187,7 +187,7 @@ class TargetDeletionTests(InventoryFixture, TestCase):
     def test_hard_delete_retires_and_unlinks(self):
         pk = self.item.pk
         self.item.delete()
-        with stock_changes(actor=self.user, source=StockChange.Source.ADMIN):
+        with acting_as(self.user):
             Item.objects.get(pk=pk).delete()
         self.assertFalse(Item.objects.filter(pk=pk).exists())
         zid = ZamId.objects.get(pk=self.for_item.pk)

@@ -98,6 +98,22 @@ class AdminTests(InventoryFixture, TestCase):
         response = self.client.get(self.change_url(claimed))
         self.assertContains(response, f"(#{self.item.pk})")
 
+    def test_admin_hard_delete_of_location_records_who(self):
+        location = ZamId.objects.get(pk=services.claim(make_id("ABCDE").code, self.location, None).pk)
+        url = reverse("admin:inventory_location_delete", args=[self.location.pk])
+        self.client.post(url, {"post": "yes"})
+        self.client.post(url, {"post": "yes"})
+        location.refresh_from_db()
+        self.assertEqual((location.status, location.location, location.retired_by), ("retired", None, self.admin))
+
+    def test_admin_bulk_hard_delete_records_who(self):
+        changelist = reverse("admin:inventory_item_changelist")
+        for _ in range(2):
+            self.client.post(changelist + "?is_deleted__exact=all", {
+                "action": "delete_selected", "_selected_action": [self.item.pk], "post": "yes"})
+        self.assertFalse(Item.objects.filter(pk=self.item.pk).exists())
+        self.assertEqual(ZamId.objects.get(pk=self.claimed.pk).retired_by, self.admin)
+
     def test_change_page_shows_label_and_link(self):
         label = reverse("zamid_label", args=[self.zid.code]) + "?printer=P900&amp;tape=24"
         response = self.client.get(self.change_url(self.zid))

@@ -15,7 +15,7 @@ from django.utils import timezone
 from django.utils.formats import date_format
 from django.utils.translation import gettext, gettext_lazy as _
 
-from ..stock_log import current_stock_changes
+from ..actor import current_actor
 from ..zamid import core
 from ..zamid.fields import ZamIdField
 from ..zamid.targets import FK_TARGET_FIELDS, TARGET_FIELDS
@@ -169,7 +169,7 @@ class ZamId(models.Model):
         """
         field = cls.target_field_for(target)
         now = timezone.now()
-        actor = (current_stock_changes() or {}).get("actor")
+        actor = current_actor()
         note = gettext("Belonged to: %(kind)s “%(name)s” (#%(pk)s), deleted on %(date)s.") % {
             "kind": target._meta.verbose_name, "name": target, "pk": target.pk,
             "date": date_format(timezone.localtime(now), "SHORT_DATETIME_FORMAT"),
