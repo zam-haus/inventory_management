@@ -6,10 +6,10 @@ from django.core.exceptions import ValidationError
 from django.test import Client, TestCase, override_settings
 from django.urls import reverse
 
-from ..models import Item, ItemLocation, Location, LocationType, MeasurementUnit
+from ..models import Item, ItemLocation, Location, LocationType, MeasurementUnit, UniqueItem
 
 
-@override_settings(
+TEST_SETTINGS = override_settings(
     MIDDLEWARE=[
         "django.contrib.sessions.middleware.SessionMiddleware",
         "django.middleware.csrf.CsrfViewMiddleware",
@@ -18,7 +18,9 @@ from ..models import Item, ItemLocation, Location, LocationType, MeasurementUnit
     ],
     LANGUAGE_CODE="en",
 )
-class DissolveLocationTests(TestCase):
+
+
+class DissolutionTestCase(TestCase):
     @classmethod
     def setUpTestData(cls):
         cls.room_type = LocationType.objects.create(name="Room", unique=True, moveable=True)
@@ -43,6 +45,16 @@ class DissolveLocationTests(TestCase):
         self.client.force_login(self.user)
         self.url = reverse("location_dissolve", kwargs={"pk": self.root.pk})
 
+    def assert_unchanged(self):
+        self.assertTrue(Location.active.filter(pk=self.root.pk).exists())
+        self.child.refresh_from_db()
+        self.stock.refresh_from_db()
+        self.assertEqual(self.child.parent_location_id, self.root.pk)
+        self.assertEqual(self.stock.location_id, self.root.pk)
+
+
+@TEST_SETTINGS
+class DissolveLocationTests(DissolutionTestCase):
     def data(self, recursive=False, action="move"):
         objects = [("item", self.stock), ("location", self.child)]
         if recursive:
@@ -56,13 +68,6 @@ class DissolveLocationTests(TestCase):
 
     def confirm(self, response, **extra):
         return self.client.post(self.url, {"stage": "confirm", "plan": response.context["plan_token"], **extra})
-
-    def assert_unchanged(self):
-        self.assertTrue(Location.active.filter(pk=self.root.pk).exists())
-        self.child.refresh_from_db()
-        self.stock.refresh_from_db()
-        self.assertEqual(self.child.parent_location_id, self.root.pk)
-        self.assertEqual(self.stock.location_id, self.root.pk)
 
     def test_action_and_scope_default_and_recursive(self):
         detail = self.client.get(self.root.get_absolute_url())
@@ -166,7 +171,7 @@ class DissolveLocationTests(TestCase):
         data = self.data(recursive=True, action="delete")
         data[f"item_{self.stock.pk}_delete"] = False
         data[f"item_{self.stock.pk}_destination"] = str(self.child.pk)
-        self.assertContains(self.client.post(self.url, data), "still contains items")
+        self.assertContains(self.client.post(self.url, data), "This destination is deleted by the plan.")
         self.assert_unchanged()
 
     def test_cycles_are_rejected(self):
@@ -257,3 +262,127 @@ class DissolveLocationTests(TestCase):
         client.force_login(self.user)
         self.assertEqual(client.post(self.url, self.data()).status_code, 403)
         self.assert_unchanged()
+
+
+@TEST_SETTINGS
+class MoveContentsTests(DissolutionTestCase):
+    """The same plan without deleting the location: partial or complete mass-moves."""
+
+    def post(self, rows, recursive=False, delete="0"):
+        data = {"recursive": "1" if recursive else "0", "delete": delete, "stage": "review"}
+        for (kind, obj), value in rows.items():
+            if value == "delete":
+                data[f"{kind}_{obj.pk}_delete"] = "on"
+            elif value is not None:
+                data[f"{kind}_{obj.pk}_destination"] = str(value.pk)
+        return self.client.post(self.url, data)
+
+    def confirm(self, response):
+        return self.client.post(self.url, {"stage": "confirm", "plan": response.context["plan_token"]})
+
+    def test_detail_page_offers_moving_contents(self):
+        detail = self.client.get(self.root.get_absolute_url())
+        self.assertContains(detail, f'href="{self.url}?delete=0"')
+        response = self.client.get(self.url, {"delete": "0"})
+        self.assertContains(response, "Move contents")
+        self.assertFalse(response.context["delete_root"])
+        self.assertTrue(self.client.get(self.url).context["delete_root"])
+
+    def test_partial_move_keeps_location_and_unselected_entries(self):
+        review = self.post({("item", self.stock): self.destination})
+        self.assertTemplateUsed(review, "inventory/location_dissolve_confirm.html")
+        self.assertContains(review, "1 entry stays where it is.")
+        self.assertNotContains(review, "Deleted last")
+        response = self.confirm(review)
+        self.assertRedirects(response, self.root.get_absolute_url())
+        self.assertTrue(Location.active.filter(pk=self.root.pk).exists())
+        self.stock.refresh_from_db()
+        self.child.refresh_from_db()
+        self.assertEqual(self.stock.location_id, self.destination.pk)
+        self.assertEqual(self.child.parent_location_id, self.root.pk)
+
+    def test_complete_move_leaves_an_empty_location(self):
+        self.confirm(self.post({("item", self.stock): self.destination, ("location", self.child): self.destination}))
+        root = Location.active.get(pk=self.root.pk)
+        self.assertFalse(root.children.filter(is_deleted=False).exists())
+        self.assertFalse(root.itemlocation_set.exists())
+
+    def test_sub_locations_can_be_emptied_and_kept_or_deleted(self):
+        rows = {
+            ("item", self.stock): None, ("location", self.child): None,
+            ("item", self.nested_stock): self.root, ("location", self.leaf): "delete",
+        }
+        self.confirm(self.post(rows, recursive=True))
+        self.nested_stock.refresh_from_db()
+        self.assertEqual(self.nested_stock.location_id, self.root.pk)
+        self.assertTrue(Location.objects.get(pk=self.leaf.pk).is_deleted)
+        self.assertEqual(Location.active.filter(pk__in=[self.root.pk, self.child.pk]).count(), 2)
+        # Kept, emptied sub-location.
+        rows[("location", self.leaf)] = None
+        self.leaf.is_deleted = False
+        self.leaf.save()
+        ItemLocation.objects.filter(pk=self.nested_stock.pk).update(location=self.leaf)
+        self.confirm(self.post(rows, recursive=True))
+        self.assertTrue(Location.active.filter(pk=self.leaf.pk).exists())
+        self.assertFalse(ItemLocation.objects.filter(location=self.leaf).exists())
+
+    def test_root_is_a_destination_only_while_kept(self):
+        rows = {("item", self.nested_stock): self.root}
+        self.assertIn("plan_token", self.post(rows, recursive=True).context)
+        response = self.post({**rows, ("item", self.stock): "delete", ("location", self.child): "delete",
+                              ("location", self.leaf): "delete"}, recursive=True, delete="1")
+        self.assertNotIn("plan_token", response.context)
+        self.assert_unchanged()
+
+    def test_kept_entries_in_a_deleted_location_are_reported_on_the_row(self):
+        response = self.post({("item", self.stock): None, ("location", self.child): self.destination}, delete="1")
+        self.assertNotIn("plan_token", response.context)
+        self.assertEqual(response.context["form"].errors[f"item_{self.stock.pk}_destination"], ["Choose a destination."])
+        response = self.post({("location", self.child): None, ("item", self.nested_stock): self.destination,
+                              ("location", self.leaf): None, ("item", self.stock): None}, recursive=True)
+        self.assertIn("plan_token", response.context)
+        response = self.post({("location", self.child): "delete", ("location", self.leaf): None,
+                              ("item", self.nested_stock): None, ("item", self.stock): None}, recursive=True)
+        self.assertIn(f"location_{self.leaf.pk}_destination", response.context["form"].errors)
+
+    def test_a_plan_that_changes_nothing_is_rejected(self):
+        response = self.post({})
+        self.assertNotIn("plan_token", response.context)
+        self.assertContains(response, "Nothing to do")
+
+    def test_empty_location_has_nothing_to_move(self):
+        response = self.client.get(reverse("location_dissolve", kwargs={"pk": self.destination.pk}), {"delete": "0"})
+        self.assertContains(response, "There is nothing to move.")
+        self.assertNotContains(response, 'value="review"')
+
+    def test_unique_items_stay_in_a_kept_location(self):
+        unique_item = UniqueItem.objects.create(item=self.item, location=self.root)
+        response = self.client.get(self.url, {"delete": "0"})
+        self.assertFalse(response.context["blocking_unique_items"])
+        self.confirm(self.post({("item", self.stock): self.destination}))
+        self.assertEqual(UniqueItem.objects.get(pk=unique_item.pk).location_id, self.root.pk)
+        response = self.post({("location", self.child): self.destination}, delete="1")
+        self.assertContains(response, "Unique items are still stored here.")
+
+    def test_moving_contents_needs_no_delete_permission(self):
+        mover = get_user_model().objects.create_user(username="mover")
+        mover.user_permissions.add(Permission.objects.get(content_type__app_label="inventory", codename="change_itemlocation"))
+        self.client.force_login(mover)
+        self.assertEqual(self.client.get(self.url).status_code, 403)
+        response = self.client.get(self.url, {"delete": "0"})
+        self.assertEqual(response.status_code, 200)
+        form = response.context["form"]
+        self.assertTrue(form.fields[f"location_{self.child.pk}_destination"].disabled)
+        self.assertContains(response, "You do not have permission to delete this location.")
+        # Locations the user may not move stay in place.
+        review = self.post({("item", self.stock): self.destination, ("location", self.child): self.destination})
+        self.assertIn("plan_token", review.context)
+        self.confirm(review)
+        self.stock.refresh_from_db()
+        self.child.refresh_from_db()
+        self.assertEqual(self.stock.location_id, self.destination.pk)
+        self.assertEqual(self.child.parent_location_id, self.root.pk)
+        self.assertTrue(Location.active.filter(pk=self.root.pk).exists())
+        # Asking to delete the location still requires the permission.
+        self.assertEqual(self.post({("location", self.child): self.destination}, delete="1").status_code, 403)
+        self.assertTrue(Location.active.filter(pk=self.root.pk).exists())

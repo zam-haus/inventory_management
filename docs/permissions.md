@@ -20,10 +20,12 @@ location type that cannot be moved, and renders nothing for guests.
 Item metadata, photos, barcodes and stock entries have separate model permissions.
 For example, creating an item at a location requires `add_item` and
 `add_itemlocation`. Unique items are covered in [Unique items](unique-items.md), including
-`view_internal_details` and `dispose_uniqueitem`. Moving locations requires `change_location`. Dissolving a
-location requires `delete_location`, plus `change_location` / `change_itemlocation`
-for moves and `delete_itemlocation` for stock removal. Permissions are checked
-again when confirming a dissolution. Changing the deleted flag in admin also
+`view_internal_details` and `dispose_uniqueitem`. Moving locations requires `change_location`. Moving a
+location's contents (all or some of them) requires `change_location` / `change_itemlocation`
+for the moved sub-locations and stock entries and `delete_location` / `delete_itemlocation`
+for deleted ones; entries kept in place need nothing. Dissolving the location, i.e. also
+deleting it once empty, additionally requires `delete_location`. Permissions are checked
+again when confirming the plan. Changing the deleted flag in admin also
 requires the corresponding delete permission.
 
 Migration `accounts.0002_zam_local_group` creates the reserved **ZAM-local** group

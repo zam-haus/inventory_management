@@ -47,6 +47,11 @@
                 {% else %}
                     {% disabled_action "🖨️" name=_("Print inventory") classes="btn btn-outline-secondary location-print" %}
                 {% endif %}
+                {% if perms.inventory.change_itemlocation or perms.inventory.change_location or perms.inventory.delete_itemlocation %}
+                    <a class="btn btn-outline-secondary location-print" href="{% url 'location_dissolve' pk=object.pk %}?delete=0" aria-label="{% trans 'Move contents' %}" data-bs-toggle="tooltip" title="{% trans 'Move contents' %}"><span aria-hidden="true">📤</span></a>
+                {% else %}
+                    {% disabled_action "📤" name=_("Move contents") classes="btn btn-outline-secondary location-print" %}
+                {% endif %}
                 {% if perms.inventory.delete_location %}
                     <a class="btn btn-outline-danger location-print" href="{% url 'location_dissolve' pk=object.pk %}" aria-label="{% trans 'Dissolve location' %}" data-bs-toggle="tooltip" title="{% trans 'Dissolve location' %}"><span aria-hidden="true">❌</span></a>
                 {% else %}

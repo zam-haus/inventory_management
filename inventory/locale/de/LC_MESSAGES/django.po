@@ -622,8 +622,8 @@ msgstr "Bestandszuordnung"
 msgid "1. Plan moves and deletions"
 msgstr "1. Verschiebungen und Löschungen planen"
 
-msgid "Choose a destination or deletion for each entry. Nothing changes until you confirm on the next page."
-msgstr "Für jeden Eintrag ein Ziel oder das Löschen auswählen. Erst nach der Bestätigung auf der nächsten Seite wird etwas geändert."
+msgid "Choose a destination or deletion for each entry. Entries without either stay where they are. Nothing changes until you confirm on the next page."
+msgstr "Für jeden Eintrag ein Ziel oder das Löschen auswählen. Einträge ohne beides bleiben, wo sie sind. Erst nach der Bestätigung auf der nächsten Seite wird etwas geändert."
 
 msgid "Deleting a stock entry removes only its association with the location, never the item itself. Locations can only be deleted once empty. Moving a sub-location keeps its remaining contents together."
 msgstr "Das Löschen einer Bestandszuordnung entfernt nur die Zuordnung zum Standort, niemals die Sache selbst. Standorte können nur leer gelöscht werden. Beim Verschieben eines Unterstandorts bleibt sein verbleibender Inhalt zusammen."
@@ -2799,3 +2799,51 @@ msgstr "Alle %(counter)s anzeigen"
 #: inventory/templates/inventory/location_detail.html
 msgid "At this location …"
 msgstr "Hier befinden sich …"
+
+#: inventory/templates/inventory/location_detail.html
+#: inventory/templates/inventory/location_dissolve_base.html
+msgid "Move contents"
+msgstr "Inhalt verschieben"
+
+#: inventory/templates/inventory/location_dissolve.html
+msgid "Delete this location once it is empty"
+msgstr "Diesen Standort löschen, sobald er leer ist"
+
+#: inventory/templates/inventory/location_dissolve.html
+msgid "You do not have permission to delete this location."
+msgstr "Du hast keine Berechtigung, diesen Standort zu löschen."
+
+#: inventory/templates/inventory/location_dissolve.html
+msgid "Keep all in place"
+msgstr "Alle an ihrem Platz lassen"
+
+#: inventory/templates/inventory/location_dissolve.html
+msgid "This location is empty. There is nothing to move."
+msgstr "Dieser Standort ist leer. Es gibt nichts zu verschieben."
+
+#: inventory/templates/inventory/location_dissolve_confirm.html
+msgid "2. Confirm"
+msgstr "2. Bestätigen"
+
+#: inventory/templates/inventory/location_dissolve_confirm.html
+msgid "Review every move and deletion below. Confirming applies the whole plan; the location itself is kept. Cancelling changes nothing."
+msgstr "Alle Verschiebungen und Löschungen unten prüfen. Mit der Bestätigung wird der ganze Plan ausgeführt; der Standort selbst bleibt erhalten. Abbrechen ändert nichts."
+
+#: inventory/templates/inventory/location_dissolve_confirm.html
+#, python-format
+msgid "%(counter)s entry stays where it is."
+msgid_plural "%(counter)s entries stay where they are."
+msgstr[0] "%(counter)s Eintrag bleibt, wo er ist."
+msgstr[1] "%(counter)s Einträge bleiben, wo sie sind."
+
+#: inventory/dissolution.py
+msgid "Nothing to do. Choose a destination or deletion for at least one entry."
+msgstr "Nichts zu tun. Bitte für mindestens einen Eintrag ein Ziel oder das Löschen auswählen."
+
+#: inventory/forms.py
+msgid "This destination is deleted by the plan. Choose another one."
+msgstr "Dieser Zielstandort wird laut Plan gelöscht. Bitte einen anderen auswählen."
+
+#: inventory/dissolve_views.py
+msgid "Planned moves and deletions were completed. The location was kept."
+msgstr "Die geplanten Verschiebungen und Löschungen wurden ausgeführt. Der Standort bleibt erhalten."

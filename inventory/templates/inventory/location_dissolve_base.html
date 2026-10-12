@@ -6,7 +6,7 @@
     {{ form.media.css }}
     <link rel="stylesheet" href="{% static 'inventory/location_detail.css' %}">
 {% endblock %}
-{% block title %}{% trans "Dissolve location" %}: {{ object.unique_identifier }}{% endblock %}
+{% block title %}{% if delete_root %}{% trans "Dissolve location" %}{% else %}{% trans "Move contents" %}{% endif %}: {{ object.unique_identifier }}{% endblock %}
 {% block admin_url %}{{ object.get_admin_url }}{% endblock %}
 {% block page_header %}
     <header class="location-header">
@@ -17,7 +17,7 @@
         </nav>
         <div class="location-heading">
             <div class="location-heading-text">
-                <p class="location-eyebrow">{% trans "Dissolve location" %}</p>
+                <p class="location-eyebrow">{% if delete_root %}{% trans "Dissolve location" %}{% else %}{% trans "Move contents" %}{% endif %}</p>
                 <h1>{{ object.name }}</h1>
                 <span class="location-identifier">{{ object.unique_identifier }}</span>
             </div>

@@ -18,9 +18,18 @@ def model_permission(model, action):
     return f"{model._meta.app_label}.{action}_{model._meta.model_name}"
 
 
-def require_dissolution_permissions(user, operations):
-    permissions = {"inventory.delete_location"}
+# Any of these lets a user plan a mass-move of a location's contents.
+CONTENT_MOVE_PERMISSIONS = (
+    "inventory.change_itemlocation", "inventory.delete_itemlocation",
+    "inventory.change_location", "inventory.delete_location",
+)
+
+
+def require_dissolution_permissions(user, operations, delete_root=True):
+    permissions = {"inventory.delete_location"} if delete_root else set()
     for kind, _pk, action, _destination in operations:
+        if action == "keep":
+            continue
         model = "location" if kind == "location" else "itemlocation"
         verb = "delete" if action == "delete" else "change"
         permissions.add(f"inventory.{verb}_{model}")

@@ -741,14 +741,16 @@ class DissolveLocationForm(Form):
         self.user = user
         super().__init__(*args, **kwargs)
         self.plan = plan
-        destinations = Location.active.exclude(pk=plan.root.pk)
+        # A location that is kept may receive entries from its own sub-locations.
+        destinations = Location.active.exclude(pk=plan.root.pk) if plan.delete_root else Location.active.all()
 
         def destination_field(queryset):
+            # Clearing a row's destination keeps that entry where it is.
             return ModelChoiceField(
                 label=_("Destination"), queryset=queryset, required=False,
                 widget=AutocompleteSelect(
                     url="location-autocomplete",
-                    attrs={"data-placeholder": _("Search for a location…")},
+                    attrs={"data-placeholder": _("Search for a location…"), "data-allow-clear": "true"},
                 ),
             )
 
@@ -783,15 +785,21 @@ class DissolveLocationForm(Form):
         operations = []
         for row in self.plan.rows:
             key = row["key"]
-            action = "delete" if cleaned.get(key + "_delete") else "move"
             destination = cleaned.get(key + "_destination")
+            # Without a destination or deletion an entry stays where it is.
+            action = "delete" if cleaned.get(key + "_delete") else "move" if destination else "keep"
             model = "location" if row["kind"] == "location" else "itemlocation"
             verb = "delete" if action == "delete" else "change"
-            if not self.user.has_perm(f"inventory.{verb}_{model}"):
+            if action != "keep" and not self.user.has_perm(f"inventory.{verb}_{model}"):
                 self.add_error(None, _("You do not have permission for the selected action."))
-            if action == "move" and destination is None:
-                self.add_error(key + "_destination", _("Choose a destination."))
-            operations.append([row["kind"], row["object"].pk, action, destination.pk if destination and action == "move" else None])
+            operations.append([row["kind"], row["object"].pk, action, destination.pk if action == "move" else None])
+        deleted = self.plan.deleted_locations(operations)
+        for row, (kind, _pk, action, destination) in zip(self.plan.rows, operations):
+            current = row["object"].location_id if kind == "item" else row["object"].parent_location_id
+            if action == "keep" and current in deleted:
+                self.add_error(row["key"] + "_destination", _("Choose a destination."))
+            elif action == "move" and destination in deleted:
+                self.add_error(row["key"] + "_destination", _("This destination is deleted by the plan. Choose another one."))
         if not self.errors:
             self.plan.validate(operations)
             cleaned["operations"] = operations

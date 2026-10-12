@@ -96,7 +96,9 @@ class InventoryPermissionTests(TestCase):
         self.assertContains(response, reverse("location_move", args=[self.root.pk]))
         self.assertContains(response, reverse("locations_move_here", args=[self.root.pk]))
         self.assertContains(response, reverse("create_item"))
-        self.assertNotContains(response, reverse("location_dissolve", args=[self.root.pk]))
+        # Moving contents is offered, dissolving (deleting) the location is not.
+        self.assertContains(response, f'href="{reverse("location_dissolve", args=[self.root.pk])}?delete=0"')
+        self.assertNotContains(response, f'href="{reverse("location_dissolve", args=[self.root.pk])}"')
         response = self.client.post(reverse("location_move", args=[self.child.pk]), {"parent_location": self.destination.pk})
         self.assertEqual(response.status_code, 302)
         self.child.refresh_from_db()

@@ -5,12 +5,22 @@
     <section class="location-overview">
         <div>
             <h2 class="location-eyebrow">{% trans "1. Plan moves and deletions" %}</h2>
-            <p>{% trans "Choose a destination or deletion for each entry. Nothing changes until you confirm on the next page." %}</p>
+            <p>{% trans "Choose a destination or deletion for each entry. Entries without either stay where they are. Nothing changes until you confirm on the next page." %}</p>
             <p class="location-muted">{% trans "Deleting a stock entry removes only its association with the location, never the item itself. Locations can only be deleted once empty. Moving a sub-location keeps its remaining contents together." %}</p>
             <form method="get" class="d-flex flex-wrap gap-3 align-items-center">
                 <div class="form-check">
                     <input class="form-check-input" id="recursive" type="checkbox" name="recursive" value="1" {% if recursive %}checked{% endif %}>
                     <label class="form-check-label" for="recursive">{% trans "Include all descendants and their stock entries" %}</label>
+                </div>
+                <div class="form-check">
+                    <input type="hidden" name="delete" value="0">
+                    {% if perms.inventory.delete_location %}
+                        <input class="form-check-input" id="delete-root" type="checkbox" name="delete" value="1" {% if delete_root %}checked{% endif %}>
+                        <label class="form-check-label" for="delete-root">{% trans "Delete this location once it is empty" %}</label>
+                    {% else %}
+                        <input class="form-check-input" id="delete-root" type="checkbox" disabled title="{% trans 'You do not have permission to delete this location.' %}">
+                        <label class="form-check-label" for="delete-root" title="{% trans 'You do not have permission to delete this location.' %}">{% trans "Delete this location once it is empty" %}</label>
+                    {% endif %}
                 </div>
                 <button class="btn btn-outline-secondary" type="submit">{% trans "Reload list" %}</button>
             </form>
@@ -34,6 +44,7 @@
     <form method="post" id="dissolve-plan" novalidate>
         {% csrf_token %}
         <input type="hidden" name="recursive" value="{% if recursive %}1{% else %}0{% endif %}">
+        <input type="hidden" name="delete" value="{% if delete_root %}1{% else %}0{% endif %}">
         {% bootstrap_form_errors form %}
         {% if form.rows %}
             <section class="location-panel mb-3" aria-labelledby="bulk-heading">
@@ -45,6 +56,7 @@
                         {% else %}{% disabled_action _("Use destination for all") classes="btn btn-outline-primary" %}{% endif %}
                         {% if form.can_delete_rows %}<button class="btn btn-outline-danger" type="button" id="dissolve-delete-all">{% trans "Set all to delete" %}</button>
                         {% else %}{% disabled_action _("Set all to delete") classes="btn btn-outline-danger" %}{% endif %}
+                        <button class="btn btn-outline-secondary" type="button" id="dissolve-keep-all">{% trans "Keep all in place" %}</button>
                     </div>
                     <p class="location-muted">{% trans "These shortcuts only fill the form. You can adjust each entry before reviewing." %}</p>
                 </div>
@@ -75,11 +87,15 @@
                     </table>
                 </div>
             </section>
-        {% else %}
+        {% elif delete_root %}
             <p>{% trans "This location is already empty. Continue to review its deletion." %}</p>
+        {% else %}
+            <p>{% trans "This location is empty. There is nothing to move." %}</p>
         {% endif %}
-        <div class="location-actions mt-3">
-            <button class="btn btn-primary" type="submit" name="stage" value="review" {% if blocking_unique_items %}disabled{% endif %}>{% trans "Review moves and deletions" %}</button>
-        </div>
+        {% if form.rows or delete_root %}
+            <div class="location-actions mt-3">
+                <button class="btn btn-primary" type="submit" name="stage" value="review" {% if blocking_unique_items %}disabled{% endif %}>{% trans "Review moves and deletions" %}</button>
+            </div>
+        {% endif %}
     </form>
 {% endblock %}

@@ -21,6 +21,17 @@
             sync(row);
         });
     });
+    document.getElementById('dissolve-keep-all')?.addEventListener('click', () => {
+        rows.forEach(row => {
+            const {deletion, destination} = controls(row);
+            if (!deletion.disabled) deletion.checked = false;
+            sync(row);
+            if (destination.dataset.moveForbidden === "true") return;
+            destination.value = '';
+            if (window.jQuery) window.jQuery(destination).val(null).trigger('change');
+            else destination.dispatchEvent(new Event('change', {bubbles: true}));
+        });
+    });
     document.getElementById('dissolve-fill')?.addEventListener('click', () => {
         const bulk = document.getElementById('id_bulk_destination');
         const selected = bulk.options[bulk.selectedIndex];

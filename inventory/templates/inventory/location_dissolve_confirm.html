@@ -4,13 +4,20 @@
 {% block dissolution_content %}
     <section class="location-overview">
         <div>
-            <h2 class="location-eyebrow">{% trans "2. Confirm and dissolve" %}</h2>
-            <p>{% trans "Review every move and deletion below. Confirming applies the whole plan and finally deletes the empty location. Cancelling changes nothing." %}</p>
+            {% if delete_root %}
+                <h2 class="location-eyebrow">{% trans "2. Confirm and dissolve" %}</h2>
+                <p>{% trans "Review every move and deletion below. Confirming applies the whole plan and finally deletes the empty location. Cancelling changes nothing." %}</p>
+            {% else %}
+                <h2 class="location-eyebrow">{% trans "2. Confirm" %}</h2>
+                <p>{% trans "Review every move and deletion below. Confirming applies the whole plan; the location itself is kept. Cancelling changes nothing." %}</p>
+            {% endif %}
+            {% if kept %}<p class="location-muted">{% blocktrans count counter=kept|length %}{{ counter }} entry stays where it is.{% plural %}{{ counter }} entries stay where they are.{% endblocktrans %}</p>{% endif %}
             <p class="location-muted">{% trans "Only stock entries are deleted; the items themselves are kept." %}</p>
         </div>
     </section>
+    {% if deletions or delete_root %}
     <section class="location-panel mb-3" aria-labelledby="deletions-heading">
-        <div class="location-panel-heading"><h2 id="deletions-heading">{% trans "To be deleted" %} <span class="location-count">{{ deletions|length|add:1 }}</span></h2></div>
+        <div class="location-panel-heading"><h2 id="deletions-heading">{% trans "To be deleted" %} <span class="location-count">{% if delete_root %}{{ deletions|length|add:1 }}{% else %}{{ deletions|length }}{% endif %}</span></h2></div>
         <div class="table-responsive" role="region" aria-labelledby="deletions-heading" tabindex="0">
             <table class="table dissolve-table mb-0">
                 <thead><tr><th scope="col">{% trans "Item" %} / {% trans "Location" %}</th><th scope="col">{% trans "Amount" %}</th><th scope="col">{% trans "Photos" %}</th></tr></thead>
@@ -22,14 +29,17 @@
                             <td>{% include 'inventory/location_dissolve_photos.html' %}</td>
                         </tr>
                     {% endfor %}
-                    <tr>
-                        <th scope="row"><strong>{{ object.name }}</strong><div class="location-muted">{{ object.locatable_identifier }} — {% trans "Deleted last, only when completely empty." %}</div></th>
-                        <td>—</td><td>—</td>
-                    </tr>
+                    {% if delete_root %}
+                        <tr>
+                            <th scope="row"><strong>{{ object.name }}</strong><div class="location-muted">{{ object.locatable_identifier }} — {% trans "Deleted last, only when completely empty." %}</div></th>
+                            <td>—</td><td>—</td>
+                        </tr>
+                    {% endif %}
                 </tbody>
             </table>
         </div>
     </section>
+    {% endif %}
     {% if moves %}
         <section class="location-panel mb-3" aria-labelledby="moves-heading">
             <div class="location-panel-heading"><h2 id="moves-heading">{% trans "To be moved" %} <span class="location-count">{{ moves|length }}</span></h2></div>

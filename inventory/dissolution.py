@@ -1,4 +1,4 @@
-"""Validate a complete evacuation plan before changing or deleting any records."""
+"""Validate a plan that moves, deletes or keeps a location's contents, optionally deleting the location itself."""
 import hashlib
 import json
 
@@ -10,7 +10,7 @@ from .zamid.lookup import annotate_zam_code
 
 
 class DissolutionPlan:
-    def __init__(self, root, recursive=False, lock=False):
+    def __init__(self, root, recursive=False, lock=False, delete_root=True):
         locations = Location.active.select_related("type").order_by("pk")
         entries = ItemLocation.objects.filter(location__is_deleted=False).select_related("item__measurement_unit", "location").prefetch_related("item__itemimage_set").order_by("pk")
         if lock:
@@ -24,6 +24,7 @@ class DissolutionPlan:
         if self.root is None:
             raise ValidationError(_("The inventory changed. Review the plan again."))
         self.recursive = recursive
+        self.delete_root = delete_root
         descendants, pending = set(), [root.pk]
         children = {}
         for location in self.locations.values():
@@ -34,8 +35,10 @@ class DissolutionPlan:
                     descendants.add(pk)
                     pending.append(pk)
         scope = {root.pk} | descendants if recursive else {root.pk}
+        # Unique items only block deleting the root; they may stay in a location that is kept.
+        blocking = UniqueItem.active.filter(location_id=root.pk) if delete_root else UniqueItem.active.none()
         self.blocking_unique_items = annotate_zam_code(
-            UniqueItem.active.filter(location_id=root.pk).select_related("item", "location")
+            blocking.select_related("item", "location")
         ).order_by("item__name", "pk")
         selected_locations = descendants if recursive else set(children.get(root.pk, []))
         self.rows = [
@@ -61,18 +64,22 @@ class DissolutionPlan:
         return hashlib.sha256(json.dumps(state).encode()).hexdigest()
 
     def validate(self, operations):
-        if self.root.pk in self.unique_item_locations.values():
+        if self.delete_root and self.root.pk in self.unique_item_locations.values():
             raise ValidationError(_("Unique items are still stored here. Move them or remove them from the inventory first."))
         expected = {(row["kind"], row["object"].pk) for row in self.rows}
         if len(operations) != len(expected) or {(op[0], op[1]) for op in operations} != expected:
             raise ValidationError(_("The inventory changed. Review the plan again."))
-        deleted = {self.root.pk}
+        if not self.delete_root and all(op[2] == "keep" for op in operations):
+            raise ValidationError(_("Nothing to do. Choose a destination or deletion for at least one entry."))
+        deleted = {self.root.pk} if self.delete_root else set()
         parents = {pk: loc.parent_location_id for pk, loc in self.locations.items()}
         item_locations = {pk: entry.location_id for pk, entry in self.entries.items()}
         moved_locations = set()
         for kind, pk, action, destination in operations:
-            if action not in ("move", "delete"):
+            if action not in ("move", "delete", "keep"):
                 raise ValidationError(_("Choose an action for every entry."))
+            if action == "keep":
+                continue
             if action == "delete":
                 if kind == "location":
                     deleted.add(pk)
@@ -133,6 +140,11 @@ class DissolutionPlan:
             })
         return rows
 
+    def deleted_locations(self, operations):
+        """Locations the plan deletes, including the root when it is dissolved."""
+        deleted = {pk for kind, pk, action, _dest in operations if kind == "location" and action == "delete"}
+        return (deleted | {self.root.pk}) if self.delete_root else deleted
+
     def apply(self, operations):
         """Called only after signed confirmation, inside a locked transaction."""
         self.validate(operations)
@@ -180,6 +192,8 @@ class DissolutionPlan:
             if not progress:
                 raise ValidationError(_("These location moves or deletions conflict. Review the destinations and empty locations."))
 
+        if not self.delete_root:
+            return
         root = Location.active.get(pk=self.root.pk)
         if root.children.filter(is_deleted=False).exists() or root.itemlocation_set.exists():
             raise ValidationError(_("The location is not empty and cannot be deleted."))
