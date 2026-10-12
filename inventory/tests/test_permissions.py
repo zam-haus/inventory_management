@@ -108,7 +108,8 @@ class InventoryPermissionTests(TestCase):
         self.grant("add_item")
         self.assertEqual(self.client.get(reverse("create_item")).status_code, 200)
         response = self.client.post(reverse("create_item"), self.item_data())
-        self.assertEqual(response.status_code, 302)
+        # Created without a location: on to the new item.
+        self.assertRedirects(response, Item.objects.latest("pk").get_absolute_url(), fetch_redirect_response=False)
         self.assertEqual(Item.objects.count(), 2)
         self.assertEqual(self.client.post(reverse("update_item", args=[self.item.pk]), self.item_data()).status_code, 403)
 

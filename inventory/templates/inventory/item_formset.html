@@ -37,9 +37,6 @@
     {% include 'inventory/inline_formsets.html' %}
 
     <input type="submit" name="save" value="{% trans 'Save' %}" class="btn btn-primary mb-3">
-    {% if request.GET.location_id and not form.instance.pk %}
-    <input type="submit" name="save_and_mark" value="{% translate "Save and mark location finished" %}" class="btn btn-primary mb-3" data-for-kind="bulk">
-    {% endif %}
 </form>
 {% endblock %}
 

@@ -394,18 +394,13 @@ class CreateItemView(ItemEditorPermissionMixin, ItemKindMixin, extra_views.Creat
         return redirect(self.get_success_url()) if self.object.tracks_unique_items else response
 
     def get_success_url(self):
-        location = self._get_location()
         if self.object.tracks_unique_items:
             # The first unique item's page shows the label to print.
             first = self.object.unique_items.order_by("pk").first()
             return first.get_absolute_url() if first else self.object.get_absolute_url()
-        if location is not None and "save_and_mark" in self.request.POST:
-            return location.get_absolute_url()
-        # Preserve location_id
-        url = reverse("create_item")
-        if location is not None:
-            url += "?" + urlencode({"location_id": location.pk})
-        return url
+        # Back to the location the item was added from, else to the new item.
+        location = self._get_location()
+        return (location or self.object).get_absolute_url()
 
     def _get_location(self):
         if "location_id" in self.request.GET:

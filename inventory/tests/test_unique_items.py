@@ -427,7 +427,8 @@ class UniqueItemViewTests(UniqueItemFixture, TestCase):
                 "itemlocation_set-0-amount": "5"}
         # Chosen as bulk item: the (incomplete) first unique item is ignored.
         response = self.client.post(url, {**data, "kind": "bulk"})
-        self.assertEqual(response.status_code, 302)
+        # Created from a location: back to that location.
+        self.assertRedirects(response, self.shelf.get_absolute_url(), fetch_redirect_response=False)
         saw = Item.objects.get(name="Circular saw")
         self.assertEqual((saw.kind, saw.usage_level, saw.unique_items.count(), saw.itemlocation_set.get().amount),
                          (Item.Kind.BULK, "", 0, 5))

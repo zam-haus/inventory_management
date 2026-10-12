@@ -265,10 +265,6 @@ msgstr "Weiteres Bild hinzufügen"
 msgid "Save"
 msgstr "Speichern"
 
-#: inventory/templates/inventory/item_formset.html:78
-msgid "Save and mark location finished"
-msgstr "Speichern und Standort als abgeschlossen markieren"
-
 #: inventory/templates/inventory/item_list.html:6
 msgid "Item List"
 msgstr "Sachliste"
