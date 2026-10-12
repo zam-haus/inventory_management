@@ -1,359 +1,96 @@
-# ZAM Inventory Managment
+# ZAM Inventory Management
 
-This is a basic inventory managment system, with a focus on quick and easy data collection without any previous knowledge about the items in inventory.
+The inventory system of the ZAM, running at https://inv.zam.haus. It is built
+for quick and easy data collection without any previous knowledge about the
+items: photograph and count what is on a shelf first, annotate later.
 
-To be found at https://inv.zam.haus
+* **Locations** form a tree (rooms, shelves, boxes), each with a printed QR
+  label, an overview photo and a short summary.
+* **Items** are either bulk items, counted per location, or unique items:
+  single objects such as machines or tools with their own label, owner and
+  history.
+* **ZAM IDs** are short, permanent label IDs (`K7Q-4XD`) whose QR codes lead to
+  the item, location or unique item they are attached to.
+* **Stock changes** (sales, purchases, recounts) are logged with who, when and
+  why.
+* Viewing is public; editing needs an account with the right permissions,
+  granted automatically to members who log in on the ZAM network.
 
-Implemented with Django.
+Implemented with Django. The full documentation is in [docs/](docs/README.md).
 
-## Initial Data Collection
-1. Define and label all (storage) location
-2. Take pictures and count of items in storage locations
-   using `/item/create` (i.e., `create_item`, `inventory.views.CreateItemView`) view
-3. Annotate items with name, description, category and other metadata.
+## Development setup
 
-## Concepts/Features/Requirements/Restrictions
-* Items are either bulk items, counted per location, or tracked as unique items,
-  single objects with their own ZAM ID (see Unique items)
-* Bulk items can be at multiple locations
-* Item images are the main source of truth during data collection
-* Stock changes are logged (see Stock changes)
-* Item descriptions and notes of unique items support Markdown (links, lists, emphasis);
-  raw HTML is removed
-* Locations are hierarchically structred (tree)
-* Label printing relies on Zebra ZPL compatible printers
+1. Clone this repository:
+   `git clone git@github.com:zam-haus/inventory_management.git`
+2. Create a local settings file `imzam/local_settings.py`, for example:
+   ```python
+   # Example local_settings.py for development usage
+   # INSECURE, DO NOT USE IN PRODUCTION!
+   from pathlib import Path
 
-## Location summaries
+   DEBUG = True
+   TEMPLATE_DEBUG = True
+   ALLOWED_HOSTS = ['localhost', '127.0.0.1', '192.168.178.10', '10.233.1.123']
+   SECRET_KEY = "REPLACE ME!!!!!"
 
-Each location can have one overview photo and a summary (one line, up to 50
-characters). The summary is included in location searches.
-Existing physical descriptions are preserved separately.
+   MQTT_PASSWORD_AUTH = dict(username="im.zam.haus-django", password='...')
 
-Use the **📷** button beside **Summary** under **Stored here** on the location detail page to edit both fields in an
-in-page dialog. On iOS and Android, the photo input opens the browser's camera
-flow; **Choose from photo library** offers an existing picture instead. Take an
-overview of everything stored at the location and keep neighbouring locations
-outside the frame. The optional crop step supports dragging a selection or
-adjusting its edges with sliders. You can also rotate the photo clockwise in 90° steps.
-Cropping and rotation also work on the current photo without choosing it again;
-they happen in the browser, and the edited photo replaces the current one when
-saving. Saving without such changes does not upload the photo again.
-The detail page shows a thumbnail; the link and the enlarged view use the full photo.
-Saving applies the photo and the summary together.
+   BASE_DIR = Path(__file__).resolve().parent.parent
+   DATABASES = {
+       "default": {
+           "ENGINE": "django.db.backends.sqlite3",
+           "NAME": BASE_DIR / "db.sqlite3",
+       }
+   }
+   ```
+3. Install the Python requirements (assuming a current Python and pip):
+   `pip install -r requirements.dev.txt`
+4. Initialize the database: `python manage.py migrate`
+5. Create a superuser account: `python manage.py createsuperuser`
+6. Load the basic dataset: `python manage.py loaddata initial_inventory`
+7. Start the local server: `python manage.py runserver`
+8. Log in through the admin interface at `/admin`. This also logs you in to the
+   frontend; the frontend login link does not work locally, as it relies on a
+   working OIDC setup.
 
-Both appear above the item list under their shared **Stored here** heading,
-with the summary first, followed by the photo.
-Item and sub-location lists stay expanded. The physical description appears beside
-the location path, with a **Location details** button opening a modal containing
-the type, physical description, label preview, and the type's rules for moving,
-sub-locations, and unique identifiers.
-Its columns stack on small screens.
-
-Editing requires `inventory.change_location`; summaries are public.
-The history page requires `inventory.view_locationhistory`, because it shows who
-made each change. Its link is currently hidden on the detail page. History
-records the changed fields, their previous and new values, the time, and the
-user responsible, including changes through the admin.
-Replaced and removed photos remain in media storage so historical entries can
-still display them. The history format supports additional event types in future.
-
-When deploying, run `python manage.py migrate`. The migration preserves the existing physical
-description while adding the new overview fields and history table.
-
-## Quick-items
-
-Quick-items are items known only by name, stored at one location with an
-unknown amount. They are listed above the regular items under **Stored here**
-on the location detail page and are edited right there:
-
-* Type a name in the empty field at the end of the list and press Enter to add
-  it; the cursor stays in a new empty field for the next one.
-* Edit a name in place; it is saved when you press Enter or leave the field.
-  Emptying a name and leaving the field (or pressing Enter) deletes the item.
-* **×** deletes after five seconds, during which **Undo** keeps the item.
-  Leaving the page sends pending deletions immediately.
-* **i** opens the item page. Entering an amount there turns the quick-item into
-  a regular item, which can no longer return to an unknown amount.
-
-Quick-items are found by the regular item search. Managing them requires
-`inventory.add_item` and `inventory.add_itemlocation` (granted to ZAM-local
-users). Deletion is permanent, but only while an item is still a quick-item:
-items with an amount, photos, files, barcodes or a second location are never
-deleted from this list. Without JavaScript, the list still works through plain
-form submissions.
-
-## Stock changes
-
-The **🛒** button beside each amount (on the item page, one per location) and to
-the right of the photos in a location's item list opens a dialog for one item at
-one location. First choose **↓ − Remove stock** (red) or **↑ + Add stock**
-(green), then enter the counted amount, a reason and an optional note. The
-dialog shows the sale value of the changed amount as you type, or says it is
-unknown; it is marked as an estimate when based on an estimated amount.
-
-* Reasons for removing: sale, ZAM's own use, recount (lost or correction),
-  destruction, other. Reasons for adding: purchase, donation, recount (found or
-  unknown origin).
-* Precise amounts are reduced or increased. Estimates change by the counted
-  amount and remain estimates; a removal that would leave nothing (without
-  **Remove everything**) leaves "few". "Few", "many" and unknown amounts stay
-  unchanged; only the change is logged.
-* **Remove everything stored at this location** prefills the stored amount
-  (or the estimate, which can be replaced by a counted amount) and removes the
-  item from the location, also when the amount is only an estimate. If no stock
-  of the item is left anywhere, the item is deleted. You stay on the location
-  page; from the item's own page, you are taken to the item search.
-* After saving, the page reloads in place. Each dialog submission carries an ID,
-  so a retry after a lost connection is applied only once.
-
-Every change of stock is logged: the user account, date, direction, reason,
-note, amounts before and after, changed amount, unit price and sale value.
-Changes made elsewhere are logged as well: amounts edited in the item form or
-admin as a recount (increases as "found") and stock deleted while dissolving a
-location as "other". Moving stock between locations and creating new stock
-entries are not logged. Quick-items are not stock yet and never logged: they
-have no 🛒 button and are only deleted from their list or given an (estimated)
-amount, which turns them into regular items. The log is append-only and
-visible only in the admin (**Stock changes**, and on each item's admin page),
-which requires `inventory.view_stockchange`. Using the dialog requires
-`inventory.add_stockchange`, which migration `inventory.0020_stock_change` grants
-to the ZAM-local group.
-
-## Unique items
-
-Terms: an **item** (*Sache*) is either a **bulk item** (*Mengenartikel*),
-counted per location, or it is tracked as **unique items** (*Einzelobjekte*):
-single physical objects such as fire extinguishers, machines, IT hardware,
-anything with a power cord, or special and expensive tools. The item holds what
-its unique items share (description, photos, files, default usage level); each
-unique item has exactly one location and its own ZAM ID. An item never has both
-stock entries and unique items; its kind can only change while it has neither.
-
-* **Creating:** a new item tracked as unique items is created together with its
-  first unique item (location and ZAM ID), just as a bulk item needs its first
-  stock entry; the first unique item's page then shows the label to print.
-  A unique item always gets its ZAM ID when it is created, either
-  a pre-printed label (scan it: the claim page offers *New unique item*, or enter
-  it in the form) or a newly generated ID whose label is then shown on the unique
-  item's page for printing. If the item does not exist yet, the item search
-  offers *Create new item* as its last entry (requires `inventory.add_item`),
-  both in the unique item form and on the claim page; the new item is only
-  created when the unique item is saved.
-  Creating requires `inventory.add_uniqueitem` and
-  `inventory.claim_zamid`; migration `inventory.0023` grants `add`/`change` on
-  unique items to ZAM-local (photos and files use the item permissions they
-  already have). The admin generates an ID when a
-  unique item is added without `?zamid=`.
-* **Details:** briefing requirement (*Einweisungspflicht*; empty uses the item's):
-  green ✓ free to use, no briefing required; yellow ! use with care, ask if in
-  doubt; red ✕ use only after a briefing. Lists show the coloured symbol with
-  the explanation on hover, detail pages the explanation itself,
-  warranty, notes, responsible team and person, owner, purchase date, price and
-  source, files. Without an owner a unique item belongs to the ZAM and no
-  ownership is shown. The owner is set when the unique item is created; after
-  that only admins or users with `inventory.change_uniqueitem_owner` can change
-  it (frontend and admin). Teams (**Admin → Accounts → Teams**) are account groups
-  marked as teams; since directory group membership is only ever added, a team
-  is a public label, not a permission.
-* **Visibility:** pages are public. The team and the *first names* of the owner
-  and responsible person are public. Full names, e-mail addresses, the owner's
-  contact details and purchase prices (of unique items, and the last purchase
-  price of items) are shown, and editable, only with
-  `inventory.view_internal_details`; without it those fields are not part of the
-  forms. The user search used by these fields requires the same permission.
-  Pages still show that such information exists: the hidden part is replaced
-  by an *internal* chip.
-* **Files and photos** belong to an item, either to the item in general (e.g. a
-  manual) or to one of its unique items (e.g. that object's invoice). Both forms
-  let you choose: the item form offers its unique items per row, the unique item
-  form offers "this unique item" or "the item in general", also for existing
-  rows. The item page shows the general ones; a unique item's page shows its own
-  first, then the general ones marked *general*. One photo per level can be
-  primary; it is shown first. New items start with one photo row; *Add another
-  photo/file* adds rows before saving.
-* **Internal documents:** files are public unless flagged as *internal
-  document*. Internal documents need `inventory.view_internal_details`: without
-  it, pages list their name without a link, the download answers 403 (or asks to
-  log in), and edit forms leave them out. Files are stored as
-  `media/documents/<random UUID>/<file name>` and only served through
-  `/item/file/<pk>`; `nginx.conf` denies `/media/documents/` so they cannot be
-  fetched directly. Formats that could run in the browser (e.g. HTML, SVG) are
-  always downloaded. Migration `inventory.0023` moved existing files there.
-* **History:** creation, moves, owner changes and removal are logged
-  append-only (`UniqueItemEvent`), including who acted; the user is shown only in
-  the admin. Owner entries keep the owner before and after: first names are
-  public, accounts and contact details internal, like on the unique item. An
-  account that owns a unique item cannot be deleted (`PROTECT`); change the owner
-  first, so the hand-over is recorded.
-* `manage.py zamid_check --missing` lists unique items whose ID was retired and
-  that need a replacement label.
-* **Item search:** for items tracked as unique items, the locations column lists
-  each unique item's ZAM ID and location; searching for a location name or
-  identifier also finds them.
-* **URLs:** `/item/unique/<pk>` (with `/update` and `/dispose`) and
-  `/item/unique/create?item=<pk>&location=<pk>`; new items take `?kind=bulk` or
-  `?kind=unique` on `/item/create`.
-
-## Camera scanning
-
-The "Move locations here" page scans the QR codes of location labels, and the
-item form scans EAN-13/EAN-8 product barcodes; every scanned code is added to
-the respective text field. Browsers with a native `BarcodeDetector` for those
-formats use it; all others use the vendored ZXing WebAssembly ponyfill in
-`inventory/static/inventory/vendor/barcode-detector/` (about 1 MB, loaded on
-first use and served from this site). The camera requires HTTPS (or
-`localhost`). Hardware and keyboard-app scanners keep working by typing into
-the same fields.
-
-## Development Setup
-To get started do the following:
-1. checkout this git repo
-    `git clone git@github.com:zam-haus/inventory_management.git`
-2. create and edit local settings file
-    `imzam/local_settings.py`
-    Here is a usable template:
-    ```
-    # Example local_settings.py for development usage
-    # INSECURE, DO NOT USE IN PRODUCTION!
-    from pathlib import Path
-
-    DEBUG = True
-    TEMPLATE_DEBUG = True
-    ALLOWED_HOSTS = ['localhost', '127.0.0.1', '192.168.178.10', '10.233.1.123']
-    SECRET_KEY="REPLACE ME!!!!!"
-
-    MQTT_PASSWORD_AUTH = dict(username="im.zam.haus-django", password='...')
-
-    BASE_DIR = Path(__file__).resolve().parent.parent
-    DATABASES = {
-        "default": {
-            "ENGINE": "django.db.backends.sqlite3",
-            "NAME": BASE_DIR / "db.sqlite3",
-        }
-    }
-    ```
-    for secure deployment: make sure to disable `DEBUG` and set `SECRET_KEY` to a random string and consult https://docs.djangoproject.com/en/4.0/howto/deployment/checklist/.
-3. install all python requirements (asuming current python and pip installation is availible)
-    `pip install -r requirements.dev.txt`
-4. initialize database
-    `python manage.py migrate`
-5. create superuser account
-    `python manage.py createsuperuser`
-6. load basic dataset
-    `python manage.py loaddata initial_inventory`
-7. start local server
-    `python manage.py runserver`
-8. You can now login through the admin interface at `/admin`. This will also log you in to the frontend. The frontend login link will not work (as it relies on a working OIDC setup).
-
-## Permissions
-
-Frontend lists, details, searches and autocomplete are public. The printable
-inventory (`/inventory/print/`, 🖨️ on location pages and on the location list,
-where it preselects the locations found by the search) is internal: it requires
-`inventory.print_inventory`, which migration `inventory.0023` grants to ZAM-local.
-Editing requires login and Django's `add`, `change` or `delete` permission for the
-relevant model. Assign permissions to groups in **Admin → Authentication and
-Authorization → Groups**, then assign users to those groups. Superusers retain
-full access; being logged in or being staff alone does not grant inventory editing.
-
-Item metadata, photos, barcodes and stock entries have separate model permissions.
-For example, creating an item at a location requires `add_item` and
-`add_itemlocation`. Unique items are covered in **Unique items** above, including
-`view_internal_details` and `dispose_uniqueitem`. Moving locations requires `change_location`. Dissolving a
-location requires `delete_location`, plus `change_location` / `change_itemlocation`
-for moves and `delete_itemlocation` for stock removal. Permissions are checked
-again when confirming a dissolution. Changing the deleted flag in admin also
-requires the corresponding delete permission.
-
-Migration `accounts.0002_zam_local_group` creates the reserved **ZAM-local** group
-with add and change permissions for inventory models, but no delete permissions.
-Its permissions can subsequently be adjusted in admin. A logged-in user joins this
-group after detection on the ZAM network or when carrying an existing
-`is_zam_local` session flag; that flag is then consumed. Anonymous local visits can
-be remembered through the login redirect, but do not permit anonymous editing.
-Membership belongs to the user and persists across logins and network changes.
-SSO claims cannot assign this reserved group, and SSO updates never remove it.
-The `(ZAM)` indicator reads group membership rather than session state.
-
-Local detection matches the client IP against all DNS A records of `das.zam.haus`
-by default. Configure `ZAM_LOCAL_SOURCES` as a list in local settings, for example:
-
-```python
-ZAM_LOCAL_SOURCES = ["das.zam.haus", "another.example.org", "192.0.2.5", "198.51.100.0/24", "2001:db8::/32"]
-```
-
-Alternatively, set the `ZAM_LOCAL_SOURCES` environment variable to a comma-separated
-list. Literal addresses and CIDR ranges support IPv4 and IPv6; hostname lookups use
-IPv4 A records. An empty list disables new network-based grants. DNS results are
-cached per worker for `ZAM_LOCAL_DNS_CACHE_SECONDS` (default: 60 seconds; 0 disables
-caching). Failed lookups do not match clients or retain expired addresses; other
-configured sources still work. Existing group members need no DNS lookup.
-
-Apply migrations with `python manage.py migrate` when deploying this change.
-
-## ZAM IDs
-
-ZAM IDs are short, permanent label IDs such as `K7Q-4XD` (spec:
-`inventory/zamid/ZAM-ID-SPEC.md`). The model is `inventory/models/zamid.py`;
-everything else is in `inventory/zamid/`. Each one is printed as a QR code for `HTTPS://I.ZAM.HAUS/K7Q4XD`
-plus text on a Brother P-touch label.
-
-* **Resolver:** `i.zam.haus/<id>`, `id.zam.haus/<id>` and `inv.zam.haus/id/<id>`
-  behave identically. Locally, use `localhost:8000/id/<id>`. The resolver
-  accepts any typed or scanned form (`k7q 4xd`, lookalikes such as `O`/`0`) and
-  responds as follows:
-  * Assigned IDs redirect to their item, location, unique item or URL.
-  * Reserved IDs open the claim page.
-  * Retired IDs, and IDs whose target was deleted, show an explanation (HTTP 410).
-  * Typos list existing IDs that are likely meant.
-  * More than 30 misses from one client within 10 minutes are answered with 429.
-* **Hosts:** `ZAMID_RESOLVER_HOSTS` lists the hosts served by the resolver only;
-  they must also be in `ALLOWED_HOSTS`. `ZAMID_INVENTORY_BASE` sets where they
-  redirect to and defaults to `DEFAULT_DOMAIN`.
-* **Lifecycle:** reserved → assigned → retired.
-  * Only the admin (*Generate IDs*) and `manage.py zamid_generate` create IDs.
-  * Members with `inventory.claim_zamid` claim a reserved ID by scanning it: the
-    resolver opens the claim page, which links it to an existing or new item,
-    location or unique item. Migration `inventory.0022` grants this permission to ZAM-local.
-  * Only the admin (`assign_url_zamid`) can link an ID to an arbitrary URL.
-  * A claimed ID is never relinked or deleted. Retiring keeps the link.
-  * Soft-deleting an item or location leaves its ID assigned; the resolver then
-    says it is no longer in the inventory. Deleting it permanently retires its
-    IDs, unlinks them and adds its name and number to their note.
-  * Triggers in the database enforce this as well.
-* **Lookup:** `item.zam_ids` / `location.zam_ids` / `uniqueitem.zam_ids` (indexed). `inventory.zamid.lookup`
-  provides `active_code(obj)` and `annotate_zam_code(queryset)`, which add no
-  extra queries per row.
-* **Labels:** `/id/<code>/label.png?printer=P900&tape=24` is public for assigned
-  IDs (the unique item's page shows it) and requires `inventory.view_zamid` otherwise.
-  For batches, use the admin action *Download labels (ZIP)*, or run
-  `manage.py zamid_labels --batch NAME --printer E550W --tape 12`. Print the PNGs
-  in **standard** resolution, without scaling. Fonts (OFL) are in
-  `inventory/zamid/labels/fonts/`.
-* **Other commands:** `zamid_check <input>…`, `zamid_check --missing` and
-  `zamid_retire <code>`.
-
-## Label Printing
-Print jobs are passed to the printer via MQTT. A simple print server, listening to a (currently) hard-coded topic on mqtt.zam.haus and passing them onto a (currently) hard-coded printer is implemented by `print_server.py`. A more flexible (and complex) solution is planned.
-
+ZAM IDs resolve locally at `localhost:8000/id/<id>`. The camera scanner needs
+HTTPS or `localhost`.
 
 ## Deployment
 
-1. clone git repo
-2. copy .env.example to .env and edit (atleast) the following variables:
-   * `ALLOWED_HOSTS`, set to a domain to be used to access the interface
-   * `SECRET_KEY`, set to a long random string
-   * `POSTGRES_PASSWORD`, set to a random string
-   * `MQTT_PASSWORD`, set to the appropriate password (only needed for printing)
-2. import initial data
-    ```
-    docker-compose run web ./manage.py loaddata initial_inventory
-    ```
-4. create superuser
-    ```
-    docker-compose run web ./manage.py createsuperuser
-    ```
-5. start
-    ```
-    docker-compose up
-    ```
+Deployment uses Docker Compose: PostgreSQL, the Django app (`python` service,
+which compiles messages, collects static files and runs migrations on start)
+and nginx in front of it.
+
+1. Clone this repository.
+2. Copy `.env.example` to `.env` and edit at least:
+   * `ALLOWED_HOSTS`: the domains used to access the interface
+   * `SECRET_KEY`: a long random string
+   * `POSTGRES_PASSWORD`: a random string
+   * `MQTT_PASSWORD`: the MQTT password (only needed for printing)
+   * `OIDC_RP_CLIENT_ID` and `OIDC_RP_CLIENT_SECRET`: for login via SSO
+
+   For a secure deployment, also consult Django's
+   [deployment checklist](https://docs.djangoproject.com/en/stable/howto/deployment/checklist/).
+3. Initialize the database and import the initial data:
+   ```sh
+   docker compose run --rm python ./manage.py migrate
+   docker compose run --rm python ./manage.py loaddata initial_inventory
+   ```
+4. Create a superuser:
+   ```sh
+   docker compose run --rm python ./manage.py createsuperuser
+   ```
+5. Start:
+   ```sh
+   docker compose up -d
+   ```
+
+Migrations are applied automatically on every start. Settings for the ZAM ID
+resolver hosts and ZAM-local network detection are described in
+[ZAM IDs](docs/zam-ids.md) and [Permissions](docs/permissions.md);
+[`.env.example`](.env.example) lists all variables.
+
+## License
+
+See [LICENSE](LICENSE).
