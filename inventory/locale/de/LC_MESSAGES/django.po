@@ -2731,3 +2731,71 @@ msgstr "ZAM"
 #: inventory/models/location.py
 msgid "location label templates"
 msgstr "Standortetikettvorlagen"
+
+#: inventory/pwa.py templates/base.html
+msgid "ZAM inventory"
+msgstr "ZAM-Inventar"
+
+#: inventory/templates/inventory/pwa/offline.html
+msgid "No connection"
+msgstr "Keine Verbindung"
+
+#: inventory/templates/inventory/pwa/offline.html
+msgid ""
+"The inventory needs a network connection. Check Wi-Fi or mobile data. This "
+"page reloads by itself once you are back online."
+msgstr ""
+"Das Inventar braucht eine Netzwerkverbindung. Prüfe WLAN oder mobile Daten. "
+"Diese Seite lädt von selbst neu, sobald du wieder online bist."
+
+#: inventory/templates/inventory/index.html
+msgid "Name, identifier or ZAM ID"
+msgstr "Name, Kennung oder ZAM-ID"
+
+#: inventory/templates/inventory/index.html
+msgid "Search items"
+msgstr "Sachen suchen"
+
+#: inventory/templates/inventory/index.html
+msgid "Search locations"
+msgstr "Standorte suchen"
+
+#: inventory/templates/inventory/index.html
+msgid "Scan QR code"
+msgstr "QR-Code scannen"
+
+#: inventory/templates/inventory/index.html
+msgid "Hold the QR code of a label in front of the camera to open it."
+msgstr "Halte den QR-Code eines Etiketts vor die Kamera, um ihn zu öffnen."
+
+#: inventory/templates/inventory/index.html
+msgid "Opening {code}"
+msgstr "Öffne {code}"
+
+#: inventory/templates/inventory/index.html
+msgid "Not a link to this inventory: {code}"
+msgstr "Kein Link zu diesem Inventar: {code}"
+
+#: inventory/templatetags/actions.py
+msgid ""
+"Your account is not allowed to do this. Ask an inventory admin for the "
+"permission."
+msgstr ""
+"Dein Konto darf das nicht. Bitte die Inventar-Admins um die Berechtigung."
+
+#: inventory/templates/inventory/index.html
+msgid "This needs JavaScript."
+msgstr "Das braucht JavaScript."
+
+#: inventory/templates/inventory/location_detail.html
+msgid "Contents"
+msgstr "Inhalt"
+
+#: inventory/templates/inventory/location_detail.html
+#, python-format
+msgid "Show all %(counter)s"
+msgstr "Alle %(counter)s anzeigen"
+
+#: inventory/templates/inventory/location_detail.html
+msgid "At this location …"
+msgstr "Hier befinden sich …"

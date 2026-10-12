@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% load i18n static thumbnail mytemplatetags %}
+{% load i18n static thumbnail mytemplatetags actions %}
 
 {% block bootstrap5_extra_head %}
     {{ block.super }}
@@ -7,7 +7,7 @@
     <link rel="stylesheet" href="{% static 'inventory/item_detail.css' %}">
     <link rel="stylesheet" href="{% static 'inventory/unique_item.css' %}">
     <link rel="stylesheet" href="{% static 'inventory/media_gallery.css' %}">
-    {% if stock_change_form %}<link rel="stylesheet" href="{% static 'inventory/stock_change.css' %}">{% endif %}
+    <link rel="stylesheet" href="{% static 'inventory/stock_change.css' %}">
 {% endblock %}
 
 {% block title %}{{ object }}{% endblock %}
@@ -26,6 +26,8 @@
             <div class="item-actions">
                 {% if perms.inventory.change_item %}
                 <a class="btn btn-primary" href="{% url 'update_item' object.pk %}">{% trans "Edit item" %}</a>
+                {% else %}
+                {% disabled_action _("Edit item") classes="btn btn-primary" %}
                 {% endif %}
             </div>
         </div>
@@ -86,7 +88,7 @@
                     <div class="item-panel-heading">
                         <div class="item-panel-title-row">
                             <h2 id="item-photos-heading">{% trans "Photos" %} <span class="item-count">{{ images|length }}</span></h2>
-                            {% if perms.inventory.add_itemimage %}<a class="btn btn-primary item-panel-add" href="{% url 'update_item' object.pk %}" data-quick-open="quick-photo-modal" data-bs-toggle="tooltip" title="{% trans 'Add photo' %}" aria-label="{% trans 'Add photo' %}"><span aria-hidden="true">+</span></a>{% endif %}
+                            {% if perms.inventory.add_itemimage %}<a class="btn btn-primary item-panel-add" href="{% url 'update_item' object.pk %}" data-quick-open="quick-photo-modal" data-bs-toggle="tooltip" title="{% trans 'Add photo' %}" aria-label="{% trans 'Add photo' %}"><span aria-hidden="true">+</span></a>{% else %}{% disabled_action "+" name=_("Add photo") classes="btn btn-primary item-panel-add" %}{% endif %}
                         </div>
                         {% if images %}<p class="item-muted">{% trans "Click a photo to enlarge it; click again to close. Use arrow keys or swipe to browse." %}</p>{% endif %}
                     </div>
@@ -130,7 +132,7 @@
 
                 {% include 'inventory/procurement_panel.html' with purchase_date=object.last_purchase_date purchase_price=object.last_purchase_price source=object.procurement_source date_label=_("Last purchase date") price_label=_("Last purchase price") %}
                 {% url 'update_item' object.pk as edit_url %}
-                {% include 'inventory/files_panel.html' with can_add=perms.inventory.add_itemfile add_fallback=edit_url %}
+                {% include 'inventory/files_panel.html' with show_add=True can_add=perms.inventory.add_itemfile add_fallback=edit_url %}
             </div>
 
             {% if object.tracks_unique_items %}
@@ -140,6 +142,8 @@
                         <h2 id="item-unique-items-heading">{% trans "Unique items" %} <span class="item-count">{{ unique_items|length }}</span></h2>
                         {% if perms.inventory.add_uniqueitem and perms.inventory.claim_zamid %}
                         <a class="btn btn-primary item-panel-add" href="{% url 'create_unique_item' %}?item={{ object.pk }}" data-bs-toggle="tooltip" title="{% trans 'Add unique item' %}" aria-label="{% trans 'Add unique item' %}"><span aria-hidden="true">+</span></a>
+                        {% else %}
+                        {% disabled_action "+" name=_("Add unique item") classes="btn btn-primary item-panel-add" %}
                         {% endif %}
                     </div>
                     <p class="item-muted">{% trans "Each unique item is a single object with its own ZAM ID." %}{% if disposed_count %} {% blocktrans count counter=disposed_count %}{{ counter }} unique item has been removed from the inventory.{% plural %}{{ counter }} unique items have been removed from the inventory.{% endblocktrans %}{% endif %}</p>
@@ -180,7 +184,7 @@
                                     <button type="button" class="item-location-identifier item-help" data-bs-toggle="tooltip" title="{% trans 'Unique identifier for this storage location, used on labels and to find the location in the inventory.' %}">{{ entry.location.unique_identifier }} <span aria-hidden="true">ⓘ</span></button>
                                     <p class="item-location-path item-muted">{{ entry.location.descriptive_identifier }}</p>
                                 </div>
-                                {% if stock_change_form and not entry.is_quick_item %}{% include 'inventory/stock_change_button.html' %}{% endif %}
+                                {% if not entry.is_quick_item %}{% include 'inventory/stock_change_button.html' %}{% endif %}
                             </div>
                             {% with sale_value=entry.sale_value %}
                                 {% if sale_value != None %}

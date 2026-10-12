@@ -9,6 +9,14 @@ relevant model. Assign permissions to groups in **Admin → Authentication and
 Authorization → Groups**, then assign users to those groups. Superusers retain
 full access; being logged in or being staff alone does not grant inventory editing.
 
+For logged-in users, buttons for actions they may not perform stay visible but
+disabled. Hovering, focusing or tapping one says why ("ask an inventory admin"
+for a missing permission). Guests do not see actions they lack the permission for; technical reasons (no
+JavaScript, no camera) are explained to them like to everyone else. Templates
+render these buttons with `{% disabled_action %}`
+(`inventory/templatetags/actions.py`), which also takes other reasons, such as a
+location type that cannot be moved, and renders nothing for guests.
+
 Item metadata, photos, barcodes and stock entries have separate model permissions.
 For example, creating an item at a location requires `add_item` and
 `add_itemlocation`. Unique items are covered in [Unique items](unique-items.md), including

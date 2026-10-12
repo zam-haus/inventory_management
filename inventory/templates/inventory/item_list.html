@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
 
-{% load django_bootstrap5 i18n %}
+{% load django_bootstrap5 i18n actions %}
 {% load mytemplatetags %}
 {% load thumbnail %}
 {% load static %}
@@ -19,9 +19,13 @@
         </div>
         </form>
     </div>
-    {% if perms.inventory.add_item %}
+    {% if perms.inventory.add_item or user.is_authenticated %}
     <div class="col-auto">
+        {% if perms.inventory.add_item %}
         <a href="{% url 'create_item' %}" class="btn btn-primary">{% trans "Create New Item" %}</a>
+        {% else %}
+        {% disabled_action _("Create New Item") classes="btn btn-primary" %}
+        {% endif %}
     </div>
     {% endif %}
 </div>

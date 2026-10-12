@@ -1,0 +1,6 @@
+/* Unavailable actions stay visible: a disabled button inside a focusable wrapper
+   that carries the explanation (disabled buttons get no hover or focus). The
+   button keeps its own size and fills the wrapper when that is stretched. */
+.disabled-action { display: inline-flex; flex: 0 0 auto; border-radius: .375rem; cursor: help; }
+.disabled-action > .btn { flex: 1 1 auto; pointer-events: none; }
+.disabled-action:focus-visible { outline: 3px solid #0d6efd; outline-offset: 3px; }

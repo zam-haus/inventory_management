@@ -5,6 +5,7 @@ from urllib.parse import urlencode
 
 import extra_views
 from dal import autocomplete
+from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import permission_required
 from django.contrib.auth.mixins import PermissionRequiredMixin
@@ -14,6 +15,7 @@ from django.db import IntegrityError, transaction
 from django.forms import all_valid
 from django.db.models import Prefetch, Q
 from django.http import FileResponse, Http404, HttpResponseForbidden, JsonResponse
+from django.http.request import split_domain_port
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse, reverse_lazy
 from django.utils import timezone
@@ -34,7 +36,9 @@ from .zamid.search import ZamIdSearchMixin
 logger = logging.getLogger(__name__)
 
 def index(request):
-    return render(request, "inventory/index.html")
+    # The QR scanner only opens links to hosts this site serves (patterns as in ALLOWED_HOSTS).
+    scan_hosts = sorted({*settings.ALLOWED_HOSTS, split_domain_port(request.get_host())[0]})
+    return render(request, "inventory/index.html", {"scan_hosts": scan_hosts})
 
 class LocationAutocomplete(autocomplete.Select2QuerySetView):
     def get_queryset(self):

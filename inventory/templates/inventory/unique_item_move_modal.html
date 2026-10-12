@@ -11,13 +11,13 @@
             <div class="modal-body">
                 <p class="text-muted">{% blocktrans with location=object.location %}Currently at {{ location }}.{% endblocktrans %}</p>
                 {% bootstrap_field move_form.location %}
-                <button type="button" class="btn btn-outline-secondary" data-scan-location hidden
+                <span class="disabled-action" tabindex="0" data-bs-toggle="tooltip" title="{% trans 'This needs JavaScript.' %}"><button type="button" class="btn btn-outline-secondary" data-scan-location disabled
                         data-lookup-url="{% url 'location_lookup' %}"
                         data-title="{% trans 'Scan location label' %}"
                         data-hint="{% trans 'Hold the QR code of the new location in front of the camera.' %}"
                         data-added="{% blocktrans with code='{code}' %}Scanned: {{ code }}{% endblocktrans %}"
                         data-duplicate="{% blocktrans with code='{code}' %}Already scanned: {{ code }}{% endblocktrans %}"
-                        data-found="{% blocktrans with location='{location}' %}New location: {{ location }}{% endblocktrans %}"><span aria-hidden="true">📷</span> {% trans "Scan location label" %}</button>
+                        data-found="{% blocktrans with location='{location}' %}New location: {{ location }}{% endblocktrans %}"><span aria-hidden="true">📷</span> {% trans "Scan location label" %}</button></span>
                 <p class="form-text mt-2" role="status" data-scan-status></p>
             </div>
             <div class="modal-footer">

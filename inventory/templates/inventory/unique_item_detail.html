@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% load i18n static thumbnail mytemplatetags %}
+{% load i18n static thumbnail mytemplatetags actions %}
 
 {% block bootstrap5_extra_head %}
     {{ block.super }}
@@ -32,9 +32,14 @@
                 {% if perms.inventory.change_uniqueitem %}
                 <a class="btn btn-outline-primary" href="{% url 'update_unique_item' object.pk %}" data-move-open>{% trans "Move" %}</a>
                 <a class="btn btn-primary" href="{% url 'update_unique_item' object.pk %}">{% trans "Edit" %}</a>
+                {% else %}
+                {% disabled_action _("Move") classes="btn btn-outline-primary" %}
+                {% disabled_action _("Edit") classes="btn btn-primary" %}
                 {% endif %}
                 {% if perms.inventory.dispose_uniqueitem %}
                 <a class="btn btn-outline-danger item-icon-action" href="{% url 'dispose_unique_item' object.pk %}" data-bs-toggle="tooltip" title="{% trans 'Remove from inventory' %}" aria-label="{% trans 'Remove from inventory' %}"><span aria-hidden="true">❌</span></a>
+                {% else %}
+                {% disabled_action "❌" name=_("Remove from inventory") classes="btn btn-outline-danger item-icon-action" %}
                 {% endif %}
             </div>
             {% endif %}
@@ -106,11 +111,11 @@
                 </section>
                 {% endif %}
 
-                {% if own_images or images or perms.inventory.add_itemimage and not object.is_disposed %}
+                {% if own_images or images or not object.is_disposed and user.is_authenticated %}
                 <section class="item-panel" aria-labelledby="unique-item-photos-heading">
                     <div class="item-panel-heading item-panel-title-row">
                         <h2 id="unique-item-photos-heading">{% trans "Photos" %} <span class="item-count">{{ own_images|length|add:item_images_count }}</span></h2>
-                        {% if perms.inventory.add_itemimage and not object.is_disposed %}<a class="btn btn-primary item-panel-add" href="{% url 'update_unique_item' object.pk %}" data-quick-open="quick-photo-modal" data-bs-toggle="tooltip" title="{% trans 'Add photo' %}" aria-label="{% trans 'Add photo' %}"><span aria-hidden="true">+</span></a>{% endif %}
+                        {% if perms.inventory.add_itemimage and not object.is_disposed %}<a class="btn btn-primary item-panel-add" href="{% url 'update_unique_item' object.pk %}" data-quick-open="quick-photo-modal" data-bs-toggle="tooltip" title="{% trans 'Add photo' %}" aria-label="{% trans 'Add photo' %}"><span aria-hidden="true">+</span></a>{% elif not object.is_disposed %}{% disabled_action "+" name=_("Add photo") classes="btn btn-primary item-panel-add" %}{% endif %}
                     </div>
                     {% if not own_images and not images %}<p class="item-empty item-muted">{% trans "No images" %}</p>{% endif %}
                     <div class="item-gallery" data-gallery-label="{% trans 'Photos' %}" data-close-label="{% trans 'Close photo' %}" data-previous-label="{% trans 'Previous photo' %}" data-next-label="{% trans 'Next photo' %}" data-error-message="{% trans 'Image could not be loaded.' %}" data-retry-label="{% trans 'Try again' %}" data-loading-label="{% trans 'Loading photo…' %}">
@@ -133,7 +138,7 @@
                 {% include 'inventory/procurement_panel.html' with warranty_until=object.warranty_until warranty_expired=object.warranty_expired purchase_date=object.purchase_date purchase_price=object.purchase_price source=object.procurement_source date_label=_("Purchase date") price_label=_("Purchase price") %}
                 {% url 'update_unique_item' object.pk as edit_url %}
                 {% if not object.is_disposed %}{% firstof perms.inventory.add_itemfile '' as can_add_file %}{% endif %}
-                {% include 'inventory/files_panel.html' with file_count=files|length|add:general_files_count can_add=can_add_file add_fallback=edit_url %}
+                {% include 'inventory/files_panel.html' with file_count=files|length|add:general_files_count show_add=object.is_disposed|yesno:",True" can_add=can_add_file add_fallback=edit_url %}
             </div>
 
             <div class="item-main">

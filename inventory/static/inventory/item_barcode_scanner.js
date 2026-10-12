@@ -15,10 +15,16 @@
             return true;
         },
     });
+    // Disabled until the camera is known to be usable; otherwise it says why.
+    const wrapper = document.createElement('span');
+    wrapper.className = 'disabled-action';
+    wrapper.tabIndex = 0;
     const button = document.createElement('button');
     button.type = 'button';
     button.className = 'btn btn-primary';
     button.textContent = data.buttonLabel;
-    button.addEventListener('click', () => scanner.open());
-    field.after(button);
+    button.disabled = true;
+    wrapper.append(button);
+    field.after(wrapper);
+    window.setupScanButton(button, scanner);
 })();

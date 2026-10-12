@@ -9,7 +9,6 @@
     const newInput = createForm.elements.name;
     const template = section.querySelector('[data-quick-item-template]');
     const status = section.querySelector('[data-quick-items-status]');
-    const counter = section.querySelector('[data-quick-items-count]');
     const csrfToken = createForm.elements.csrfmiddlewaretoken.value;
     const data = section.dataset;
     const texts = {
@@ -31,7 +30,9 @@
     }
 
     function updateCount() {
-        counter.textContent = list.querySelectorAll('[data-quick-item]').length;
+        // Also the count in the overview at the top of "Stored here".
+        const count = list.querySelectorAll('[data-quick-item]').length;
+        document.querySelectorAll('[data-quick-items-count]').forEach(element => { element.textContent = count; });
     }
 
     async function post(url, data = {}) {

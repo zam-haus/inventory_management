@@ -15,6 +15,5 @@
             return true;
         },
     });
-    button.hidden = false;
-    button.addEventListener('click', () => scanner.open());
+    window.setupScanButton(button, scanner);
 })();

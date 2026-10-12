@@ -1,0 +1,23 @@
+/* Long lists collapse to their first five entries, without JavaScript: a visually
+   hidden checkbox (.list-collapse-state, first child of the section) holds the
+   state; the heading (.list-collapse-toggle) and the "show all" line
+   (.list-collapse-more) are its labels. Checked means expanded. */
+/* Two columns: the triangle, then the title and count (.list-collapse-title),
+   which wrap like the heading did before; long German words hyphenate. */
+.list-collapse-toggle { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: start; column-gap: .5rem; margin: 0; cursor: pointer; user-select: none; }
+.list-collapse-toggle .list-collapse-title { hyphens: auto; }
+.list-collapse-toggle::before {
+    /* Centred on the first line of the title (line height 1.2, triangle .7em). */
+    content: ""; width: 0; height: 0; margin-top: .25em;
+    border-block: .35em solid transparent; border-left: .5em solid currentColor;
+    transition: transform .15s ease-out;
+}
+/* In a heading row, the heading takes the free space: the whole line toggles. */
+:has(> .list-collapse-toggle) { flex-grow: 1; }
+.list-collapse-state:checked ~ * .list-collapse-toggle::before { transform: rotate(90deg); }
+.list-collapse-state:focus-visible ~ * .list-collapse-toggle { outline: 3px solid #0d6efd; outline-offset: 3px; border-radius: .25rem; }
+:has(> .list-collapse-state:not(:checked)) .list-collapse-list > li:nth-child(n+6) { display: none; }
+.list-collapse-more { display: block; margin: 0; padding: .75rem 1.2rem; border-top: 1px solid var(--location-border, #dee2e6); color: #0d6efd; cursor: pointer; }
+.list-collapse-more:hover { background: #f7f9fb; text-decoration: underline; }
+:has(> .list-collapse-state:checked) .list-collapse-more { display: none; }
+@media (prefers-reduced-motion: reduce) { .list-collapse-toggle::before { transition: none; } }

@@ -1,0 +1,31 @@
+{% load i18n %}<!doctype html>
+{% get_current_language as LANGUAGE_CODE %}
+<html lang="{{ LANGUAGE_CODE }}">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="robots" content="noindex">
+    <title>{% trans "No connection" %}</title>
+    <style>
+        :root { color-scheme: light dark; --fg: #212529; --bg: #fff; --muted: #6c757d; --accent: #0d6efd; }
+        @media (prefers-color-scheme: dark) { :root { --fg: #dee2e6; --bg: #212529; --muted: #adb5bd; --accent: #6ea8fe; } }
+        body { margin: 0; background: var(--bg); color: var(--fg); font: 16px/1.5 system-ui, sans-serif; }
+        main { max-width: 32rem; margin: 0 auto; padding: 3rem 1rem; text-align: center; }
+        svg { width: 4rem; height: 4rem; }
+        h1 { font-size: 1.5rem; margin: 1.5rem 0 .5rem; }
+        p { color: var(--muted); }
+        a { display: inline-block; margin-top: 1rem; padding: .5rem 1rem; border: 1px solid var(--accent);
+            border-radius: .375rem; color: var(--accent); text-decoration: none; }
+    </style>
+</head>
+<body>
+<main>
+    {{ logo|safe }}
+    <h1>{% trans "No connection" %}</h1>
+    <p>{% trans "The inventory needs a network connection. Check Wi-Fi or mobile data. This page reloads by itself once you are back online." %}</p>
+    {# Shown at the address that failed to load, so an empty link retries it. #}
+    <a href="">{% trans "Try again" %}</a>
+</main>
+<script>addEventListener("online", () => location.reload());</script>
+</body>
+</html>

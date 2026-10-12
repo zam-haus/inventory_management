@@ -40,7 +40,8 @@ class InfoView(PermissionRequiredMixin, View):
             "target_url": target_url(request, zid),
             "label_profiles": sorted(labels.PROFILES),
             "preview_printer": labels.PREVIEW[0], "preview_tape": labels.PREVIEW[1],
-            "can_claim": zid.status == ZamId.Status.RESERVED and request.user.has_perm("inventory.claim_zamid"),
+            "claimable": zid.status == ZamId.Status.RESERVED,
+            "can_claim": request.user.has_perm("inventory.claim_zamid"),
         })
 
 

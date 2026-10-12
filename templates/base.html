@@ -2,12 +2,18 @@
 
 {% load i18n %}
 {% load django_bootstrap5 %}
+{% load static %}
+
+{% block bootstrap5_extra_head %}
+    {{ block.super }}
+    <link rel="stylesheet" href="{% static 'inventory/actions.css' %}">
+{% endblock %}
 
 {% block bootstrap5_content %}
     {% block pre_container %}{% endblock %}
     <nav class="navbar navbar-expand-sm navbar-dark bg-dark">
       <div class="container-fluid">
-        <a class="navbar-brand" href="{% url 'index' %}">ZAM inventory</a>
+        <a class="navbar-brand py-0" href="{% url 'index' %}"><img src="{% static favicon_dir|add:'/favicon.svg' %}" alt="{% trans 'ZAM inventory' %}" width="32" height="32"></a>
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNavAltMarkup" aria-controls="navbarNavAltMarkup" aria-expanded="false" aria-label="{% trans 'Toggle navigation' %}">
           <span class="navbar-toggler-icon"></span>
         </button>
@@ -54,4 +60,9 @@
       {% block content %}{% trans "(no content)" %}{% endblock %}
     </div>
 
+{% endblock %}
+
+{% block bootstrap5_extra_script %}
+    {{ block.super }}
+    <script src="{% static 'inventory/actions.js' %}"></script>
 {% endblock %}

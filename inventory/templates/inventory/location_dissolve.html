@@ -1,5 +1,5 @@
 {% extends 'inventory/location_dissolve_base.html' %}
-{% load i18n django_bootstrap5 %}
+{% load i18n django_bootstrap5 actions %}
 
 {% block dissolution_content %}
     <section class="location-overview">
@@ -24,8 +24,8 @@
                 {% for unique_item in blocking_unique_items %}
                     <li>
                         <a href="{{ unique_item.get_absolute_url }}">{{ unique_item }}</a>
-                        {% if perms.inventory.change_uniqueitem %} · <a href="{% url 'update_unique_item' unique_item.pk %}">{% trans "Move" %}</a>{% endif %}
-                        {% if perms.inventory.dispose_uniqueitem %} · <a href="{% url 'dispose_unique_item' unique_item.pk %}">{% trans "Remove from inventory" %}</a>{% endif %}
+                        · {% if perms.inventory.change_uniqueitem %}<a href="{% url 'update_unique_item' unique_item.pk %}">{% trans "Move" %}</a>{% else %}{% disabled_action _("Move") classes="btn btn-link p-0 align-baseline" %}{% endif %}
+                        · {% if perms.inventory.dispose_uniqueitem %}<a href="{% url 'dispose_unique_item' unique_item.pk %}">{% trans "Remove from inventory" %}</a>{% else %}{% disabled_action _("Remove from inventory") classes="btn btn-link p-0 align-baseline" %}{% endif %}
                     </li>
                 {% endfor %}
             </ul>
@@ -41,8 +41,10 @@
                     <h2 id="bulk-heading">{% trans "Apply to all entries" %}</h2>
                     <div class="dissolve-bulk mt-3">
                         <div>{% bootstrap_field form.bulk_destination %}</div>
-                        <button class="btn btn-outline-primary" type="button" id="dissolve-fill" {% if not form.can_move_rows %}disabled{% endif %}>{% trans "Use destination for all" %}</button>
-                        <button class="btn btn-outline-danger" type="button" id="dissolve-delete-all" {% if not form.can_delete_rows %}disabled{% endif %}>{% trans "Set all to delete" %}</button>
+                        {% if form.can_move_rows %}<button class="btn btn-outline-primary" type="button" id="dissolve-fill">{% trans "Use destination for all" %}</button>
+                        {% else %}{% disabled_action _("Use destination for all") classes="btn btn-outline-primary" %}{% endif %}
+                        {% if form.can_delete_rows %}<button class="btn btn-outline-danger" type="button" id="dissolve-delete-all">{% trans "Set all to delete" %}</button>
+                        {% else %}{% disabled_action _("Set all to delete") classes="btn btn-outline-danger" %}{% endif %}
                     </div>
                     <p class="location-muted">{% trans "These shortcuts only fill the form. You can adjust each entry before reviewing." %}</p>
                 </div>

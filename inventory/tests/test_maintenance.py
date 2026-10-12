@@ -76,6 +76,17 @@ class MaintenanceRegressionTests(TestCase):
             with self.subTest(url=url):
                 self.assertContains(self.client.get(url), icon, html=True)
 
+    def test_navbar_shows_logo(self):
+        logo = '<img src="/static/inventory/favicon/favicon.svg" alt="ZAM inventory" width="32" height="32">'
+        self.assertContains(self.client.get(reverse("index_items")), logo, html=True)
+
+    @override_settings(DEBUG=True)
+    def test_dev_system_uses_magenta_variant(self):
+        response = self.client.get(reverse("index_items"))
+        self.assertContains(response, 'src="/static/inventory/favicon/dev/favicon.svg"')
+        self.assertContains(response, 'href="/static/inventory/favicon/dev/favicon.ico"')
+        self.assertIn(b"#e94391", self.client.get("/favicon.svg").content)
+
     def test_admin_user_search_uses_existing_fields(self):
         get_user_model().objects.create_user(username="searchable", first_name="FindMe")
         response = self.client.get(reverse("admin:accounts_user_changelist"), {"q": "FindMe"})

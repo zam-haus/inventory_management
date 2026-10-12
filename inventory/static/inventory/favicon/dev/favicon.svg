@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Dev-system variant of ../favicon.svg: ZAM cyan replaced by ZAM magenta. -->
+  <rect width="512" height="512" rx="96" fill="#e94391"/>
+  <path fill="#fff" d="M175,331c-44.7,0-81,36.3-81,81s36.3,81,81,81h162c44.7,0,81-36.3,81-81s-36.3-81-81-81h0v81h-162v-81Z"/>
+  <rect fill="#fff" x="335.8" y="20.4" width="81" height="324" transform="translate(-37.9 125.2) rotate(-18)"/>
+  <g fill="none" stroke="#141414" stroke-miterlimit="5.2" stroke-width="40">
+    <path d="M256,235.8v95.2"/>
+    <path d="M71.5,154.8h103.5"/>
+    <path d="M142.4,83.9l-70.9,70.9,70.9,70.9"/>
+    <path d="M185.1,259.3l70.9,70.9,70.9-70.9"/>
+    <path d="M175,154.8c44.7,0,81,36.3,81,81"/>
+  </g>
+</svg>

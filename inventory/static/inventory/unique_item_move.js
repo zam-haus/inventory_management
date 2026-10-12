@@ -48,8 +48,7 @@
             return true;
         },
     });
-    button.hidden = false;
-    button.addEventListener('click', () => scanner.open());
+    window.setupScanButton(button, scanner);
     modalElement.addEventListener('hidden.bs.modal', () => {
         status.textContent = '';
         status.classList.remove('text-danger');

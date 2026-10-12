@@ -352,10 +352,13 @@ class LocationOverviewTests(TestCase):
             if dict(element.attributes).get("aria-labelledby") == "location-stored-heading"
         )
         contents = str(panel)
-        self.assertIn("Stored here", contents)
+        self.assertIn("At this location …", contents)
         self.assertLess(contents.index(self.location.summary), contents.index(self.location.overview_photo.url))
-        self.assertLess(contents.index(self.location.overview_photo.url), contents.index('id="location-items-heading"'))
-        self.assertIn(item.name, contents)
+        # The items follow in a panel of their own.
+        self.assertNotIn('id="location-items-heading"', contents)
+        page = response.content.decode()
+        self.assertLess(page.index(self.location.overview_photo.url), page.index('id="location-items-heading"'))
+        self.assertLess(page.index('id="location-items-heading"'), page.index(item.name))
 
     def test_public_metadata_modal_opens_beside_the_physical_description(self):
         self.client.logout()

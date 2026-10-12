@@ -12,4 +12,5 @@ covered in the [project README](../README.md).
 * [Camera scanning](camera-scanning.md): QR and barcode scanning in the browser
 * [Permissions](permissions.md): model permissions, the ZAM-local group and network detection
 * [Label printing](label-printing.md): MQTT print server for location labels
-* [Favicon](branding/README.md): source design and how the served icons are derived
+* [Installable app](installable-app.md): manifest, offline page and its service worker
+* [Logo and icons](branding/README.md): source design and how the served icons are derived

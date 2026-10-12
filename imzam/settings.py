@@ -81,6 +81,19 @@ INSTALLED_APPS = [
     "django_static_jquery",
 ]
 
+# Bootstrap is vendored (see its README there) instead of loaded from a CDN, so pages
+# work without third parties; update the hashes together with the files.
+BOOTSTRAP5 = {
+    "css_url": {
+        "url": "/static/inventory/vendor/bootstrap/bootstrap.min.css",
+        "integrity": "sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB",
+    },
+    "javascript_url": {
+        "url": "/static/inventory/vendor/bootstrap/bootstrap.bundle.min.js",
+        "integrity": "sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI",
+    },
+}
+
 CRISPY_ALLOWED_TEMPLATE_PACKS = "bootstrap5"
 CRISPY_TEMPLATE_PACK = "bootstrap5"
 
@@ -124,6 +137,7 @@ TEMPLATES = [
                 "django.contrib.messages.context_processors.messages",
                 "django.template.context_processors.static",
                 "django.template.context_processors.media",
+                "inventory.favicon.favicon_context",
             ],
         },
     },

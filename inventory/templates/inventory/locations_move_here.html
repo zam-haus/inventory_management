@@ -46,11 +46,11 @@
             <form class="location-move-form" method="post" novalidate>
                 {% csrf_token %}
                 {% bootstrap_form form %}
-                <button type="button" class="btn btn-outline-primary location-scan-button" data-scan-locations hidden
+                <span class="disabled-action" tabindex="0" data-bs-toggle="tooltip" title="{% trans 'This needs JavaScript.' %}"><button type="button" class="btn btn-outline-primary location-scan-button" data-scan-locations disabled
                         data-title="{% trans 'Scan location labels' %}"
                         data-hint="{% trans 'Hold the QR code of a location label in front of the camera. Every scanned label is added to the list.' %}"
                         data-added="{% blocktrans with code='{code}' %}Added: {{ code }}{% endblocktrans %}"
-                        data-duplicate="{% blocktrans with code='{code}' %}Already in the list: {{ code }}{% endblocktrans %}"><span aria-hidden="true">📷</span> {% trans "Scan QR codes" %}</button>
+                        data-duplicate="{% blocktrans with code='{code}' %}Already in the list: {{ code }}{% endblocktrans %}"><span aria-hidden="true">📷</span> {% trans "Scan QR codes" %}</button></span>
                 <div class="location-actions mt-3">
                     <button class="btn btn-primary" type="submit">{% trans "Move locations here" %}</button>
                 </div>

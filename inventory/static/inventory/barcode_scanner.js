@@ -220,4 +220,28 @@
 
         return {open, close};
     };
+
+    // Why the camera cannot be used here, or null. Denied access is only known
+    // after asking, so the scanner dialog explains that one.
+    async function unavailableReason() {
+        if (!window.isSecureContext) return sharedLabels.insecure;
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) return sharedLabels.noCamera;
+        try {
+            const devices = await navigator.mediaDevices.enumerateDevices();
+            if (!devices.some(device => device.kind === 'videoinput')) return sharedLabels.noCamera;
+        } catch { /* unknown: let the scanner try */ }
+        return null;
+    }
+
+    // Enables a scan button rendered as unavailable (see inventoryActions in
+    // actions.js), or keeps it disabled and says why.
+    window.setupScanButton = async (button, scanner) => {
+        const reason = await unavailableReason();
+        if (reason) {
+            window.inventoryActions.explain(button, reason);
+            return;
+        }
+        button.addEventListener('click', () => scanner.open());
+        window.inventoryActions.enable(button);
+    };
 })();

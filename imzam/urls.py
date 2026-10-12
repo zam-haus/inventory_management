@@ -1,6 +1,7 @@
 """Application, admin and authentication routes."""
 from django.contrib import admin
 from django.urls import include, path
+from inventory import pwa
 from inventory.favicon import favicon
 from inventory.views import ParentLocationAutocompleteView
 
@@ -11,6 +12,9 @@ urlpatterns = [
     path('oidc/', include('mozilla_django_oidc.urls')),
     path("favicon.ico", favicon, {"name": "favicon.ico"}),
     path("favicon.svg", favicon, {"name": "favicon.svg"}),
+    path("manifest.webmanifest", pwa.manifest, name="manifest"),
+    path("sw.js", pwa.service_worker, name="service_worker"),
+    path("offline/", pwa.offline, name="offline"),
     path("", include("inventory.urls")),
 
 ]

@@ -1,6 +1,6 @@
 {% load i18n %}
 {% if can_manage_quick_items or quick_entries %}
-<section class="location-quick-items" aria-labelledby="location-quick-items-heading" data-quick-items
+<section class="location-panel location-quick-items" id="location-quick-items" aria-labelledby="location-quick-items-heading" data-quick-items
          data-text-network-error="{% trans 'Saving failed. Check your connection and try again.' %}"
          data-text-save-error="{% trans 'The quick-item could not be saved.' %}"
          data-text-added="{% blocktrans with name='{name}' %}“{{ name }}” added.{% endblocktrans %}"
@@ -10,7 +10,7 @@
          data-text-details="{% blocktrans with name='{name}' %}Details for “{{ name }}”{% endblocktrans %}"
          data-text-delete="{% blocktrans with name='{name}' %}Delete “{{ name }}”{% endblocktrans %}">
     <div class="location-panel-heading">
-        <h3 id="location-quick-items-heading" class="fs-5">{% trans "Quick-items" %} <span class="location-count" data-quick-items-count>{{ quick_entries|length }}</span></h3>
+        <h2 id="location-quick-items-heading" class="fs-4">{% trans "Quick-items" %} <span class="location-count" data-quick-items-count>{{ quick_entries|length }}</span></h2>
         <p class="location-muted">{% trans "Items known only by name. Open the details to add an amount and turn one into a regular item." %}</p>
     </div>
     {% if can_manage_quick_items %}

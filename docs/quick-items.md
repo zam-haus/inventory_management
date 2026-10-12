@@ -1,8 +1,8 @@
 # Quick-items
 
 Quick-items are items known only by name, stored at one location with an
-unknown amount. They are listed above the regular items under **Stored here**
-on the location detail page and are edited right there:
+unknown amount. They have their own panel on the location detail page, above
+the regular items, and are edited right there:
 
 * Type a name in the empty field at the end of the list and press Enter to add
   it; the cursor stays in a new empty field for the next one.
