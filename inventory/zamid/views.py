@@ -2,6 +2,7 @@
 from dal import autocomplete
 from django.contrib import messages
 from django.contrib.auth.mixins import PermissionRequiredMixin
+from django.contrib.auth.views import redirect_to_login
 from django.core.exceptions import PermissionDenied
 from django.db import transaction
 from django.db.models import Q
@@ -13,11 +14,12 @@ from django.views import View
 from django.views.decorators.http import require_safe
 
 
-from ..models import Item
+from ..models import Item, UniqueItem
 from ..models import ZamId
 from . import core, labels, parsing, qr, services
-from .forms import ClaimItemForm, ClaimLocationForm, LabelForm, NewItemForm
+from .forms import ClaimItemForm, ClaimLocationForm, ClaimUniqueItemForm, LabelForm, NewItemForm, NewUniqueItemForm
 from .resolver_views import target_url
+from .targets import RELATED_TARGETS
 
 
 def get_zam_id(code):
@@ -25,7 +27,7 @@ def get_zam_id(code):
         code = parsing.code_from_scan(code)
     except core.InvalidZamId:
         raise Http404
-    return get_object_or_404(ZamId.objects.select_related("item", "location"), pk=code)
+    return get_object_or_404(ZamId.objects.select_related(*RELATED_TARGETS), pk=code)
 
 
 class InfoView(PermissionRequiredMixin, View):
@@ -44,11 +46,16 @@ class InfoView(PermissionRequiredMixin, View):
 
 class ClaimView(PermissionRequiredMixin, View):
     permission_required = "inventory.claim_zamid"
-    forms = {"item": ClaimItemForm, "location": ClaimLocationForm, "new_item": NewItemForm}
+    forms = {"item": ClaimItemForm, "location": ClaimLocationForm, "new_item": NewItemForm,
+             "new_unique_item": NewUniqueItemForm, "unique_item": ClaimUniqueItemForm}
+    # Creating something new needs the permission to add it.
+    add_permissions = {"new_item": "inventory.add_item", "new_unique_item": "inventory.add_uniqueitem"}
 
     def render_page(self, request, zid, bound=None):
         context = {"zid": zid, "can_add_item": request.user.has_perm("inventory.add_item"),
-                   "can_add_location": request.user.is_staff and request.user.has_perm("inventory.add_location")}
+                   "can_add_uniqueitem": request.user.has_perm("inventory.add_uniqueitem"),
+                   "can_add_location": request.user.is_staff and request.user.has_perm("inventory.add_location"),
+                   "unique_items_without_id": UniqueItem.active.exclude(zam_ids__status=ZamId.Status.ASSIGNED).exists()}
         for kind, form_class in self.forms.items():
             context[f"{kind}_form"] = (bound or {}).get(kind) or form_class(prefix=kind)
         return render(request, "inventory/zamid/claim.html", context)
@@ -66,14 +73,15 @@ class ClaimView(PermissionRequiredMixin, View):
         kind = request.POST.get("kind")
         if kind not in self.forms:
             return HttpResponseBadRequest()
-        if kind == "new_item" and not request.user.has_perm("inventory.add_item"):
+        if kind in self.add_permissions and not request.user.has_perm(self.add_permissions[kind]):
             raise PermissionDenied
         form = self.forms[kind](request.POST, prefix=kind)
+        form.user = request.user
         if not form.is_valid():
             return self.render_page(request, zid, {kind: form})
         try:
             with transaction.atomic():
-                target = form.save() if kind == "new_item" else form.cleaned_data[kind]
+                target = form.save() if kind in self.add_permissions else form.cleaned_data[kind]
                 services.claim(zid.code, target, request.user)
         except services.ZamIdError as e:
             messages.error(request, str(e))
@@ -81,6 +89,8 @@ class ClaimView(PermissionRequiredMixin, View):
         messages.success(request, _("The ID %(code)s now belongs to %(target)s.") % {"code": zid.display, "target": target})
         if kind == "new_item":
             return redirect("update_item", pk=target.pk)
+        if kind == "new_unique_item":
+            return redirect("update_unique_item", pk=target.pk)
         return redirect(target)
 
 
@@ -115,16 +125,21 @@ def qr_png(request, code):
     return _image(qr.png(get_zam_id(code).code), "image/png")
 
 
-class LabelView(PermissionRequiredMixin, View):
-    permission_required = "inventory.view_zamid"
+class LabelView(View):
+    """Labels of assigned IDs are public: they only show what is printed on the object anyway."""
 
     def get(self, request, code):
         zid = get_zam_id(code)
+        public = zid.status == ZamId.Status.ASSIGNED
+        if not public and not request.user.has_perm("inventory.view_zamid"):
+            if not request.user.is_authenticated:
+                return redirect_to_login(request.get_full_path())
+            raise PermissionDenied
         form = LabelForm(request.GET)
         if not form.is_valid():
             return HttpResponseBadRequest(form.errors.as_text())
         printer, tape = form.cleaned_data["printer"], form.cleaned_data["tape"]
         response = HttpResponse(labels.render(zid.code, printer, tape), content_type="image/png")
         response["Content-Disposition"] = f'inline; filename="{labels.filename(zid.code, printer, tape)}"'
-        response["Cache-Control"] = "private, max-age=86400"
+        response["Cache-Control"] = f"{'public' if public else 'private'}, max-age=86400"
         return response

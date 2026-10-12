@@ -1,0 +1,205 @@
+{% extends 'base.html' %}
+{% load i18n static thumbnail mytemplatetags %}
+
+{% block bootstrap5_extra_head %}
+    {{ block.super }}
+    <link rel="stylesheet" href="{% static 'inventory/photo_lightbox.css' %}">
+    <link rel="stylesheet" href="{% static 'inventory/item_detail.css' %}">
+    <link rel="stylesheet" href="{% static 'inventory/unique_item.css' %}">
+    <link rel="stylesheet" href="{% static 'inventory/media_gallery.css' %}">
+    {% if move_form %}{{ move_form.media.css }}<link rel="stylesheet" href="{% static 'inventory/barcode_scanner.css' %}">{% endif %}
+{% endblock %}
+
+{% block title %}{{ object }}{% endblock %}
+{% block admin_url %}{% url 'admin:inventory_uniqueitem_change' object.pk %}{% endblock %}
+
+{% block page_header %}
+    <header class="item-header">
+        <nav class="item-breadcrumb" aria-label="{% trans 'Unique item navigation' %}">
+            <a href="{% url 'index_items' %}">{% trans "Items" %}</a>
+            <span aria-hidden="true">/</span>
+            <a href="{{ object.item.get_absolute_url }}">{{ object.item }}</a>
+            <span aria-hidden="true">/</span>
+            <a href="{{ object.get_absolute_url }}" aria-current="page">{% if zid %}{{ zid.display }}{% else %}#{{ object.pk }}{% endif %}</a>
+        </nav>
+        <div class="item-heading">
+            <div class="item-heading-text">
+                <p class="item-eyebrow">{% trans "Unique item" %}{% if object.item.category %} · {{ object.item.category }}{% endif %}</p>
+                <h1>{{ object.item }} {% if zid %}<span class="unique-item-code">{{ zid.display }}</span>{% else %}<span class="item-muted">#{{ object.pk }}</span>{% endif %}</h1>
+            </div>
+            {% if not object.is_disposed %}
+            <div class="item-actions gap-2">
+                {% if perms.inventory.change_uniqueitem %}
+                <a class="btn btn-outline-primary" href="{% url 'update_unique_item' object.pk %}" data-move-open>{% trans "Move" %}</a>
+                <a class="btn btn-primary" href="{% url 'update_unique_item' object.pk %}">{% trans "Edit" %}</a>
+                {% endif %}
+                {% if perms.inventory.dispose_uniqueitem %}
+                <a class="btn btn-outline-danger item-icon-action" href="{% url 'dispose_unique_item' object.pk %}" data-bs-toggle="tooltip" title="{% trans 'Remove from inventory' %}" aria-label="{% trans 'Remove from inventory' %}"><span aria-hidden="true">❌</span></a>
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+    </header>
+{% endblock %}
+
+{% block content %}
+    <div class="item-detail">
+        {% if object.is_disposed %}
+            <div class="unique-item-notice alert alert-secondary" role="status">
+                <strong>{% blocktrans with date=object.disposed_at|date:"SHORT_DATE_FORMAT" %}Removed from the inventory on {{ date }}.{% endblocktrans %}</strong>
+                {% trans "Reason" %}: {{ object.get_disposal_reason_display }}{% if object.disposal_note %} – {{ object.disposal_note }}{% endif %}
+            </div>
+        {% elif not zid %}
+            <div class="unique-item-notice alert alert-warning" role="status">
+                {% trans "This unique item has no active ZAM ID." %}
+                {% if perms.inventory.claim_zamid %}{% trans "Scan a new label and attach it to this unique item." %}{% endif %}
+            </div>
+        {% endif %}
+
+        <dl class="item-overview">
+            <div>
+                <dt>{% trans "Location" %}</dt>
+                <dd>{% if object.location %}<a href="{{ object.location.get_absolute_url }}">{{ object.location.descriptive_identifier }}</a>{% else %}<span class="item-muted">–</span>{% endif %}</dd>
+            </div>
+            {% if object.effective_usage_level %}
+            <div>
+                <dt>{% trans "Usage level" %}</dt>
+                <dd>{% usage_level object.effective_usage_level long=True %}</dd>
+            </div>
+            {% endif %}
+            {% if object.responsible_team or object.responsible_user %}
+            <div>
+                <dt>{% trans "Responsible" %}</dt>
+                <dd>
+                    {% if object.responsible_team %}{{ object.responsible_team }}{% endif %}
+                    {% if object.responsible_user %}
+                        {% if object.responsible_team %}·{% endif %}
+                        {% if can_view_internal %}{{ object.responsible_user.get_full_name|default:object.responsible_user.username }}{% if object.responsible_user.email %} (<a href="mailto:{{ object.responsible_user.email }}">{{ object.responsible_user.email }}</a>){% endif %}
+                        {% else %}{{ object.responsible_first_name }} {% include 'inventory/internal_chip.html' %}{% endif %}
+                    {% endif %}
+                </dd>
+            </div>
+            {% endif %}
+            {% if object.has_owner %}
+            <div>
+                <dt>{% trans "Owner" %}</dt>
+                <dd>
+                    {% trans "Not ZAM property" %}{% if object.owner_first_name_display %}: {{ object.owner_first_name_display }}{% endif %}
+                    {% if can_view_internal %}
+                        {% if object.owner_user %}<br>{{ object.owner_user.get_full_name|default:object.owner_user.username }}{% if object.owner_user.email %} (<a href="mailto:{{ object.owner_user.email }}">{{ object.owner_user.email }}</a>){% endif %}{% endif %}
+                        {% if object.owner_contact %}<br>{{ object.owner_contact|linebreaksbr }}{% endif %}
+                    {% elif object.owner_user or object.owner_contact %}
+                        {# Name and contact details are recorded but internal. #}
+                        {% include 'inventory/internal_chip.html' %}
+                    {% endif %}
+                </dd>
+            </div>
+            {% endif %}
+        </dl>
+
+        <div class="item-layout">
+            <div class="item-main">
+                {% if object.notes %}
+                <section class="item-panel" aria-labelledby="unique-item-notes-heading">
+                    <div class="item-panel-heading"><h2 id="unique-item-notes-heading">{% trans "Notes" %}</h2></div>
+                    <div class="item-panel-body item-description">{{ object.notes|markdown }}</div>
+                </section>
+                {% endif %}
+
+                {% if own_images or images or perms.inventory.add_itemimage and not object.is_disposed %}
+                <section class="item-panel" aria-labelledby="unique-item-photos-heading">
+                    <div class="item-panel-heading item-panel-title-row">
+                        <h2 id="unique-item-photos-heading">{% trans "Photos" %} <span class="item-count">{{ own_images|length|add:item_images_count }}</span></h2>
+                        {% if perms.inventory.add_itemimage and not object.is_disposed %}<a class="btn btn-primary item-panel-add" href="{% url 'update_unique_item' object.pk %}" data-quick-open="quick-photo-modal" data-bs-toggle="tooltip" title="{% trans 'Add photo' %}" aria-label="{% trans 'Add photo' %}"><span aria-hidden="true">+</span></a>{% endif %}
+                    </div>
+                    {% if not own_images and not images %}<p class="item-empty item-muted">{% trans "No images" %}</p>{% endif %}
+                    <div class="item-gallery" data-gallery-label="{% trans 'Photos' %}" data-close-label="{% trans 'Close photo' %}" data-previous-label="{% trans 'Previous photo' %}" data-next-label="{% trans 'Next photo' %}" data-error-message="{% trans 'Image could not be loaded.' %}" data-retry-label="{% trans 'Try again' %}" data-loading-label="{% trans 'Loading photo…' %}">
+                        {# This object's own photos come before those of its item. #}
+                        {% for image in own_images %}{% include 'inventory/unique_item_photo.html' %}{% endfor %}
+                        {% for image in images %}{% include 'inventory/unique_item_photo.html' with general=True %}{% endfor %}
+                    </div>
+                </section>
+                {% endif %}
+
+                <section class="item-panel" aria-labelledby="unique-item-about-heading">
+                    <div class="item-panel-heading">
+                        <h2 id="unique-item-about-heading">{% trans "About this item" %}</h2>
+                    </div>
+                    <div class="item-panel-body item-description">
+                        {% if object.item.description %}{{ object.item.description|markdown }}{% else %}<p class="item-muted">{% trans "No description provided." %}</p>{% endif %}
+                    </div>
+                </section>
+
+                {% include 'inventory/procurement_panel.html' with warranty_until=object.warranty_until warranty_expired=object.warranty_expired purchase_date=object.purchase_date purchase_price=object.purchase_price source=object.procurement_source date_label=_("Purchase date") price_label=_("Purchase price") %}
+                {% url 'update_unique_item' object.pk as edit_url %}
+                {% if not object.is_disposed %}{% firstof perms.inventory.add_itemfile '' as can_add_file %}{% endif %}
+                {% include 'inventory/files_panel.html' with file_count=files|length|add:general_files_count can_add=can_add_file add_fallback=edit_url %}
+            </div>
+
+            <div class="item-main">
+                {% if zid %}
+                <section class="item-panel" aria-labelledby="unique-item-label-heading">
+                    <div class="item-panel-heading">
+                        <h2 id="unique-item-label-heading">{% trans "Label" %}</h2>
+                    </div>
+                    <div class="item-panel-body">
+                        {% url 'zamid_label' zid.code as label_url %}
+                        <div class="unique-item-label">
+                            <a href="{{ label_url }}?printer={{ preview_printer }}&amp;tape={{ preview_tape }}">
+                                <img src="{{ label_url }}?printer={{ preview_printer }}&amp;tape={{ preview_tape }}"
+                                     alt="{% blocktrans with code=zid.display %}Label for {{ code }}{% endblocktrans %}">
+                            </a>
+                            <span class="unique-item-code fs-4">{{ zid.display }}</span>
+                        </div>
+                        <p class="item-muted mt-3 mb-1">{% trans "Download for printing (standard resolution, no scaling):" %}</p>
+                        <ul class="unique-item-label-downloads">
+                            {% for printer, tape in label_profiles %}
+                                <li><a href="{{ label_url }}?printer={{ printer }}&amp;tape={{ tape }}" download>PT-{{ printer }} {{ tape }} mm</a></li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                </section>
+                {% endif %}
+
+                <section class="item-panel" aria-labelledby="unique-item-history-heading">
+                    <div class="item-panel-heading"><h2 id="unique-item-history-heading">{% trans "History" %}</h2></div>
+                    <ul class="item-panel-body unique-item-history">
+                        {% for event in events %}
+                            <li>
+                                <time datetime="{{ event.created_at|date:'c' }}" class="item-muted">{{ event.created_at|date:"SHORT_DATE_FORMAT" }}</time>
+                                {{ event.get_type_display }}{% if event.type == 'moved' %}: {{ event.from_location_name }} → {{ event.to_location_name }}{% elif event.type == 'created' and event.to_location_name %}: {{ event.to_location_name }}{% elif event.type == 'disposed' and event.reason %}: {{ event.get_reason_display }}{% elif event.type == 'owner' %}: {{ event.from_owner_label }} → {{ event.to_owner_label }}{% endif %}
+                                {% if event.type == 'created' and event.has_to_owner %}<br>{% trans "Owner" %}: {{ event.to_owner_label }}{% endif %}
+                                {% if event.type == 'owner' or event.type == 'created' and event.has_to_owner %}
+                                    {% include 'inventory/unique_item_owner_event.html' %}
+                                {% endif %}
+                            </li>
+                        {% empty %}
+                            <li class="item-muted">{% trans "No history yet." %}</li>
+                        {% endfor %}
+                    </ul>
+                </section>
+            </div>
+        </div>
+    </div>
+    {% if not object.is_disposed %}
+        {% if perms.inventory.add_itemimage %}{% url 'quick_unique_item_photo' object.pk as photo_url %}{% endif %}
+        {% if perms.inventory.add_itemfile %}{% url 'quick_unique_item_file' object.pk as file_url %}{% endif %}
+        {% include 'inventory/quick_add_modals.html' with level=_("It belongs to this unique item; you can change that in the edit form.") %}
+        {% if move_form %}{% include 'inventory/unique_item_move_modal.html' %}{% endif %}
+    {% endif %}
+{% endblock %}
+
+{% block bootstrap5_extra_script %}
+    {{ block.super }}
+    <script src="{% static 'inventory/photo_lightbox.js' %}"></script>
+    <script src="{% static 'inventory/item_detail.js' %}"></script>
+    <script src="{% static 'inventory/location_detail.js' %}"></script>
+    <script src="{% static 'inventory/photo_editor.js' %}"></script>
+    <script src="{% static 'inventory/quick_add.js' %}"></script>
+    {% if move_form %}
+        <script src="{% static 'static_jquery/js/jquery.min.js' %}"></script>
+        {{ move_form.media.js }}
+        {% include 'inventory/barcode_scanner_script.html' %}
+        <script src="{% static 'inventory/unique_item_move.js' %}"></script>
+    {% endif %}
+{% endblock %}

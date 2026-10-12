@@ -116,6 +116,7 @@ class LocationType(models.Model):
 class LocationLabelTemplate(models.Model):
     class Meta:
         verbose_name = _("location label template")
+        verbose_name_plural = _("location label templates")
 
     name = models.CharField(_("name"), max_length=128)
     zpl_template = models.TextField(
@@ -191,15 +192,17 @@ class Location(SoftDeleteModel, ComputedFieldsModel):
         verbose_name = _("location")
         verbose_name_plural = _("locations")
         ordering = ("locatable_identifier",)
+        # The printable inventory is for ZAM-local members (granted by migration 0023).
+        permissions = [("print_inventory", _("Can print the inventory of locations"))]
 
-    type = models.ForeignKey(LocationType, on_delete=models.PROTECT)
+    type = models.ForeignKey(LocationType, on_delete=models.PROTECT, verbose_name=_("type"))
 
     name = models.CharField(
         max_length=128,
         validators=[
             validators.RegexValidator(
                 r"[^a-zA-Z0-9 \-()]*",
-                message="Only numbers, letters and spaces allowed.",
+                message=_("Only numbers, letters and spaces allowed."),
             )
         ],
         verbose_name=_("name"),
@@ -209,7 +212,7 @@ class Location(SoftDeleteModel, ComputedFieldsModel):
         max_length=8,
         validators=[
             validators.RegexValidator(
-                "[^a-zA-Z0-9]*", message="Only numbers and letters allowed."
+                "[^a-zA-Z0-9]*", message=_("Only numbers and letters allowed.")
             )
         ],
     )
@@ -268,6 +271,7 @@ class Location(SoftDeleteModel, ComputedFieldsModel):
     def clean(self):
         if self.is_deleted and self.pk and (
             self.children.filter(is_deleted=False).exists() or self.itemlocation_set.exists()
+            or self.unique_items.exists()
         ):
             raise ValidationError({"is_deleted": _("The location is not empty and cannot be deleted.")})
         if not self.is_deleted and self.parent_location and self.parent_location.is_deleted:
@@ -278,7 +282,7 @@ class Location(SoftDeleteModel, ComputedFieldsModel):
             cur = cur.parent_location
             if cur == self:
                 raise ValidationError(
-                    {"parent_location": "Location tree may not contain cycles."}
+                    {"parent_location": _("Location tree may not contain cycles.")}
                 )
 
         # ensure uniqueness on short_name and name per type, if type demands it
@@ -287,11 +291,11 @@ class Location(SoftDeleteModel, ComputedFieldsModel):
             unique_locs = Location.objects.exclude(pk=self.pk).filter(type__unique=True)
             if self.short_name in unique_locs.values_list("short_name", flat=True):
                 raise ValidationError(
-                    {"short_name": "Short name must be unique, as defined by type."}
+                    {"short_name": _("Short name must be unique, as defined by type.")}
                 )
             if self.short_name in unique_locs.values_list("name", flat=True):
                 raise ValidationError(
-                    {"name": "Name must be unique, as defined by type."}
+                    {"name": _("Name must be unique, as defined by type.")}
                 )
 
         # ensure uniqueness on short_name and name per parent
@@ -303,25 +307,42 @@ class Location(SoftDeleteModel, ComputedFieldsModel):
             if self.short_name in sibling_locs.values_list("short_name", flat=True):
                 raise ValidationError(
                     {
-                        "short_name": "Short name must be unique among all sibling locations."
+                        "short_name": _("Short name must be unique among all sibling locations.")
                     }
                 )
             if self.short_name in sibling_locs.values_list("name", flat=True):
                 raise ValidationError(
-                    {"name": "Name must be unique among all sibling locations."}
+                    {"name": _("Name must be unique among all sibling locations.")}
                 )
 
         # ensure that locations without a parent_location are of a unique type
         if not self.parent_location and not self.type.unique:
             raise ValidationError(
-                {"parent_location": "Non-unique locations must have a parent location."}
+                {"parent_location": _("Non-unique locations must have a parent location.")}
             )
+
+    @property
+    def ancestors(self):
+        """Parent locations from the top-level one down to the direct parent."""
+        chain, seen, parent = [], {self.pk}, self.parent_location
+        while parent is not None and parent.pk not in seen:
+            chain.append(parent)
+            seen.add(parent.pk)
+            parent = parent.parent_location
+        return chain[::-1]
+
+    @property
+    def name_with_short_name(self):
+        return f"{self.name} [{self.short_name}]"
 
     def validate_deletion(self, *, hard=False, soft_ids=(), hard_ids=()):
         children = self.children.all() if hard else self.children.filter(is_deleted=False)
         excluded = set(hard_ids) if hard else set(soft_ids) | set(hard_ids)
         if children.exclude(pk__in=excluded).exists() or self.itemlocation_set.exists():
             raise ValidationError(_("The location is not empty and cannot be deleted."))
+        # Unique items leave the inventory one by one; they are never deleted with their location.
+        if self.unique_items.exists():
+            raise ValidationError(_("Unique items are still stored here. Move them or remove them from the inventory first."))
 
     def __str__(self):
         return self.descriptive_identifier
@@ -405,13 +426,14 @@ class LocationHistory(models.Model):
     class EventType(models.TextChoices):
         OVERVIEW_UPDATED = "overview_updated", _("Overview updated")
 
-    location = models.ForeignKey(Location, on_delete=models.CASCADE, related_name="history")
-    actor = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL)
-    actor_name = models.CharField(max_length=150, blank=True)
-    created_at = models.DateTimeField(default=timezone.now, db_index=True)
-    event_type = models.CharField(max_length=40, choices=EventType.choices, default=EventType.OVERVIEW_UPDATED)
-    before = models.JSONField(default=dict)
-    after = models.JSONField(default=dict)
+    location = models.ForeignKey(Location, on_delete=models.CASCADE, related_name="history", verbose_name=_("location"))
+    actor = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL,
+                              verbose_name=_("user"))
+    actor_name = models.CharField(_("user name"), max_length=150, blank=True)
+    created_at = models.DateTimeField(_("date"), default=timezone.now, db_index=True)
+    event_type = models.CharField(_("event"), max_length=40, choices=EventType.choices, default=EventType.OVERVIEW_UPDATED)
+    before = models.JSONField(_("before"), default=dict)
+    after = models.JSONField(_("after"), default=dict)
 
     class Meta:
         ordering = ("-created_at", "-pk")

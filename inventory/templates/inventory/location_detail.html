@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% load i18n static thumbnail %}
+{% load i18n static thumbnail mytemplatetags %}
 
 {% block bootstrap5_extra_head %}
     {{ block.super }}
@@ -7,6 +7,7 @@
     <link rel="stylesheet" href="{% static 'inventory/location_detail.css' %}">
     <link rel="stylesheet" href="{% static 'inventory/location_overview.css' %}">
     <link rel="stylesheet" href="{% static 'inventory/location_quick_items.css' %}">
+    <link rel="stylesheet" href="{% static 'inventory/unique_item.css' %}">
     {% if stock_change_form %}<link rel="stylesheet" href="{% static 'inventory/stock_change.css' %}">{% endif %}
 {% endblock %}
 
@@ -17,10 +18,12 @@
     <header class="location-header">
         <nav aria-label="{% trans 'Location navigation' %}" class="location-breadcrumb">
             <a href="{% url 'index_locations' %}">{% trans "Locations" %}</a>
-            {% if object.parent_location %}
+            {% for ancestor in object.ancestors %}
                 <span aria-hidden="true">/</span>
-                <a href="{{ object.parent_location.get_absolute_url }}">{{ object.parent_location }}</a>
-            {% endif %}
+                <a href="{{ ancestor.get_absolute_url }}">{{ ancestor.name_with_short_name }}</a>
+            {% endfor %}
+            <span aria-hidden="true">/</span>
+            <a href="{{ object.get_absolute_url }}" aria-current="page">{{ object.name_with_short_name }}</a>
         </nav>
         <div class="location-heading">
             <div class="location-heading-text">
@@ -39,7 +42,9 @@
                         </span>
                     {% endif %}
                 {% endif %}
+                {% if perms.inventory.print_inventory %}
                 <a class="btn btn-outline-secondary location-print" href="{% url 'print_inventory' %}?locations={{ object.pk }}" aria-label="{% trans 'Print inventory' %}" data-bs-toggle="tooltip" title="{% trans 'Print inventory' %}"><span aria-hidden="true">🖨️</span></a>
+                {% endif %}
                 {% if perms.inventory.delete_location %}
                     <a class="btn btn-outline-danger location-print" href="{% url 'location_dissolve' pk=object.pk %}" aria-label="{% trans 'Dissolve location' %}" data-bs-toggle="tooltip" title="{% trans 'Dissolve location' %}"><span aria-hidden="true">❌</span></a>
                 {% endif %}
@@ -125,7 +130,7 @@
                                     <div class="location-item-info">
                                         <h4 class="fs-6"><a href="{{ entry.item.get_absolute_url }}">{{ entry.item }}</a></h4>
                                         {% if entry.item.description %}
-                                            <p class="location-item-description location-muted">{{ entry.item.description|truncatechars:160 }}</p>
+                                            <p class="location-item-description location-muted">{{ entry.item.description|markdown_plain|truncatechars:160 }}</p>
                                         {% endif %}
                                         {% if entry.item.sale_price != None %}
                                             <p class="location-item-price"><span class="location-muted">{% trans "Price per unit" %}:</span> {{ entry.item.sale_price|floatformat:2 }} € / {{ entry.item.measurement_unit.short }}</p>
@@ -150,6 +155,58 @@
                     {% else %}
                         <div class="location-empty">
                             <p>{% trans "No items located here." %}</p>
+                        </div>
+                    {% endif %}
+                </section>
+
+                <section class="location-stored-items" aria-labelledby="location-unique-items-heading">
+                    <div class="location-panel-heading">
+                        <div class="location-panel-title-row">
+                            <h3 id="location-unique-items-heading" class="fs-5">{% trans "Unique items" %} <span class="location-count">{{ unique_items|length }}</span></h3>
+                            {% if perms.inventory.add_uniqueitem and perms.inventory.claim_zamid %}
+                            <a class="btn btn-primary location-add-item" href="{% url 'create_unique_item' %}?location={{ object.pk }}" data-bs-toggle="tooltip" title="{% trans 'Add a unique item at this location' %}" aria-label="{% trans 'Add a unique item at this location' %}"><span aria-hidden="true">+</span></a>
+                            {% endif %}
+                        </div>
+                        <p class="location-muted">{% trans "Single objects with their own ZAM ID, such as machines or fire extinguishers." %}</p>
+                    </div>
+                    {% if unique_items %}
+                        <div class="location-item-columns" aria-hidden="true">
+                            <span>{% trans "Unique item" %}</span>
+                            <span>{% trans "Usage level" %}</span>
+                            <span>{% trans "Photos" %}</span>
+                        </div>
+                        <ul class="location-items">
+                            {% for unique_item in unique_items %}
+                                <li class="location-item">
+                                    <div class="location-item-info">
+                                        <h4 class="fs-6"><a href="{{ unique_item.get_absolute_url }}">{{ unique_item.item }} {% if unique_item.zam_code %}<span class="unique-item-code">{{ unique_item.zam_display }}</span>{% else %}#{{ unique_item.pk }}{% endif %}</a></h4>
+                                        {% if unique_item.notes %}<p class="location-item-description location-muted">{{ unique_item.notes|markdown_plain|truncatechars:160 }}</p>{% endif %}
+                                    </div>
+                                    <div class="location-amount">{% usage_level unique_item.effective_usage_level %}</div>
+                                    <div class="location-photos">
+                                        {% for image in unique_item.images.all %}
+                                            {% thumbnail image.image "160x160" as im %}
+                                                <a href="{{ image.image.url }}" class="location-photo">
+                                                    <img src="{{ im.url }}" width="80" height="80" alt="{{ image.description|default:unique_item.item }}" loading="lazy">
+                                                </a>
+                                            {% endthumbnail %}
+                                        {% endfor %}
+                                        {% for image in unique_item.item.general_images %}
+                                            {% thumbnail image.image "160x160" as im %}
+                                                <a href="{{ image.image.url }}" class="location-photo">
+                                                    <img src="{{ im.url }}" width="80" height="80" alt="{{ image.description|default:unique_item.item }}" loading="lazy">
+                                                </a>
+                                            {% endthumbnail %}
+                                        {% empty %}
+                                            {% if not unique_item.images.all %}<span class="location-muted location-no-images">{% trans "No images" %}</span>{% endif %}
+                                        {% endfor %}
+                                    </div>
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    {% else %}
+                        <div class="location-empty">
+                            <p>{% trans "No unique items located here." %}</p>
                         </div>
                     {% endif %}
                 </section>

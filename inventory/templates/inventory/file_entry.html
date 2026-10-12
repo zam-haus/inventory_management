@@ -1,0 +1,9 @@
+{% load i18n %}<li>
+    {% if file.internal and not perms.inventory.view_internal_details %}
+        {{ file.display_name }}
+    {% else %}
+        <a href="{{ file.get_absolute_url }}">{{ file.display_name }}</a>
+    {% endif %}
+    {% if file.internal %}{% include 'inventory/internal_chip.html' %}{% endif %}
+    {% if general %}<span class="unique-item-general">{% trans "general" %}</span>{% endif %}
+</li>

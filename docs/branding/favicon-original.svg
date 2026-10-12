@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:c2pa="http://c2pa.org/manifest" version="1.1" viewBox="0 0 512 512"><metadata><?xpacket begin="" id="W5M0MpCehiHzreSzNTczkc9d"?><x:xmpmeta xmlns:x="adobe:ns:meta/" x:xmptk="XMP Core 6.0.0"><rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"><rdf:Description rdf:about="" xmlns:xmp="http://ns.adobe.com/xap/1.0/" xmlns:xmpMM="http://ns.adobe.com/xap/1.0/mm/" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:dcterms="http://purl.org/dc/terms/" xmpMM:DocumentID="xmp.did:cb9f5498-bb58-4572-8043-8c369e6bfb9b" xmpMM:InstanceID="xmp.iid:cb9f5498-bb58-4572-8043-8c369e6bfb9b" dcterms:provenance="https://cai-manifests.adobe.com/manifests/urn-c2pa-2e3b98eb-c524-490e-aaf7-eefab23e67cc-adobe"> </rdf:Description></rdf:RDF></x:xmpmeta>
+<?xpacket end="w"?></metadata>
+  <!-- Generator: Adobe Illustrator 30.8.2, SVG Export Plug-In . SVG Version: 2.1.4 Build 7)  -->
+  <defs>
+    <style>
+      .st0 {
+        fill: #fff;
+      }
+
+      .st1 {
+        fill: #0eb8ef;
+      }
+
+      .st2 {
+        fill: none;
+        stroke: #141414;
+        stroke-miterlimit: 5.2;
+        stroke-width: 40px;
+      }
+    </style>
+  </defs>
+  <rect class="st1" y="0" width="512" height="512" rx="96" ry="96"/>
+  <path class="st0" d="M175,331c-44.7,0-81,36.3-81,81s36.3,81,81,81h162c44.7,0,81-36.3,81-81s-36.3-81-81-81h0v81h-162v-81Z"/>
+  <rect class="st0" x="335.8" y="20.4" width="81" height="324" transform="translate(-37.9 125.2) rotate(-18)"/>
+  <g>
+    <path class="st2" d="M256,235.8v95.2"/>
+    <path class="st2" d="M71.5,154.8h103.5"/>
+    <path class="st2" d="M142.4,83.9l-70.9,70.9,70.9,70.9"/>
+    <path class="st2" d="M185.1,259.3l70.9,70.9,70.9-70.9"/>
+    <path class="st2" d="M175,154.8c44.7,0,81,36.3,81,81"/>
+  </g>
+</svg>

@@ -5,19 +5,21 @@ from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib.auth.mixins import PermissionRequiredMixin
 from django.core.exceptions import ValidationError
 from django.db import transaction
-from django.db.models import CharField, TextField
+from django.db.models import CharField, FileField, TextField
 from django.shortcuts import redirect
 from django.urls import path, reverse
 from django.utils.decorators import method_decorator
 from django.utils.html import format_html
-from django.utils.translation import gettext_lazy as _
+from django.utils.translation import gettext_lazy as _, ngettext
 from django.views.generic import FormView
 
 from . import models
 from .forms import AdminItemLocationForm, AdminLocationForm
 from .soft_delete_admin import SoftDeleteAdminMixin
 from .stock_log import stock_changes
+from .zamid import core as zamid_core, parsing as zamid_parsing, services as zamid_services
 from .zamid.admin import ClaimOnAddMixin  # also registers ZamIdAdmin
+from .zamid.lookup import annotate_zam_code
 
 
 admin.site.register(models.LocationType)
@@ -51,8 +53,8 @@ class LocationInlineFormSet(forms.BaseInlineFormSet):
 class LocationInline(SoftDeleteAdminMixin, admin.TabularInline):
     model = models.Location
     formset = LocationInlineFormSet
-    verbose_name = "location's child"
-    verbose_name_plural = "location's children"
+    verbose_name = _("sub-location")
+    verbose_name_plural = _("sub-locations")
 
     formfield_overrides = {
         TextField: {"widget": forms.Textarea(attrs={"rows": 1, "cols": 30})},
@@ -114,10 +116,10 @@ class LocationAdmin(ClaimOnAddMixin, SoftDeleteAdminMixin, admin.ModelAdmin):
     def send_to_printer_view(self, request, object_id=None):
         try:
             models.Location.objects.get(pk=object_id).send_to_printer()
-            messages.add_message(request, messages.INFO, "Sent label to printer.")
+            messages.add_message(request, messages.INFO, _("Sent label to printer."))
         except Exception as e:
             messages.add_message(
-                request, messages.ERROR, "Failed sending label to printer: {}".format(e)
+                request, messages.ERROR, _("Failed sending label to printer: %(error)s") % {"error": e}
             )
         return redirect(
             reverse(
@@ -127,11 +129,11 @@ class LocationAdmin(ClaimOnAddMixin, SoftDeleteAdminMixin, admin.ModelAdmin):
             )
         )
 
-    @admin.action(description="Print location labels")
+    @admin.action(description=_("Print location labels"))
     def send_to_printer_action(self, request, queryset):
         self._print_labels(request, queryset, copies=1)
 
-    @admin.action(description="Print location labels twice (2x)")
+    @admin.action(description=_("Print location labels twice (2x)"))
     def send_to_printer_twice_action(self, request, queryset):
         self._print_labels(request, queryset, copies=2)
 
@@ -145,10 +147,13 @@ class LocationAdmin(ClaimOnAddMixin, SoftDeleteAdminMixin, admin.ModelAdmin):
             except Exception as error:
                 failures.append(str(error))
         if successes:
-            messages.info(request, f"Sent {successes} label(s) to printer.")
+            messages.info(request, ngettext("Sent %(count)d label to printer.", "Sent %(count)d labels to printer.",
+                                            successes) % {"count": successes})
         for error in set(failures):
             messages.error(
-                request, f"Failed sending {failures.count(error)} label(s) to printer: {error}",
+                request, ngettext("Failed sending %(count)d label to printer: %(error)s",
+                                  "Failed sending %(count)d labels to printer: %(error)s",
+                                  failures.count(error)) % {"count": failures.count(error), "error": error},
             )
 
 
@@ -157,7 +162,7 @@ admin.site.register(models.Location, LocationAdmin)
 
 class MassAddLocationsForm(forms.Form):
     parent_location = forms.ModelChoiceField(
-        label="Parent location",
+        label=_("Parent location"),
         queryset=models.Location.active.all(),
         widget=autocomplete.ModelSelect2(
             url='parent_location_autocomplete',
@@ -171,37 +176,37 @@ class MassAddLocationsForm(forms.Form):
         required=False,
     )
     location_type = forms.ModelChoiceField(
-        label="Location type", required=True, queryset=models.LocationType.objects.all()
+        label=_("Location type"), required=True, queryset=models.LocationType.objects.all()
     )
     label_template = forms.ModelChoiceField(
-        label="Overwrite default location label template",
+        label=_("Overwrite default location label template"),
         required=False,
         queryset=models.LocationLabelTemplate.objects.all(),
     )
-    sequence_start = forms.CharField(max_length=32)
-    count = forms.IntegerField()
+    sequence_start = forms.CharField(label=_("Sequence start"), max_length=32)
+    count = forms.IntegerField(label=_("Count"))
     physical_description = forms.CharField(label=_("Physical description"), required=False)
-    print = forms.BooleanField(label="print main lables", required=False)
-    print_multiple = forms.IntegerField(label="print multiple", required=False)
+    print = forms.BooleanField(label=_("Print location labels"), required=False)
+    print_multiple = forms.IntegerField(label=_("Copies per label"), required=False)
 
     sub_type = forms.ModelChoiceField(
-        label="Sub-location type",
+        label=_("Sub-location type"),
         required=False,
         queryset=models.LocationType.objects.all(),
     )
     sub_label_template = forms.ModelChoiceField(
-        label="Overwrite default sub-location label template",
+        label=_("Overwrite default sub-location label template"),
         required=False,
         queryset=models.LocationLabelTemplate.objects.all(),
     )
-    sub_count = forms.IntegerField(label="Sub-location count", required=False)
-    sub_print = forms.BooleanField(label="print sub-location labels", required=False)
+    sub_count = forms.IntegerField(label=_("Sub-location count"), required=False)
+    sub_print = forms.BooleanField(label=_("Print sub-location labels"), required=False)
 
     def clean_sub_type(self):
         sub_type = self.cleaned_data["sub_type"]
         if sub_type and sub_type.unique and self.cleaned_data["sub_count"]:
             raise ValidationError(
-                "Sub-Type must be a non-unique type, if sub-location count is >0."
+                _("The sub-location type must not be unique if sub-locations are created.")
             )
         return sub_type
 
@@ -278,7 +283,18 @@ class ItemImageInline(admin.TabularInline):
     extra = 1
     readonly_fields = ('image_tag', 'ocr_text')
 
-class ItemFileInline(admin.TabularInline):
+class DocumentInlineMixin:
+    """Files are opened through the inventory's download view; storage paths stay hidden."""
+    fields = ("description", "file", "internal", "download")
+    readonly_fields = ("download",)
+    formfield_overrides = {FileField: {"widget": forms.FileInput}}
+
+    @admin.display(description=_("file"))
+    def download(self, obj):
+        return format_html('<a href="{}">{}</a>', obj.get_absolute_url(), obj.display_name) if obj.pk else "–"
+
+
+class ItemFileInline(DocumentInlineMixin, admin.TabularInline):
     model = models.ItemFile
     extra = 0
 
@@ -324,7 +340,9 @@ class StockChangeInline(StockChangeDisplayMixin, admin.TabularInline):
 
 
 class ItemAdmin(ClaimOnAddMixin, SoftDeleteAdminMixin, admin.ModelAdmin):
-    list_display = ("name", "deleted_status")
+    list_display = ("name", "kind", "deleted_status")
+    list_filter = (*SoftDeleteAdminMixin.list_filter, "kind")
+    search_fields = ("name", "description")
     inlines = [ItemBarcodeInline, ItemImageInline, ItemFileInline, ItemLocationInline, StockChangeInline]
     formfield_overrides = {
         TextField: {"widget": forms.Textarea(attrs={"rows": 3, "cols": 60})},
@@ -379,6 +397,125 @@ class StockChangeAdmin(StockChangeDisplayMixin, admin.ModelAdmin):
         return super().get_queryset(request).select_related("item", "location", "actor")
 
     # The log is append-only; entries are created by the inventory itself.
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+
+class UniqueItemFileInline(DocumentInlineMixin, admin.TabularInline):
+    """Files of this unique item only; general ones are on the item."""
+    model = models.ItemFile
+    fk_name = "unique_item"
+    extra = 0
+
+
+class UniqueItemImageInline(admin.TabularInline):
+    """Photos of this unique item only; general ones are on the item."""
+    model = models.ItemImage
+    fk_name = "unique_item"
+    fields = ("image", "description", "is_primary")
+    extra = 0
+
+
+class UniqueItemEventInline(admin.TabularInline):
+    model = models.UniqueItemEvent
+    extra = 0
+    can_delete = False
+    fields = ("created_at", "type", "from_location_name", "to_location_name", "from_owner_name", "to_owner_name",
+              "reason", "note", "actor")
+    readonly_fields = fields
+    verbose_name_plural = _("history")
+
+    def has_add_permission(self, request, obj=None):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+
+@admin.register(models.UniqueItem)
+class UniqueItemAdmin(admin.ModelAdmin):
+    list_display = ("__str__", "zam_code_display", "location", "responsible_team", "disposed_at")
+    list_filter = ("item", "responsible_team", ("disposed_at", admin.EmptyFieldListFilter))
+    search_fields = ("item__name", "notes", "owner_first_name")
+    autocomplete_fields = ("item", "location", "responsible_user", "owner_user")
+    readonly_fields = ("zam_code_display",)
+    inlines = [UniqueItemImageInline, UniqueItemFileInline, UniqueItemEventInline]
+
+    INTERNAL_FIELDS = ("owner_user", "responsible_user", "owner_contact", "purchase_price")
+
+    def get_fieldsets(self, request, obj=None):
+        # Owner and responsible person accounts, owner contact and price are internal details.
+        if request.user.has_perm("inventory.view_internal_details"):
+            return super().get_fieldsets(request, obj)
+        return [(name, {**options, "fields": [field for field in options["fields"] if field not in self.INTERNAL_FIELDS]})
+                for name, options in super().get_fieldsets(request, obj)]
+
+    def get_readonly_fields(self, request, obj=None):
+        fields = super().get_readonly_fields(request, obj)
+        # The owner is set on creation; afterwards only with the permission (superusers have it).
+        if obj is not None and not request.user.has_perm("inventory.change_uniqueitem_owner"):
+            fields = (*fields, "owner_user", "owner_first_name", "owner_contact")
+        return fields
+    fieldsets = (
+        (None, {"fields": ("zam_code_display", "item", "location", "usage_level", "warranty_until", "notes")}),
+        (_("Responsibility"), {"fields": ("responsible_team", "responsible_user")}),
+        (_("Owner"), {"fields": ("owner_user", "owner_first_name", "owner_contact")}),
+        (_("Procurement"), {"fields": ("purchase_date", "purchase_price", "procurement_source")}),
+        (_("Removal from the inventory"), {"fields": ("disposed_at", "disposal_reason", "disposal_note")}),
+    )
+
+    def get_queryset(self, request):
+        return annotate_zam_code(super().get_queryset(request).select_related("item", "location"))
+
+    @admin.display(description=_("ZAM ID"), ordering="zam_code")
+    def zam_code_display(self, obj):
+        return obj.zam_display or "–"
+
+    @transaction.atomic
+    def save_model(self, request, obj, form, change):
+        obj.save(actor=request.user)
+        if change:
+            return
+        # Every unique item gets its ID right away: the scanned label (?zamid=) or a new one.
+        raw = request.GET.get("zamid")
+        if raw:
+            try:
+                zid = zamid_services.claim(zamid_parsing.code_from_scan(raw), obj, request.user)
+            except (zamid_core.InvalidZamId, zamid_services.ZamIdError) as error:
+                messages.warning(request, _("%(code)s could not be used (%(error)s); a new ID was generated.")
+                                 % {"code": raw, "error": error})
+                raw = None
+        if not raw:
+            zid = zamid_services.generate_and_claim(obj, request.user)
+        messages.success(request, _("The ID %(code)s now belongs to %(target)s.") % {"code": zid.display, "target": obj})
+
+    def has_delete_permission(self, request, obj=None):
+        # Unique items leave the inventory by being disposed; their history stays.
+        return False
+
+
+@admin.register(models.UniqueItemEvent)
+class UniqueItemEventAdmin(admin.ModelAdmin):
+    list_display = ("created_at", "unique_item", "type", "from_location_name", "to_location_name", "reason", "actor")
+    list_filter = ("type", "reason", "created_at")
+    date_hierarchy = "created_at"
+    search_fields = ("unique_item__item__name", "from_location_name", "to_location_name", "note", "actor__username")
+    readonly_fields = [field.name for field in models.UniqueItemEvent._meta.fields]
+    INTERNAL_FIELDS = ("from_owner_user", "from_owner_contact", "to_owner_user", "to_owner_contact")
+
+    def get_fields(self, request, obj=None):
+        # Owner accounts and contacts are internal details, as on the unique item.
+        fields = super().get_fields(request, obj)
+        if request.user.has_perm("inventory.view_internal_details"):
+            return fields
+        return [field for field in fields if field not in self.INTERNAL_FIELDS]
+
     def has_add_permission(self, request):
         return False
 

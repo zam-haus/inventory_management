@@ -1,0 +1,1 @@
+{% if level %}<span class="usage-level usage-level-{{ level }}"{% if not long %} data-bs-toggle="tooltip" title="{{ description }}"{% endif %}><span class="usage-level-symbol" aria-hidden="true">{{ symbol }}</span>{% if long %}{{ description }}{% else %}{{ label }}<span class="visually-hidden">: {{ description }}</span>{% endif %}</span>{% endif %}

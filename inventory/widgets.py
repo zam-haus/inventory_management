@@ -1,5 +1,6 @@
 """Form widgets for the frontend."""
 from dal import autocomplete
+from django.utils.translation import gettext
 
 
 class AutocompleteSelect(autocomplete.ModelSelect2):
@@ -21,3 +22,23 @@ class AutocompleteSelect(autocomplete.ModelSelect2):
         if "form-select" not in classes:
             attrs["class"] = " ".join([*classes, "form-select"])
         super().__init__(url, forward, *args, attrs=attrs, **kwargs)
+
+
+NEW_ITEM_PREFIX = "new:"
+
+
+class ItemOrNewSelect(AutocompleteSelect):
+    """
+    Item autocomplete whose value may also be "new:<name>": an item that is only
+    created when the form is saved (see forms.ItemOrNewField).
+    """
+
+    def filter_choices_to_render(self, selected_choices):
+        super().filter_choices_to_render([c for c in selected_choices if not c.startswith(NEW_ITEM_PREFIX)])
+
+    def optgroups(self, name, value, attrs=None):
+        groups = super().optgroups(name, value, attrs)
+        for new in [str(v) for v in value if v and str(v).startswith(NEW_ITEM_PREFIX)]:
+            label = gettext("New item “%(name)s”") % {"name": new[len(NEW_ITEM_PREFIX):]}
+            groups.append((None, [self.create_option(name, new, label, True, len(groups))], len(groups)))
+        return groups

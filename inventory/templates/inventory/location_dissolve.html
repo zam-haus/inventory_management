@@ -16,6 +16,21 @@
             </form>
         </div>
     </section>
+    {% if blocking_unique_items %}
+        <section class="alert alert-warning" role="alert" aria-labelledby="blocking-unique-items-heading">
+            <h2 id="blocking-unique-items-heading" class="h5">{% trans "Unique items must be handled one by one first" %}</h2>
+            <p>{% trans "Unique items are never dissolved together with their location. Move each one elsewhere or remove it from the inventory, then dissolve this location." %}</p>
+            <ul class="mb-0">
+                {% for unique_item in blocking_unique_items %}
+                    <li>
+                        <a href="{{ unique_item.get_absolute_url }}">{{ unique_item }}</a>
+                        {% if perms.inventory.change_uniqueitem %} · <a href="{% url 'update_unique_item' unique_item.pk %}">{% trans "Move" %}</a>{% endif %}
+                        {% if perms.inventory.dispose_uniqueitem %} · <a href="{% url 'dispose_unique_item' unique_item.pk %}">{% trans "Remove from inventory" %}</a>{% endif %}
+                    </li>
+                {% endfor %}
+            </ul>
+        </section>
+    {% endif %}
     <form method="post" id="dissolve-plan" novalidate>
         {% csrf_token %}
         <input type="hidden" name="recursive" value="{% if recursive %}1{% else %}0{% endif %}">
@@ -62,7 +77,7 @@
             <p>{% trans "This location is already empty. Continue to review its deletion." %}</p>
         {% endif %}
         <div class="location-actions mt-3">
-            <button class="btn btn-primary" type="submit" name="stage" value="review">{% trans "Review moves and deletions" %}</button>
+            <button class="btn btn-primary" type="submit" name="stage" value="review" {% if blocking_unique_items %}disabled{% endif %}>{% trans "Review moves and deletions" %}</button>
         </div>
     </form>
 {% endblock %}

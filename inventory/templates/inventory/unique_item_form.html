@@ -1,0 +1,30 @@
+{% extends 'base.html' %}
+{% load i18n static crispy_forms_tags %}
+
+{% block title %}{{ title }}{% if object %}: {{ object }}{% endif %}{% endblock %}
+{% block admin_url %}{% if object %}{% url 'admin:inventory_uniqueitem_change' object.pk %}{% else %}{% url 'admin:inventory_uniqueitem_add' %}{% endif %}{% endblock %}
+
+{% block content %}
+<form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    {% crispy form %}
+    {% include 'inventory/inline_formsets.html' %}
+    <button type="submit" class="btn btn-primary mb-3">{% trans "Save" %}</button>
+    {% if object %}<a class="btn btn-outline-secondary mb-3" href="{{ object.get_absolute_url }}">{% trans "Cancel" %}</a>{% endif %}
+</form>
+{% endblock %}
+
+{% block bootstrap5_extra_head %}
+    {{ block.super }}
+    {{ form.media.css }}
+    <link rel="stylesheet" href="{% static 'inventory/media_gallery.css' %}">
+{% endblock %}
+
+{% block bootstrap5_extra_script %}
+    {{ block.super }}
+    <script src="{% static 'static_jquery/js/jquery.min.js' %}"></script>
+    {{ form.media.js }}
+    <script src="{% static 'inventory/unique_item_form.js' %}"></script>
+    <script src="{% static 'inventory/photo_editor.js' %}"></script>
+    <script src="{% static 'inventory/media_gallery.js' %}"></script>
+{% endblock %}

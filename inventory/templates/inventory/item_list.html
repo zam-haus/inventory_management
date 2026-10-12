@@ -10,36 +10,27 @@
 {% endblock %}
 
 {% block content %}
-<div class='row'>
-    <div class='col'>
+<div class="row g-2 mb-3 align-items-center">
+    <div class="col">
         <form method="get">
-        <div class="input-group mb-3">
+        <div class="input-group">
             <span class="input-group-text" id="basic-addon1">🔎</span>
-            <input type="text" class="form-control" aria-label="Username" aria-describedby="basic-addon1" name="q" value="{{ request.GET.q }}">
+            <input type="text" class="form-control" aria-label="{% trans 'Search' %}" aria-describedby="basic-addon1" name="q" value="{{ request.GET.q }}">
         </div>
         </form>
     </div>
-    {% if incomplete_count and perms.inventory.change_item %}
-        <div class='col-3'>
-            <a href="{% url "annotate_item" incomplete_first_pk %}">Help annotate incomplete item descriptions ({{ incomplete_count }})</a>
-        </div>
+    {% if perms.inventory.add_item %}
+    <div class="col-auto">
+        <a href="{% url 'create_item' %}" class="btn btn-primary">{% trans "Create New Item" %}</a>
+    </div>
     {% endif %}
 </div>
-{% if perms.inventory.add_item %}
-<div class="row mb-3">
-    <div class="col">
-        <a href="{% url 'create_item' %}" class="btn btn-primary">
-            {% trans "Create New Item" %}
-        </a>
-    </div>
-</div>
-{% endif %}
 <table class="table table-striped" data-lightbox-gallery-label="{% trans 'Photos' %}" data-lightbox-close-label="{% trans 'Close photo' %}" data-lightbox-previous-label="{% trans 'Previous photo' %}" data-lightbox-next-label="{% trans 'Next photo' %}" data-lightbox-error-message="{% trans 'Image could not be loaded.' %}" data-lightbox-retry-label="{% trans 'Try again' %}" data-lightbox-loading-label="{% trans 'Loading photo…' %}">
     <thead><tr>
-        <th scope="col">{% trans "Name" %}</td>
-        <th scope="col">{% trans "Category" %}</td>
-        <th scope="col">{% trans "Photos" %}</td>
-        <th scope="col">{% trans "Locations" %}</td>
+        <th scope="col">{% trans "Name" %}</th>
+        <th scope="col">{% trans "Category" %}</th>
+        <th scope="col">{% trans "Photos" %}</th>
+        <th scope="col">{% trans "Locations" %}</th>
     </tr></thead>
     <tbody>
     {% for object in page_obj %}
@@ -48,16 +39,22 @@
             <a href="{{ object.get_absolute_url }}">
             {{ object }}
             </a>
+        </th>
+        <td>
+            {% if object.category %}{{ object.category }}{% endif %}
         </td>
         <td>
-            {% if object.category %}
-            <a href="{{ object.category.get_absolute_url }}">
-            {{ object.category }}
-            {% endif %}
-            </a>
-        </td>
-        <td>
-            {% for image in object.itemimage_set.all %}
+            {# The item's general photos first, then those of its unique items. #}
+            {% for image in object.general_images %}
+                {% thumbnail image.image "200x200" as im %}
+                    {% spaceless %}
+                        <a class="img-link" href="{{ image.image.url }}">
+                            <img src="{{ im.url }}" class="img-thumbnail img-fluid" style="max-width: 100px;" alt="{{ image.description }}" data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-original-title="{{ image.description }}">
+                        </a>
+                    {% endspaceless %}
+                {% endthumbnail %}
+            {% endfor %}
+            {% for image in object.unique_item_images %}
                 {% thumbnail image.image "200x200" as im %}
                     {% spaceless %}
                         <a class="img-link" href="{{ image.image.url }}">
@@ -68,12 +65,16 @@
             {% endfor %}
         </td>
         <td>
+            {% for unique_item in object.active_unique_items %}
+                <a href="{{ unique_item.get_absolute_url }}">{% if unique_item.zam_code %}{{ unique_item.zam_display }}{% else %}#{{ unique_item.pk }}{% endif %}</a>
+                @ <a href="{{ unique_item.location.get_absolute_url }}" title="{{ unique_item.location.descriptive_identifier }}">{{ unique_item.location.locatable_identifier }}</a><br>
+            {% endfor %}
             {% for itemloc in object.itemlocation_set.all %}
-                <a href="{{ itemloc.location.get_absolute_url }}">
+                <a href="{{ itemloc.location.get_absolute_url }}" title="{{ itemloc.location.descriptive_identifier }}">
                 {{ itemloc }}
                 </a><br>
             {% endfor %}
-        </a></td>
+        </td>
         </tr>
     {% endfor %}
     </tbody>
@@ -82,17 +83,17 @@
 <div class="pagination">
     <span class="step-links">
         {% if page_obj.has_previous %}
-            <a href="?{% url_replace request 'page' 1 %}">&laquo; first</a>
-            <a href="?{% url_replace request 'page' page_obj.previous_page_number %}">previous</a>
+            <a href="?{% url_replace request 'page' 1 %}">&laquo; {% trans "first" %}</a>
+            <a href="?{% url_replace request 'page' page_obj.previous_page_number %}">{% trans "previous" %}</a>
         {% endif %}
 
         <span class="current">
-            Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}.
+            {% blocktrans with number=page_obj.number pages=page_obj.paginator.num_pages %}Page {{ number }} of {{ pages }}.{% endblocktrans %}
         </span>
 
         {% if page_obj.has_next %}
-            <a href="?{% url_replace request 'page' page_obj.next_page_number %}">next</a>
-            <a href="?{% url_replace request 'page' page_obj.paginator.num_pages %}">last &raquo;</a>
+            <a href="?{% url_replace request 'page' page_obj.next_page_number %}">{% trans "next" %}</a>
+            <a href="?{% url_replace request 'page' page_obj.paginator.num_pages %}">{% trans "last" %} &raquo;</a>
         {% endif %}
     </span>
 </div>

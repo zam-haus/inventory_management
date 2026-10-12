@@ -12,32 +12,12 @@
 {% endblock %}
 
 {% block pre_container %}
-<param id="placeholder_path" value="{% static 'inventory/placeholder.svg' %}" />
 <div id="item-barcode-scanner" hidden
      data-button-label="{% trans 'Scan barcode' %}"
      data-title="{% trans 'Scan EAN barcodes' %}"
      data-hint="{% trans 'Hold the EAN barcode of the product in front of the camera. Every scanned code is added to the barcode field.' %}"
      data-added="{% blocktrans with code='{code}' %}Added: {{ code }}{% endblocktrans %}"
      data-duplicate="{% blocktrans with code='{code}' %}Already in the list: {{ code }}{% endblocktrans %}"></div>
-<div class="modal fade" id="camera_modal" tabindex="-1" aria-labelledby="cameraModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="cameraModalLabel">Take a photo</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <video id="camera_video" autoplay muted playsinline hidden></video>
-                <canvas id="camera_present_canvas" width="100%"></canvas>
-                <canvas id="camera_capture_canvas" hidden></canvas>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                <button type="button" class="btn btn-primary" id="camera_click_photo">Take photo</button>
-            </div>
-        </div>
-    </div>
-</div>
 {% endblock %}
 
 {% if form.instance.id %}
@@ -54,45 +34,37 @@
     {% load crispy_forms_tags %}
     {% crispy form %}
 
-    {% for inline in inlines %}
-    <div class="mb-3">
-        <legend>{{ inline.helper.form_title }}</legend>
-        {% crispy inline %}
-        {% if inline.prefix == 'itemimage_set' and perms.inventory.add_itemimage %}
-        <button id="add_image_button" type="button" class="btn btn-primary">{% trans 'Add additional image' %}</button>
-        {% endif %}
-    </div>
-    {% endfor %}
+    {% include 'inventory/inline_formsets.html' %}
 
     <input type="submit" name="save" value="{% trans 'Save' %}" class="btn btn-primary mb-3">
-    {% if request.GET and request.GET.location_id %}
-    <input type="submit" name="save_and_mark" value="{% translate "Save and mark location finished" %}" class="btn btn-primary mb-3">
+    {% if request.GET.location_id and not form.instance.pk %}
+    <input type="submit" name="save_and_mark" value="{% translate "Save and mark location finished" %}" class="btn btn-primary mb-3" data-for-kind="bulk">
     {% endif %}
 </form>
 {% endblock %}
 
 {% block bootstrap5_extra_head %}
     {{ block.super }}
-    {{ form.media.css }}
-    {% for inline in inlines %}{{ inline.media.css }}{% endfor %}
+    {{ page_media.css }}
+    <link rel="stylesheet" href="{% static 'inventory/media_gallery.css' %}">
 {% endblock %}
 
 {% block bootstrap5_extra_script %}
     {{ block.super }}
     <script type="text/javascript" src="{% static 'static_jquery/js/jquery.min.js' %}"></script>
-    {{ form.media.js }}
-    {% for inline in inlines %}{{ inline.media.js }}{% endfor %}
+    {{ page_media.js }}
 
-<script type="text/javascript" src="{% static 'inventory/camera.js' %}"></script>
 <script type="text/javascript" src="{% static 'inventory/autocomplete.js' %}"></script>
 <script type="text/javascript" src="{% static 'inventory/autocomplete_custom.js' %}"></script>
-<script type="text/javascript" src="{% static 'inventory/add_image_input.js' %}"></script>
+<script type="text/javascript" src="{% static 'inventory/photo_editor.js' %}"></script>
+<script type="text/javascript" src="{% static 'inventory/media_gallery.js' %}"></script>
+<script type="text/javascript" src="{% static 'inventory/unique_item_form.js' %}"></script>
 {% include 'inventory/barcode_scanner_script.html' %}
 <script type="text/javascript" src="{% static 'inventory/item_barcode_scanner.js' %}"></script>
 <link rel="stylesheet" type="text/css" href="{% static 'inventory/barcode_scanner.css' %}" />
-<script type="text/javascript" src="{% static 'inventory/show_measurement_unit_after_amount.js' %}"></script>
+{% if kind != 'unique' or not form.instance.pk %}<script type="text/javascript" src="{% static 'inventory/show_measurement_unit_after_amount.js' %}"></script>{% endif %}
+{% if not form.instance.pk %}<script type="text/javascript" src="{% static 'inventory/item_kind_switch.js' %}"></script>{% endif %}
 <style type="text/css">
-    .itemimage_set_item div.mb-3,
     .item-location-group div.mb-3
     {
         margin-bottom: 0.5rem !important;

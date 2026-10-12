@@ -1,4 +1,4 @@
-{% load i18n %}
+{% load mytemplatetags i18n %}
 {% get_current_language as language_code %}
 <!doctype html>
 <html lang="{{ language_code }}">
@@ -6,6 +6,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{% trans "Printable inventory" %}</title>
+    {% include 'favicon.html' %}
     <style>
         body { font: 14px/1.45 sans-serif; color: #111; margin: 2rem auto; padding: 0 1rem; max-width: 1100px; }
         a { color: #174d85; }
@@ -55,6 +56,7 @@
             </div>
         {% else %}
             <form method="get">
+                {% if query and not form.is_bound %}<p>{% blocktrans count counter=form.initial.locations|length %}{{ counter }} location found by the search “{{ query }}” is preselected.{% plural %}{{ counter }} locations found by the search “{{ query }}” are preselected.{% endblocktrans %}</p>{% endif %}
                 {{ form.as_p }}
                 <p>{% trans "Hold Ctrl (Windows/Linux) or Command (Mac) to select multiple locations." %}</p>
                 <button type="submit">{% trans "Show inventory" %}</button>
@@ -91,7 +93,7 @@
                             {% endwith %}
                         </div>
                         {% if entry.item.description %}
-                            <div class="description">{{ entry.item.description|linebreaksbr }}</div>
+                            <div class="description">{{ entry.item.description|markdown }}</div>
                         {% endif %}
                         {% for image in entry.item.itemimage_set.all %}
                             {% if image.image %}
@@ -107,6 +109,27 @@
         {% empty %}
             <p>{% if include_children %}{% trans "No items in the selected locations or their child locations." %}{% else %}{% trans "No items in the selected locations." %}{% endif %}</p>
         {% endfor %}
+        {% if unique_items %}
+            {% regroup unique_items by location as unique_item_groups %}
+            {% for group in unique_item_groups %}
+                <section>
+                    <div class="location-heading">
+                        <h2>{% trans "Unique items" %} @ {{ group.grouper.unique_identifier }}</h2>
+                        <p>{{ group.grouper.descriptive_identifier }}</p>
+                    </div>
+                    {% for unique_item in group.list %}
+                        <article class="item">
+                            <h3>{{ unique_item.item }}</h3>
+                            <div class="facts">
+                                <span><strong>{% trans "ZAM ID" %}:</strong> {% if unique_item.zam_code %}{{ unique_item.zam_display }}{% else %}–{% endif %}</span>
+                                <span><strong>{% trans "Location identifier" %}:</strong> {{ unique_item.location.unique_identifier }}</span>
+                                {% if unique_item.effective_usage_level %}<span><strong>{% trans "Usage level" %}:</strong> {{ unique_item.get_effective_usage_level_display }}</span>{% endif %}
+                            </div>
+                        </article>
+                    {% endfor %}
+                </section>
+            {% endfor %}
+        {% endif %}
     {% else %}
         <p>{% trans "Select locations above to generate a printable inventory." %}</p>
     {% endif %}

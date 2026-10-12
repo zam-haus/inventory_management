@@ -8,7 +8,7 @@
     <nav class="navbar navbar-expand-sm navbar-dark bg-dark">
       <div class="container-fluid">
         <a class="navbar-brand" href="{% url 'index' %}">ZAM inventory</a>
-        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNavAltMarkup" aria-controls="navbarNavAltMarkup" aria-expanded="false" aria-label="Toggle navigation">
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNavAltMarkup" aria-controls="navbarNavAltMarkup" aria-expanded="false" aria-label="{% trans 'Toggle navigation' %}">
           <span class="navbar-toggler-icon"></span>
         </button>
         <div class="collapse navbar-collapse" id="navbarNavAltMarkup">
@@ -49,9 +49,9 @@
 
     <div class="container mt-3">
       {% block item_nav %}{% endblock %}
-      {% block page_header %}<h1>{% block title %}(no title){% endblock %}</h1>{% endblock %}
+      {% block page_header %}<h1>{% block title %}{% trans "(no title)" %}{% endblock %}</h1>{% endblock %}
       {% autoescape off %}{% bootstrap_messages %}{% endautoescape %}
-      {% block content %}(no content){% endblock %}
+      {% block content %}{% trans "(no content)" %}{% endblock %}
     </div>
 
 {% endblock %}

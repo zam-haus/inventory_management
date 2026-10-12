@@ -17,3 +17,5 @@ sorl-thumbnail
 django-autocomplete-light>=3.12.1
 django-static-jquery
 segno
+markdown
+nh3

@@ -19,6 +19,7 @@ from ..actor import current_actor
 from ..zamid import core
 from ..zamid.fields import ZamIdField
 from ..zamid.targets import FK_TARGET_FIELDS, TARGET_FIELDS
+from .unique_item import UniqueItem
 from .item import Item
 from .location import Location
 
@@ -67,6 +68,8 @@ class ZamId(models.Model):
                              related_name="zam_ids", verbose_name=_("item"))
     location = models.ForeignKey("Location", on_delete=models.SET_NULL, null=True, blank=True,
                                  related_name="zam_ids", verbose_name=_("location"))
+    unique_item = models.ForeignKey("UniqueItem", on_delete=models.SET_NULL, null=True, blank=True,
+                              related_name="zam_ids", verbose_name=_("unique item"))
     url = models.URLField(_("URL"), max_length=2000, null=True, blank=True)
     batch = models.CharField(_("batch"), max_length=64, blank=True, db_index=True,
                              help_text=_("Label batch or print run."))
@@ -90,7 +93,7 @@ class ZamId(models.Model):
         ordering = ["-created_at", "code"]
         default_permissions = ("view", "change")
         permissions = [
-            ("claim_zamid", _("Can claim a ZAM ID for an item or location")),
+            ("claim_zamid", _("Can claim a ZAM ID for an item, location or unique item")),
             ("generate_zamid", _("Can generate ZAM IDs")),
             ("retire_zamid", _("Can retire ZAM IDs")),
             ("assign_url_zamid", _("Can link a ZAM ID to an arbitrary URL")),
@@ -205,6 +208,7 @@ class ZamId(models.Model):
 
 @receiver(pre_delete, sender=Item)
 @receiver(pre_delete, sender=Location)
+@receiver(pre_delete, sender=UniqueItem)
 def retire_ids_of_deleted_target(sender, instance, using, **kwargs):
     # Soft deletion sends no signal: the ID stays assigned and resolves to a "deleted" page.
     ZamId.release_deleted_target(instance, using)

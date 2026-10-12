@@ -1,0 +1,21 @@
+{% load i18n %}
+{% if purchase_date or source or warranty_until or purchase_price != None %}
+<section class="item-panel" aria-labelledby="procurement-heading">
+    <div class="item-panel-heading">
+        <h2 id="procurement-heading">{% trans "Procurement" %}</h2>
+    </div>
+    <dl class="item-panel-body unique-item-facts">
+        {% if purchase_date %}<dt>{{ date_label }}</dt><dd>{{ purchase_date|date:"SHORT_DATE_FORMAT" }}</dd>{% endif %}
+        {% if purchase_price != None %}
+            {# Internal: others see that a price is recorded, not the price. #}
+            <dt>{{ price_label }}</dt>
+            <dd>{% if perms.inventory.view_internal_details %}{{ purchase_price|floatformat:2 }} € {% endif %}{% include 'inventory/internal_chip.html' %}</dd>
+        {% endif %}
+        {% if warranty_until %}
+            <dt>{% trans "Warranty until" %}</dt>
+            <dd>{{ warranty_until|date:"SHORT_DATE_FORMAT" }}{% if warranty_expired %} <span class="item-muted">({% trans "expired" %})</span>{% endif %}</dd>
+        {% endif %}
+        {% if source %}<dt>{% trans "Procurement source" %}</dt><dd>{{ source|linebreaksbr }}</dd>{% endif %}
+    </dl>
+</section>
+{% endif %}

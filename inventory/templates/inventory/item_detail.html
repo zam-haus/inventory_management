@@ -1,10 +1,12 @@
 {% extends 'base.html' %}
-{% load i18n static thumbnail %}
+{% load i18n static thumbnail mytemplatetags %}
 
 {% block bootstrap5_extra_head %}
     {{ block.super }}
     <link rel="stylesheet" href="{% static 'inventory/photo_lightbox.css' %}">
     <link rel="stylesheet" href="{% static 'inventory/item_detail.css' %}">
+    <link rel="stylesheet" href="{% static 'inventory/unique_item.css' %}">
+    <link rel="stylesheet" href="{% static 'inventory/media_gallery.css' %}">
     {% if stock_change_form %}<link rel="stylesheet" href="{% static 'inventory/stock_change.css' %}">{% endif %}
 {% endblock %}
 
@@ -18,7 +20,7 @@
         </nav>
         <div class="item-heading">
             <div class="item-heading-text">
-                <p class="item-eyebrow">{% trans "Item" %}{% if object.category %} · {{ object.category }}{% endif %}</p>
+                <p class="item-eyebrow">{% if object.tracks_unique_items %}{% trans "Item with unique items" %}{% else %}{% trans "Bulk item" %}{% endif %}{% if object.category %} · {{ object.category }}{% endif %}</p>
                 <h1>{{ object }}</h1>
             </div>
             <div class="item-actions">
@@ -31,9 +33,21 @@
 {% endblock %}
 
 {% block content %}
-    {% with images=object.itemimage_set.all %}
+    {% with images=object.general_images %}
     <div class="item-detail">
         <dl class="item-overview">
+            {% if object.tracks_unique_items %}
+            {% if object.usage_level %}
+            <div>
+                <dt>{% trans "Usage level" %}</dt>
+                <dd>{% usage_level object.usage_level long=True %}</dd>
+            </div>
+            {% endif %}
+            <div>
+                <dt>{% trans "Unique items" %}</dt>
+                <dd><a href="#item-unique-items-heading">{{ unique_items|length }}</a></dd>
+            </div>
+            {% else %}
             <div>
                 <dt>{% trans "Price per unit" %}</dt>
                 <dd class="item-unit-price">{% if object.sale_price != None %}{{ object.sale_price|floatformat:2 }} € / {{ object.measurement_unit.short }}{% else %}<span class="item-muted">{% trans "No price specified" %}</span>{% endif %}</dd>
@@ -43,9 +57,14 @@
                 <dd>{{ object.measurement_unit }}</dd>
             </div>
             <div>
+                <dt>{% trans "For sale" %}</dt>
+                <dd>{% if object.for_sale %}{% trans "Yes" %}{% elif object.for_sale == False %}{% trans "No" %}{% else %}<span class="item-muted">{% trans "Not decided yet" %}</span>{% endif %}</dd>
+            </div>
+            <div>
                 <dt>{% trans "Locations" %}</dt>
                 <dd><a href="#item-locations-heading">{{ entries|length }}</a></dd>
             </div>
+            {% endif %}
         </dl>
 
         <div class="item-layout">
@@ -56,7 +75,7 @@
                     </div>
                     <div class="item-panel-body item-description">
                         {% if object.description %}
-                            {{ object.description|linebreaksbr }}
+                            {{ object.description|markdown }}
                         {% else %}
                             <p class="item-muted">{% trans "No description provided." %}</p>
                         {% endif %}
@@ -65,7 +84,10 @@
 
                 <section class="item-panel" aria-labelledby="item-photos-heading">
                     <div class="item-panel-heading">
-                        <h2 id="item-photos-heading">{% trans "Photos" %} <span class="item-count">{{ images|length }}</span></h2>
+                        <div class="item-panel-title-row">
+                            <h2 id="item-photos-heading">{% trans "Photos" %} <span class="item-count">{{ images|length }}</span></h2>
+                            {% if perms.inventory.add_itemimage %}<a class="btn btn-primary item-panel-add" href="{% url 'update_item' object.pk %}" data-quick-open="quick-photo-modal" data-bs-toggle="tooltip" title="{% trans 'Add photo' %}" aria-label="{% trans 'Add photo' %}"><span aria-hidden="true">+</span></a>{% endif %}
+                        </div>
                         {% if images %}<p class="item-muted">{% trans "Click a photo to enlarge it; click again to close. Use arrow keys or swipe to browse." %}</p>{% endif %}
                     </div>
                     {% if images %}
@@ -105,8 +127,42 @@
                         <div class="item-empty item-muted">{% trans "No images" %}</div>
                     {% endif %}
                 </section>
+
+                {% include 'inventory/procurement_panel.html' with purchase_date=object.last_purchase_date purchase_price=object.last_purchase_price source=object.procurement_source date_label=_("Last purchase date") price_label=_("Last purchase price") %}
+                {% url 'update_item' object.pk as edit_url %}
+                {% include 'inventory/files_panel.html' with can_add=perms.inventory.add_itemfile add_fallback=edit_url %}
             </div>
 
+            {% if object.tracks_unique_items %}
+            <section class="item-panel" aria-labelledby="item-unique-items-heading">
+                <div class="item-panel-heading">
+                    <div class="item-panel-title-row">
+                        <h2 id="item-unique-items-heading">{% trans "Unique items" %} <span class="item-count">{{ unique_items|length }}</span></h2>
+                        {% if perms.inventory.add_uniqueitem and perms.inventory.claim_zamid %}
+                        <a class="btn btn-primary item-panel-add" href="{% url 'create_unique_item' %}?item={{ object.pk }}" data-bs-toggle="tooltip" title="{% trans 'Add unique item' %}" aria-label="{% trans 'Add unique item' %}"><span aria-hidden="true">+</span></a>
+                        {% endif %}
+                    </div>
+                    <p class="item-muted">{% trans "Each unique item is a single object with its own ZAM ID." %}{% if disposed_count %} {% blocktrans count counter=disposed_count %}{{ counter }} unique item has been removed from the inventory.{% plural %}{{ counter }} unique items have been removed from the inventory.{% endblocktrans %}{% endif %}</p>
+                </div>
+                <ul class="item-locations">
+                    {% for unique_item in unique_items %}
+                        <li>
+                            <div class="item-location-heading">
+                                <h3><a href="{{ unique_item.get_absolute_url }}">{% if unique_item.zam_code %}<span class="unique-item-code">{{ unique_item.zam_display }}</span>{% else %}#{{ unique_item.pk }}{% endif %}</a></h3>
+                                {# The item's briefing requirement applies, unless this one sets a different one. #}
+                                {% if unique_item.usage_level and unique_item.usage_level != object.usage_level %}
+                                    <span class="unique-item-differs"><span class="item-muted">{% trans "differs" %}</span> {% usage_level unique_item.usage_level %}</span>
+                                {% endif %}
+                            </div>
+                            <p class="item-location-path item-muted"><a href="{{ unique_item.location.get_absolute_url }}">{{ unique_item.location.descriptive_identifier }}</a></p>
+                            {% if unique_item.responsible_team %}<p class="item-location-path item-muted">{% trans "Responsible team" %}: {{ unique_item.responsible_team }}</p>{% endif %}
+                        </li>
+                    {% empty %}
+                        <li class="item-empty item-muted">{% trans "None of its unique items are in the inventory." %}</li>
+                    {% endfor %}
+                </ul>
+            </section>
+            {% else %}
             <section class="item-panel" aria-labelledby="item-locations-heading">
                 <div class="item-panel-heading">
                     <h2 id="item-locations-heading">{% trans "Locations" %} <span class="item-count">{{ entries|length }}</span></h2>
@@ -137,10 +193,14 @@
                     {% endfor %}
                 </ul>
             </section>
+            {% endif %}
         </div>
     </div>
     {% endwith %}
     {% if stock_change_form %}{% include 'inventory/stock_change_dialog.html' %}{% endif %}
+    {% if perms.inventory.add_itemimage %}{% url 'quick_item_photo' object.pk as photo_url %}{% endif %}
+    {% if perms.inventory.add_itemfile %}{% url 'quick_item_file' object.pk as file_url %}{% endif %}
+    {% include 'inventory/quick_add_modals.html' with level=_("It belongs to the item in general.") %}
 {% endblock %}
 
 {% block bootstrap5_extra_script %}
@@ -148,5 +208,7 @@
     <script src="{% static 'inventory/location_detail.js' %}"></script>
     <script src="{% static 'inventory/photo_lightbox.js' %}"></script>
     <script src="{% static 'inventory/item_detail.js' %}"></script>
+    <script src="{% static 'inventory/photo_editor.js' %}"></script>
+    <script src="{% static 'inventory/quick_add.js' %}"></script>
     {% if stock_change_form %}<script src="{% static 'inventory/stock_change.js' %}"></script>{% endif %}
 {% endblock %}

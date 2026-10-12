@@ -3,7 +3,7 @@ from django.conf.urls.static import static
 from django.urls import include, path
 from django.views.generic.base import TemplateView
 
-from . import views
+from . import attachment_views, unique_item_views, views
 from .dissolve_views import DissolveLocationView
 from .location_overview_views import LocationHistoryView, LocationOverviewUpdateView
 from .quick_item_views import QuickItemCreateView, QuickItemDeleteView, QuickItemUpdateView
@@ -45,8 +45,23 @@ urlpatterns = [
     path("item/create", views.CreateItemView.as_view(), name="create_item"),
     path("item/", views.SearchableItemListView.as_view(), name="index_items"),
     path("item/<int:pk>", views.DetailItemView.as_view(), name="view_item"),
-    path("item/<int:pk>/annotate", views.AnnotateItemView.as_view(), name="annotate_item"),
     path("item/<int:pk>/update", views.UpdateItemView.as_view(), name="update_item"),
+    path("item/file/<int:pk>", views.ItemDocumentView.as_view(), name="item_file"),
+    path("item/<int:pk>/photos/add", attachment_views.QuickPhotoView.as_view(), name="quick_item_photo"),
+    path("item/<int:pk>/files/add", attachment_views.QuickFileView.as_view(), name="quick_item_file"),
+    path("item/unique/<int:pk>/photos/add", attachment_views.QuickPhotoView.as_view(unique=True), name="quick_unique_item_photo"),
+    path("item/unique/<int:pk>/files/add", attachment_views.QuickFileView.as_view(unique=True), name="quick_unique_item_file"),
+    path("item/unique/<int:pk>/move", attachment_views.MoveUniqueItemView.as_view(), name="move_unique_item"),
+    path("loc/lookup", attachment_views.location_lookup, name="location_lookup"),
+    path("item/unique/create", unique_item_views.CreateUniqueItemView.as_view(), name="create_unique_item"),
+    path("item/unique/<int:pk>", unique_item_views.DetailUniqueItemView.as_view(), name="view_unique_item"),
+    path("item/unique/<int:pk>/update", unique_item_views.UpdateUniqueItemView.as_view(), name="update_unique_item"),
+    path("item/unique/<int:pk>/dispose", unique_item_views.DisposeUniqueItemView.as_view(), name="dispose_unique_item"),
+    path("item/unique/item-autocomplete/", unique_item_views.UniqueKindItemAutocomplete.as_view(),
+         name="unique_kind_item_autocomplete"),
+    path("item/unique/without-id-autocomplete/", unique_item_views.UniqueItemWithoutIdAutocomplete.as_view(),
+         name="unique_item_without_id_autocomplete"),
+    path("user-autocomplete/", unique_item_views.UserAutocomplete.as_view(), name="user_autocomplete"),
     path("category/<int:pk>.json", views.category_json, name="category_json"),
     path("parent_location_autocomplete", views.ParentLocationAutocompleteView.as_view(), name="parent_location_autocomplete"),
 

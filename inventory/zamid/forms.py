@@ -2,8 +2,9 @@ from django import forms
 from django.utils.translation import gettext_lazy as _
 
 
-from ..models import Item, Location
-from ..widgets import AutocompleteSelect
+from ..forms import ItemOrNewField, NewItemAlongsideMixin
+from ..models import Item, Location, UniqueItem
+from ..widgets import AutocompleteSelect, ItemOrNewSelect
 from . import labels
 from .services import MAX_BATCH
 
@@ -24,6 +25,34 @@ class ClaimLocationForm(forms.Form):
         label=_("Existing location"), queryset=Location.active.all(),
         widget=_select2("location-autocomplete", _("Search for a location…")),
     )
+
+
+class ClaimUniqueItemForm(forms.Form):
+    """Only unique items whose ID was retired can get a new label."""
+    unique_item = forms.ModelChoiceField(
+        label=_("Unique item without an ID"), queryset=UniqueItem.active.all(),
+        widget=_select2("unique_item_without_id_autocomplete", _("Search for a unique item…")),
+    )
+
+
+class NewUniqueItemForm(NewItemAlongsideMixin, forms.ModelForm):
+    """The item can also be a new one, created together with the unique item."""
+
+    class Meta:
+        model = UniqueItem
+        fields = ["item", "location"]
+        field_classes = {"item": ItemOrNewField}
+        widgets = {
+            "item": ItemOrNewSelect(url="unique_kind_item_autocomplete",
+                                    attrs={"data-placeholder": _("Search for an item with unique items…"), "data-allow-clear": 1}),
+            "location": _select2("location-autocomplete", _("Search for a location…")),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["item"].queryset = Item.active.filter(kind=Item.Kind.UNIQUE)
+        self.fields["location"].queryset = Location.active.all()
+        self.fields["location"].required = True
 
 
 class NewItemForm(forms.ModelForm):

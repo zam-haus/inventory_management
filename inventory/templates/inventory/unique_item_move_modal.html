@@ -1,0 +1,29 @@
+{% load i18n django_bootstrap5 %}
+{# Move a unique item: search for the new location or scan its label (unique_item_move.js). #}
+<div class="modal fade" id="move-modal" tabindex="-1" aria-labelledby="move-modal-title" aria-hidden="true">
+    <div class="modal-dialog">
+        <form class="modal-content" method="post" action="{% url 'move_unique_item' object.pk %}">
+            {% csrf_token %}
+            <div class="modal-header">
+                <h2 class="modal-title fs-5" id="move-modal-title">{% trans "Move" %}</h2>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{% trans 'Cancel' %}"></button>
+            </div>
+            <div class="modal-body">
+                <p class="text-muted">{% blocktrans with location=object.location %}Currently at {{ location }}.{% endblocktrans %}</p>
+                {% bootstrap_field move_form.location %}
+                <button type="button" class="btn btn-outline-secondary" data-scan-location hidden
+                        data-lookup-url="{% url 'location_lookup' %}"
+                        data-title="{% trans 'Scan location label' %}"
+                        data-hint="{% trans 'Hold the QR code of the new location in front of the camera.' %}"
+                        data-added="{% blocktrans with code='{code}' %}Scanned: {{ code }}{% endblocktrans %}"
+                        data-duplicate="{% blocktrans with code='{code}' %}Already scanned: {{ code }}{% endblocktrans %}"
+                        data-found="{% blocktrans with location='{location}' %}New location: {{ location }}{% endblocktrans %}"><span aria-hidden="true">📷</span> {% trans "Scan location label" %}</button>
+                <p class="form-text mt-2" role="status" data-scan-status></p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">{% trans "Cancel" %}</button>
+                <button type="submit" class="btn btn-primary">{% trans "Move" %}</button>
+            </div>
+        </form>
+    </div>
+</div>

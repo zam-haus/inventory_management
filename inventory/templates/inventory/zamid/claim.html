@@ -45,6 +45,30 @@
             {% endif %}
         </div>
     </section>
+    {% if can_add_uniqueitem %}
+    <section class="col-lg-8">
+        <form method="post" class="card card-body h-100">
+            {% csrf_token %}
+            <input type="hidden" name="kind" value="new_unique_item">
+            <h2 class="h5">{% trans "New unique item" %}</h2>
+            <p class="text-muted small">{% trans "A single object that is tracked on its own, such as one fire extinguisher. You can add its details on the next page." %}</p>
+            {% bootstrap_form new_unique_item_form %}
+            <button class="btn btn-primary mt-auto" type="submit">{% trans "Create unique item with this ID" %}</button>
+        </form>
+    </section>
+    {% endif %}
+    {% if unique_items_without_id %}
+    <section class="col-lg-4">
+        <form method="post" class="card card-body h-100">
+            {% csrf_token %}
+            <input type="hidden" name="kind" value="unique_item">
+            <h2 class="h5">{% trans "Replacement label for a unique item" %}</h2>
+            <p class="text-muted small">{% trans "For unique items whose previous ID was retired." %}</p>
+            {% bootstrap_form unique_item_form show_label=False %}
+            <button class="btn btn-primary mt-auto" type="submit">{% trans "Attach to unique item" %}</button>
+        </form>
+    </section>
+    {% endif %}
 </div>
 {% endblock %}
 

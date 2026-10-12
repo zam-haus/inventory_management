@@ -2,7 +2,7 @@ from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.utils.translation import gettext_lazy as _
 
-from .models import User
+from .models import Team, User
 
 
 class UserAdmin(BaseUserAdmin):
@@ -27,3 +27,10 @@ class UserAdmin(BaseUserAdmin):
     readonly_fields = BaseUserAdmin.readonly_fields + ('username', 'password_last_changed', "last_login", "date_joined", "latest_directory_data")
 
 admin.site.register(User, UserAdmin)
+
+
+@admin.register(Team)
+class TeamAdmin(admin.ModelAdmin):
+    list_display = ("__str__", "description")
+    search_fields = ("group__name", "description")
+    autocomplete_fields = ("group",)

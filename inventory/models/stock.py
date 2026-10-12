@@ -2,6 +2,7 @@
 from decimal import Decimal
 
 from django.conf import settings
+from django.core.exceptions import ValidationError
 from django.db import models, router, transaction
 from django.db.models.signals import pre_delete
 from django.dispatch import receiver
@@ -73,6 +74,8 @@ def stock_change(before, after):
 
 class ItemLocation(models.Model):
     class Meta:
+        verbose_name = _("stock entry")
+        verbose_name_plural = _("stock entries")
         unique_together = ["item", "location"]
         order_with_respect_to = "location"
 
@@ -91,6 +94,11 @@ class ItemLocation(models.Model):
     @property
     def is_quick_item(self):
         return self.amount is None
+
+    def clean(self):
+        super().clean()
+        if self.item_id and self.item.tracks_unique_items:
+            raise ValidationError({"item": _("This item is tracked as unique items; add unique items instead of stock.")})
 
     @property
     def sale_value(self):

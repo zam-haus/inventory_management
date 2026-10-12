@@ -10,13 +10,21 @@
 {% endblock %}
 
 {% block content %}
-<p><a href="{% url 'print_inventory' %}">{% trans "Print inventory for selected locations" %}</a></p>
-<form method="get">
-<div class="input-group mb-3">
-    <span class="input-group-text" id="basic-addon1">🔎</span>
-    <input type="text" class="form-control" aria-label="Username" aria-describedby="basic-addon1" name="q" value="{{ request.GET.q }}">
+<div class="row g-2 mb-3 align-items-center">
+    <div class="col">
+        <form method="get">
+        <div class="input-group">
+            <span class="input-group-text" id="basic-addon1">🔎</span>
+            <input type="text" class="form-control" aria-label="{% trans 'Search' %}" aria-describedby="basic-addon1" name="q" value="{{ request.GET.q }}">
+        </div>
+        </form>
+    </div>
+    {% if perms.inventory.print_inventory %}
+    <div class="col-auto">
+        <a href="{% url 'print_inventory' %}{% if request.GET.q %}?q={{ request.GET.q|urlencode }}{% endif %}" class="btn btn-outline-secondary" title="{% if request.GET.q %}{% trans 'Print inventory of the locations found' %}{% else %}{% trans 'Print inventory for selected locations' %}{% endif %}"><span aria-hidden="true">🖨️</span> {% trans "Print inventory" %}</a>
+    </div>
+    {% endif %}
 </div>
-</form>
 <table class="table table-striped">
     <thead><tr>
         <th scope="col">
@@ -63,17 +71,17 @@
 <div class="pagination">
     <span class="step-links">
         {% if page_obj.has_previous %}
-            <a href="?{% url_replace request 'page' 1 %}">&laquo; first</a>
-            <a href="?{% url_replace request 'page' page_obj.previous_page_number %}">previous</a>
+            <a href="?{% url_replace request 'page' 1 %}">&laquo; {% trans "first" %}</a>
+            <a href="?{% url_replace request 'page' page_obj.previous_page_number %}">{% trans "previous" %}</a>
         {% endif %}
 
         <span class="current">
-            Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}.
+            {% blocktrans with number=page_obj.number pages=page_obj.paginator.num_pages %}Page {{ number }} of {{ pages }}.{% endblocktrans %}
         </span>
 
         {% if page_obj.has_next %}
-            <a href="?{% url_replace request 'page' page_obj.next_page_number %}">next</a>
-            <a href="?{% url_replace request 'page' page_obj.paginator.num_pages %}">last &raquo;</a>
+            <a href="?{% url_replace request 'page' page_obj.next_page_number %}">{% trans "next" %}</a>
+            <a href="?{% url_replace request 'page' page_obj.paginator.num_pages %}">{% trans "last" %} &raquo;</a>
         {% endif %}
     </span>
 </div>
@@ -81,6 +89,7 @@
 {% endblock %}
 
 {% block bootstrap5_extra_head %}
+{{ block.super }}
 <script type="text/javascript">
 var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
 var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {

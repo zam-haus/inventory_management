@@ -5,7 +5,8 @@ import json
 from django.core.exceptions import ValidationError
 from django.utils.translation import gettext as _
 
-from .models import ItemLocation, Location
+from .models import ItemLocation, Location, UniqueItem
+from .zamid.lookup import annotate_zam_code
 
 
 class DissolutionPlan:
@@ -17,6 +18,8 @@ class DissolutionPlan:
             entries = entries.select_for_update(of=("self",))
         self.locations = {location.pk: location for location in locations}
         self.entries = {entry.pk: entry for entry in entries}
+        # Unique items are never dissolved with a location; each one is moved or disposed on its own.
+        self.unique_item_locations = dict(UniqueItem.active.filter(location_id__in=self.locations).values_list("pk", "location_id"))
         self.root = self.locations.get(root.pk)
         if self.root is None:
             raise ValidationError(_("The inventory changed. Review the plan again."))
@@ -31,6 +34,9 @@ class DissolutionPlan:
                     descendants.add(pk)
                     pending.append(pk)
         scope = {root.pk} | descendants if recursive else {root.pk}
+        self.blocking_unique_items = annotate_zam_code(
+            UniqueItem.active.filter(location_id=root.pk).select_related("item", "location")
+        ).order_by("item__name", "pk")
         selected_locations = descendants if recursive else set(children.get(root.pk, []))
         self.rows = [
             {"kind": "item", "object": entry, "key": f"item_{entry.pk}"}
@@ -50,10 +56,13 @@ class DissolutionPlan:
             [(entry.pk, entry.item_id, entry.location_id, str(entry.amount),
               entry.item.name, entry.item.measurement_unit_id, entry.item.is_deleted)
              for entry in self.entries.values()],
+            sorted(self.unique_item_locations.items()),
         ]
         return hashlib.sha256(json.dumps(state).encode()).hexdigest()
 
     def validate(self, operations):
+        if self.root.pk in self.unique_item_locations.values():
+            raise ValidationError(_("Unique items are still stored here. Move them or remove them from the inventory first."))
         expected = {(row["kind"], row["object"].pk) for row in self.rows}
         if len(operations) != len(expected) or {(op[0], op[1]) for op in operations} != expected:
             raise ValidationError(_("The inventory changed. Review the plan again."))
@@ -81,6 +90,9 @@ class DissolutionPlan:
                 moved_locations.add(pk)
             else:
                 item_locations[pk] = destination
+
+        if deleted & set(self.unique_item_locations.values()):
+            raise ValidationError(_("A location selected for deletion still contains unique items. Move them or remove them from the inventory first."))
 
         for pk, parent in parents.items():
             if pk in deleted:

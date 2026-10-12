@@ -20,7 +20,7 @@ class DissolveLocationView(PermissionRequiredMixin, View):
 
     def show_plan(self, request, plan, form=None):
         return render(request, "inventory/location_dissolve.html", {
-            "object": plan.root, "recursive": plan.recursive,
+            "object": plan.root, "recursive": plan.recursive, "blocking_unique_items": plan.blocking_unique_items,
             "form": form if form is not None else DissolveLocationForm(plan=plan, user=request.user),
         })
 

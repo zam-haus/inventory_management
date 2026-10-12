@@ -20,7 +20,7 @@ msgstr ""
 
 #: accounts/admin.py:18
 msgid "Personal info"
-msgstr ""
+msgstr "Persönliche Angaben"
 
 #: accounts/admin.py:22
 msgid "Permissions"
@@ -41,3 +41,27 @@ msgid ""
 msgstr ""
 "Diese Feld enthält zu letzt erhaltenen Nutzerdaten aus dem "
 "Nutzerverzeichnis. Kann jedoch veraltet sein."
+
+#: models.py:15
+msgid "directory reference"
+msgstr "Verzeichnis-Referenz"
+
+#: models.py:18
+msgid "latest directory data"
+msgstr "Letzte Verzeichnisdaten"
+
+#: models.py:45
+msgid "group"
+msgstr "Gruppe"
+
+#: models.py:46
+msgid "description"
+msgstr "Beschreibung"
+
+#: models.py:49
+msgid "team"
+msgstr "Team"
+
+#: models.py:50
+msgid "teams"
+msgstr "Teams"

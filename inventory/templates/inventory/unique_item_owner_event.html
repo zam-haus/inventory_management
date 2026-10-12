@@ -1,0 +1,8 @@
+{% load i18n %}{# Account and contact of an owner change: internal. #}
+{% if can_view_internal %}
+    {% for user, contact, label in event.owner_details %}
+        {% if user or contact %}<div class="small item-muted">{% if label %}{{ label }}: {% endif %}{% if user %}{{ user.get_full_name|default:user.username }}{% if user.email %} ({{ user.email }}){% endif %}{% if contact %}, {% endif %}{% endif %}{{ contact|linebreaksbr }}</div>{% endif %}
+    {% endfor %}
+{% elif event.from_owner_user_id or event.from_owner_contact or event.to_owner_user_id or event.to_owner_contact %}
+    {% include 'inventory/internal_chip.html' %}
+{% endif %}

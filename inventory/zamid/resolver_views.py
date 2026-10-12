@@ -16,6 +16,7 @@ from django.views.decorators.http import require_safe
 
 from ..models import ZamId
 from . import core, parsing, throttle
+from .targets import RELATED_TARGETS
 
 
 @contextmanager
@@ -71,7 +72,7 @@ def _resolve(request, raw, *, from_lookup=False):
     if from_lookup:
         return HttpResponseRedirect(reverse("zamid_resolve", args=[code]))
 
-    zid = ZamId.objects.select_related("item", "location").filter(pk=code).first()
+    zid = ZamId.objects.select_related(*RELATED_TARGETS).filter(pk=code).first()
     if zid is None:
         throttle.hit(request)
         return _page(request, "unknown", 404, code=core.display(code))

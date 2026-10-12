@@ -1,0 +1,12 @@
+{% load i18n crispy_forms_tags %}
+{% for inline in inlines %}
+    {# Photos and files are shown as galleries edited in a modal (media_gallery.js); without JavaScript as plain rows. #}
+    <div class="mb-3" data-formset="{{ inline.prefix }}"
+         {% if inline.prefix == 'itemimage_set' or inline.prefix == 'images' %}data-media="photo"{% elif inline.prefix == 'itemfile_set' or inline.prefix == 'files' %}data-media="file"{% endif %}
+         {% if inline.prefix == 'itemlocation_set' %}data-for-kind="bulk"{% elif inline.prefix == 'first_unique_item' %}data-for-kind="unique"{% endif %}
+         {% if inline.user_can_add %}data-can-add{% endif %} {% if inline.user_can_delete %}data-can-delete{% endif %}>
+        <legend>{{ inline.helper.form_title }}</legend>
+        {% crispy inline %}
+    </div>
+{% endfor %}
+{% include 'inventory/media_modal.html' %}

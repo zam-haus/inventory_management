@@ -13,9 +13,13 @@ Implemented with Django.
 3. Annotate items with name, description, category and other metadata.
 
 ## Concepts/Features/Requirements/Restrictions
-* Items can be at multiple locations
+* Items are either bulk items, counted per location, or tracked as unique items,
+  single objects with their own ZAM ID (see Unique items)
+* Bulk items can be at multiple locations
 * Item images are the main source of truth during data collection
-* Stock changes are not tracked (at the moment)
+* Stock changes are logged (see Stock changes)
+* Item descriptions and notes of unique items support Markdown (links, lists, emphasis);
+  raw HTML is removed
 * Locations are hierarchically structred (tree)
 * Label printing relies on Zebra ZPL compatible printers
 
@@ -115,6 +119,81 @@ which requires `inventory.view_stockchange`. Using the dialog requires
 `inventory.add_stockchange`, which migration `inventory.0020_stock_change` grants
 to the ZAM-local group.
 
+## Unique items
+
+Terms: an **item** (*Sache*) is either a **bulk item** (*Mengenartikel*),
+counted per location, or it is tracked as **unique items** (*Einzelobjekte*):
+single physical objects such as fire extinguishers, machines, IT hardware,
+anything with a power cord, or special and expensive tools. The item holds what
+its unique items share (description, photos, files, default usage level); each
+unique item has exactly one location and its own ZAM ID. An item never has both
+stock entries and unique items; its kind can only change while it has neither.
+
+* **Creating:** a new item tracked as unique items is created together with its
+  first unique item (location and ZAM ID), just as a bulk item needs its first
+  stock entry; the first unique item's page then shows the label to print.
+  A unique item always gets its ZAM ID when it is created, either
+  a pre-printed label (scan it: the claim page offers *New unique item*, or enter
+  it in the form) or a newly generated ID whose label is then shown on the unique
+  item's page for printing. If the item does not exist yet, the item search
+  offers *Create new item* as its last entry (requires `inventory.add_item`),
+  both in the unique item form and on the claim page; the new item is only
+  created when the unique item is saved.
+  Creating requires `inventory.add_uniqueitem` and
+  `inventory.claim_zamid`; migration `inventory.0023` grants `add`/`change` on
+  unique items to ZAM-local (photos and files use the item permissions they
+  already have). The admin generates an ID when a
+  unique item is added without `?zamid=`.
+* **Details:** briefing requirement (*Einweisungspflicht*; empty uses the item's):
+  green ✓ free to use, no briefing required; yellow ! use with care, ask if in
+  doubt; red ✕ use only after a briefing. Lists show the coloured symbol with
+  the explanation on hover, detail pages the explanation itself,
+  warranty, notes, responsible team and person, owner, purchase date, price and
+  source, files. Without an owner a unique item belongs to the ZAM and no
+  ownership is shown. The owner is set when the unique item is created; after
+  that only admins or users with `inventory.change_uniqueitem_owner` can change
+  it (frontend and admin). Teams (**Admin → Accounts → Teams**) are account groups
+  marked as teams; since directory group membership is only ever added, a team
+  is a public label, not a permission.
+* **Visibility:** pages are public. The team and the *first names* of the owner
+  and responsible person are public. Full names, e-mail addresses, the owner's
+  contact details and purchase prices (of unique items, and the last purchase
+  price of items) are shown, and editable, only with
+  `inventory.view_internal_details`; without it those fields are not part of the
+  forms. The user search used by these fields requires the same permission.
+  Pages still show that such information exists: the hidden part is replaced
+  by an *internal* chip.
+* **Files and photos** belong to an item, either to the item in general (e.g. a
+  manual) or to one of its unique items (e.g. that object's invoice). Both forms
+  let you choose: the item form offers its unique items per row, the unique item
+  form offers "this unique item" or "the item in general", also for existing
+  rows. The item page shows the general ones; a unique item's page shows its own
+  first, then the general ones marked *general*. One photo per level can be
+  primary; it is shown first. New items start with one photo row; *Add another
+  photo/file* adds rows before saving.
+* **Internal documents:** files are public unless flagged as *internal
+  document*. Internal documents need `inventory.view_internal_details`: without
+  it, pages list their name without a link, the download answers 403 (or asks to
+  log in), and edit forms leave them out. Files are stored as
+  `media/documents/<random UUID>/<file name>` and only served through
+  `/item/file/<pk>`; `nginx.conf` denies `/media/documents/` so they cannot be
+  fetched directly. Formats that could run in the browser (e.g. HTML, SVG) are
+  always downloaded. Migration `inventory.0023` moved existing files there.
+* **History:** creation, moves, owner changes and removal are logged
+  append-only (`UniqueItemEvent`), including who acted; the user is shown only in
+  the admin. Owner entries keep the owner before and after: first names are
+  public, accounts and contact details internal, like on the unique item. An
+  account that owns a unique item cannot be deleted (`PROTECT`); change the owner
+  first, so the hand-over is recorded.
+* `manage.py zamid_check --missing` lists unique items whose ID was retired and
+  that need a replacement label.
+* **Item search:** for items tracked as unique items, the locations column lists
+  each unique item's ZAM ID and location; searching for a location name or
+  identifier also finds them.
+* **URLs:** `/item/unique/<pk>` (with `/update` and `/dispose`) and
+  `/item/unique/create?item=<pk>&location=<pk>`; new items take `?kind=bulk` or
+  `?kind=unique` on `/item/create`.
+
 ## Camera scanning
 
 The "Move locations here" page scans the QR codes of location labels, and the
@@ -168,7 +247,10 @@ To get started do the following:
 
 ## Permissions
 
-Frontend lists, details, searches, autocomplete and printable inventories are public.
+Frontend lists, details, searches and autocomplete are public. The printable
+inventory (`/inventory/print/`, 🖨️ on location pages and on the location list,
+where it preselects the locations found by the search) is internal: it requires
+`inventory.print_inventory`, which migration `inventory.0023` grants to ZAM-local.
 Editing requires login and Django's `add`, `change` or `delete` permission for the
 relevant model. Assign permissions to groups in **Admin → Authentication and
 Authorization → Groups**, then assign users to those groups. Superusers retain
@@ -176,7 +258,8 @@ full access; being logged in or being staff alone does not grant inventory editi
 
 Item metadata, photos, barcodes and stock entries have separate model permissions.
 For example, creating an item at a location requires `add_item` and
-`add_itemlocation`. Moving locations requires `change_location`. Dissolving a
+`add_itemlocation`. Unique items are covered in **Unique items** above, including
+`view_internal_details` and `dispose_uniqueitem`. Moving locations requires `change_location`. Dissolving a
 location requires `delete_location`, plus `change_location` / `change_itemlocation`
 for moves and `delete_itemlocation` for stock removal. Permissions are checked
 again when confirming a dissolution. Changing the deleted flag in admin also
@@ -219,7 +302,7 @@ plus text on a Brother P-touch label.
   behave identically. Locally, use `localhost:8000/id/<id>`. The resolver
   accepts any typed or scanned form (`k7q 4xd`, lookalikes such as `O`/`0`) and
   responds as follows:
-  * Assigned IDs redirect to their item, location or URL.
+  * Assigned IDs redirect to their item, location, unique item or URL.
   * Reserved IDs open the claim page.
   * Retired IDs, and IDs whose target was deleted, show an explanation (HTTP 410).
   * Typos list existing IDs that are likely meant.
@@ -230,22 +313,25 @@ plus text on a Brother P-touch label.
 * **Lifecycle:** reserved → assigned → retired.
   * Only the admin (*Generate IDs*) and `manage.py zamid_generate` create IDs.
   * Members with `inventory.claim_zamid` claim a reserved ID by scanning it: the
-    resolver opens the claim page, which links it to an existing or new item or
-    location. Migration `inventory.0022` grants this permission to ZAM-local.
+    resolver opens the claim page, which links it to an existing or new item,
+    location or unique item. Migration `inventory.0022` grants this permission to ZAM-local.
   * Only the admin (`assign_url_zamid`) can link an ID to an arbitrary URL.
   * A claimed ID is never relinked or deleted. Retiring keeps the link.
   * Soft-deleting an item or location leaves its ID assigned; the resolver then
     says it is no longer in the inventory. Deleting it permanently retires its
     IDs, unlinks them and adds its name and number to their note.
   * Triggers in the database enforce this as well.
-* **Lookup:** `item.zam_ids` / `location.zam_ids` (indexed). `inventory.zamid.lookup`
+* **Lookup:** `item.zam_ids` / `location.zam_ids` / `uniqueitem.zam_ids` (indexed). `inventory.zamid.lookup`
   provides `active_code(obj)` and `annotate_zam_code(queryset)`, which add no
   extra queries per row.
-* **Labels:** use the admin action *Download labels (ZIP)*, or run
+* **Labels:** `/id/<code>/label.png?printer=P900&tape=24` is public for assigned
+  IDs (the unique item's page shows it) and requires `inventory.view_zamid` otherwise.
+  For batches, use the admin action *Download labels (ZIP)*, or run
   `manage.py zamid_labels --batch NAME --printer E550W --tape 12`. Print the PNGs
   in **standard** resolution, without scaling. Fonts (OFL) are in
   `inventory/zamid/labels/fonts/`.
-* **Other commands:** `zamid_check <input>…` and `zamid_retire <code>`.
+* **Other commands:** `zamid_check <input>…`, `zamid_check --missing` and
+  `zamid_retire <code>`.
 
 ## Label Printing
 Print jobs are passed to the printer via MQTT. A simple print server, listening to a (currently) hard-coded topic on mqtt.zam.haus and passing them onto a (currently) hard-coded printer is implemented by `print_server.py`. A more flexible (and complex) solution is planned.

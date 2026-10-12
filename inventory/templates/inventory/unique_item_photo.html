@@ -1,0 +1,12 @@
+{% load i18n thumbnail %}{% if image.image %}
+<figure>
+    <div class="item-image-frame">
+        {% thumbnail image.image "640x480" as im %}
+            <a class="item-image-link" href="{{ image.image.url }}"><img src="{{ im.url }}" width="{{ im.width }}" height="{{ im.height }}" alt="{{ image.description|default:object.item }}" loading="lazy"></a>
+        {% empty %}
+            <a class="item-image-link" href="{{ image.image.url }}"><img src="{{ image.image.url }}" alt="{{ image.description|default:object.item }}" loading="lazy"></a>
+        {% endthumbnail %}
+    </div>
+    {% if image.description or general %}<figcaption>{% if general %}<span class="unique-item-general">{% trans "general" %}</span> {% endif %}{{ image.description }}</figcaption>{% endif %}
+</figure>
+{% endif %}

@@ -12,7 +12,7 @@ from django.utils.translation import gettext, gettext_lazy as _
 from ..models import ZamId
 from . import core, labels, parsing, services
 from .forms import GenerateForm, LabelForm, RetireForm
-from .targets import TARGET_FIELDS
+from .targets import RELATED_TARGETS, TARGET_FIELDS
 
 
 class ClaimOnAddMixin:
@@ -71,7 +71,7 @@ class ZamIdAdmin(admin.ModelAdmin):
     form = ZamIdAdminForm
     list_display = ("display_code", "status", "target_link", "batch", "created_at", "printed_at", "assigned_at")
     list_filter = ("status", TargetKindFilter, "batch")
-    list_select_related = ("item", "location")
+    list_select_related = RELATED_TARGETS
     search_fields = ("code", "batch", "note", "url")
     date_hierarchy = "created_at"
     actions = ["retire_action", "download_labels_action"]

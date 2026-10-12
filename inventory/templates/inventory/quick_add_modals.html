@@ -1,0 +1,69 @@
+{% load i18n %}
+{# Add one photo or file right from the detail page (quick_add.js); `level` says where it belongs. #}
+{% if photo_url %}
+<div class="modal fade media-modal" id="quick-photo-modal" tabindex="-1" aria-labelledby="quick-photo-title" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <form class="modal-content" method="post" action="{{ photo_url }}" enctype="multipart/form-data" data-quick-form>
+            {% csrf_token %}
+            <div class="modal-header">
+                <h2 class="modal-title fs-5" id="quick-photo-title">{% trans "Add photo" %}</h2>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{% trans 'Cancel' %}"></button>
+            </div>
+            <div class="modal-body">
+                <p class="text-muted small">{{ level }}</p>
+                <div class="mb-3">
+                    <label class="form-label" for="quick-photo-image">{% trans "Take or select a photo" %}</label>
+                    <input type="file" name="image" id="quick-photo-image" class="form-control" accept="image/*" capture="environment" required>
+                </div>
+                {% include 'inventory/photo_tools.html' with crop_id='quick-photo-crop' %}
+                <div class="mb-3">
+                    <label class="form-label" for="quick-photo-description">{% trans "description" %}</label>
+                    <input type="text" name="description" id="quick-photo-description" class="form-control" maxlength="512">
+                </div>
+                <div class="form-check">
+                    <input type="checkbox" name="is_primary" id="quick-photo-primary" class="form-check-input">
+                    <label class="form-check-label" for="quick-photo-primary">{% trans "Primary photo" %}</label>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">{% trans "Cancel" %}</button>
+                <button type="submit" class="btn btn-primary">{% trans "Add photo" %}</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endif %}
+{% if file_url %}
+<div class="modal fade media-modal" id="quick-file-modal" tabindex="-1" aria-labelledby="quick-file-title" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-scrollable">
+        <form class="modal-content" method="post" action="{{ file_url }}" enctype="multipart/form-data" data-quick-form>
+            {% csrf_token %}
+            <div class="modal-header">
+                <h2 class="modal-title fs-5" id="quick-file-title">{% trans "Add file" %}</h2>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{% trans 'Cancel' %}"></button>
+            </div>
+            <div class="modal-body">
+                <p class="text-muted small">{{ level }}</p>
+                <div class="mb-3">
+                    <label class="form-label" for="quick-file-file">{% trans "file" %}</label>
+                    <input type="file" name="file" id="quick-file-file" class="form-control" required aria-describedby="quick-file-help">
+                    <div class="form-text" id="quick-file-help">{% trans "Files are public unless marked as internal documents. Mark invoices and anything with personal data as internal." %}</div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label" for="quick-file-description">{% trans "description" %}</label>
+                    <input type="text" name="description" id="quick-file-description" class="form-control" maxlength="512">
+                </div>
+                <div class="form-check">
+                    <input type="checkbox" name="internal" id="quick-file-internal" class="form-check-input" aria-describedby="quick-file-internal-help">
+                    <label class="form-check-label" for="quick-file-internal">{% trans "internal document" %}</label>
+                    <div class="form-text" id="quick-file-internal-help">{% trans "Only people allowed to see internal details can open it; others only see its name." %}</div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">{% trans "Cancel" %}</button>
+                <button type="submit" class="btn btn-primary">{% trans "Add file" %}</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endif %}

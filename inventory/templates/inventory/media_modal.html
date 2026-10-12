@@ -1,0 +1,27 @@
+{% load i18n %}
+<div class="modal fade media-modal" id="media-modal" tabindex="-1" aria-labelledby="media-modal-title" aria-hidden="true"
+     data-new-photo="{% trans 'Add photo' %}" data-edit-photo="{% trans 'Edit photo' %}"
+     data-new-file="{% trans 'Add file' %}" data-edit-file="{% trans 'Edit file' %}"
+     data-primary="{% trans 'Primary photo' %}" data-general="{% trans 'general' %}" data-internal="{% trans 'internal' %}"
+     data-new="{% trans 'new' %}" data-changed="{% trans 'changed' %}" data-deleted="{% trans 'will be deleted' %}"
+     data-error="{% trans 'please check' %}" data-unsaved="{% trans 'Not saved yet: changes are saved with the form.' %}">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title fs-5" id="media-modal-title" data-media-title></h2>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{% trans 'Cancel' %}"></button>
+            </div>
+            <div class="modal-body">
+                {% include 'inventory/photo_tools.html' with crop_id='media-photo-crop' %}
+                <div data-media-slot></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-danger me-auto" data-media-delete data-remove-label="{% translate 'Remove' context 'photo or file' %}" data-delete-label="{% translate 'Delete' context 'photo or file' %}">{% translate "Delete" context "photo or file" %}</button>
+                <button type="button" class="btn btn-outline-secondary me-auto" data-media-restore hidden>{% trans "Keep it" %}</button>
+                <span class="text-muted small">{% trans "Changes are saved with the form." %}</span>
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">{% trans "Cancel" %}</button>
+                <button type="button" class="btn btn-primary" data-media-apply>{% trans "Apply" %}</button>
+            </div>
+        </div>
+    </div>
+</div>

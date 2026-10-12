@@ -10,6 +10,8 @@ from .stock_log import stock_changes
 
 # Anyone who may create items may manage quick-items while they stay quick-items.
 QUICK_ITEM_PERMISSIONS = ("inventory.add_item", "inventory.add_itemlocation")
+# Every new unique item gets a ZAM ID right away.
+UNIQUE_ITEM_CREATE_PERMISSIONS = ("inventory.add_uniqueitem", "inventory.claim_zamid")
 
 
 def model_permission(model, action):
@@ -41,9 +43,14 @@ class ItemEditorPermissionMixin(PermissionRequiredMixin):
         for formset in inlines:
             can_add = self.request.user.has_perm(model_permission(formset.model, "add"))
             can_change = self.request.user.has_perm(model_permission(formset.model, "change"))
+            can_delete = self.request.user.has_perm(model_permission(formset.model, "delete"))
+            # Shown to the photo and file galleries (media_gallery.js).
+            formset.user_can_add, formset.user_can_delete = can_add, can_delete
             if not can_add:
                 formset.extra = 0
             for form in formset:
+                if not can_delete:
+                    form.fields.pop("DELETE", None)
                 if form.instance.pk and not can_change:
                     for field in form.fields.values():
                         field.disabled = True

@@ -65,12 +65,14 @@ def _assign(zid, field, value, user):
 
 
 def claim(code, target, user):
-    """Permanently link a reserved ID to an item or location."""
+    """Permanently link a reserved ID to an item, location or unique item."""
     field = target_field_for(target)
     if field not in CLAIMABLE_FIELDS:
         raise ZamIdError(_("IDs cannot be claimed for this kind of object."))
     if getattr(target, "is_deleted", False):
         raise ZamIdError(_("Deleted objects cannot get an ID."))
+    if getattr(target, "is_disposed", False):
+        raise ZamIdError(_("Objects removed from the inventory cannot get an ID."))
     with transaction.atomic():
         zid = _lock(code)
         _require_reserved(zid)
@@ -79,6 +81,13 @@ def claim(code, target, user):
             raise ZamIdError(_("%(target)s already has the ID %(code)s. Retire it first.")
                              % {"target": target, "code": current.display})
         return _assign(zid, field, target, user)
+
+
+def generate_and_claim(target, user, batch="unique_item"):
+    """Give `target` a brand-new ID right away, so no unassigned label is ever created."""
+    with transaction.atomic():
+        zid, = generate_batch(1, batch=batch, user=user)
+        return claim(zid.code, target, user)
 
 
 def assign_url(code, url, user):

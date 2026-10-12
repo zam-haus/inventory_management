@@ -1,0 +1,15 @@
+{% load i18n %}
+{# can_add: offer the quick add (quick_add_modals.html); add_fallback: where to add without JavaScript. #}
+{% if files or general_files or can_add %}
+<section class="item-panel" aria-labelledby="files-heading">
+    <div class="item-panel-heading item-panel-title-row">
+        <h2 id="files-heading">{% trans "Files" %} <span class="item-count">{% firstof file_count files|length %}</span></h2>
+        {% if can_add %}<a class="btn btn-primary item-panel-add" href="{{ add_fallback }}" data-quick-open="quick-file-modal" data-bs-toggle="tooltip" title="{% trans 'Add file' %}" aria-label="{% trans 'Add file' %}"><span aria-hidden="true">+</span></a>{% endif %}
+    </div>
+    {% if not files and not general_files %}<p class="item-empty item-muted">{% trans "No files yet." %}</p>{% endif %}
+    <ul class="item-panel-body unique-item-files">
+        {% for file in files %}{% include 'inventory/file_entry.html' %}{% endfor %}
+        {% for file in general_files %}{% include 'inventory/file_entry.html' with general=True %}{% endfor %}
+    </ul>
+</section>
+{% endif %}

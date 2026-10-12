@@ -1,0 +1,14 @@
+{% extends 'base.html' %}
+{% load i18n django_bootstrap5 %}
+
+{% block title %}{% trans "Remove from inventory" %}: {{ object }}{% endblock %}
+
+{% block content %}
+<p>{% blocktrans with location=object.location.descriptive_identifier %}The unique item currently is at {{ location }}. Once removed, it no longer appears there; its page, history and ZAM ID remain, so an old label still leads here.{% endblocktrans %}</p>
+<form method="post" class="mb-3">
+    {% csrf_token %}
+    {% bootstrap_form form %}
+    <button type="submit" class="btn btn-danger">{% trans "Remove from inventory" %}</button>
+    <a class="btn btn-outline-secondary" href="{{ object.get_absolute_url }}">{% trans "Cancel" %}</a>
+</form>
+{% endblock %}

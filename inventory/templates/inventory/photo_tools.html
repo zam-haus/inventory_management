@@ -1,0 +1,30 @@
+{% load i18n %}
+{# Crop and rotate a photo before uploading (photo_editor.js). #}
+<div class="media-photo-tools" data-photo-tools hidden>
+    <img class="media-modal-preview" data-photo-preview alt="{% trans 'Photo preview' %}" hidden>
+    <div class="media-photo-actions">
+        <button type="button" class="btn btn-outline-secondary btn-sm" data-photo-library>{% trans "Choose from photo library" %}</button>
+        <input type="file" accept="image/*" data-photo-library-input hidden aria-label="{% trans 'Choose from photo library' %}">
+        <button type="button" class="btn btn-outline-secondary btn-sm" data-photo-crop-toggle aria-expanded="false" aria-controls="{{ crop_id }}" disabled>{% trans "Crop photo (optional)" %}</button>
+        <button type="button" class="btn btn-outline-secondary btn-sm" data-photo-rotate title="{% trans 'Rotate 90° right and reset the crop selection.' %}" disabled><span aria-hidden="true">↷</span> {% trans "Rotate right" %}</button>
+    </div>
+    <p class="form-text" role="status" data-photo-status
+       data-loading="{% trans 'Loading photo…' %}"
+       data-ready="{% trans 'Photo ready. It will be uploaded when you save.' %}"
+       data-editing="{% trans 'Editing the current photo. Your changes replace it when you save.' %}"
+       data-existing-error="{% trans 'The current photo could not be loaded for editing. Try again or choose a new photo.' %}"
+       data-rotated="{% trans 'Photo rotated. Adjust the crop if needed before saving.' %}"
+       data-invalid="{% trans 'This photo could not be opened. Try a JPEG or PNG photo, or choose another file.' %}"
+       data-photo-error="{% trans 'The photo could not be prepared. Try another photo or turn off cropping.' %}"></p>
+    <div id="{{ crop_id }}" class="media-photo-crop" data-photo-crop hidden>
+        <p class="form-text">{% trans "Drag a rectangle around the object, or adjust its edges below. Only the selected area will be uploaded." %}</p>
+        <canvas data-photo-canvas aria-label="{% trans 'Photo crop selection' %}"></canvas>
+        <div class="media-crop-sliders">
+            <label>{% trans "Left edge" %}<input type="range" min="0" max="99" value="0" data-crop-edge="left"></label>
+            <label>{% trans "Right edge" %}<input type="range" min="1" max="100" value="100" data-crop-edge="right"></label>
+            <label>{% trans "Top edge" %}<input type="range" min="0" max="99" value="0" data-crop-edge="top"></label>
+            <label>{% trans "Bottom edge" %}<input type="range" min="1" max="100" value="100" data-crop-edge="bottom"></label>
+        </div>
+        <button type="button" class="btn btn-outline-secondary btn-sm" data-photo-reset-crop>{% trans "Use full photo" %}</button>
+    </div>
+</div>

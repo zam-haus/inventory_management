@@ -1674,3 +1674,1060 @@ msgstr "Nachschlagen"
 #, python-format
 msgid "Belonged to: %(kind)s “%(name)s” (#%(pk)s), deleted on %(date)s."
 msgstr "Gehörte zu: %(kind)s „%(name)s“ (#%(pk)s), gelöscht am %(date)s."
+
+#: admin.py:56
+msgid "sub-location"
+msgstr "Unterstandort"
+
+#: admin.py:57
+msgid "sub-locations"
+msgstr "Unterstandorte"
+
+#: admin.py:119
+msgid "Sent label to printer."
+msgstr "Etikett an den Drucker gesendet."
+
+#: admin.py:122
+#, python-format
+msgid "Failed sending label to printer: %(error)s"
+msgstr "Etikett konnte nicht gedruckt werden: %(error)s"
+
+#: admin.py:132 admin.py:189
+msgid "Print location labels"
+msgstr "Standort-Etiketten drucken"
+
+#: admin.py:136
+msgid "Print location labels twice (2x)"
+msgstr "Standort-Etiketten doppelt drucken (2×)"
+
+#: admin.py:150
+#, python-format
+msgid "Sent %(count)d label to printer."
+msgid_plural "Sent %(count)d labels to printer."
+msgstr[0] "%(count)d Etikett an den Drucker gesendet."
+msgstr[1] "%(count)d Etiketten an den Drucker gesendet."
+
+#: admin.py:154
+#, python-format
+msgid "Failed sending %(count)d label to printer: %(error)s"
+msgid_plural "Failed sending %(count)d labels to printer: %(error)s"
+msgstr[0] "%(count)d Etikett konnte nicht gedruckt werden: %(error)s"
+msgstr[1] "%(count)d Etiketten konnten nicht gedruckt werden: %(error)s"
+
+#: admin.py:165
+msgid "Parent location"
+msgstr "Übergeordneter Standort"
+
+#: admin.py:182
+msgid "Overwrite default location label template"
+msgstr "Abweichende Etikettenvorlage für Standorte"
+
+#: admin.py:186
+msgid "Sequence start"
+msgstr "Erste laufende Nummer"
+
+#: admin.py:187
+msgid "Count"
+msgstr "Anzahl"
+
+#: admin.py:190
+msgid "Copies per label"
+msgstr "Exemplare pro Etikett"
+
+#: admin.py:193
+msgid "Sub-location type"
+msgstr "Typ der Unterstandorte"
+
+#: admin.py:198
+msgid "Overwrite default sub-location label template"
+msgstr "Abweichende Etikettenvorlage für Unterstandorte"
+
+#: admin.py:202
+msgid "Sub-location count"
+msgstr "Anzahl Unterstandorte"
+
+#: admin.py:203
+msgid "Print sub-location labels"
+msgstr "Etiketten der Unterstandorte drucken"
+
+#: admin.py:209
+msgid "The sub-location type must not be unique if sub-locations are created."
+msgstr "Der Typ der Unterstandorte darf nicht eindeutig sein, wenn Unterstandorte angelegt werden."
+
+#: admin.py:431
+msgid "history"
+msgstr "Verlauf"
+
+#: admin.py:466 forms.py:1037
+msgid "Responsibility"
+msgstr "Verantwortung"
+
+#: admin.py:467 forms.py:1039 templates/inventory/unique_item_detail.html:85
+msgid "Owner"
+msgstr "Eigentümer*in"
+
+#: admin.py:468 forms.py:190 forms.py:1047
+#: templates/inventory/procurement_panel.html:5
+msgid "Procurement"
+msgstr "Beschaffung"
+
+#: admin.py:469
+msgid "Removal from the inventory"
+msgstr "Entfernung aus dem Inventar"
+
+#: admin.py:490
+#, python-format
+msgid "%(code)s could not be used (%(error)s); a new ID was generated."
+msgstr "%(code)s konnte nicht verwendet werden (%(error)s); eine neue ID wurde erzeugt."
+
+#: attachment_views.py:49
+msgid "without description"
+msgstr "ohne Beschreibung"
+
+#: attachment_views.py:56
+#, python-format
+msgid "Photo added (%(name)s)."
+msgstr "Foto hinzugefügt (%(name)s)."
+
+#: attachment_views.py:62
+#, python-format
+msgid "File added (%(name)s)."
+msgstr "Datei hinzugefügt (%(name)s)."
+
+#: attachment_views.py:76
+#, python-format
+msgid "Moved to %(location)s."
+msgstr "Verlegt nach %(location)s."
+
+#: dissolution.py:65 models/location.py:344
+msgid "Unique items are still stored here. Move them or remove them from the inventory first."
+msgstr "Hier befinden sich noch Einzelobjekte. Verlege sie oder entferne sie zuerst aus dem Inventar."
+
+#: dissolution.py:95
+msgid "A location selected for deletion still contains unique items. Move them or remove them from the inventory first."
+msgstr "Ein zum Löschen ausgewählter Standort enthält noch Einzelobjekte. Verlege sie oder entferne sie zuerst aus dem Inventar."
+
+#: forms.py:104
+msgid "Markdown is supported, e.g. [link text](https://example.org), lists and **bold**."
+msgstr "Markdown wird unterstützt, z. B. [Linktext](https://example.org), Listen und **fett**."
+
+#: forms.py:110 templates/inventory/item_detail.html:61
+msgid "Not decided yet"
+msgstr "Noch nicht entschieden"
+
+#: forms.py:110 templates/inventory/item_detail.html:61
+msgid "Yes"
+msgstr "Ja"
+
+#: forms.py:110 templates/inventory/item_detail.html:61
+msgid "No"
+msgstr "Nein"
+
+#: forms.py:147
+msgid "Barcodes"
+msgstr "Barcodes"
+
+#: forms.py:165
+msgid "The kind cannot change while the item has stock entries or unique items."
+msgstr "Die Art kann nicht geändert werden, solange die Sache Bestandseinträge oder Einzelobjekte hat."
+
+#: forms.py:177
+msgid "Not specified"
+msgstr "Nicht angegeben"
+
+#: forms.py:341
+msgid "A bulk item is counted per location, such as screws or filament."
+msgstr "Ein Mengenartikel wird pro Standort gezählt, etwa Schrauben oder Filament."
+
+#: forms.py:342
+msgid "Unique items are objects tracked one by one, each with its own ZAM ID, such as fire extinguishers or machines. This item describes them; enter the first one below and add more later."
+msgstr "Einzelobjekte sind Gegenstände, die einzeln erfasst werden, jeder mit eigener ZAM-ID, etwa Feuerlöscher oder Maschinen. Diese Sache beschreibt sie; erfasse unten das erste und füge weitere später hinzu."
+
+#: forms.py:387
+msgid "Belongs to"
+msgstr "Gehört zu"
+
+#: forms.py:388
+msgid "This unique item"
+msgstr "diesem Einzelobjekt"
+
+#: forms.py:388 forms.py:489
+msgid "The item in general"
+msgstr "der Sache allgemein"
+
+#: forms.py:424
+msgid "Choose only one primary photo."
+msgstr "Wähle nur ein Hauptfoto."
+
+#: forms.py:471
+msgid "removed from the inventory"
+msgstr "aus dem Inventar entfernt"
+
+#: forms.py:533 templates/inventory/quick_add_modals.html:50
+msgid "Files are public unless marked as internal documents. Mark invoices and anything with personal data as internal."
+msgstr "Dateien sind öffentlich, sofern sie nicht als internes Dokument markiert sind. Markiere Rechnungen und alles mit personenbezogenen Daten als intern."
+
+#: forms.py:557 templates/inventory/files_panel.html:6
+msgid "Files"
+msgstr "Dateien"
+
+#: forms.py:706
+msgid "Storage locations"
+msgstr "Standorte"
+
+#: forms.py:929
+#, python-format
+msgid "Item names need 1 to %(max)d characters."
+msgstr "Namen von Sachen brauchen 1 bis %(max)d Zeichen."
+
+#: forms.py:951
+msgid "You do not have permission to create items."
+msgstr "Du darfst keine Sachen anlegen."
+
+#: forms.py:989 zamid/forms.py:47
+msgid "Search for an item with unique items…"
+msgstr "Sache mit Einzelobjekten suchen…"
+
+#: forms.py:1010
+msgid "As set for the item"
+msgstr "Wie bei der Sache"
+
+#: forms.py:1041
+msgid "Only admins or people with the permission can change the owner after the unique item was created."
+msgstr "Nach dem Anlegen können nur Admins oder Personen mit der entsprechenden Berechtigung die Eigentümer*in ändern."
+
+#: forms.py:1043
+msgid "Leave empty if the unique item belongs to the ZAM. First names are shown publicly."
+msgstr "Leer lassen, wenn das Einzelobjekt dem ZAM gehört. Vornamen werden öffentlich angezeigt."
+
+#: forms.py:1065
+msgid "Generate a new ID and print its label"
+msgstr "Neue ID erzeugen und Etikett drucken"
+
+#: forms.py:1066
+msgid "Use a pre-printed label"
+msgstr "Vorgedrucktes Etikett verwenden"
+
+#: forms.py:1069
+msgid "ID on the label"
+msgstr "ID auf dem Etikett"
+
+#: forms.py:1070
+msgid "Scan the label or type the ID printed on it."
+msgstr "Scanne das Etikett oder tippe die aufgedruckte ID ein."
+
+#: forms.py:1089
+msgid "Scan or enter the ID on the label."
+msgstr "Scanne die ID auf dem Etikett oder gib sie ein."
+
+#: forms.py:1100
+#, python-format
+msgid "The ID %(code)s is already in use or retired."
+msgstr "Die ID %(code)s ist bereits vergeben oder stillgelegt."
+
+#: forms.py:1149
+msgid "First unique item"
+msgstr "Erstes Einzelobjekt"
+
+#: models/item.py:27
+msgid "green"
+msgstr "grün"
+
+#: models/item.py:28
+msgid "yellow"
+msgstr "gelb"
+
+#: models/item.py:29
+msgid "red"
+msgstr "rot"
+
+#: models/item.py:33
+msgid "Green: free to use, no briefing required"
+msgstr "Grün: frei nutzbar, keine Einweisung erforderlich"
+
+#: models/item.py:34
+msgid "Yellow: use with care, ask if in doubt"
+msgstr "Gelb: mit Vorsicht nutzbar, bei Unklarheit fragen"
+
+#: models/item.py:35
+msgid "Red: use only after a briefing"
+msgstr "Rot: Nutzung nur nach erfolgter Einweisung"
+
+#: models/item.py:42
+msgid "bulk item"
+msgstr "Mengenartikel"
+
+#: models/item.py:43 models/unique_item.py:86
+msgid "unique items"
+msgstr "Einzelobjekte"
+
+#: models/item.py:50
+msgid "Can view purchase prices and contact details of owners and responsible persons"
+msgstr "Kann Kaufpreise und Kontaktdaten von Eigentümer*innen und Verantwortlichen sehen"
+
+#: models/item.py:66
+msgid "kind"
+msgstr "Art"
+
+#: models/item.py:91
+msgid "for sale"
+msgstr "zu verkaufen"
+
+#: models/item.py:92
+msgid "last purchase date"
+msgstr "letztes Kaufdatum"
+
+#: models/item.py:95
+msgid "last purchase price"
+msgstr "letzter Kaufpreis"
+
+#: models/item.py:97 models/unique_item.py:50
+msgid "procurement source"
+msgstr "Bezugsquelle"
+
+#: models/item.py:99 models/unique_item.py:52
+msgid "usage level"
+msgstr "Einweisungspflicht"
+
+#: models/item.py:100
+msgid "Default for the unique items of this item; each one can override it."
+msgstr "Gilt für die Einzelobjekte dieser Sache; jedes kann davon abweichen."
+
+#: models/item.py:122
+msgid "Only bulk items can be for sale."
+msgstr "Nur Mengenartikel können verkauft werden."
+
+#: models/item.py:124
+msgid "Only bulk items have a sale price."
+msgstr "Nur Mengenartikel haben einen Verkaufspreis."
+
+#: models/item.py:126
+msgid "Items that are not for sale have no sale price."
+msgstr "Sachen, die nicht verkauft werden, haben keinen Verkaufspreis."
+
+#: models/item.py:132
+msgid "The kind can only change while the item has no stock entries and no unique items."
+msgstr "Die Art kann nur geändert werden, solange die Sache keine Bestandseinträge und keine Einzelobjekte hat."
+
+#: models/item.py:237
+msgid "This unique item belongs to another item."
+msgstr "Dieses Einzelobjekt gehört zu einer anderen Sache."
+
+#: models/item.py:247
+msgid "photo"
+msgstr "Foto"
+
+#: models/item.py:248
+msgid "photos"
+msgstr "Fotos"
+
+#: models/item.py:261
+msgid "primary photo"
+msgstr "Hauptfoto"
+
+#: models/item.py:265 models/item.py:325
+msgid "belongs to"
+msgstr "gehört zu"
+
+#: models/item.py:267
+msgid "ocr text"
+msgstr "OCR-Text"
+
+#: models/item.py:268
+msgid "text recognized on"
+msgstr "Text erkannt am"
+
+#: models/item.py:308 templates/inventory/quick_add_modals.html:58
+msgid "internal document"
+msgstr "internes Dokument"
+
+#: models/item.py:309 templates/inventory/quick_add_modals.html:59
+msgid "Only people allowed to see internal details can open it; others only see its name."
+msgstr "Nur wer interne Details sehen darf, kann es öffnen; alle anderen sehen nur den Namen."
+
+#: models/item.py:330
+msgid "files"
+msgstr "Dateien"
+
+#: models/item.py:349
+msgid "barcode"
+msgstr "Barcode"
+
+#: models/item.py:350
+msgid "barcodes"
+msgstr "Barcodes"
+
+#: models/location.py:28
+msgid "no sublocations flag"
+msgstr "keine Unterstandorte"
+
+#: models/location.py:30
+msgid "moveable flag"
+msgstr "verschiebbar"
+
+#: models/location.py:195
+msgid "Can print the inventory of locations"
+msgstr "Kann das Inventar von Standorten drucken"
+
+#: models/location.py:204
+msgid "Only numbers, letters and spaces allowed."
+msgstr "Nur Zahlen, Buchstaben und Leerzeichen erlaubt."
+
+#: models/location.py:214
+msgid "Only numbers and letters allowed."
+msgstr "Nur Zahlen und Buchstaben erlaubt."
+
+#: models/location.py:293
+msgid "Short name must be unique, as defined by type."
+msgstr "Der Kurzname muss eindeutig sein, wie vom Typ verlangt."
+
+#: models/location.py:297
+msgid "Name must be unique, as defined by type."
+msgstr "Der Name muss eindeutig sein, wie vom Typ verlangt."
+
+#: models/location.py:309
+msgid "Short name must be unique among all sibling locations."
+msgstr "Der Kurzname muss unter allen Standorten derselben Ebene eindeutig sein."
+
+#: models/location.py:314
+msgid "Name must be unique among all sibling locations."
+msgstr "Der Name muss unter allen Standorten derselben Ebene eindeutig sein."
+
+#: models/location.py:320
+msgid "Non-unique locations must have a parent location."
+msgstr "Nicht eindeutige Standorte brauchen einen übergeordneten Standort."
+
+#: models/location.py:431
+msgid "user name"
+msgstr "Benutzername"
+
+#: models/location.py:433 models/unique_item.py:219
+msgid "event"
+msgstr "Ereignis"
+
+#: models/location.py:434
+msgid "before"
+msgstr "vorher"
+
+#: models/location.py:435
+msgid "after"
+msgstr "nachher"
+
+#: models/stock.py:77
+msgid "stock entry"
+msgstr "Bestandseintrag"
+
+#: models/stock.py:78
+msgid "stock entries"
+msgstr "Bestandseinträge"
+
+#: models/stock.py:101
+msgid "This item is tracked as unique items; add unique items instead of stock."
+msgstr "Diese Sache wird in Einzelobjekten erfasst; füge statt Bestand Einzelobjekte hinzu."
+
+#: models/unique_item.py:29
+msgid "Sold"
+msgstr "Verkauft"
+
+#: models/unique_item.py:30
+msgid "Scrapped"
+msgstr "Verschrottet"
+
+#: models/unique_item.py:31
+msgid "Lost"
+msgstr "Verloren"
+
+#: models/unique_item.py:32
+msgid "Returned to owner"
+msgstr "An Eigentümer*in zurückgegeben"
+
+#: models/unique_item.py:33
+msgid "Given away"
+msgstr "Weitergegeben"
+
+#: models/unique_item.py:45
+msgid "notes"
+msgstr "Notizen"
+
+#: models/unique_item.py:45
+msgid "Markdown is supported."
+msgstr "Markdown wird unterstützt."
+
+#: models/unique_item.py:46
+msgid "warranty until"
+msgstr "Garantie bis"
+
+#: models/unique_item.py:47
+msgid "purchase date"
+msgstr "Kaufdatum"
+
+#: models/unique_item.py:49
+msgid "purchase price"
+msgstr "Kaufpreis"
+
+#: models/unique_item.py:53
+msgid "Leave empty to use the level of the item."
+msgstr "Leer lassen, um die Einweisungspflicht der Sache zu übernehmen."
+
+#: models/unique_item.py:57
+msgid "responsible team"
+msgstr "verantwortliches Team"
+
+#: models/unique_item.py:61
+msgid "responsible person"
+msgstr "verantwortliche Person"
+
+#: models/unique_item.py:67
+msgid "owner (account)"
+msgstr "Eigentümer*in (Konto)"
+
+#: models/unique_item.py:70
+msgid "owner's first name"
+msgstr "Vorname Eigentümer*in"
+
+#: models/unique_item.py:71
+msgid "For owners without an account. Shown publicly."
+msgstr "Für Eigentümer*innen ohne Konto. Wird öffentlich angezeigt."
+
+#: models/unique_item.py:74
+msgid "owner's name and contact"
+msgstr "Name und Kontakt Eigentümer*in"
+
+#: models/unique_item.py:75
+msgid "For owners without an account. Internal."
+msgstr "Für Eigentümer*innen ohne Konto. Intern."
+
+#: models/unique_item.py:77
+msgid "disposed at"
+msgstr "entfernt am"
+
+#: models/unique_item.py:78
+msgid "disposal reason"
+msgstr "Grund der Entfernung"
+
+#: models/unique_item.py:79
+msgid "disposal note"
+msgstr "Notiz zur Entfernung"
+
+#: models/unique_item.py:85 models/unique_item.py:220 models/zamid.py:72
+msgid "unique item"
+msgstr "Einzelobjekt"
+
+#: models/unique_item.py:89
+msgid "Can remove a unique item from the inventory"
+msgstr "Kann ein Einzelobjekt aus dem Inventar entfernen"
+
+#: models/unique_item.py:91
+msgid "Can change the owner of a unique item after it was created"
+msgstr "Kann die Eigentümer*in eines Einzelobjekts nach dem Anlegen ändern"
+
+#: models/unique_item.py:156
+msgid "Bulk items cannot have unique items."
+msgstr "Mengenartikel können keine Einzelobjekte haben."
+
+#: models/unique_item.py:159
+msgid "A unique item in the inventory needs a location."
+msgstr "Ein Einzelobjekt im Inventar braucht einen Standort."
+
+#: models/unique_item.py:163
+msgid "Choose an owner account or enter the owner's details, not both."
+msgstr "Wähle ein Konto als Eigentümer*in oder gib die Angaben ein, nicht beides."
+
+#: models/unique_item.py:210
+msgid "Added to the inventory"
+msgstr "Ins Inventar aufgenommen"
+
+#: models/unique_item.py:211
+msgid "Moved"
+msgstr "Verlegt"
+
+#: models/unique_item.py:212
+msgid "Removed from the inventory"
+msgstr "Aus dem Inventar entfernt"
+
+#: models/unique_item.py:223 models/unique_item.py:225
+msgid "from"
+msgstr "von"
+
+#: models/unique_item.py:227 models/unique_item.py:229
+msgid "to"
+msgstr "nach"
+
+#: models/unique_item.py:236
+msgid "unique item event"
+msgstr "Einzelobjekt-Ereignis"
+
+#: models/unique_item.py:237
+msgid "unique item events"
+msgstr "Einzelobjekt-Ereignisse"
+
+#: models/zamid.py:96
+msgid "Can claim a ZAM ID for an item, location or unique item"
+msgstr "Kann eine ZAM-ID einer Sache, einem Standort oder einem Einzelobjekt zuordnen"
+
+#: templates/inventory/file_entry.html:8 templates/inventory/media_modal.html:5
+#: templates/inventory/unique_item_photo.html:10
+msgid "general"
+msgstr "allgemein"
+
+#: templates/inventory/files_panel.html:7
+#: templates/inventory/media_modal.html:4
+#: templates/inventory/quick_add_modals.html:42
+#: templates/inventory/quick_add_modals.html:64
+msgid "Add file"
+msgstr "Datei hinzufügen"
+
+#: templates/inventory/files_panel.html:9
+msgid "No files yet."
+msgstr "Noch keine Dateien."
+
+#: templates/inventory/internal_chip.html:1
+msgid "Only visible with the permission for internal details."
+msgstr "Nur mit der Berechtigung für interne Details sichtbar."
+
+#: templates/inventory/internal_chip.html:1
+#: templates/inventory/media_modal.html:5
+msgid "internal"
+msgstr "intern"
+
+#: templates/inventory/inventory_print.html:115
+#: templates/inventory/item_detail.html:47
+#: templates/inventory/item_detail.html:140
+#: templates/inventory/location_detail.html:165
+msgid "Unique items"
+msgstr "Einzelobjekte"
+
+#: templates/inventory/inventory_print.html:124
+#: templates/inventory/item_detail.html:42
+#: templates/inventory/location_detail.html:175
+#: templates/inventory/unique_item_detail.html:66
+msgid "Usage level"
+msgstr "Einweisungspflicht"
+
+#: templates/inventory/item_confirm_delete.html:5
+msgid "Delete Item"
+msgstr "Sache löschen"
+
+#: templates/inventory/item_confirm_delete.html:9
+msgid "Are you sure you want to delete this item?"
+msgstr "Möchtest du diese Sache wirklich löschen?"
+
+#: templates/inventory/item_detail.html:23
+msgid "Item with unique items"
+msgstr "Sache mit Einzelobjekten"
+
+#: templates/inventory/item_detail.html:23
+msgid "Bulk item"
+msgstr "Mengenartikel"
+
+#: templates/inventory/item_detail.html:60
+msgid "For sale"
+msgstr "Zu verkaufen"
+
+#: templates/inventory/item_detail.html:89
+#: templates/inventory/media_modal.html:3
+#: templates/inventory/quick_add_modals.html:9
+#: templates/inventory/quick_add_modals.html:30
+#: templates/inventory/unique_item_detail.html:113
+msgid "Add photo"
+msgstr "Foto hinzufügen"
+
+#: templates/inventory/item_detail.html:131
+msgid "Last purchase date"
+msgstr "Letztes Kaufdatum"
+
+#: templates/inventory/item_detail.html:131
+msgid "Last purchase price"
+msgstr "Letzter Kaufpreis"
+
+#: templates/inventory/item_detail.html:142
+msgid "Add unique item"
+msgstr "Einzelobjekt hinzufügen"
+
+#: templates/inventory/item_detail.html:145
+msgid "Each unique item is a single object with its own ZAM ID."
+msgstr "Jedes Einzelobjekt ist ein einzelner Gegenstand mit eigener ZAM-ID."
+
+#: templates/inventory/item_detail.html:145
+#, python-format
+msgid "%(counter)s unique item has been removed from the inventory."
+msgid_plural "%(counter)s unique items have been removed from the inventory."
+msgstr[0] "%(counter)s Einzelobjekt wurde aus dem Inventar entfernt."
+msgstr[1] "%(counter)s Einzelobjekte wurden aus dem Inventar entfernt."
+
+#: templates/inventory/item_detail.html:154
+msgid "differs"
+msgstr "abweichend"
+
+#: templates/inventory/item_detail.html:158
+msgid "Responsible team"
+msgstr "Verantwortliches Team"
+
+#: templates/inventory/item_detail.html:161
+msgid "None of its unique items are in the inventory."
+msgstr "Keines ihrer Einzelobjekte ist im Inventar."
+
+#: templates/inventory/item_detail.html:203
+msgid "It belongs to the item in general."
+msgstr "Es gehört zur Sache allgemein."
+
+#: templates/inventory/item_list.html:18
+#: templates/inventory/location_list.html:17
+msgid "Search"
+msgstr "Suchen"
+
+#: templates/inventory/item_list.html:24
+msgid "Create New Item"
+msgstr "Neue Sache anlegen"
+
+#: templates/inventory/item_list.html:86
+#: templates/inventory/location_list.html:66
+msgid "first"
+msgstr "erste"
+
+#: templates/inventory/item_list.html:87
+#: templates/inventory/location_list.html:67
+msgid "previous"
+msgstr "vorherige"
+
+#: templates/inventory/item_list.html:91
+#: templates/inventory/location_list.html:71
+#, python-format
+msgid "Page %(number)s of %(pages)s."
+msgstr "Seite %(number)s von %(pages)s."
+
+#: templates/inventory/item_list.html:95
+#: templates/inventory/location_list.html:75
+msgid "next"
+msgstr "nächste"
+
+#: templates/inventory/item_list.html:96
+#: templates/inventory/location_list.html:76
+msgid "last"
+msgstr "letzte"
+
+#: templates/inventory/location_detail.html:167
+msgid "Add a unique item at this location"
+msgstr "Einzelobjekt an diesem Standort hinzufügen"
+
+#: templates/inventory/location_detail.html:170
+msgid "Single objects with their own ZAM ID, such as machines or fire extinguishers."
+msgstr "Einzelne Gegenstände mit eigener ZAM-ID, etwa Maschinen oder Feuerlöscher."
+
+#: templates/inventory/location_detail.html:174
+#: templates/inventory/unique_item_detail.html:27
+msgid "Unique item"
+msgstr "Einzelobjekt"
+
+#: templates/inventory/location_detail.html:209
+msgid "No unique items located here."
+msgstr "Hier befinden sich keine Einzelobjekte."
+
+#: templates/inventory/location_dissolve.html:21
+msgid "Unique items must be handled one by one first"
+msgstr "Einzelobjekte müssen zuerst einzeln bearbeitet werden"
+
+#: templates/inventory/location_dissolve.html:22
+msgid "Unique items are never dissolved together with their location. Move each one elsewhere or remove it from the inventory, then dissolve this location."
+msgstr "Einzelobjekte werden nie zusammen mit ihrem Standort aufgelöst. Verlege jedes an einen anderen Ort oder entferne es aus dem Inventar und löse dann diesen Standort auf."
+
+#: templates/inventory/location_dissolve.html:28
+#: templates/inventory/unique_item_detail.html:37
+#: templates/inventory/unique_item_dispose.html:4
+#: templates/inventory/unique_item_dispose.html:11
+msgid "Remove from inventory"
+msgstr "Aus dem Inventar entfernen"
+
+#: templates/inventory/location_list.html:9
+msgid "Location List"
+msgstr "Standortliste"
+
+#: templates/inventory/location_list.html:23
+msgid "Identifier"
+msgstr "Kennung"
+
+#: templates/inventory/media_modal.html:3
+msgid "Edit photo"
+msgstr "Foto bearbeiten"
+
+#: templates/inventory/media_modal.html:4
+msgid "Edit file"
+msgstr "Datei bearbeiten"
+
+#: templates/inventory/media_modal.html:5
+#: templates/inventory/quick_add_modals.html:25
+msgid "Primary photo"
+msgstr "Hauptfoto"
+
+#: templates/inventory/media_modal.html:6
+msgid "new"
+msgstr "neu"
+
+#: templates/inventory/media_modal.html:6
+msgid "changed"
+msgstr "geändert"
+
+#: templates/inventory/media_modal.html:6
+msgid "will be deleted"
+msgstr "wird gelöscht"
+
+#: templates/inventory/media_modal.html:7
+msgid "please check"
+msgstr "bitte prüfen"
+
+#: templates/inventory/media_modal.html:7
+msgid "Not saved yet: changes are saved with the form."
+msgstr "Noch nicht gespeichert: Änderungen werden mit dem Formular gespeichert."
+
+#: templates/inventory/media_modal.html:19
+msgctxt "photo or file"
+msgid "Remove"
+msgstr "Entfernen"
+
+#: templates/inventory/media_modal.html:19
+msgctxt "photo or file"
+msgid "Delete"
+msgstr "Löschen"
+
+#: templates/inventory/media_modal.html:20
+msgid "Keep it"
+msgstr "Behalten"
+
+#: templates/inventory/media_modal.html:21
+msgid "Changes are saved with the form."
+msgstr "Änderungen werden mit dem Formular gespeichert."
+
+#: templates/inventory/media_modal.html:23
+msgid "Apply"
+msgstr "Übernehmen"
+
+#: templates/inventory/photo_tools.html:4
+msgid "Photo preview"
+msgstr "Fotovorschau"
+
+#: templates/inventory/photo_tools.html:20
+msgid "Drag a rectangle around the object, or adjust its edges below. Only the selected area will be uploaded."
+msgstr "Ziehe ein Rechteck um den Gegenstand oder passe die Kanten unten an. Nur der ausgewählte Bereich wird hochgeladen."
+
+#: templates/inventory/procurement_panel.html:15
+msgid "Warranty until"
+msgstr "Garantie bis"
+
+#: templates/inventory/procurement_panel.html:16
+msgid "expired"
+msgstr "abgelaufen"
+
+#: templates/inventory/procurement_panel.html:18
+msgid "Procurement source"
+msgstr "Bezugsquelle"
+
+#: templates/inventory/unique_item_detail.html:18
+msgid "Unique item navigation"
+msgstr "Einzelobjekt-Navigation"
+
+#: templates/inventory/unique_item_detail.html:34
+msgid "Edit"
+msgstr "Bearbeiten"
+
+#: templates/inventory/unique_item_detail.html:49
+#, python-format
+msgid "Removed from the inventory on %(date)s."
+msgstr "Am %(date)s aus dem Inventar entfernt."
+
+#: templates/inventory/unique_item_detail.html:54
+msgid "This unique item has no active ZAM ID."
+msgstr "Dieses Einzelobjekt hat keine aktive ZAM-ID."
+
+#: templates/inventory/unique_item_detail.html:55
+msgid "Scan a new label and attach it to this unique item."
+msgstr "Scanne ein neues Etikett und ordne es diesem Einzelobjekt zu."
+
+#: templates/inventory/unique_item_detail.html:72
+msgid "Responsible"
+msgstr "Verantwortlich"
+
+#: templates/inventory/unique_item_detail.html:87
+msgid "Not ZAM property"
+msgstr "Kein ZAM-Eigentum"
+
+#: templates/inventory/unique_item_detail.html:104
+msgid "Notes"
+msgstr "Notizen"
+
+#: templates/inventory/unique_item_detail.html:126
+msgid "About this item"
+msgstr "Über diese Sache"
+
+#: templates/inventory/unique_item_detail.html:133
+msgid "Purchase date"
+msgstr "Kaufdatum"
+
+#: templates/inventory/unique_item_detail.html:133
+msgid "Purchase price"
+msgstr "Kaufpreis"
+
+#: templates/inventory/unique_item_detail.html:154
+msgid "Download for printing (standard resolution, no scaling):"
+msgstr "Zum Drucken herunterladen (Standardauflösung, ohne Skalierung):"
+
+#: templates/inventory/unique_item_detail.html:173
+msgid "No history yet."
+msgstr "Noch kein Verlauf."
+
+#: templates/inventory/unique_item_detail.html:183
+msgid "It belongs to this unique item; you can change that in the edit form."
+msgstr "Es gehört zu diesem Einzelobjekt; das kannst du im Bearbeitungsformular ändern."
+
+#: templates/inventory/unique_item_dispose.html:7
+#, python-format
+msgid "The unique item currently is at %(location)s. Once removed, it no longer appears there; its page, history and ZAM ID remain, so an old label still leads here."
+msgstr "Das Einzelobjekt befindet sich zurzeit hier: %(location)s. Nach dem Entfernen erscheint es dort nicht mehr; Seite, Verlauf und ZAM-ID bleiben erhalten, sodass ein altes Etikett weiterhin hierher führt."
+
+#: templates/inventory/unique_item_move_modal.html:12
+#, python-format
+msgid "Currently at %(location)s."
+msgstr "Zurzeit hier: %(location)s."
+
+#: templates/inventory/unique_item_move_modal.html:16
+#: templates/inventory/unique_item_move_modal.html:20
+msgid "Scan location label"
+msgstr "Standort-Etikett scannen"
+
+#: templates/inventory/unique_item_move_modal.html:17
+msgid "Hold the QR code of the new location in front of the camera."
+msgstr "Halte den QR-Code des neuen Standorts vor die Kamera."
+
+#: templates/inventory/unique_item_move_modal.html:18
+#, python-format
+msgid "Scanned: %(code)s"
+msgstr "Gescannt: %(code)s"
+
+#: templates/inventory/unique_item_move_modal.html:19
+#, python-format
+msgid "Already scanned: %(code)s"
+msgstr "Bereits gescannt: %(code)s"
+
+#: templates/inventory/unique_item_move_modal.html:20
+#, python-format
+msgid "New location: %(location)s"
+msgstr "Neuer Standort: %(location)s"
+
+#: templates/inventory/zamid/claim.html:53 unique_item_views.py:77
+msgid "New unique item"
+msgstr "Neues Einzelobjekt"
+
+#: templates/inventory/zamid/claim.html:54
+msgid "A single object that is tracked on its own, such as one fire extinguisher. You can add its details on the next page."
+msgstr "Ein einzelner Gegenstand, der für sich erfasst wird, etwa ein Feuerlöscher. Details kannst du auf der nächsten Seite ergänzen."
+
+#: templates/inventory/zamid/claim.html:56
+msgid "Create unique item with this ID"
+msgstr "Einzelobjekt mit dieser ID anlegen"
+
+#: templates/inventory/zamid/claim.html:65
+msgid "Replacement label for a unique item"
+msgstr "Ersatzetikett für ein Einzelobjekt"
+
+#: templates/inventory/zamid/claim.html:66
+msgid "For unique items whose previous ID was retired."
+msgstr "Für Einzelobjekte, deren bisherige ID stillgelegt wurde."
+
+#: templates/inventory/zamid/claim.html:68
+msgid "Attach to unique item"
+msgstr "Einzelobjekt zuordnen"
+
+#: unique_item_views.py:110
+msgid "Edit unique item"
+msgstr "Einzelobjekt bearbeiten"
+
+#: unique_item_views.py:137
+#, python-format
+msgid "%(unique_item)s was removed from the inventory."
+msgstr "%(unique_item)s wurde aus dem Inventar entfernt."
+
+#: unique_item_views.py:159
+#, python-format
+msgid "Create new item “%(name)s”"
+msgstr "Neue Sache „%(name)s“ anlegen"
+
+#: widgets.py:42
+#, python-format
+msgid "New item “%(name)s”"
+msgstr "Neue Sache „%(name)s“"
+
+#: zamid/forms.py:33
+msgid "Unique item without an ID"
+msgstr "Einzelobjekt ohne ID"
+
+#: zamid/forms.py:34
+msgid "Search for a unique item…"
+msgstr "Einzelobjekt suchen…"
+
+#: zamid/services.py:75
+msgid "Objects removed from the inventory cannot get an ID."
+msgstr "Aus dem Inventar entfernte Gegenstände können keine ID bekommen."
+
+#: ../templates/base.html
+msgid "Toggle navigation"
+msgstr "Navigation umschalten"
+
+#: ../templates/base.html
+msgid "(no title)"
+msgstr "(kein Titel)"
+
+#: ../templates/base.html
+msgid "(no content)"
+msgstr "(kein Inhalt)"
+
+#: inventory/templates/inventory/location_list.html
+msgid "Print inventory of the locations found"
+msgstr "Inventarliste der gefundenen Standorte drucken"
+
+#: inventory/templates/inventory/inventory_print.html
+#, python-format
+msgid ""
+"%(counter)s location found by the search “%(query)s” is preselected."
+msgid_plural ""
+"%(counter)s locations found by the search “%(query)s” are preselected."
+msgstr[0] "%(counter)s mit der Suche „%(query)s“ gefundener Standort ist vorausgewählt."
+msgstr[1] "%(counter)s mit der Suche „%(query)s“ gefundene Standorte sind vorausgewählt."
+
+#: inventory/models/unique_item.py
+msgid "Owner changed"
+msgstr "Eigentümer*in geändert"
+
+#: inventory/models/unique_item.py
+msgid "previous owner (account)"
+msgstr "Vorherige*r Eigentümer*in (Konto)"
+
+#: inventory/models/unique_item.py
+msgid "previous owner's first name"
+msgstr "Vorname vorherige*r Eigentümer*in"
+
+#: inventory/models/unique_item.py
+msgid "previous owner's name and contact"
+msgstr "Name und Kontakt vorherige*r Eigentümer*in"
+
+#: inventory/models/unique_item.py
+msgid "new owner (account)"
+msgstr "Neue*r Eigentümer*in (Konto)"
+
+#: inventory/models/unique_item.py
+msgid "new owner's first name"
+msgstr "Vorname neue*r Eigentümer*in"
+
+#: inventory/models/unique_item.py
+msgid "new owner's name and contact"
+msgstr "Name und Kontakt neue*r Eigentümer*in"
+
+#: inventory/models/unique_item.py
+msgid "someone else"
+msgstr "jemand anderes"
+
+#: inventory/models/unique_item.py
+msgid "ZAM"
+msgstr "ZAM"
+
+#: inventory/models/location.py
+msgid "location label templates"
+msgstr "Standortetikettvorlagen"
