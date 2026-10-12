@@ -1,0 +1,10 @@
+{% load i18n %}
+{% include "admin/edit_inline/tabular.html" %}
+{% with formset=inline_admin_formset.formset %}
+{% if formset.row_total %}
+<p class="help capped-inline-note">
+  {% blocktranslate with shown=formset.max_rows total=formset.row_total %}Showing {{ shown }} of {{ total }} entries, read-only.{% endblocktranslate %}
+  <a href="{{ formset.full_list_url }}">{% translate "Open all in the list" %}</a>
+</p>
+{% endif %}
+{% endwith %}

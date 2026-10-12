@@ -6,16 +6,19 @@ from django.contrib.auth.mixins import PermissionRequiredMixin
 from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.db.models import CharField, FileField, TextField
+from django.forms.models import _get_foreign_key
 from django.shortcuts import redirect
 from django.urls import path, reverse
 from django.utils.decorators import method_decorator
 from django.utils.html import format_html
+from django.utils.http import urlencode
 from django.utils.translation import gettext_lazy as _, ngettext
 from django.views.generic import FormView
 
 from . import models
 from .forms import AdminItemLocationForm, AdminLocationForm
-from .soft_delete_admin import SoftDeleteAdminMixin
+from .soft_delete import SoftDeleteModel
+from .soft_delete_admin import DeletedObjectFilter, SoftDeleteAdminMixin
 from .stock_log import stock_changes
 from .zamid import core as zamid_core, parsing as zamid_parsing, services as zamid_services
 from .zamid.admin import ClaimOnAddMixin  # also registers ZamIdAdmin
@@ -40,6 +43,71 @@ class LocationLabelTemplateAdmin(admin.ModelAdmin):
 admin.site.register(models.LocationLabelTemplate, LocationLabelTemplateAdmin)
 
 
+class CappedFormSetMixin:
+    max_rows = row_total = full_list_url = None
+
+    def get_queryset(self):
+        # Cached so the forms index the evaluated slice instead of querying per row.
+        if not hasattr(self, "_capped_queryset"):
+            self._capped_queryset = super().get_queryset()[: self.max_rows]
+        return self._capped_queryset
+
+
+class CappedInlineMixin:
+    """Beyond `max_rows`, show the first rows read-only and link to the full change list.
+
+    Every inline row posts its form fields, even read-only rows (pk and parent key),
+    so hundreds of rows exceed DATA_UPLOAD_MAX_NUMBER_FIELDS on save.
+    """
+    max_rows = 50
+    template = "admin/inventory/capped_tabular.html"
+
+    def row_total(self, request, obj):
+        if obj is None or obj.pk is None:
+            return 0
+        # The admin asks for permissions many times per request; count once.
+        totals = getattr(request, "_capped_inline_totals", None)
+        if totals is None:
+            totals = request._capped_inline_totals = {}
+        key = (type(self), obj.pk)
+        if key not in totals:
+            totals[key] = self.get_queryset(request).filter(**{self.fk().name: obj}).count()
+        return totals[key]
+
+    def is_capped(self, request, obj):
+        return self.row_total(request, obj) > self.max_rows
+
+    def fk(self):
+        return _get_foreign_key(self.parent_model, self.model, fk_name=self.fk_name)
+
+    def full_list_url(self, obj):
+        url = reverse(f"admin:{self.opts.app_label}_{self.opts.model_name}_changelist")
+        params = {f"{self.fk().name}__exact": obj.pk}
+        if issubclass(self.model, SoftDeleteModel):
+            # The inline lists deleted rows too; match it instead of the list's default filter.
+            params[DeletedObjectFilter.parameter_name] = "all"
+        return f"{url}?{urlencode(params)}"
+
+    def has_add_permission(self, request, obj=None):
+        return super().has_add_permission(request, obj) and not self.is_capped(request, obj)
+
+    def has_change_permission(self, request, obj=None):
+        return super().has_change_permission(request, obj) and not self.is_capped(request, obj)
+
+    def has_delete_permission(self, request, obj=None):
+        return super().has_delete_permission(request, obj) and not self.is_capped(request, obj)
+
+    def get_formset(self, request, obj=None, **kwargs):
+        formset = super().get_formset(request, obj, **kwargs)
+        if not self.is_capped(request, obj):
+            return formset
+        return type(formset.__name__, (CappedFormSetMixin, formset), {
+            "max_rows": self.max_rows,
+            "row_total": self.row_total(request, obj),
+            "full_list_url": self.full_list_url(obj),
+        })
+
+
 class LocationInlineFormSet(forms.BaseInlineFormSet):
     def clean(self):
         super().clean()
@@ -50,8 +118,9 @@ class LocationInlineFormSet(forms.BaseInlineFormSet):
                 current.validate_deletion(hard=current.is_deleted)
 
 
-class LocationInline(SoftDeleteAdminMixin, admin.TabularInline):
+class LocationInline(CappedInlineMixin, SoftDeleteAdminMixin, admin.TabularInline):
     model = models.Location
+    show_change_link = True
     formset = LocationInlineFormSet
     verbose_name = _("sub-location")
     verbose_name_plural = _("sub-locations")
@@ -323,7 +392,7 @@ class StockChangeDisplayMixin:
         return ("~" if obj.is_estimate else "") + f"{obj.sale_value} €"
 
 
-class StockChangeInline(StockChangeDisplayMixin, admin.TabularInline):
+class StockChangeInline(CappedInlineMixin, StockChangeDisplayMixin, admin.TabularInline):
     model = models.StockChange
     fk_name = "item"
     extra = 0
@@ -422,7 +491,7 @@ class UniqueItemImageInline(admin.TabularInline):
     extra = 0
 
 
-class UniqueItemEventInline(admin.TabularInline):
+class UniqueItemEventInline(CappedInlineMixin, admin.TabularInline):
     model = models.UniqueItemEvent
     extra = 0
     can_delete = False

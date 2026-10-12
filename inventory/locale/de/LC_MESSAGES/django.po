@@ -2843,3 +2843,12 @@ msgstr "Dieser Zielstandort wird laut Plan gelöscht. Bitte einen anderen auswä
 #: inventory/dissolve_views.py
 msgid "Planned moves and deletions were completed. The location was kept."
 msgstr "Die geplanten Verschiebungen und Löschungen wurden ausgeführt. Der Standort bleibt erhalten."
+
+#: inventory/templates/admin/inventory/capped_tabular.html
+#, python-format
+msgid "Showing %(shown)s of %(total)s entries, read-only."
+msgstr "%(shown)s von %(total)s Einträgen werden angezeigt, nur lesbar."
+
+#: inventory/templates/admin/inventory/capped_tabular.html
+msgid "Open all in the list"
+msgstr "Alle in der Liste öffnen"
