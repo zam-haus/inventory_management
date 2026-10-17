@@ -87,8 +87,7 @@
                         <h2 id="location-stored-heading" class="fs-4">{% trans "At this location …" %}</h2>
                         <nav class="location-contents" aria-label="{% trans 'Contents' %}">
                             <ul>
-                                {% if can_manage_quick_items or quick_entries %}<li><a href="#location-quick-items"><span class="location-contents-count" data-quick-items-count>{{ quick_entries|length }}</span> {% trans "Quick-items" %}</a></li>{% endif %}
-                                <li><a href="#location-items"><span class="location-contents-count">{{ entries|length }}</span> {% trans "Items" %}</a></li>
+                                <li><a href="#location-items"><span class="location-contents-count" data-items-count>{{ items_count }}</span> {% trans "Items" %}</a></li>
                                 <li><a href="#location-unique-items"><span class="location-contents-count">{{ unique_items|length }}</span> {% trans "Unique items" %}</a></li>
                                 {% if not object.type.no_sublocations or children %}<li><a href="#location-children"><span class="location-contents-count">{{ children|length }}</span> {% trans "Sub-Locations" %}</a></li>{% endif %}
                             </ul>
@@ -122,13 +121,11 @@
                     </section>
                 </section>
 
-                {% include 'inventory/location_quick_items.html' %}
-
                 <section class="location-panel location-stored-items" id="location-items" aria-labelledby="location-items-heading">
                     {% if entries|length > 10 %}<input type="checkbox" class="list-collapse-state visually-hidden" id="location-items-expanded">{% endif %}
                     <div class="location-panel-heading">
                         <div class="location-panel-title-row">
-                            <h2 id="location-items-heading" class="fs-4">{% if entries|length > 10 %}<label class="list-collapse-toggle" for="location-items-expanded">{% endif %}<span class="list-collapse-title">{% trans "Items" %} <span class="location-count">{{ entries|length }}</span></span>{% if entries|length > 10 %}</label>{% endif %}</h2>
+                            <h2 id="location-items-heading" class="fs-4">{% if entries|length > 10 %}<label class="list-collapse-toggle" for="location-items-expanded">{% endif %}<span class="list-collapse-title">{% trans "Items" %} <span class="location-count" data-items-count>{{ items_count }}</span></span>{% if entries|length > 10 %}</label>{% endif %}</h2>
                             {% if perms.inventory.add_item and perms.inventory.add_itemlocation %}
                             <a class="btn btn-primary location-add-item" href="{% url 'create_item' %}?location_id={{ object.pk }}" data-bs-toggle="tooltip" title="{% trans 'Add an item at this location' %}" aria-label="{% trans 'Add an item at this location' %}"><span aria-hidden="true">+</span></a>
                             {% else %}
@@ -138,6 +135,7 @@
                         <p class="location-muted">{% trans "Only items stored directly at this location are shown." %}
                         </p>
                     </div>
+                    {% include 'inventory/location_quick_items.html' %}
                     {% if entries %}
                         <div class="location-item-columns{% if stock_change_form or user.is_authenticated %} location-items-changeable{% endif %}" aria-hidden="true">
                             <span>{% trans "Item" %}</span>
@@ -174,8 +172,8 @@
                             {% endfor %}
                         </ul>
                         {% if entries|length > 10 %}<label class="list-collapse-more" for="location-items-expanded">{% blocktrans with counter=entries|length %}Show all {{ counter }}{% endblocktrans %}</label>{% endif %}
-                    {% else %}
-                        <div class="location-empty">
+                    {% elif not quick_entries %}
+                        <div class="location-empty" data-items-empty>
                             <p>{% trans "No items located here." %}</p>
                         </div>
                     {% endif %}

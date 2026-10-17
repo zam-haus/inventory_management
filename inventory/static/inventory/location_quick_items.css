@@ -1,4 +1,3 @@
-.location-quick-items .location-panel-heading { padding-bottom: .75rem; }
 .location-quick-list,
 .location-quick-readonly { list-style: none; margin: 0; padding: 0 1.2rem 1.2rem; }
 .location-quick-item { position: relative; display: flex; align-items: center; gap: .4rem; padding: .2rem 0; }
@@ -8,7 +7,7 @@
 .location-quick-new .form-control { border-style: dashed; }
 .location-quick-details,
 .location-quick-delete { display: inline-flex; align-items: center; justify-content: center; flex: 0 0 44px; width: 44px; height: 44px; padding: 0; font-size: 1.15rem; line-height: 1; }
-.location-quick-details { font-family: Georgia, "Times New Roman", serif; font-style: italic; font-weight: 700; }
+.location-quick-details > [aria-hidden]:first-child { font-family: Georgia, "Times New Roman", serif; font-style: italic; font-weight: 700; }
 .location-quick-delete-form { display: flex; flex: 0 0 auto; }
 .location-quick-undo { min-height: 44px; white-space: nowrap; }
 .location-quick-item.is-saving .form-control { color: var(--location-muted); }
@@ -31,4 +30,45 @@
     .location-quick-list,
     .location-quick-readonly { padding: 0 1rem 1rem; }
     .location-quick-item { gap: .3rem; }
+}
+
+/* Inside the items panel, before the detailed items. */
+.location-quick-hint { margin: 0; padding: 0 1.2rem .5rem; }
+.location-quick-photo { display: inline-flex; flex: 0 0 44px; width: 44px; height: 44px; border-radius: .375rem; overflow: hidden; }
+.location-quick-photo img { width: 44px; height: 44px; object-fit: cover; }
+.location-quick-photo-form { display: flex; flex: 0 0 auto; gap: .25rem; }
+.location-quick-photo-button { display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; padding: 0; font-size: 1.15rem; line-height: 1; cursor: pointer; }
+.location-quick-photo-button:focus-within { outline: 3px solid #0d6efd; outline-offset: 2px; }
+.location-quick-item.is-uploading .location-quick-photo-button { opacity: .5; }
+.location-quick-readonly li { display: flex; align-items: center; gap: .5rem; }
+@media (max-width: 575.98px) {
+    .location-quick-hint { padding: 0 1rem .5rem; }
+}
+
+/* Narrow screens: 📷, i and × sit behind ⋯ as labelled menu entries; Undo stays in the row. */
+.location-quick-menu { flex: 0 0 auto; }
+.location-quick-menu-toggle { display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; padding: 0; font-size: 1.25rem; line-height: 1; }
+.location-quick-item.is-pending-delete .location-quick-menu { display: none; }
+.location-quick-actions { min-width: 12rem; padding: .25rem; }
+.location-quick-actions form { display: block; }
+.location-quick-actions .location-quick-photo-button,
+.location-quick-actions .location-quick-details,
+.location-quick-actions .location-quick-delete,
+.location-quick-actions .disabled-action { display: flex; align-items: center; justify-content: flex-start; gap: .75rem; width: 100%; height: 44px; padding: 0 .75rem; border: 0; font-size: 1rem; text-align: left; }
+.location-quick-actions .disabled-action .btn { border: 0; padding: 0; }
+@media (min-width: 576px) {
+    .location-quick-menu-toggle,
+    .location-quick-action-label { display: none; }
+    .location-quick-item.is-pending-delete .location-quick-menu { display: block; }
+    /* The menu is part of the row here, whatever Bootstrap set while it was open on a narrow screen. */
+    .location-quick-actions {
+        display: flex !important; position: static !important; inset: auto !important; transform: none !important;
+        align-items: center; gap: .4rem; min-width: 0; margin: 0; padding: 0; border: 0; background: none; box-shadow: none;
+    }
+    .location-quick-actions form { display: flex; }
+    .location-quick-actions .location-quick-photo-button,
+    .location-quick-actions .location-quick-details,
+    .location-quick-actions .location-quick-delete { justify-content: center; width: 44px; padding: 0; border: var(--bs-btn-border-width) solid var(--bs-btn-border-color); font-size: 1.15rem; }
+    .location-quick-actions .disabled-action { display: inline-flex; width: auto; height: auto; padding: 0; }
+    .location-quick-actions .disabled-action .btn { border: var(--bs-btn-border-width) solid var(--bs-btn-border-color); width: 44px; height: 44px; padding: 0; }
 }

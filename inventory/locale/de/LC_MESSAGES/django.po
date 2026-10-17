@@ -2961,3 +2961,38 @@ msgstr "Ihr Prüfzeichen stimmt nicht."
 #: inventory/label_ids/admin.py
 msgid "It was probably created under an earlier alphabet; labels with this code cannot be resolved."
 msgstr "Sie wurde vermutlich mit einem früheren Alphabet erzeugt; Etiketten mit diesem Code lassen sich nicht auflösen."
+
+#: inventory/templates/inventory/location_quick_item_row.html
+msgid "Replace photo"
+msgstr "Foto ersetzen"
+
+#: inventory/templates/inventory/location_quick_item_row.html
+msgid "Add a photo"
+msgstr "Foto hinzufügen"
+
+#: inventory/templates/inventory/location_quick_item_row.html
+msgid "Upload"
+msgstr "Hochladen"
+
+#: inventory/templates/inventory/location_quick_item_row.html
+#, python-format
+msgid "Photo for “%(name)s”"
+msgstr "Foto für „%(name)s“"
+
+#: inventory/templates/inventory/location_quick_item_row.html
+#, python-format
+msgid "Photo of “%(name)s”"
+msgstr "Foto von „%(name)s“"
+
+#: inventory/quick_item_views.py
+msgid "This item has more photos now. Open it to change them."
+msgstr "Diese Sache hat inzwischen mehrere Fotos. Öffne sie, um sie zu ändern."
+
+#: inventory/templates/inventory/location_quick_item_row.html
+msgid "Actions"
+msgstr "Aktionen"
+
+#: inventory/templates/inventory/location_quick_item_row.html
+#, python-format
+msgid "Actions for “%(name)s”"
+msgstr "Aktionen für „%(name)s“"

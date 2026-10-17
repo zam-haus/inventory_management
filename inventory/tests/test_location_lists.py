@@ -18,7 +18,7 @@ class LocationListCollapseTests(TestCase):
     def test_overview_links_to_sections_with_counts(self):
         response = self.client.get(self.room.get_absolute_url())
         self.assertContains(response, "Hier befinden sich …")
-        self.assertContains(response, '<a href="#location-items"><span class="location-contents-count">3</span> Sachen</a>', html=True)
+        self.assertContains(response, '<a href="#location-items"><span class="location-contents-count" data-items-count>3</span> Sachen</a>', html=True)
         self.assertContains(response, '<a href="#location-children"><span class="location-contents-count">11</span> Unterstandorte</a>', html=True)
         for anchor in ("location-items", "location-unique-items", "location-children"):
             self.assertContains(response, f'id="{anchor}"')

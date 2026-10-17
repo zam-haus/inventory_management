@@ -118,6 +118,9 @@ class DetailLocationView(DetailView):
         context["quick_entries"] = [entry for entry in entries if entry.is_quick_item]
         context["entries"] = [entry for entry in entries if not entry.is_quick_item]
         context["can_manage_quick_items"] = self.request.user.has_perms(QUICK_ITEM_PERMISSIONS)
+        context["can_add_quick_photos"] = self.request.user.has_perms((*QUICK_ITEM_PERMISSIONS, "inventory.add_itemimage"))
+        # Quick-items are listed with the items and counted with them.
+        context["items_count"] = len(entries)
         context["unique_items"] = annotate_label_code(
             self.object.unique_items.select_related("item").prefetch_related("images", "item__itemimage_set")
         ).order_by("item__name", "pk")

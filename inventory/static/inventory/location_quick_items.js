@@ -16,6 +16,8 @@
         added: data.textAdded, deleted: data.textDeleted,
         deleteScheduled: data.textDeleteScheduled, deleteUndone: data.textDeleteUndone,
         details: data.textDetails, delete: data.textDelete,
+        photo: data.textPhoto, photoOf: data.textPhotoOf, photoAdded: data.textPhotoAdded,
+        replacePhoto: data.textReplacePhoto, actions: data.textActions,
     };
     const pendingDeletes = new Set();
     section.style.setProperty('--quick-undo-delay', `${UNDO_DELAY / 1000}s`);
@@ -30,9 +32,11 @@
     }
 
     function updateCount() {
-        // Also the count in the overview at the top of "Stored here".
-        const count = list.querySelectorAll('[data-quick-item]').length;
-        document.querySelectorAll('[data-quick-items-count]').forEach(element => { element.textContent = count; });
+        // Quick-items count as items: in the panel heading and the overview at the top of the page.
+        const quick = list.querySelectorAll('[data-quick-item]').length;
+        const count = Number(data.detailedCount || 0) + quick;
+        document.querySelectorAll('[data-items-count]').forEach(element => { element.textContent = count; });
+        document.querySelectorAll('[data-items-empty]').forEach(element => { element.hidden = count > 0; });
     }
 
     async function post(url, data = {}) {
@@ -67,8 +71,41 @@
     }
 
     function setLabels(row, name) {
+        row.menu.setAttribute('aria-label', format(texts.actions, name));
         row.details.setAttribute('aria-label', format(texts.details, name));
         row.deleteButton.setAttribute('aria-label', format(texts.delete, name));
+        if (row.photoInput) row.photoInput.setAttribute('aria-label', format(texts.photo, name));
+        if (row.photoLink.getAttribute('href')) row.photoImage.alt = format(texts.photoOf, name);
+    }
+
+    function showPhoto(row, photo) {
+        if (!photo) return;
+        row.photoLink.href = photo.url;
+        row.photoImage.src = photo.thumbnail;
+        row.photoLink.hidden = false;
+        if (row.photoButton) {
+            row.photoButton.title = texts.replacePhoto;
+            row.photoButton.querySelector('[data-quick-photo-label]').textContent = texts.replacePhoto;
+        }
+        setLabels(row, row.saved);
+    }
+
+    function uploadPhoto(row) {
+        const file = row.photoInput.files[0];
+        if (!file) return;
+        row.li.classList.add('is-uploading');
+        enqueue(row, async () => {
+            try {
+                const result = await post(row.photoUrl, {image: file});
+                showPhoto(row, result.entry.photo);
+                announce(format(texts.photoAdded, row.saved));
+            } catch (error) {
+                announce(error.message);
+            } finally {
+                row.li.classList.remove('is-uploading');
+                row.photoInput.value = '';
+            }
+        });
     }
 
     function applyEntry(row, entry) {
@@ -80,6 +117,13 @@
         row.details.href = entry.item_url;
         row.details.classList.remove('disabled');
         row.details.removeAttribute('aria-disabled');
+        row.photoUrl = entry.photo_url;
+        if (row.photoForm) {
+            row.photoForm.action = entry.photo_url;
+            row.photoInput.disabled = false;
+            row.photoButton.classList.remove('disabled');
+        }
+        showPhoto(row, entry.photo);
         row.li.classList.remove('is-saving');
         setLabels(row, row.input.value || entry.name);
     }
@@ -185,13 +229,20 @@
     }
 
     function setupRow(li) {
-        const forms = li.querySelectorAll('form');
+        const photoForm = li.querySelector('.location-quick-photo-form');
         const row = {
             li,
-            nameForm: forms[0],
-            deleteForm: forms[1],
+            nameForm: li.querySelector('.location-quick-name'),
+            deleteForm: li.querySelector('.location-quick-delete-form'),
+            photoForm,
+            photoInput: photoForm && photoForm.querySelector('[data-quick-photo-input]'),
+            photoButton: photoForm && photoForm.querySelector('.location-quick-photo-button'),
+            photoLink: li.querySelector('[data-quick-photo-link]'),
+            photoImage: li.querySelector('[data-quick-photo-link] img'),
+            photoUrl: photoForm ? photoForm.getAttribute('action') : null,
             input: li.querySelector('input[name="name"]'),
             details: li.querySelector('[data-quick-details]'),
+            menu: li.querySelector('[data-quick-menu]'),
             deleteButton: li.querySelector('[data-quick-delete]'),
             undoButton: li.querySelector('[data-quick-undo]'),
             updateUrl: li.dataset.updateUrl || null,
@@ -203,7 +254,13 @@
         };
         row.saved = row.input.value;
         row.lastSubmitted = row.saved;
-        forms.forEach(form => form.addEventListener('submit', event => event.preventDefault()));
+        li.querySelectorAll('form').forEach(form => form.addEventListener('submit', event => event.preventDefault()));
+        if (photoForm) {
+            // Uploads as soon as a photo is chosen; the button is only for pages without JavaScript.
+            photoForm.querySelector('[data-quick-photo-submit]').hidden = true;
+            row.photoInput.addEventListener('change', () => uploadPhoto(row));
+        }
+        if (window.setupLocationPhotoLink) window.setupLocationPhotoLink(row.photoLink);
         row.input.addEventListener('keydown', event => {
             if (event.isComposing) return;
             if (event.key === 'Enter') {
@@ -251,6 +308,7 @@
     });
 
     list.querySelectorAll('[data-quick-item]').forEach(setupRow);
+    updateCount();
 
     // Leaving the page ends the undo window: send outstanding deletions now.
     let deletedOnLeave = false;

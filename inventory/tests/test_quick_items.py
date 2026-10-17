@@ -14,6 +14,12 @@ from ..forms import ItemLocationForm
 from ..models import Item, ItemBarcode, ItemImage, ItemLocation, Location, LocationType, MeasurementUnit
 
 
+def png(name="photo.png"):
+    content = BytesIO()
+    Image.new("RGB", (4, 4)).save(content, format="PNG")
+    return SimpleUploadedFile(name, content.getvalue(), content_type="image/png")
+
+
 def permissions(*codenames):
     return [Permission.objects.get(content_type__app_label="inventory", codename=codename) for codename in codenames]
 
@@ -73,11 +79,12 @@ class QuickItemTests(TestCase):
             "id": entry.pk, "name": "Hot glue gun", "item_url": entry.item.get_absolute_url(),
             "update_url": reverse("quick_item_update", args=[entry.pk]),
             "delete_url": reverse("quick_item_delete", args=[entry.pk]),
+            "photo_url": reverse("quick_item_set_photo", args=[entry.pk]), "photo": None,
         }})
 
     def test_creating_without_javascript_returns_to_the_quick_item_list(self):
         response = self.client.post(self.create_url, {"name": "Multimeter"})
-        self.assertRedirects(response, f"{self.location.get_absolute_url()}#location-quick-items-heading")
+        self.assertRedirects(response, f"{self.location.get_absolute_url()}#location-items")
         self.assertTrue(Item.active.filter(name="Multimeter").exists())
 
     def test_blank_or_overlong_names_create_nothing(self):
@@ -114,7 +121,7 @@ class QuickItemTests(TestCase):
     def test_deleting_without_javascript_reports_the_deletion(self):
         entry = self.quick_item()
         response = self.client.post(reverse("quick_item_delete", args=[entry.pk]))
-        self.assertRedirects(response, f"{self.location.get_absolute_url()}#location-quick-items-heading")
+        self.assertRedirects(response, f"{self.location.get_absolute_url()}#location-items")
         self.assertEqual([str(message) for message in get_messages(response.wsgi_request)], ["Quick-item “Soldering iron” deleted."])
 
     def test_beacon_deletion_answers_with_json_and_leaves_no_message(self):
@@ -140,10 +147,8 @@ class QuickItemTests(TestCase):
         self.assertFalse(entry.item.is_deleted)
 
     def test_quick_items_with_other_details_cannot_be_hard_deleted(self):
-        content = BytesIO()
-        Image.new("RGB", (4, 4)).save(content, format="PNG")
         details = {
-            "image": lambda item: ItemImage.objects.create(item=item, image=SimpleUploadedFile("i.png", content.getvalue())),
+            "second photo": lambda item: [ItemImage.objects.create(item=item, image=png()) for _ in range(2)],
             "barcode": lambda item: ItemBarcode.objects.create(item=item, data="4006381333931"),
             "second location": lambda item: ItemLocation.objects.create(item=item, location=self.other_location, amount=None),
         }
@@ -189,7 +194,7 @@ class QuickItemTests(TestCase):
         Item.objects.filter(pk=entry.item_id).update(is_deleted=True)
         self.assertEqual(self.post_json(reverse("quick_item_update", args=[entry.pk]), {"name": "X"}).status_code, 404)
 
-    def test_location_page_lists_quick_items_above_and_apart_from_regular_items(self):
+    def test_location_page_lists_quick_items_first_in_the_items_panel_and_counts_them(self):
         quick = self.quick_item()
         regular = Item.objects.create(name="Screwdriver set")
         ItemLocation.objects.create(item=regular, location=self.location, amount=2)
@@ -197,7 +202,11 @@ class QuickItemTests(TestCase):
         content = response.content.decode()
         self.assertEqual(response.context["quick_entries"], [quick])
         self.assertEqual([entry.item for entry in response.context["entries"]], [regular])
-        self.assertLess(content.index('id="location-quick-items-heading"'), content.index('id="location-items-heading"'))
+        self.assertLess(content.index('id="location-items-heading"'), content.index('id="location-quick-items"'))
+        self.assertLess(content.index('id="location-quick-items"'), content.index("Screwdriver set"))
+        self.assertNotContains(response, 'id="location-quick-items-heading"')
+        self.assertNotContains(response, 'href="#location-quick-items"')
+        self.assertEqual(content.count('data-items-count>2<'), 2)  # panel heading and overview at the top
         self.assertContains(response, 'value="Soldering iron"')
         self.assertContains(response, f'action="{self.create_url}"')
         self.assertContains(response, quick.item.get_absolute_url())
@@ -206,11 +215,11 @@ class QuickItemTests(TestCase):
     def test_readers_see_quick_items_as_links_and_nothing_when_empty(self):
         self.client.force_login(self.reader)
         response = self.client.get(self.location.get_absolute_url())
-        self.assertNotContains(response, 'id="location-quick-items-heading"')
+        self.assertNotContains(response, 'id="location-quick-items"')
         self.assertNotContains(response, "location_quick_items.js")
         entry = self.quick_item()
         response = self.client.get(self.location.get_absolute_url())
-        self.assertContains(response, 'id="location-quick-items-heading"')
+        self.assertContains(response, 'id="location-quick-items"')
         self.assertContains(response, f'<a href="{entry.item.get_absolute_url()}">Soldering iron</a>', html=True)
         self.assertNotContains(response, self.create_url)
         self.assertNotContains(response, 'name="name"')
@@ -253,3 +262,71 @@ class QuickItemTests(TestCase):
             with self.subTest(instance=instance):
                 form = ItemLocationForm(data={"location": self.other_location.pk, "amount": ""}, instance=instance)
                 self.assertIn("amount", form.errors)
+
+    # ------------------------------------------------------------ single photo
+    def grant_photos(self):
+        self.creator.user_permissions.add(*permissions("add_itemimage"))
+        self.creator = type(self.creator).objects.get(pk=self.creator.pk)  # drop the permission cache
+        self.client.force_login(self.creator)
+
+    def test_a_quick_item_gets_a_single_photo_and_a_new_one_replaces_it(self):
+        self.grant_photos()
+        entry = self.quick_item()
+        url = reverse("quick_item_set_photo", args=[entry.pk])
+        response = self.client.post(url, {"image": png("first.png")}, HTTP_ACCEPT="application/json")
+        self.assertEqual(response.status_code, 200)
+        photo = response.json()["entry"]["photo"]
+        first = ItemImage.objects.get(item=entry.item)
+        self.assertEqual(photo["url"], first.image.url)
+        self.assertTrue(photo["thumbnail"])
+        self.client.post(url, {"image": png("second.png")}, HTTP_ACCEPT="application/json")
+        self.assertEqual(ItemImage.objects.filter(item=entry.item).count(), 1)
+        self.assertNotEqual(ItemImage.objects.get(item=entry.item).pk, first.pk)
+        self.assertTrue(entry.is_quick_item)
+
+    def test_photo_without_javascript_returns_to_the_items_panel(self):
+        self.grant_photos()
+        entry = self.quick_item()
+        response = self.client.post(reverse("quick_item_set_photo", args=[entry.pk]), {"image": png()})
+        self.assertRedirects(response, f"{self.location.get_absolute_url()}#location-items")
+        self.assertTrue(ItemImage.objects.filter(item=entry.item).exists())
+
+    def test_photo_needs_the_image_permission_and_a_quick_item_with_at_most_one_photo(self):
+        entry = self.quick_item()
+        url = reverse("quick_item_set_photo", args=[entry.pk])
+        self.assertEqual(self.client.post(url, {"image": png()}, HTTP_ACCEPT="application/json").status_code, 403)
+        self.grant_photos()
+        self.assertEqual(self.client.post(url, {}, HTTP_ACCEPT="application/json").status_code, 400)
+        not_an_image = SimpleUploadedFile("photo.png", b"no image", content_type="image/png")
+        self.assertEqual(self.client.post(url, {"image": not_an_image}, HTTP_ACCEPT="application/json").status_code, 400)
+        ItemImage.objects.create(item=entry.item, image=png())
+        ItemImage.objects.create(item=entry.item, image=png())
+        self.assertEqual(self.client.post(url, {"image": png()}, HTTP_ACCEPT="application/json").status_code, 409)
+        regular = self.quick_item("Regular")
+        ItemLocation.objects.filter(pk=regular.pk).update(amount=3)
+        response = self.client.post(reverse("quick_item_set_photo", args=[regular.pk]), {"image": png()}, HTTP_ACCEPT="application/json")
+        self.assertEqual(response.status_code, 409)
+        self.assertEqual(ItemImage.objects.count(), 2)
+
+    def test_deleting_a_quick_item_takes_its_single_photo_along(self):
+        entry = self.quick_item()
+        ItemImage.objects.create(item=entry.item, image=png())
+        self.assertEqual(self.post_json(reverse("quick_item_delete", args=[entry.pk])).status_code, 200)
+        self.assertFalse(Item.objects.filter(pk=entry.item_id).exists())
+        self.assertFalse(ItemImage.objects.exists())
+
+    def test_location_page_shows_the_photo_and_offers_the_upload_only_with_permission(self):
+        entry = self.quick_item()
+        ItemImage.objects.create(item=entry.item, image=png())
+        response = self.client.get(self.location.get_absolute_url())
+        self.assertContains(response, 'class="location-quick-photo"')
+        self.assertNotContains(response, reverse("quick_item_set_photo", args=[entry.pk]))
+        self.assertContains(response, 'aria-label="Add a photo"')  # visible, but disabled
+        self.grant_photos()
+        response = self.client.get(self.location.get_absolute_url())
+        self.assertContains(response, f'action="{reverse("quick_item_set_photo", args=[entry.pk])}"')
+        self.assertContains(response, 'accept="image/*"')
+        self.client.force_login(self.reader)
+        response = self.client.get(self.location.get_absolute_url())
+        self.assertContains(response, 'class="location-quick-photo"')
+        self.assertNotContains(response, 'name="image"')

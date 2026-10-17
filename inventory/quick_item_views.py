@@ -1,10 +1,12 @@
 """Quick-items: items known only by title, managed inline on the location page.
 
 A quick-item is an item whose only storage entry has an unknown amount. Anyone
-who may create items can rename or hard-delete it while it is still a quick-item;
-once it has an amount or other details, the regular item views apply.
+who may create items can rename or hard-delete it while it is still a quick-item,
+and give it a single photo; once it has an amount or other details, the regular
+item views apply.
 """
 
+from django import forms
 from django.contrib import messages
 from django.contrib.auth.mixins import PermissionRequiredMixin
 from django.db import transaction
@@ -13,12 +15,21 @@ from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse
 from django.utils.translation import gettext as _
 from django.views import View
+from sorl.thumbnail import get_thumbnail
 
-from .models import Item, ItemLocation, Location
+from .models import Item, ItemImage, ItemLocation, Location
 from .permissions import QUICK_ITEM_PERMISSIONS
 from .soft_delete import SoftDeleteModel
 
 NAME_MAX_LENGTH = Item._meta.get_field("name").max_length
+# The panel the quick-items live in on the location page.
+ANCHOR = "#location-items"
+
+
+class QuickItemPhotoForm(forms.ModelForm):
+    class Meta:
+        model = ItemImage
+        fields = ["image"]
 
 
 class QuickItemError(Exception):
@@ -43,12 +54,12 @@ class QuickItemView(PermissionRequiredMixin, View):
                 return JsonResponse({"ok": False, "error": str(error)}, status=error.status)
             messages.error(request, str(error))
             location = self.error_location(pk)
-            return redirect(f"{location.get_absolute_url()}#location-quick-items-heading")
+            return redirect(location.get_absolute_url() + ANCHOR)
         if wants_json:
             return JsonResponse({"ok": True, **payload})
         if message:
             messages.success(request, message)
-        return redirect(f"{location.get_absolute_url()}#location-quick-items-heading")
+        return redirect(location.get_absolute_url() + ANCHOR)
 
     @staticmethod
     def clean_name(request):
@@ -74,12 +85,15 @@ class QuickItemView(PermissionRequiredMixin, View):
 
     @staticmethod
     def serialize(entry):
+        image = entry.item.itemimage_set.first()
         return {
             "id": entry.pk,
             "name": entry.item.name,
             "item_url": entry.item.get_absolute_url(),
             "update_url": reverse("quick_item_update", args=[entry.pk]),
             "delete_url": reverse("quick_item_delete", args=[entry.pk]),
+            "photo_url": reverse("quick_item_set_photo", args=[entry.pk]),
+            "photo": image and {"url": image.image.url, "thumbnail": get_thumbnail(image.image, "88x88", crop="center").url},
         }
 
 
@@ -87,11 +101,11 @@ def hard_delete(entry):
     item = entry.item
     if (
         ItemLocation.objects.filter(item=item).exclude(pk=entry.pk).exists()
-        or item.itemimage_set.exists() or item.itemfile_set.exists() or item.itembarcode_set.exists()
+        or item.itemimage_set.count() > 1 or item.itemfile_set.exists() or item.itembarcode_set.exists()
         or item.label_ids.exists()
     ):
         raise QuickItemError(_("This item has more details now. Open it to delete it."))
-    # Bypass the soft delete: a quick-item carries nothing worth keeping.
+    # Bypass the soft delete: a quick-item carries nothing worth keeping (its single photo goes too).
     super(SoftDeleteModel, item).delete()
 
 
@@ -128,3 +142,23 @@ class QuickItemDeleteView(QuickItemView):
         entry = self.get_entry(pk)
         hard_delete(entry)
         return entry.location, {"deleted": True}, _("Quick-item “%(name)s” deleted.") % {"name": entry.item.name}
+
+
+class QuickItemPhotoView(QuickItemView):
+    """The single photo of a quick-item; uploading another one replaces it."""
+    permission_required = (*QUICK_ITEM_PERMISSIONS, "inventory.add_itemimage")
+
+    def perform(self, request, pk):
+        entry = self.get_entry(pk)
+        images = list(entry.item.itemimage_set.all())
+        if len(images) > 1:
+            raise QuickItemError(_("This item has more photos now. Open it to change them."))
+        form = QuickItemPhotoForm(files=request.FILES)
+        if not form.is_valid():
+            raise QuickItemError(" ".join(error for errors in form.errors.values() for error in errors), status=400)
+        for image in images:
+            image.delete()
+        image = form.save(commit=False)
+        image.item = entry.item
+        image.save()
+        return entry.location, {"entry": self.serialize(entry)}, _("Photo added (%(name)s).") % {"name": entry.item.name}
