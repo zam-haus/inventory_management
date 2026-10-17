@@ -29,7 +29,10 @@ class DissolveLocationView(PermissionRequiredMixin, View):
     def show_plan(self, request, plan, form=None):
         return render(request, "inventory/location_dissolve.html", {
             "object": plan.root, "recursive": plan.recursive, "delete_root": plan.delete_root,
-            "delete_root_denied": location_deletion_denied(request.user, plan.root),
+            # The plan ends with a choice: keep the location or delete it once empty.
+            "delete_root_denied": location_deletion_denied(request.user, plan.root) or (
+                _("Unique items are still stored here. Move them or remove them from the inventory first.")
+                if plan.root_unique_items else None),
             "blocking_unique_items": plan.blocking_unique_items,
             "form": form if form is not None else DissolveLocationForm(plan=plan, user=request.user),
         })

@@ -354,7 +354,9 @@ class MoveContentsTests(DissolutionTestCase):
     def test_empty_location_has_nothing_to_move(self):
         response = self.client.get(reverse("location_dissolve", kwargs={"pk": self.destination.pk}), {"delete": "0"})
         self.assertContains(response, "There is nothing to move.")
-        self.assertNotContains(response, 'value="review"')
+        # Nothing to keep in place: only deleting the empty location is offered.
+        self.assertNotContains(response, "Review and keep location")
+        self.assertContains(response, '<button class="btn btn-outline-danger" type="submit" name="delete" value="1">Review and delete location</button>', html=True)
 
     def test_unique_items_stay_in_a_kept_location(self):
         unique_item = UniqueItem.objects.create(item=self.item, location=self.root)
@@ -406,7 +408,9 @@ class LocationTypeDeletionTests(DissolutionTestCase):
         self.assertContains(detail, "Locations of type “Box” can only be deleted in the admin.")
         self.assertEqual(self.client.get(self.url).status_code, 403)
         page = self.client.get(self.url, {"delete": "0"})
-        self.assertContains(page, 'id="delete-root" type="checkbox" disabled title="Locations of type “Box” can only be deleted in the admin."')
+        self.assertContains(page, 'title="Locations of type “Box” can only be deleted in the admin."')
+        self.assertNotContains(page, 'name="delete" value="1">')
+        self.assertContains(page, 'name="delete" value="0">Review and keep location')
         self.assertEqual(self.review(delete="1").status_code, 403)
         self.assert_unchanged()
 
@@ -428,6 +432,29 @@ class LocationTypeDeletionTests(DissolutionTestCase):
                                "fingerprint": plan.fingerprint()}, salt=DissolveLocationView.salt, compress=True)
         self.assertEqual(self.client.post(self.url, {"stage": "confirm", "plan": token}).status_code, 403)
         self.assertTrue(Location.active.filter(pk=self.child.pk).exists())
+
+    def test_plan_ends_with_keep_or_delete_buttons(self):
+        LocationType.objects.filter(pk=self.box_type.pk).update(deletable_in_frontend=True)
+        for params, primary in (({}, "btn-danger"), ({"delete": "0"}, "btn-primary")):
+            with self.subTest(params=params):
+                page = self.client.get(self.url, params).content.decode()
+                self.assertNotIn('id="delete-root"', page)
+                keep = page.index('name="delete" value="0">Review and keep location')
+                delete = page.index('name="delete" value="1">Review and delete location')
+                self.assertLess(keep, delete)  # Enter in a field submits the first: keeping
+                self.assertIn(primary, page[keep - 80:delete])
+        # The button decides whether the location is deleted.
+        response = self.client.post(self.url, {"recursive": "0", "stage": "review", "delete": "0",
+                                               f"item_{self.stock.pk}_destination": self.destination.pk,
+                                               f"location_{self.child.pk}_destination": self.destination.pk})
+        self.assertFalse(response.context["delete_root"])
+
+    def test_unique_items_disable_deleting_but_not_keeping(self):
+        LocationType.objects.filter(pk=self.box_type.pk).update(deletable_in_frontend=True)
+        UniqueItem.objects.create(item=self.item, location=self.root)
+        page = self.client.get(self.url, {"delete": "0"})
+        self.assertContains(page, 'title="Unique items are still stored here. Move them or remove them from the inventory first."')
+        self.assertContains(page, 'name="delete" value="0">Review and keep location')
 
     def test_location_details_show_whether_non_admins_may_delete(self):
         self.assertContains(self.client.get(self.root.get_absolute_url()), "Locations of this type can only be deleted in the admin.")

@@ -3077,3 +3077,11 @@ msgstr "Wofür der Standort da ist. Er wird mit dem Namen angezeigt, z. B. „%(
 #: inventory/templates/inventory/location_overview_editor.html
 msgid "Take or choose a photo"
 msgstr "Bild aufnehmen bzw. auswählen"
+
+#: inventory/templates/inventory/location_dissolve.html
+msgid "Review and keep location"
+msgstr "Prüfen, Standort behalten"
+
+#: inventory/templates/inventory/location_dissolve.html
+msgid "Review and delete location"
+msgstr "Prüfen, Standort löschen"

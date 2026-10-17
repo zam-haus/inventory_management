@@ -36,10 +36,10 @@ class DissolutionPlan:
                     pending.append(pk)
         scope = {root.pk} | descendants if recursive else {root.pk}
         # Unique items only block deleting the root; they may stay in a location that is kept.
-        blocking = UniqueItem.active.filter(location_id=root.pk) if delete_root else UniqueItem.active.none()
-        self.blocking_unique_items = annotate_label_code(
-            blocking.select_related("item", "location")
+        self.root_unique_items = annotate_label_code(
+            UniqueItem.active.filter(location_id=root.pk).select_related("item", "location")
         ).order_by("item__name", "pk")
+        self.blocking_unique_items = self.root_unique_items if delete_root else UniqueItem.active.none()
         selected_locations = descendants if recursive else set(children.get(root.pk, []))
         self.rows = [
             {"kind": "item", "object": entry, "key": f"item_{entry.pk}"}

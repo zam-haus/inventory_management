@@ -53,3 +53,15 @@ clicking the heading again collapses it. This works without JavaScript
 find-in-page (and links to a text fragment) then also finds collapsed entries,
 and revealing one expands the list. Quick-items are never collapsed, because
 their list is edited in place.
+
+## Moving contents and dissolving
+
+**📤 Move contents** and **❌ Dissolve location** open the same plan: choose a
+destination, deletion or nothing (keep in place) for each stock entry and
+sub-location, optionally including all descendants. The plan ends with two
+buttons, **Review and keep location** and **Review and delete location**; the one
+matching how the page was opened is highlighted, and keeping comes first, so
+pressing Enter never deletes. Deleting stays visible but disabled, saying why,
+while unique items are still stored at the location or its type or the user's
+permissions do not allow it (see [Permissions](permissions.md)). Nothing changes
+until the reviewed plan is confirmed.

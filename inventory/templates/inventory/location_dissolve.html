@@ -12,16 +12,7 @@
                     <input class="form-check-input" id="recursive" type="checkbox" name="recursive" value="1" {% if recursive %}checked{% endif %}>
                     <label class="form-check-label" for="recursive">{% trans "Include all descendants and their stock entries" %}</label>
                 </div>
-                <div class="form-check">
-                    <input type="hidden" name="delete" value="0">
-                    {% if not delete_root_denied %}
-                        <input class="form-check-input" id="delete-root" type="checkbox" name="delete" value="1" {% if delete_root %}checked{% endif %}>
-                        <label class="form-check-label" for="delete-root">{% trans "Delete this location once it is empty" %}</label>
-                    {% else %}
-                        <input class="form-check-input" id="delete-root" type="checkbox" disabled title="{{ delete_root_denied }}">
-                        <label class="form-check-label" for="delete-root" title="{{ delete_root_denied }}">{% trans "Delete this location once it is empty" %}</label>
-                    {% endif %}
-                </div>
+                <input type="hidden" name="delete" value="{% if delete_root %}1{% else %}0{% endif %}">
                 <button class="btn btn-outline-secondary" type="submit">{% trans "Reload list" %}</button>
             </form>
         </div>
@@ -44,7 +35,7 @@
     <form method="post" id="dissolve-plan" novalidate>
         {% csrf_token %}
         <input type="hidden" name="recursive" value="{% if recursive %}1{% else %}0{% endif %}">
-        <input type="hidden" name="delete" value="{% if delete_root %}1{% else %}0{% endif %}">
+        <input type="hidden" name="stage" value="review">
         {% bootstrap_form_errors form %}
         {% if form.rows %}
             <section class="location-panel mb-3" aria-labelledby="bulk-heading">
@@ -92,10 +83,16 @@
         {% else %}
             <p>{% trans "This location is empty. There is nothing to move." %}</p>
         {% endif %}
-        {% if form.rows or delete_root %}
-            <div class="location-actions mt-3">
-                <button class="btn btn-primary" type="submit" name="stage" value="review" {% if blocking_unique_items %}disabled{% endif %}>{% trans "Review moves and deletions" %}</button>
-            </div>
-        {% endif %}
+        {# Keeping comes first, so pressing Enter in a field never deletes the location. #}
+        <div class="location-actions mt-3">
+            {% if form.rows %}
+                <button class="btn {% if delete_root %}btn-outline-primary{% else %}btn-primary{% endif %}" type="submit" name="delete" value="0">{% trans "Review and keep location" %}</button>
+            {% endif %}
+            {% if not delete_root_denied %}
+                <button class="btn {% if delete_root %}btn-danger{% else %}btn-outline-danger{% endif %}" type="submit" name="delete" value="1">{% trans "Review and delete location" %}</button>
+            {% else %}
+                {% disabled_action _("Review and delete location") reason=delete_root_denied classes="btn btn-outline-danger" %}
+            {% endif %}
+        </div>
     </form>
 {% endblock %}
