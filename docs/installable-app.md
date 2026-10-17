@@ -17,6 +17,13 @@ the browser's address bar.
   nobody sees outdated stock or another user's internal details. Form
   submissions and other requests are not touched. The cache name follows the
   offline page's content, so browsers update it when the page changes.
+* **Status bar on iOS:** iOS ignores `theme-color` for installed apps. The pages
+  therefore draw under a translucent status bar (`apple-mobile-web-app-status-bar-style`
+  `black-translucent`, `viewport-fit=cover` in `templates/app_head.html`), and
+  `inventory/static/inventory/safe_area.css` puts a strip in the theme colour
+  beneath it, so the bar stays dark and crisp while content, modals and the photo
+  lightbox start below it. iOS reads these settings when the app is added to the
+  home screen: after changing them, remove the app and add it again.
 * **No third parties:** Bootstrap is served from
   `inventory/static/inventory/vendor/bootstrap/` instead of a CDN.
 

@@ -3,13 +3,15 @@
 <html lang="{{ LANGUAGE_CODE }}">
 <head>
     <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <meta name="robots" content="noindex">
     <title>{% trans "No connection" %}</title>
     <style>
         :root { color-scheme: light dark; --fg: #212529; --bg: #fff; --muted: #6c757d; --accent: #0d6efd; }
         @media (prefers-color-scheme: dark) { :root { --fg: #dee2e6; --bg: #212529; --muted: #adb5bd; --accent: #6ea8fe; } }
-        body { margin: 0; background: var(--bg); color: var(--fg); font: 16px/1.5 system-ui, sans-serif; }
+        body { margin: 0; background: var(--bg); color: var(--fg); font: 16px/1.5 system-ui, sans-serif; padding-top: env(safe-area-inset-top, 0px); }
+        /* The installed app shows this page under a translucent status bar (see safe_area.css). */
+        body::before { content: ""; position: fixed; top: 0; left: 0; right: 0; height: env(safe-area-inset-top, 0px); background: #212529; }
         main { max-width: 32rem; margin: 0 auto; padding: 3rem 1rem; text-align: center; }
         svg { width: 4rem; height: 4rem; }
         h1 { font-size: 1.5rem; margin: 1.5rem 0 .5rem; }

@@ -17,13 +17,13 @@
 .photo-lightbox-message { max-width: 22rem; padding: 1rem 1.25rem; border: 1px solid #adb5bd; border-radius: .5rem; background: #fff; text-align: center; box-shadow: 0 3px 12px #0003; }
 .photo-lightbox-message p { margin: 0 0 .75rem; }
 .photo-lightbox-retry { min-height: 44px; }
-.photo-lightbox-counter { position: absolute; top: .75rem; left: 1rem; margin: 0; font-size: .95rem; font-variant-numeric: tabular-nums; }
+.photo-lightbox-counter { position: absolute; top: calc(.75rem + env(safe-area-inset-top, 0px)); left: 1rem; margin: 0; font-size: .95rem; font-variant-numeric: tabular-nums; }
 .photo-lightbox-button {
     position: absolute; display: flex; align-items: center; justify-content: center; min-width: 44px; min-height: 44px;
     padding: 0; border: 0; border-radius: .4rem; background: transparent; color: #111; font-size: 1.6rem; line-height: 1;
 }
 .photo-lightbox-button:hover { background: rgb(0 0 0 / .06); }
-.photo-lightbox-close { top: .4rem; right: .5rem; font-size: 2.2rem; }
+.photo-lightbox-close { top: calc(.4rem + env(safe-area-inset-top, 0px)); right: .5rem; font-size: 2.2rem; }
 .photo-lightbox-prev { top: 50%; left: .25rem; transform: translateY(-50%); }
 .photo-lightbox-next { top: 50%; right: .25rem; transform: translateY(-50%); }
 .photo-lightbox :focus-visible { outline: 3px solid #0d6efd; outline-offset: 3px; }

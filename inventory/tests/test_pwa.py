@@ -50,6 +50,23 @@ class InstallableAppTests(TestCase):
         self.assertNotContains(response, 'src="')
         self.assertNotContains(response, "stylesheet")
 
+    def test_ios_status_bar_is_dark_on_every_page(self):
+        # iOS ignores theme-color for installed apps; the page draws under a translucent status bar.
+        from django.contrib.auth import get_user_model
+        self.client.force_login(get_user_model().objects.create_superuser("admin"))
+        cover = 'content="width=device-width, initial-scale=1, viewport-fit=cover"'
+        for url in ("/", reverse("admin:index")):
+            with self.subTest(url):
+                content = self.client.get(url).content.decode()
+                self.assertIn('<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">', content)
+                self.assertIn("inventory/safe_area.css", content)
+                # The last viewport tag wins, and it must allow drawing under the status bar.
+                self.assertIn(cover, content.rsplit('name="viewport"', 1)[1][:80])
+        offline = self.client.get(reverse("offline")).content.decode()
+        self.assertIn("viewport-fit=cover", offline)
+        self.assertIn("env(safe-area-inset-top", offline)
+        self.assertTrue(finders.find("inventory/safe_area.css"))
+
     def test_bootstrap_is_served_locally(self):
         response = self.client.get(reverse("index_items"))
         self.assertContains(response, 'href="/static/inventory/vendor/bootstrap/bootstrap.min.css"')

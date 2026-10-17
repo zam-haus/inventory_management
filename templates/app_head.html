@@ -3,4 +3,11 @@
 <link rel="apple-touch-icon" href="{% static favicon_dir|add:'/apple-touch-icon.png' %}">
 <link rel="manifest" href="{% url 'manifest' %}">
 <meta name="theme-color" content="#212529">
+{# Installed on iOS: dark status bar over the page (safe_area.css draws the strip beneath it). #}
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+{# Overrides the viewport tag of the base templates, which come first (admin: base_site.html). #}
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="stylesheet" href="{% static 'inventory/safe_area.css' %}">
 <script>if ("serviceWorker" in navigator) navigator.serviceWorker.register("{% url 'service_worker' %}");</script>
