@@ -184,6 +184,22 @@ class InventoryPermissionTests(TestCase):
             self.assertEqual(image.description, "Original photo")
             self.assertEqual(ItemImage.objects.count(), 2)
 
+    def test_barcode_whitespace_is_normalized(self):
+        self.grant("change_item", "add_itembarcode", "delete_itembarcode", "add_barcodetype")
+        url = reverse("update_item", args=[self.item.pk])
+        value = " 4006381333931\tEAN13\r\n\r\n  12345  \r\n"
+        self.assertEqual(self.client.post(url, self.item_data(barcode_data=value, **self.stock_data())).status_code, 302)
+        self.assertEqual(sorted(ItemBarcode.objects.values_list("data", "type__name")),
+                         [("12345", None), ("4006381333931", "EAN13")])
+        self.assertContains(self.client.get(url), "4006381333931 EAN13\n12345\n")
+
+    def test_barcode_type_with_spaces_is_rejected_instead_of_dropped(self):
+        self.grant("change_item", "add_itembarcode", "delete_itembarcode", "add_barcodetype")
+        url = reverse("update_item", args=[self.item.pk])
+        response = self.client.post(url, self.item_data(barcode_data="4006381333931 EAN 13", **self.stock_data()))
+        self.assertContains(response, "at most one type without spaces")
+        self.assertFalse(ItemBarcode.objects.exists())
+
     def test_barcode_types_and_barcode_deletions_require_separate_permissions(self):
         url = reverse("update_item", args=[self.item.pk])
         self.grant("change_item", "add_itembarcode")

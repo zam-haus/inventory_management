@@ -9,7 +9,6 @@
 .location-overview-editor { --location-muted: #59636e; }
 .location-overview-editor:not(.modal) { margin: 1.5rem 0; border: 1px solid #dee2e6; border-radius: .65rem; }
 .location-overview-editor:not(.modal) .modal-dialog { max-width: none; margin: 0; }
-.location-overview-editor form { display: flex; flex-direction: column; min-height: 0; }
 .location-overview-editor .modal-header,
 .location-overview-editor .modal-footer { gap: .5rem; }
 .location-overview-editor input[type="text"] { display: block; width: 100%; border: 1px solid #adb5bd; border-radius: .375rem; padding: .5rem .75rem; font: inherit; }

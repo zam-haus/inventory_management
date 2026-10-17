@@ -2929,3 +2929,11 @@ msgstr "ja"
 #: inventory/templates/inventory/label_id/accesses.html
 msgid "no"
 msgstr "nein"
+
+#: inventory/forms.py
+msgid "One barcode per line, optionally followed by its type, e.g. “4006381333931 EAN13”."
+msgstr "Ein Barcode pro Zeile, optional gefolgt vom Typ, z. B. „4006381333931 EAN13“."
+
+#: inventory/forms.py
+msgid "Each line holds one barcode and at most one type without spaces, e.g. “4006381333931 EAN13”."
+msgstr "Jede Zeile enthält einen Barcode und höchstens einen Typ ohne Leerzeichen, z. B. „4006381333931 EAN13“."

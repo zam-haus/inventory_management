@@ -7,7 +7,7 @@ from django.db.models import Q
 from django.forms import (
     BooleanField, CharField, CheckboxInput, ChoiceField, DateInput, DecimalField, FileInput, Form, HiddenInput,
     IntegerField, ModelChoiceField, ModelForm, ModelMultipleChoiceField, NullBooleanSelect, NumberInput,
-    RadioSelect, RegexField, SelectMultiple, Textarea, TextInput, UUIDField,
+    RadioSelect, SelectMultiple, Textarea, TextInput, UUIDField,
 )
 from django.forms.models import BaseInlineFormSet, inlineformset_factory
 from extra_views import InlineFormSetFactory
@@ -143,9 +143,9 @@ class BaseItemForm(ModelForm):
             "last_purchase_date": DateInput(attrs={"type": "date"}),
         }
 
-    barcode_data = RegexField(
+    barcode_data = CharField(
         label=_("Barcodes"),
-        regex=r"(?:[^\s]+(?:[ \t]+[^\s]*)?\n)*[^\s]+(?:[ \t]+[^\s]*)?\n?",
+        help_text=_("One barcode per line, optionally followed by its type, e.g. “4006381333931 EAN13”."),
         widget=Textarea(attrs={"rows": 2}),
         required=False,
     )
@@ -197,14 +197,14 @@ class BaseItemForm(ModelForm):
         )
 
     def clean_barcode_data(self):
-        value = self.cleaned_data["barcode_data"]
+        # Any whitespace separates code and type; blank lines are ignored. Normalized to "<code> <type>\n" lines.
+        lines = [parts for parts in (line.split() for line in self.cleaned_data["barcode_data"].splitlines()) if parts]
+        if any(len(parts) > 2 for parts in lines):
+            raise ValidationError(_("Each line holds one barcode and at most one type without spaces, e.g. “4006381333931 EAN13”."))
+        value = "".join(" ".join(parts) + "\n" for parts in lines)
         if self.user is None:
             return value
-        desired = set()
-        for line in value.splitlines():
-            parts = line.split()
-            if parts:
-                desired.add((parts[0], parts[1] if len(parts) == 2 else None))
+        desired = {(parts[0], parts[1] if len(parts) == 2 else None) for parts in lines}
         existing = set(self.instance.itembarcode_set.values_list("data", "type__name")) if self.instance.pk else set()
         required = set()
         if desired - existing:

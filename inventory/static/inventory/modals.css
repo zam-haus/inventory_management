@@ -1,0 +1,8 @@
+/* Bootstrap's scrollable modals limit .modal-content to the screen and scroll .modal-body.
+   A <form> between them must pass that flex layout on; otherwise the body does not scroll
+   and the footer (Save) ends up below the screen on phones. */
+.modal-dialog-scrollable .modal-content > form {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
