@@ -386,6 +386,9 @@ class Location(SoftDeleteModel, ComputedFieldsModel):
         return self.name + f" [{self.short_name}]"
 
     def label_image_tag(self):
+        # Unsaved locations (e.g. an add form re-rendered with errors) have no URL to encode yet.
+        if self.pk is None:
+            return None
         if self.label_template:
             return self.label_template.image_tag(self)
         elif self.type.default_label_template:
