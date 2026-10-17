@@ -33,6 +33,10 @@ setting (and the hosts below).
   `https://i.zam.haus/`) is the URL in QR codes and labels; for local testing set
   it to `http://i.localhost:8000/` (larger QR codes). `LABEL_ID_INVENTORY_BASE` sets where they
   redirect to and defaults to `DEFAULT_DOMAIN`.
+* **Invalid stored codes:** IDs that are no longer valid, e.g. created under an
+  earlier alphabet, stay accessible in the admin. The list marks them "⚠ invalid"
+  and has a *validity* filter; their page explains why and shows no label or
+  resolver link.
 * **Lifecycle:** reserved → assigned → retired.
   * Only the admin (*Generate IDs*) and `manage.py label_id_generate` create IDs.
   * Members with `inventory.claim_labelid` claim a reserved ID by scanning it: the

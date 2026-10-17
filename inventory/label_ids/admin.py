@@ -37,6 +37,29 @@ class ClaimOnAddMixin:
             messages.success(request, gettext("The ID %(code)s now belongs to %(target)s.") % {"code": lid.display, "target": obj})
 
 
+def invalid_reason(code):
+    """Why a stored code is not a valid label ID under the current alphabet, or None."""
+    if core.is_valid(code):
+        return None
+    if len(code) != core.ID_LEN or any(c not in core.VALUE for c in code):
+        return gettext("It contains characters outside the alphabet or has the wrong length.")
+    return gettext("Its check symbol does not match.")
+
+
+class ValidityFilter(admin.SimpleListFilter):
+    title = _("validity")
+    parameter_name = "validity"
+
+    def lookups(self, request, model_admin):
+        return [("invalid", _("invalid"))]
+
+    def queryset(self, request, queryset):
+        if self.value() != "invalid":
+            return queryset
+        invalid = [code for code in LabelId.objects.values_list("code", flat=True) if not core.is_valid(code)]
+        return queryset.filter(code__in=invalid)
+
+
 class TargetKindFilter(admin.SimpleListFilter):
     title = _("target")
     parameter_name = "target"
@@ -71,7 +94,7 @@ class LabelIdAdminForm(forms.ModelForm):
 class LabelIdAdmin(admin.ModelAdmin):
     form = LabelIdAdminForm
     list_display = ("display_code", "status", "target_link", "batch", "created_at", "printed_at", "assigned_at")
-    list_filter = ("status", TargetKindFilter, "batch")
+    list_filter = ("status", TargetKindFilter, ValidityFilter, "batch")
     list_select_related = RELATED_TARGETS
     search_fields = ("code", "batch", "note", "url")
     date_hierarchy = "created_at"
@@ -85,7 +108,7 @@ class LabelIdAdmin(admin.ModelAdmin):
     ]
     readonly_fields = ["label_preview", "display_code", "status", "id_link", "target_link", "printed_at",
                        "created_at", "created_by", "assigned_at", "assigned_by", "retired_at", "retired_by",
-                       "last_accesses", "last_accesses_with_user"]
+                       "last_accesses", "last_accesses_with_user", "validity"]
 
     # IDs are created only by generating them, and never deleted.
     def has_add_permission(self, request):
@@ -97,12 +120,23 @@ class LabelIdAdmin(admin.ModelAdmin):
     def has_retire_permission(self, request):
         return request.user.has_perm("inventory.retire_labelid")
 
+    def get_object(self, request, object_id, from_field=None):
+        # Admin URLs carry the stored code. The field's to_python() rejects codes that are no
+        # longer valid, so look them up as stored to keep them accessible.
+        if from_field is None:
+            return self.get_queryset(request).filter(pk=object_id).first()
+        return super().get_object(request, object_id, from_field)
+
     def get_fieldsets(self, request, obj=None):
+        fieldsets = self.fieldsets
+        if obj is not None and invalid_reason(obj.code):
+            first_name, first = fieldsets[0]
+            fieldsets = [(first_name, {**first, "fields": ["validity", *first["fields"]]}), *fieldsets[1:]]
         if not request.user.has_perm("inventory.view_labelid_access_user"):
-            return self.fieldsets
+            return fieldsets
         return [(name, {**options, "fields": ["last_accesses_with_user" if f == "last_accesses" else f
                                               for f in options["fields"]]})
-                for name, options in self.fieldsets]
+                for name, options in fieldsets]
 
     def get_readonly_fields(self, request, obj=None):
         fields = list(super().get_readonly_fields(request, obj))
@@ -128,7 +162,15 @@ class LabelIdAdmin(admin.ModelAdmin):
 
     @admin.display(description=_("ID"), ordering="code")
     def display_code(self, obj):
+        if invalid_reason(obj.code):
+            return format_html('{} <strong style="color: var(--error-fg)">⚠ {}</strong>', obj.display, gettext("invalid"))
         return obj.display
+
+    @admin.display(description=_("validity"))
+    def validity(self, obj):
+        return format_html(
+            '<strong style="color: var(--error-fg)">⚠ {}</strong> {} {}', gettext("Invalid label ID."), invalid_reason(obj.code),
+            gettext("It was probably created under an earlier alphabet; labels with this code cannot be resolved."))
 
     @admin.display(description=_("target"))
     def target_link(self, obj):
@@ -152,6 +194,8 @@ class LabelIdAdmin(admin.ModelAdmin):
 
     @admin.display(description=_("label"))
     def label_preview(self, obj):
+        if invalid_reason(obj.code):
+            return "–"
         printer, tape = labels.PREVIEW
         url = f"{reverse('label_id_label', args=[obj.code])}?printer={printer}&tape={tape}"
         return format_html('<a href="{}"><img src="{}" alt="{}" style="height: 160px; max-width: 100%; '
@@ -159,6 +203,8 @@ class LabelIdAdmin(admin.ModelAdmin):
 
     @admin.display(description=_("link"))
     def id_link(self, obj):
+        if invalid_reason(obj.code):
+            return "–"
         if obj.status == LabelId.Status.RESERVED:
             return format_html('<a href="{}">{}</a>', reverse("label_id_claim", args=[obj.code]), gettext("Claim this ID"))
         url = reverse("label_id_resolve", args=[obj.code])

@@ -139,3 +139,61 @@ class AdminTests(InventoryFixture, TestCase):
         response = self.client.get(reverse("label_id_qr_svg", args=[self.lid.code]))
         self.assertEqual(response["Content-Type"], "image/svg+xml")
         self.assertEqual(self.client.get(reverse("label_id_qr_png", args=["YYYYYJ"])).status_code, 404)
+
+
+def insert_stored_code(code, **fields):
+    """A row as an earlier alphabet left it; the model itself refuses to store invalid codes."""
+    from django.db import connection
+    from django.utils import timezone
+    with connection.cursor() as cursor:
+        cursor.execute("INSERT INTO inventory_labelid (code, status, batch, note, created_at) VALUES (%s, %s, %s, %s, %s)",
+                       [code, fields.get("status", "reserved"), fields.get("batch", ""), "", timezone.now()])
+
+
+@override_settings(**SETTINGS)
+class InvalidStoredCodeTests(InventoryFixture, TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        cls.create_inventory()
+        cls.admin = get_user_model().objects.create_superuser(username="admin")
+        cls.valid = make_id("10000")  # 100005
+        insert_stored_code("5QGFNJ", batch="old roll")
+        insert_stored_code("1Q0005")  # Q -> 0 would make it the valid 100005
+        insert_stored_code("K7R4XR")  # valid symbols, wrong check symbol
+
+    def setUp(self):
+        super().setUp()
+        self.client.force_login(self.admin)
+
+    def test_list_marks_invalid_codes_and_filters_them(self):
+        response = self.client.get(reverse("admin:inventory_labelid_changelist"))
+        self.assertContains(response, "5QG-FNJ")
+        self.assertContains(response, "⚠ invalid", count=3)
+        response = self.client.get(reverse("admin:inventory_labelid_changelist"), {"validity": "invalid"})
+        self.assertContains(response, "5QG-FNJ")
+        self.assertContains(response, "1Q0-005")
+        self.assertNotContains(response, "100-005")
+
+    def test_invalid_codes_open_with_reason_and_without_label(self):
+        for code, reason in (("5QGFNJ", "outside the alphabet"), ("K7R4XR", "check symbol does not match")):
+            with self.subTest(code):
+                response = self.client.get(reverse("admin:inventory_labelid_change", args=[code]))
+                self.assertContains(response, "Invalid label ID.")
+                self.assertContains(response, reason)
+                self.assertNotContains(response, reverse("label_id_label", args=[code]))
+
+    def test_lookalike_of_a_valid_code_opens_itself_and_saves_only_itself(self):
+        url = reverse("admin:inventory_labelid_change", args=["1Q0005"])
+        response = self.client.get(url)
+        self.assertContains(response, "1Q0-005")
+        self.assertContains(response, "outside the alphabet")
+        response = self.client.post(url, {"batch": "found", "note": "printed with Q"})
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(LabelId.objects.filter(batch="found").count(), 1)
+        self.valid.refresh_from_db()
+        self.assertEqual((self.valid.batch, self.valid.note), ("", ""))
+
+    def test_valid_codes_are_unaffected(self):
+        response = self.client.get(reverse("admin:inventory_labelid_change", args=[self.valid.code]))
+        self.assertNotContains(response, "Invalid label ID.")
+        self.assertContains(response, reverse("label_id_label", args=[self.valid.code]))

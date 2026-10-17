@@ -66,13 +66,19 @@ class LabelIdField(models.CharField):
         return to_canonical(value)
 
     def get_prep_value(self, value):
-        # Lenient for lookups: invalid input simply matches nothing.
-        value = super().get_prep_value(value)
+        # Lenient for lookups: invalid input simply matches nothing. Skips CharField's
+        # to_python(), which is strict here. Six symbols are taken as a stored code and
+        # matched exactly, so codes from an earlier alphabet are still found (lookalikes
+        # are not mapped); other input (display forms, URLs) is normalized first.
+        value = models.Field.get_prep_value(self, value)
         if isinstance(value, str):
+            stored = value.strip().upper()
+            if len(stored) == core.ID_LEN and all(c.isalnum() for c in stored):
+                return stored
             try:
                 return parsing.code_from_scan(value)
             except core.InvalidLabelId:
-                return value.strip().upper()
+                return stored
         return value
 
     def pre_save(self, model_instance, add):

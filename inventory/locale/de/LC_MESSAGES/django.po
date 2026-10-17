@@ -2937,3 +2937,27 @@ msgstr "Ein Barcode pro Zeile, optional gefolgt vom Typ, z. B. „4006381333931 
 #: inventory/forms.py
 msgid "Each line holds one barcode and at most one type without spaces, e.g. “4006381333931 EAN13”."
 msgstr "Jede Zeile enthält einen Barcode und höchstens einen Typ ohne Leerzeichen, z. B. „4006381333931 EAN13“."
+
+#: inventory/label_ids/admin.py
+msgid "validity"
+msgstr "Gültigkeit"
+
+#: inventory/label_ids/admin.py
+msgid "invalid"
+msgstr "ungültig"
+
+#: inventory/label_ids/admin.py
+msgid "Invalid label ID."
+msgstr "Ungültige Label-ID."
+
+#: inventory/label_ids/admin.py
+msgid "It contains characters outside the alphabet or has the wrong length."
+msgstr "Sie enthält Zeichen außerhalb des Alphabets oder hat die falsche Länge."
+
+#: inventory/label_ids/admin.py
+msgid "Its check symbol does not match."
+msgstr "Ihr Prüfzeichen stimmt nicht."
+
+#: inventory/label_ids/admin.py
+msgid "It was probably created under an earlier alphabet; labels with this code cannot be resolved."
+msgstr "Sie wurde vermutlich mit einem früheren Alphabet erzeugt; Etiketten mit diesem Code lassen sich nicht auflösen."
