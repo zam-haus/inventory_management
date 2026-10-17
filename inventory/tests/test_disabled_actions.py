@@ -14,8 +14,8 @@ class DisabledActionTagTests(SimpleTestCase):
 
     def test_disabled_button_explains_itself(self):
         user = get_user_model()(username="reader")
-        html = self.render('{% disabled_action "🛒" name="Change stock" reason=reason %}', user, reason="Not now <ever>")
-        self.assertInHTML('<button class="btn btn-outline-secondary" type="button" disabled aria-hidden="true">🛒</button>', html)
+        html = self.render('{% disabled_action "Cart" name="Change stock" reason=reason %}', user, reason="Not now <ever>")
+        self.assertInHTML('<button class="btn btn-secondary" type="button" disabled aria-hidden="true">Cart</button>', html)
         self.assertIn('class="disabled-action" tabindex="0" role="button" aria-disabled="true" aria-label="Change stock"', html)
         self.assertIn('title="Not now &lt;ever&gt;"', html)
         self.assertNotIn("<ever>", html)

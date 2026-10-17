@@ -1,4 +1,4 @@
-// The purpose editor on the location page: a dialog opened by ✏️ next to the name. It submits
+// The purpose editor on the location page: a dialog opened by the pencil next to the name. It submits
 // normally; on errors the page comes back with the dialog open (data-open).
 (() => {
     const editor = document.getElementById('location-purpose-editor');

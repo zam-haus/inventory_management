@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% load i18n static thumbnail mytemplatetags actions %}
+{% load i18n static thumbnail mytemplatetags actions icons %}
 
 {% block bootstrap5_extra_head %}
     {{ block.super }}
@@ -18,16 +18,16 @@
         <nav class="item-breadcrumb" aria-label="{% trans 'Item navigation' %}">
             <a href="{% url 'index_items' %}">{% trans "Items" %}</a>
         </nav>
-        <div class="item-heading">
+        <div class="item-heading" data-action-row>
             <div class="item-heading-text">
                 <p class="item-eyebrow">{% if object.tracks_unique_items %}{% trans "Item with unique items" %}{% else %}{% trans "Bulk item" %}{% endif %}{% if object.category %} · {{ object.category }}{% endif %}</p>
                 <h1>{{ object }}</h1>
             </div>
-            <div class="item-actions">
+            <div class="item-actions" data-action-group>
                 {% if perms.inventory.change_item %}
-                <a class="btn btn-primary" href="{% url 'update_item' object.pk %}">{% trans "Edit item" %}</a>
+                <a class="btn btn-warning" href="{% url 'update_item' object.pk %}" aria-label="{% trans 'Edit item' %}">{% icon "pencil" %} <span class="action-label">{% trans "Edit" %}</span></a>
                 {% else %}
-                {% disabled_action _("Edit item") classes="btn btn-primary" %}
+                {% icon "pencil" as edit_icon %}{% disabled_action edit_icon label=_("Edit") name=_("Edit item") classes="btn btn-warning" %}
                 {% endif %}
             </div>
         </div>
@@ -88,7 +88,7 @@
                     <div class="item-panel-heading">
                         <div class="item-panel-title-row">
                             <h2 id="item-photos-heading">{% trans "Photos" %} <span class="item-count">{{ images|length }}</span></h2>
-                            {% if perms.inventory.add_itemimage %}<a class="btn btn-primary item-panel-add" href="{% url 'update_item' object.pk %}" data-quick-open="quick-photo-modal" data-bs-toggle="tooltip" title="{% trans 'Add photo' %}" aria-label="{% trans 'Add photo' %}"><span aria-hidden="true">+</span></a>{% else %}{% disabled_action "+" name=_("Add photo") classes="btn btn-primary item-panel-add" %}{% endif %}
+                            {% if perms.inventory.add_itemimage %}<a class="btn btn-success item-panel-add" href="{% url 'update_item' object.pk %}" data-quick-open="quick-photo-modal" data-bs-toggle="tooltip" title="{% trans 'Add photo' %}" aria-label="{% trans 'Add photo' %}">{% icon "plus-lg" %}</a>{% else %}{% icon "plus-lg" as plus_icon %}{% disabled_action plus_icon name=_("Add photo") classes="btn btn-success item-panel-add" %}{% endif %}
                         </div>
                         {% if images %}<p class="item-muted">{% trans "Click a photo to enlarge it; click again to close. Use arrow keys or swipe to browse." %}</p>{% endif %}
                     </div>
@@ -109,7 +109,7 @@
                                             {% endthumbnail %}
                                             {% if image.ocr_text.strip %}
                                                 <details class="item-image-ocr">
-                                                    <summary aria-label="{% trans 'OCR information' %}" title="{% trans 'OCR information' %}"><span aria-hidden="true">ⓘ</span></summary>
+                                                    <summary aria-label="{% trans 'OCR information' %}" title="{% trans 'OCR information' %}">{% icon "info-circle" %}</summary>
                                                     <div class="item-image-ocr-panel" tabindex="0">
                                                         <h3>{% trans "Recognized text (OCR)" %}</h3>
                                                         <pre>{{ image.ocr_text }}</pre>
@@ -141,9 +141,9 @@
                     <div class="item-panel-title-row">
                         <h2 id="item-unique-items-heading">{% trans "Unique items" %} <span class="item-count">{{ unique_items|length }}</span></h2>
                         {% if perms.inventory.add_uniqueitem and perms.inventory.claim_labelid %}
-                        <a class="btn btn-primary item-panel-add" href="{% url 'create_unique_item' %}?item={{ object.pk }}" data-bs-toggle="tooltip" title="{% trans 'Add unique item' %}" aria-label="{% trans 'Add unique item' %}"><span aria-hidden="true">+</span></a>
+                        <a class="btn btn-success item-panel-add" href="{% url 'create_unique_item' %}?item={{ object.pk }}" data-bs-toggle="tooltip" title="{% trans 'Add unique item' %}" aria-label="{% trans 'Add unique item' %}">{% icon "plus-lg" %}</a>
                         {% else %}
-                        {% disabled_action "+" name=_("Add unique item") classes="btn btn-primary item-panel-add" %}
+                        {% icon "plus-lg" as plus_icon %}{% disabled_action plus_icon name=_("Add unique item") classes="btn btn-success item-panel-add" %}
                         {% endif %}
                     </div>
                     <p class="item-muted">{% blocktrans with name=label_id_name %}Each unique item is a single object with its own {{ name }}.{% endblocktrans %}{% if disposed_count %} {% blocktrans count counter=disposed_count %}{{ counter }} unique item has been removed from the inventory.{% plural %}{{ counter }} unique items have been removed from the inventory.{% endblocktrans %}{% endif %}</p>
@@ -181,7 +181,7 @@
                             </div>
                             <div class="item-location-row">
                                 <div class="item-location-where">
-                                    <button type="button" class="item-location-identifier item-help" data-bs-toggle="tooltip" title="{% trans 'Unique identifier for this storage location, used on labels and to find the location in the inventory.' %}">{{ entry.location.unique_identifier }} <span aria-hidden="true">ⓘ</span></button>
+                                    <button type="button" class="item-location-identifier item-help" data-bs-toggle="tooltip" title="{% trans 'Unique identifier for this storage location, used on labels and to find the location in the inventory.' %}">{{ entry.location.unique_identifier }} {% icon "info-circle" %}</button>
                                     <p class="item-location-path item-muted">{{ entry.location.descriptive_identifier }}</p>
                                 </div>
                                 {% if not entry.is_quick_item %}{% include 'inventory/stock_change_button.html' %}{% endif %}

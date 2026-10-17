@@ -1,4 +1,4 @@
-{% load i18n thumbnail actions %}{# One quick-item; without `entry` the blank row location_quick_items.js fills in. #}
+{% load i18n thumbnail actions icons %}{# One quick-item; without `entry` the blank row location_quick_items.js fills in. #}
 {% with photo=entry.item.itemimage_set.all.0 %}
 <li class="location-quick-item{% if not entry %} is-saving{% endif %}" data-quick-item{% if entry %} data-update-url="{% url 'quick_item_update' entry.pk %}" data-delete-url="{% url 'quick_item_delete' entry.pk %}"{% endif %}>
     <form class="location-quick-name" method="post"{% if entry %} action="{% url 'quick_item_update' entry.pk %}"{% endif %}>
@@ -8,30 +8,30 @@
     <a class="location-quick-photo" data-quick-photo-link{% if photo %} href="{{ photo.image.url }}"{% else %} hidden{% endif %}>
         {% if photo %}{% thumbnail photo.image "88x88" crop="center" as im %}<img src="{{ im.url }}" width="44" height="44" alt="{% blocktrans with name=entry.item.name %}Photo of “{{ name }}”{% endblocktrans %}">{% endthumbnail %}{% else %}<img width="44" height="44" alt="">{% endif %}
     </a>
-    {# Wide screens show the actions in the row; narrow ones put them behind ⋯ (location_quick_items.css). #}
+    {# Wide screens show the actions in the row; narrow ones put them behind a menu (location_quick_items.css). #}
     <div class="dropdown location-quick-menu">
-        <button type="button" class="btn btn-outline-secondary location-quick-menu-toggle" data-bs-toggle="dropdown" aria-expanded="false" data-quick-menu{% if entry %} aria-label="{% blocktrans with name=entry.item.name %}Actions for “{{ name }}”{% endblocktrans %}"{% endif %} title="{% trans 'Actions' %}"><span aria-hidden="true">⋯</span></button>
+        <button type="button" class="btn btn-secondary location-quick-menu-toggle" data-bs-toggle="dropdown" aria-expanded="false" data-quick-menu{% if entry %} aria-label="{% blocktrans with name=entry.item.name %}Actions for “{{ name }}”{% endblocktrans %}"{% endif %} title="{% trans 'Actions' %}">{% icon "three-dots-vertical" %}</button>
         <div class="dropdown-menu dropdown-menu-end location-quick-actions">
             {% if can_add_quick_photos %}
                 <form class="location-quick-photo-form" method="post" enctype="multipart/form-data"{% if entry %} action="{% url 'quick_item_set_photo' entry.pk %}"{% endif %}>
                     {% if entry %}{% csrf_token %}{% endif %}
-                    <label class="btn btn-outline-secondary location-quick-photo-button{% if not entry %} disabled{% endif %}" title="{% if photo %}{% trans 'Replace photo' %}{% else %}{% trans 'Add a photo' %}{% endif %}">
-                        <span aria-hidden="true">📷</span>
+                    <label class="btn btn-warning location-quick-photo-button{% if not entry %} disabled{% endif %}" title="{% if photo %}{% trans 'Replace photo' %}{% else %}{% trans 'Add a photo' %}{% endif %}">
+                        {% icon "camera" %}
                         <span class="location-quick-action-label" aria-hidden="true" data-quick-photo-label>{% if photo %}{% trans 'Replace photo' %}{% else %}{% trans 'Add a photo' %}{% endif %}</span>
                         <input type="file" name="image" accept="image/*" class="visually-hidden" data-quick-photo-input{% if entry %} aria-label="{% blocktrans with name=entry.item.name %}Photo for “{{ name }}”{% endblocktrans %}"{% else %} disabled{% endif %}>
                     </label>
-                    <button type="submit" class="btn btn-outline-secondary location-quick-photo-submit" data-quick-photo-submit>{% trans "Upload" %}</button>
+                    <button type="submit" class="btn btn-warning location-quick-photo-submit" data-quick-photo-submit>{% trans "Upload" %}</button>
                 </form>
             {% else %}
-                {% disabled_action "📷" name=_("Add a photo") classes="btn btn-outline-secondary location-quick-photo-button" %}
+                {% icon "camera" as camera_icon %}{% disabled_action camera_icon name=_("Add a photo") classes="btn btn-warning location-quick-photo-button" %}
             {% endif %}
-            <a class="btn btn-outline-secondary location-quick-details{% if not entry %} disabled{% endif %}" data-quick-details{% if entry %} href="{{ entry.item.get_absolute_url }}" aria-label="{% blocktrans with name=entry.item.name %}Details for “{{ name }}”{% endblocktrans %}"{% else %} aria-disabled="true"{% endif %} title="{% trans 'Details' %}"><span aria-hidden="true">i</span><span class="location-quick-action-label" aria-hidden="true">{% trans "Details" %}</span></a>
+            <a class="btn btn-info location-quick-details{% if not entry %} disabled{% endif %}" data-quick-details{% if entry %} href="{{ entry.item.get_absolute_url }}" aria-label="{% blocktrans with name=entry.item.name %}Details for “{{ name }}”{% endblocktrans %}"{% else %} aria-disabled="true"{% endif %} title="{% trans 'Details' %}">{% icon "chevron-right" %}<span class="location-quick-action-label location-quick-details-label" aria-hidden="true">{% trans "Details" %}</span></a>
             <form class="location-quick-delete-form" method="post"{% if entry %} action="{% url 'quick_item_delete' entry.pk %}"{% endif %}>
                 {% if entry %}{% csrf_token %}{% endif %}
-                <button type="submit" class="btn btn-outline-danger location-quick-delete" data-quick-delete{% if entry %} aria-label="{% blocktrans with name=entry.item.name %}Delete “{{ name }}”{% endblocktrans %}"{% endif %} title="{% trans 'Delete' %}"><span aria-hidden="true">×</span><span class="location-quick-action-label" aria-hidden="true">{% trans "Delete" %}</span></button>
+                <button type="submit" class="btn btn-danger location-quick-delete" data-quick-delete{% if entry %} aria-label="{% blocktrans with name=entry.item.name %}Delete “{{ name }}”{% endblocktrans %}"{% endif %} title="{% trans 'Delete' %}">{% icon "x-lg" %}<span class="location-quick-action-label" aria-hidden="true">{% trans "Delete" %}</span></button>
             </form>
         </div>
     </div>
-    <button type="button" class="btn btn-outline-secondary location-quick-undo" data-quick-undo hidden>{% trans "Undo" %}</button>
+    <button type="button" class="btn btn-secondary location-quick-undo" data-quick-undo hidden>{% trans "Undo" %}</button>
 </li>
 {% endwith %}

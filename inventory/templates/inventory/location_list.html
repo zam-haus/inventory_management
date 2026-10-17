@@ -1,9 +1,9 @@
 
 {% extends 'base.html' %}
 
-{% load mytemplatetags %}
+{% load mytemplatetags icons %}
 {% load django_bootstrap5 i18n actions %}
-{% load bootstrap_icons %}
+{% load icons %}
 
 {% block title %}
     {% trans "Location List" %}
@@ -14,7 +14,7 @@
     <div class="col">
         <form method="get">
         <div class="input-group">
-            <span class="input-group-text" id="basic-addon1">🔎</span>
+            <span class="input-group-text" id="basic-addon1">{% icon "search" %}</span>
             <input type="text" class="form-control" aria-label="{% trans 'Search' %}" aria-describedby="basic-addon1" name="q" value="{{ request.GET.q }}">
         </div>
         </form>
@@ -24,9 +24,9 @@
     {% if query and perms.inventory.print_inventory or query and user.is_authenticated %}
     <div class="col-auto">
         {% if perms.inventory.print_inventory %}
-        <a href="{% url 'print_inventory' %}?q={{ query|urlencode }}" class="btn btn-outline-secondary" data-bs-toggle="tooltip" title="{% trans 'Print inventory of the locations found' %}" aria-label="{% trans 'Print inventory of the locations found' %}"><span aria-hidden="true">🖨️</span></a>
+        <a href="{% url 'print_inventory' %}?q={{ query|urlencode }}" class="btn btn-info" data-bs-toggle="tooltip" title="{% trans 'Print inventory of the locations found' %}">{% icon "printer" %} <span class="action-label">{% trans "Print" %}</span></a>
         {% else %}
-        {% disabled_action "🖨️" name=_("Print inventory of the locations found") %}
+        {% icon "printer" as print_icon %}{% disabled_action print_icon label=_("Print") name=_("Print inventory of the locations found") classes="btn btn-info" %}
         {% endif %}
     </div>
     {% endif %}
@@ -37,16 +37,16 @@
         <th scope="col">
             {% trans "Identifier" %}
             {% if sort_helper.is_sorted_by_unique_identifier == "asc" %}
-            <a href="{{ request.path }}{{ sort_helper.get_sort_query_by_unique_identifier_desc }}">
-            {% bs_icon 'sort-up' color="red" %}
+            <a href="{{ request.path }}{{ sort_helper.get_sort_query_by_unique_identifier_desc }}" aria-label="{% trans 'Sort descending' %}">
+            {% icon "sort-up" "text-danger" %}
             </a>
             {% elif sort_helper.is_sorted_by_unique_identifier == "desc" %}
-            <a href="{{ request.path }}{{ sort_helper.get_sort_query_by_unique_identifier_asc }}">
-            {% bs_icon 'sort-down' color="red" %}
+            <a href="{{ request.path }}{{ sort_helper.get_sort_query_by_unique_identifier_asc }}" aria-label="{% trans 'Sort ascending' %}">
+            {% icon "sort-down" "text-danger" %}
             </a>
             {% else %}
-            <a href="{{ request.path }}{{ sort_helper.get_sort_query_by_unique_identifier_desc }}">
-            {% bs_icon 'sort-down' %}
+            <a href="{{ request.path }}{{ sort_helper.get_sort_query_by_unique_identifier_desc }}" aria-label="{% trans 'Sort descending' %}">
+            {% icon "sort-down" %}
             </a>
             {% endif %}
         </th>

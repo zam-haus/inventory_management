@@ -14,17 +14,22 @@ _ids = count(1)
 
 
 @register.simple_tag(takes_context=True)
-def disabled_action(context, content, name="", reason="", classes="btn btn-outline-secondary"):
+def disabled_action(context, content, name="", reason="", classes="btn btn-secondary", label=""):
     """A visible but disabled button; hovering, focusing or tapping it shows `reason`.
 
     Without a reason, it says the user lacks the permission. `content` is what the button
-    shows (text or an icon), `name` what screen readers announce (default: content).
-    Renders nothing for guests.
+    shows (text or an icon), `label` a short text after it, `name` what screen readers
+    announce (default: label, else content).
+    Renders nothing for guests. Pass the classes of the usable button: disabled, it shows
+    only the outline (actions.css).
     """
     user = context.get("user")
     if not (user and user.is_authenticated):
         return ""
     reason = reason or _("Your account is not allowed to do this. Ask an inventory admin for the permission.")
+    if label:
+        content = format_html('{} <span class="action-label">{}</span>', content, label)
+        name = name or label
     reason_id = f"disabled-action-{next(_ids)}"
     return format_html(
         '<span class="disabled-action" tabindex="0" role="button" aria-disabled="true" aria-label="{}"'

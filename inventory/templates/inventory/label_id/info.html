@@ -25,7 +25,7 @@
                 {% if target_url %}<a href="{{ target_url }}">{% if lid.url %}{{ lid.url }}{% else %}{{ lid.target }}{% endif %}</a>
                 {% elif lid.target %}{{ lid.target }} ({% trans "deleted" %})
                 {% else %}–{% endif %}
-                {% if claimable %}{% if can_claim %}<a class="btn btn-sm btn-primary ms-2" href="{% url 'label_id_claim' lid.code %}">{% trans "Claim" %}</a>{% else %}<span class="ms-2">{% disabled_action _("Claim") classes="btn btn-sm btn-primary" %}</span>{% endif %}{% endif %}
+                {% if claimable %}{% if can_claim %}<a class="btn btn-sm btn-warning ms-2" href="{% url 'label_id_claim' lid.code %}">{% trans "Claim" %}</a>{% else %}<span class="ms-2">{% disabled_action _("Claim") classes="btn btn-sm btn-warning" %}</span>{% endif %}{% endif %}
             </dd>
             {% if lid.batch %}<dt class="col-sm-4">{% trans "batch" %}</dt><dd class="col-sm-8">{{ lid.batch }}</dd>{% endif %}
             <dt class="col-sm-4">{% trans "created at" %}</dt><dd class="col-sm-8">{{ lid.created_at|date:"SHORT_DATETIME_FORMAT" }}</dd>

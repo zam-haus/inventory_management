@@ -34,7 +34,7 @@ setting (and the hosts below).
   it to `http://i.localhost:8000/` (larger QR codes). `LABEL_ID_INVENTORY_BASE` sets where they
   redirect to and defaults to `DEFAULT_DOMAIN`.
 * **Invalid stored codes:** IDs that are no longer valid, e.g. created under an
-  earlier alphabet, stay accessible in the admin. The list marks them "⚠ invalid"
+  earlier alphabet, stay accessible in the admin. The list marks them "invalid" with a warning triangle
   and has a *validity* filter; their page explains why and shows no label or
   resolver link.
 * **Lifecycle:** reserved → assigned → retired.

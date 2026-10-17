@@ -9,6 +9,6 @@
     {% csrf_token %}
     {% bootstrap_form form %}
     <button type="submit" class="btn btn-danger">{% trans "Remove from inventory" %}</button>
-    <a class="btn btn-outline-secondary" href="{{ object.get_absolute_url }}">{% trans "Cancel" %}</a>
+    <a class="btn btn-secondary" href="{{ object.get_absolute_url }}">{% trans "Cancel" %}</a>
 </form>
 {% endblock %}

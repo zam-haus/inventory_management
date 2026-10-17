@@ -9,13 +9,14 @@
 .item-breadcrumb { margin-bottom: 1.25rem; font-size: .9rem; }
 .item-breadcrumb a { display: inline-block; padding: .35rem 0; }
 .item-heading { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1.25rem; }
-.item-heading-text { min-width: 0; flex: 1 1 16rem; }
+.item-heading-text { min-width: 0; flex: 1 1 auto; }
 .item-heading h1 { margin: .2rem 0 .6rem; font-size: clamp(1.6rem, 4vw, 2.3rem); font-weight: 650; }
 .item-eyebrow { color: var(--item-muted); font-size: .8rem; font-weight: 600; letter-spacing: .04em; margin: 0 0 .4rem; }
 .item-location-identifier { display: inline-block; padding: .25rem .6rem; background: #edf2f7; border: 0; border-radius: .35rem; font-family: monospace; font-size: 1rem; color: inherit; text-align: left; max-width: 100%; }
 .item-help { cursor: help; }
 .item-actions { display: flex; flex: 0 0 auto; max-width: 100%; }
 .item-actions .btn { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; padding-inline: 1.25rem; white-space: normal; }
+.item-actions .bi { width: 1.15em; height: 1.15em; }
 .item-detail { padding-bottom: 2.5rem; }
 .item-overview { display: flex; flex-wrap: wrap; gap: 1rem 2.5rem; background: #f7f9fb; border: 1px solid var(--item-border); border-radius: .65rem; padding: 1.25rem; margin-bottom: 1.5rem; }
 .item-overview > div { min-width: 0; }
@@ -76,8 +77,6 @@
 
 @media (max-width: 575.98px) {
     .item-header { padding-bottom: 1rem; }
-    .item-actions { width: 100%; }
-    .item-actions .btn { width: 100%; }
     .item-overview { padding: 1rem; margin-bottom: 1rem; }
     .item-layout,
     .item-main { gap: 1rem; }

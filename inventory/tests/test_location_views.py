@@ -45,7 +45,7 @@ class LocationsMoveHereTests(TestCase):
     def test_action_and_get_do_not_move_locations(self):
         response = self.client.get(self.parent.get_absolute_url())
         self.assertContains(response, f'href="{self.url}"')
-        self.assertContains(response, "📥")
+        self.assertContains(response, 'class="bi bi-box-arrow-in-down"')
         response = self.client.get(self.url, {"identifiers": self.box.unique_identifier})
         self.assertContains(response, self.box.unique_identifier)
         self.box.refresh_from_db()

@@ -83,7 +83,6 @@ INSTALLED_APPS = [
     "extra_views",
     "computedfields",
     "accounts",
-    "django_bootstrap_icons",
     "sorl.thumbnail",
     "django_static_jquery",
 ]

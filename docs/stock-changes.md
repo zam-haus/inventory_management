@@ -1,9 +1,9 @@
 # Stock changes
 
-The **🛒** button beside each amount (on the item page, one per location) and to
+The cart button beside each amount (on the item page, one per location) and to
 the right of the photos in a location's item list opens a dialog for one item at
-one location. First choose **↓ − Remove stock** (red) or **↑ + Add stock**
-(green), then enter the counted amount, a reason and an optional note. The
+one location. First choose **Remove stock** (red, arrow down) or **Add stock**
+(green, arrow up), then enter the counted amount, a reason and an optional note. The
 dialog shows the sale value of the changed amount as you type, or says it is
 unknown; it is marked as an estimate when based on an estimated amount.
 
@@ -28,7 +28,7 @@ Changes made elsewhere are logged as well: amounts edited in the item form or
 admin as a recount (increases as "found") and stock deleted while dissolving a
 location as "other". Moving stock between locations and creating new stock
 entries are not logged. Quick-items are not stock yet and never logged: they
-have no 🛒 button and are only deleted from their list or given an (estimated)
+have no cart button and are only deleted from their list or given an (estimated)
 amount, which turns them into regular items. The log is append-only and
 visible only in the admin (**Stock changes**, and on each item's admin page),
 which requires `inventory.view_stockchange`. Using the dialog requires

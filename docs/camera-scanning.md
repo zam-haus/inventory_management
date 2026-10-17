@@ -1,7 +1,7 @@
 # Camera scanning
 
 The home page (`/`) has a search field with buttons for the item and the
-location search, and **📷 Scan QR code**: scanning a label opens the link in
+location search, and **Scan QR code** (QR scan icon): scanning a label opens the link in
 its QR code, such as a location page or a label ID. Only links to hosts this site
 serves are opened, matched like Django's `ALLOWED_HOSTS` (plus the host the page
 was loaded from); other codes are shown as "not a link to this inventory".

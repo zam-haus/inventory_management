@@ -146,7 +146,8 @@ class LocationSoftDeletionTests(TestCase):
         self.assertContains(response, '<td class="field-deleted_status"></td>', html=True)
         deleted = self.client.get(url, {"is_deleted__exact": "1"})
         self.assertEqual(list(deleted.context["cl"].result_list), [self.archived])
-        self.assertContains(deleted, '<td class="field-deleted_status">❌</td>', html=True)
+        self.assertContains(deleted, 'class="bi bi-trash3"')
+        self.assertContains(deleted, '<span title="deleted" style="color: var(--error-fg)">')
         all_records = self.client.get(url, {"is_deleted__exact": "all"})
         self.assertEqual(len(all_records.context["cl"].result_list), 3)
 

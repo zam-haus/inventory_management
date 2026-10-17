@@ -117,7 +117,7 @@ class SoftDeleteTests(TestCase):
         self.assertTrue(Item.objects.get(pk=pk).is_deleted)
         listing = reverse("admin:inventory_item_changelist")
         self.assertEqual(list(self.client.get(listing).context["cl"].result_list), [])
-        self.assertContains(self.client.get(listing, {"is_deleted__exact": "1"}), "❌")
+        self.assertContains(self.client.get(listing, {"is_deleted__exact": "1"}), 'class="bi bi-trash3"')
         self.assertContains(self.client.get(reverse("admin:inventory_item_change", args=[pk])), 'name="is_deleted"')
         review = self.client.get(url)
         self.assertContains(review, "Permanently delete")

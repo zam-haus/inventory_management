@@ -10,6 +10,7 @@ from django.utils import timezone
 from django.utils.html import format_html
 from django.utils.translation import gettext, gettext_lazy as _
 
+from ..icons import icon
 from ..models import LabelId
 from . import access, core, labels, naming, parsing, services
 from .forms import GenerateForm, LabelForm, RetireForm
@@ -163,13 +164,13 @@ class LabelIdAdmin(admin.ModelAdmin):
     @admin.display(description=_("ID"), ordering="code")
     def display_code(self, obj):
         if invalid_reason(obj.code):
-            return format_html('{} <strong style="color: var(--error-fg)">⚠ {}</strong>', obj.display, gettext("invalid"))
+            return format_html('{} <strong style="color: var(--error-fg)">{} {}</strong>', obj.display, icon("exclamation-triangle"), gettext("invalid"))
         return obj.display
 
     @admin.display(description=_("validity"))
     def validity(self, obj):
         return format_html(
-            '<strong style="color: var(--error-fg)">⚠ {}</strong> {} {}', gettext("Invalid label ID."), invalid_reason(obj.code),
+            '<strong style="color: var(--error-fg)">{} {}</strong> {} {}', icon("exclamation-triangle"), gettext("Invalid label ID."), invalid_reason(obj.code),
             gettext("It was probably created under an earlier alphabet; labels with this code cannot be resolved."))
 
     @admin.display(description=_("target"))

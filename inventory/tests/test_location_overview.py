@@ -385,7 +385,7 @@ class LocationOverviewTests(TestCase):
         self.assertFalse(camera_above)
         self.assertEqual(len(panels), 1)
         self.assertIn("data-overview-open", str(panels[0]))
-        # ✏️ follows the name and purpose inside the heading text.
+        # The pencil follows the name and purpose inside the heading text.
         title = next(e for e in html_elements(parse_html(self.client.get(self.location.get_absolute_url()).content.decode()))
                      if "location-title-name" in dict(e.attributes).get("class", ""))
         self.assertIn("data-purpose-open", str(title))

@@ -24,7 +24,7 @@
                 <span class="location-identifier">{{ object.unique_identifier }}</span>
             </div>
             <div class="location-actions">
-                <a class="btn btn-outline-secondary" href="{{ object.get_absolute_url }}">{% trans "Back to location" %}</a>
+                <a class="btn btn-secondary" href="{{ object.get_absolute_url }}">{% trans "Back to location" %}</a>
             </div>
         </div>
     </header>
@@ -131,11 +131,11 @@
         {% if page_obj.has_other_pages %}
             <nav class="location-history-pagination" aria-label="{% trans 'History pages' %}">
                 {% if page_obj.has_previous %}
-                    <a class="btn btn-outline-secondary" href="?page={{ page_obj.previous_page_number }}" rel="prev">{% trans "Previous" %}</a>
+                    <a class="btn btn-secondary" href="?page={{ page_obj.previous_page_number }}" rel="prev">{% trans "Previous" %}</a>
                 {% endif %}
                 <span class="location-muted">{% blocktrans with number=page_obj.number total=page_obj.paginator.num_pages %}Page {{ number }} of {{ total }}{% endblocktrans %}</span>
                 {% if page_obj.has_next %}
-                    <a class="btn btn-outline-secondary" href="?page={{ page_obj.next_page_number }}" rel="next">{% trans "Next" %}</a>
+                    <a class="btn btn-secondary" href="?page={{ page_obj.next_page_number }}" rel="next">{% trans "Next" %}</a>
                 {% endif %}
             </nav>
         {% endif %}

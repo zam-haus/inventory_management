@@ -15,6 +15,7 @@ from django.urls import reverse
 from django.utils import timezone
 from PIL import Image
 
+from ..icons import icon
 from ..models import ItemFile, ItemImage, ItemLocation, UniqueItem
 from .test_unique_items import UniqueItemFixture, grant
 from ..label_ids import services
@@ -466,8 +467,8 @@ class QuickActionTests(MediaMixin, UniqueItemFixture, TestCase):
         self.assertNotIn(reverse("dispose_unique_item", args=[self.unique_item.pk]), content)  # members cannot dispose
         self.client.force_login(self.insider)
         content = self.client.get(self.unique_item.get_absolute_url()).content.decode()
-        self.assertInHTML(f'<a class="btn btn-outline-danger item-icon-action" href="{reverse("dispose_unique_item", args=[self.unique_item.pk])}" '
-                          'data-bs-toggle="tooltip" title="Remove from inventory" aria-label="Remove from inventory"><span aria-hidden="true">❌</span></a>', content)
+        self.assertInHTML(f'<a class="btn btn-danger item-icon-action" href="{reverse("dispose_unique_item", args=[self.unique_item.pk])}" '
+                          f'>{icon("archive")} <span class="action-label">Remove from inventory</span></a>', content)
 
     def test_move(self):
         url = reverse("move_unique_item", args=[self.unique_item.pk])
@@ -501,7 +502,7 @@ class UsageLevelDisplayTests(UniqueItemFixture, TestCase):
         cls.create_unique_items()  # the extinguisher is green
 
     def test_detail_pages_show_the_long_form(self):
-        long_form = ('<span class="usage-level usage-level-green"><span class="usage-level-symbol" aria-hidden="true">✓</span>'
+        long_form = ('<span class="usage-level usage-level-green"><span class="usage-level-symbol" aria-hidden="true">' + icon("check-lg") + '</span>'
                      'Green: free to use, no briefing required</span>')
         for url in (self.extinguisher.get_absolute_url(), self.unique_item.get_absolute_url()):
             self.assertInHTML(long_form, self.client.get(url).content.decode(), count=1)
@@ -511,7 +512,7 @@ class UsageLevelDisplayTests(UniqueItemFixture, TestCase):
         self.unique_item.save()
         self.assertInHTML(
             '<span class="usage-level usage-level-red" data-bs-toggle="tooltip" title="Red: use only after a briefing">'
-            '<span class="usage-level-symbol" aria-hidden="true">✕</span>red'
+            '<span class="usage-level-symbol" aria-hidden="true">' + icon("x-lg") + '</span>red'
             '<span class="visually-hidden">: Red: use only after a briefing</span></span>',
             self.client.get(self.location.get_absolute_url()).content.decode())
 

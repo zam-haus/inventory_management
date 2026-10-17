@@ -100,7 +100,7 @@
 
         badges(row, state) {
             const badges = [];
-            if (field(row, 'is_primary')?.checked) badges.push(['primary', `★ ${text.primary}`]);
+            if (field(row, 'is_primary')?.checked) badges.push(['primary', text.primary, 'star-fill']);
             const select = field(row, 'unique_item');
             if (select?.value) badges.push(['level', select.selectedOptions[0]?.textContent.trim()]);
             const level = row.querySelector('input[name$="-level"]:checked');
@@ -148,14 +148,15 @@
                 name.textContent = state.name;
                 const badges = document.createElement('span');
                 badges.className = 'media-tile-badges';
-                this.badges(row, state).forEach(([kind, label]) => {
+                this.badges(row, state).forEach(([kind, label, icon]) => {
                     const badge = document.createElement('span');
                     badge.className = `media-badge media-badge-${kind}`;
-                    badge.textContent = label;
+                    if (icon && window.appIcon) badge.append(window.appIcon(icon), ' ');
+                    badge.append(label);
                     badges.append(badge);
                 });
                 tile.append(this.thumbnail(row, state), name, badges);
-                tile.setAttribute('aria-label', [state.name, ...[...badges.children].map(badge => badge.textContent)].filter(Boolean).join(', '));
+                tile.setAttribute('aria-label', [state.name, ...[...badges.children].map(badge => badge.textContent.trim())].filter(Boolean).join(', '));
                 tile.addEventListener('click', () => open(this, row, false));
                 this.list.append(tile);
             });
@@ -164,7 +165,8 @@
                 add.type = 'button';
                 add.className = 'media-tile media-tile-add';
                 add.setAttribute('role', 'listitem');
-                add.innerHTML = '<span class="media-tile-plus" aria-hidden="true">+</span>';
+                add.innerHTML = '<span class="media-tile-plus" aria-hidden="true"></span>';
+                if (window.appIcon) add.firstChild.append(window.appIcon('plus-lg'));
                 add.append(this.kind === 'photo' ? text.newPhoto : text.newFile);
                 add.addEventListener('click', () => open(this, this.newRow(), true));
                 this.list.append(add);
@@ -199,6 +201,8 @@
         row.hidden = false;
         const kind = gallery.kind === 'photo' ? 'Photo' : 'File';
         title.textContent = text[(isNew ? 'new' : 'edit') + kind];
+        applyButton.classList.toggle('btn-success', isNew);
+        applyButton.classList.toggle('btn-warning', !isNew);
         const deletion = field(row, 'DELETE');
         const removable = state.saved ? Boolean(deletion) : !isNew;
         deleteButton.hidden = !removable || state.deleted;

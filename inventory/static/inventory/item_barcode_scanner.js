@@ -21,8 +21,11 @@
     wrapper.tabIndex = 0;
     const button = document.createElement('button');
     button.type = 'button';
-    button.className = 'btn btn-primary';
-    button.textContent = data.buttonLabel;
+    button.className = 'btn btn-secondary';
+    // The icon comes from the page (a <template> in #item-barcode-scanner), the label from data-button-label.
+    const icon = config.querySelector('template');
+    if (icon) button.append(icon.content.cloneNode(true), ' ');
+    button.append(data.buttonLabel);
     button.disabled = true;
     wrapper.append(button);
     field.after(wrapper);

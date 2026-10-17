@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% load i18n static thumbnail mytemplatetags actions %}
+{% load i18n static thumbnail mytemplatetags actions icons %}
 
 {% block bootstrap5_extra_head %}
     {{ block.super }}
@@ -22,24 +22,24 @@
             <span aria-hidden="true">/</span>
             <a href="{{ object.get_absolute_url }}" aria-current="page">{% if lid %}{{ lid.display }}{% else %}#{{ object.pk }}{% endif %}</a>
         </nav>
-        <div class="item-heading">
+        <div class="item-heading" data-action-row>
             <div class="item-heading-text">
                 <p class="item-eyebrow">{% trans "Unique item" %}{% if object.item.category %} · {{ object.item.category }}{% endif %}</p>
                 <h1>{{ object.item }} {% if lid %}<span class="unique-item-code">{{ lid.display }}</span>{% else %}<span class="item-muted">#{{ object.pk }}</span>{% endif %}</h1>
             </div>
             {% if not object.is_disposed %}
-            <div class="item-actions gap-2">
+            <div class="item-actions gap-2" data-action-group>
                 {% if perms.inventory.change_uniqueitem %}
-                <a class="btn btn-outline-primary" href="{% url 'update_unique_item' object.pk %}" data-move-open>{% trans "Move" %}</a>
-                <a class="btn btn-primary" href="{% url 'update_unique_item' object.pk %}">{% trans "Edit" %}</a>
+                <a class="btn btn-warning" href="{% url 'update_unique_item' object.pk %}" data-move-open>{% icon "arrows-move" %} <span class="action-label">{% trans "Move" %}</span></a>
+                <a class="btn btn-warning" href="{% url 'update_unique_item' object.pk %}">{% icon "pencil" %} <span class="action-label">{% trans "Edit" %}</span></a>
                 {% else %}
-                {% disabled_action _("Move") classes="btn btn-outline-primary" %}
-                {% disabled_action _("Edit") classes="btn btn-primary" %}
+                {% icon "arrows-move" as move_icon %}{% disabled_action move_icon label=_("Move") classes="btn btn-warning" %}
+                {% icon "pencil" as edit_icon %}{% disabled_action edit_icon label=_("Edit") classes="btn btn-warning" %}
                 {% endif %}
                 {% if perms.inventory.dispose_uniqueitem %}
-                <a class="btn btn-outline-danger item-icon-action" href="{% url 'dispose_unique_item' object.pk %}" data-bs-toggle="tooltip" title="{% trans 'Remove from inventory' %}" aria-label="{% trans 'Remove from inventory' %}"><span aria-hidden="true">❌</span></a>
+                <a class="btn btn-danger item-icon-action" href="{% url 'dispose_unique_item' object.pk %}">{% icon "archive" %} <span class="action-label">{% trans "Remove from inventory" %}</span></a>
                 {% else %}
-                {% disabled_action "❌" name=_("Remove from inventory") classes="btn btn-outline-danger item-icon-action" %}
+                {% icon "archive" as remove_icon %}{% disabled_action remove_icon label=_("Remove from inventory") classes="btn btn-danger item-icon-action" %}
                 {% endif %}
             </div>
             {% endif %}
@@ -115,7 +115,7 @@
                 <section class="item-panel" aria-labelledby="unique-item-photos-heading">
                     <div class="item-panel-heading item-panel-title-row">
                         <h2 id="unique-item-photos-heading">{% trans "Photos" %} <span class="item-count">{{ own_images|length|add:item_images_count }}</span></h2>
-                        {% if perms.inventory.add_itemimage and not object.is_disposed %}<a class="btn btn-primary item-panel-add" href="{% url 'update_unique_item' object.pk %}" data-quick-open="quick-photo-modal" data-bs-toggle="tooltip" title="{% trans 'Add photo' %}" aria-label="{% trans 'Add photo' %}"><span aria-hidden="true">+</span></a>{% elif not object.is_disposed %}{% disabled_action "+" name=_("Add photo") classes="btn btn-primary item-panel-add" %}{% endif %}
+                        {% if perms.inventory.add_itemimage and not object.is_disposed %}<a class="btn btn-success item-panel-add" href="{% url 'update_unique_item' object.pk %}" data-quick-open="quick-photo-modal" data-bs-toggle="tooltip" title="{% trans 'Add photo' %}" aria-label="{% trans 'Add photo' %}">{% icon "plus-lg" %}</a>{% elif not object.is_disposed %}{% icon "plus-lg" as plus_icon %}{% disabled_action plus_icon name=_("Add photo") classes="btn btn-success item-panel-add" %}{% endif %}
                     </div>
                     {% if not own_images and not images %}<p class="item-empty item-muted">{% trans "No images" %}</p>{% endif %}
                     <div class="item-gallery" data-gallery-label="{% trans 'Photos' %}" data-close-label="{% trans 'Close photo' %}" data-previous-label="{% trans 'Previous photo' %}" data-next-label="{% trans 'Next photo' %}" data-error-message="{% trans 'Image could not be loaded.' %}" data-retry-label="{% trans 'Try again' %}" data-loading-label="{% trans 'Loading photo…' %}">
@@ -172,7 +172,7 @@
                         {% for event in events %}
                             <li>
                                 <time datetime="{{ event.created_at|date:'c' }}" class="item-muted">{{ event.created_at|date:"SHORT_DATE_FORMAT" }}</time>
-                                {{ event.get_type_display }}{% if event.type == 'moved' %}: {{ event.from_location_name }} → {{ event.to_location_name }}{% elif event.type == 'created' and event.to_location_name %}: {{ event.to_location_name }}{% elif event.type == 'disposed' and event.reason %}: {{ event.get_reason_display }}{% elif event.type == 'owner' %}: {{ event.from_owner_label }} → {{ event.to_owner_label }}{% endif %}
+                                {{ event.get_type_display }}{% if event.type == 'moved' %}: {{ event.from_location_name }} {% icon "arrow-right" %}<span class="visually-hidden">→</span> {{ event.to_location_name }}{% elif event.type == 'created' and event.to_location_name %}: {{ event.to_location_name }}{% elif event.type == 'disposed' and event.reason %}: {{ event.get_reason_display }}{% elif event.type == 'owner' %}: {{ event.from_owner_label }} → {{ event.to_owner_label }}{% endif %}
                                 {% if event.type == 'created' and event.has_to_owner %}<br>{% trans "Owner" %}: {{ event.to_owner_label }}{% endif %}
                                 {% if event.type == 'owner' or event.type == 'created' and event.has_to_owner %}
                                     {% include 'inventory/unique_item_owner_event.html' %}

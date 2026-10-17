@@ -24,8 +24,8 @@ stock entries and unique items; its kind can only change while it has neither.
   already have). The admin generates an ID when a
   unique item is added without `?label_id=`.
 * **Details:** briefing requirement (*Einweisungspflicht*; empty uses the item's):
-  green ✓ free to use, no briefing required; yellow ! use with care, ask if in
-  doubt; red ✕ use only after a briefing. Lists show the coloured symbol with
+  green (check mark) free to use, no briefing required; yellow (exclamation mark) use with care, ask if in
+  doubt; red (cross) use only after a briefing. Lists show the coloured icon with
   the explanation on hover, detail pages the explanation itself,
   warranty, notes, responsible team and person, owner, purchase date, price and
   source, files. Without an owner a unique item belongs to the ZAM and no

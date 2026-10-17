@@ -17,7 +17,7 @@
             <input type="hidden" name="kind" value="item">
             <h2 class="h5">{% trans "Existing item" %}</h2>
             {% bootstrap_form item_form show_label=False %}
-            <button class="btn btn-primary mt-auto" type="submit">{% trans "Attach to item" %}</button>
+            <button class="btn btn-warning mt-auto" type="submit">{% trans "Attach to item" %}</button>
         </form>
     </section>
     <section class="col-lg-4">
@@ -26,7 +26,7 @@
             <input type="hidden" name="kind" value="location">
             <h2 class="h5">{% trans "Existing location" %}</h2>
             {% bootstrap_form location_form show_label=False %}
-            <button class="btn btn-primary mt-auto" type="submit">{% trans "Attach to location" %}</button>
+            <button class="btn btn-warning mt-auto" type="submit">{% trans "Attach to location" %}</button>
         </form>
     </section>
     <section class="col-lg-4">
@@ -37,7 +37,7 @@
                     <input type="hidden" name="kind" value="new_item">
                     <h2 class="h5">{% trans "New item" %}</h2>
                     {% bootstrap_form new_item_form %}
-                    <button class="btn btn-primary" type="submit">{% trans "Create item with this ID" %}</button>
+                    <button class="btn btn-success" type="submit">{% trans "Create item with this ID" %}</button>
                 </form>
             {% endif %}
             {% if can_add_location %}
@@ -53,7 +53,7 @@
             <h2 class="h5">{% trans "New unique item" %}</h2>
             <p class="text-muted small">{% trans "A single object that is tracked on its own, such as one fire extinguisher. You can add its details on the next page." %}</p>
             {% bootstrap_form new_unique_item_form %}
-            <button class="btn btn-primary mt-auto" type="submit">{% trans "Create unique item with this ID" %}</button>
+            <button class="btn btn-success mt-auto" type="submit">{% trans "Create unique item with this ID" %}</button>
         </form>
     </section>
     {% endif %}
@@ -65,7 +65,7 @@
             <h2 class="h5">{% trans "Replacement label for a unique item" %}</h2>
             <p class="text-muted small">{% trans "For unique items whose previous ID was retired." %}</p>
             {% bootstrap_form unique_item_form show_label=False %}
-            <button class="btn btn-primary mt-auto" type="submit">{% trans "Attach to unique item" %}</button>
+            <button class="btn btn-warning mt-auto" type="submit">{% trans "Attach to unique item" %}</button>
         </form>
     </section>
     {% endif %}

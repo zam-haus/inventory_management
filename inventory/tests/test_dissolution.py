@@ -356,7 +356,7 @@ class MoveContentsTests(DissolutionTestCase):
         self.assertContains(response, "There is nothing to move.")
         # Nothing to keep in place: only deleting the empty location is offered.
         self.assertNotContains(response, "Review and keep location")
-        self.assertContains(response, '<button class="btn btn-outline-danger" type="submit" name="delete" value="1">Review and delete location</button>', html=True)
+        self.assertContains(response, '<button class="btn btn-danger" type="submit" name="delete" value="1">Review and delete location</button>', html=True)
 
     def test_unique_items_stay_in_a_kept_location(self):
         unique_item = UniqueItem.objects.create(item=self.item, location=self.root)
@@ -435,14 +435,16 @@ class LocationTypeDeletionTests(DissolutionTestCase):
 
     def test_plan_ends_with_keep_or_delete_buttons(self):
         LocationType.objects.filter(pk=self.box_type.pk).update(deletable_in_frontend=True)
-        for params, primary in (({}, "btn-danger"), ({"delete": "0"}, "btn-primary")):
+        for params, suggested in (({}, 'btn btn-danger action-suggested" type="submit" name="delete" value="1"'),
+                                  ({"delete": "0"}, 'btn btn-warning action-suggested" type="submit" name="delete" value="0"')):
             with self.subTest(params=params):
                 page = self.client.get(self.url, params).content.decode()
                 self.assertNotIn('id="delete-root"', page)
                 keep = page.index('name="delete" value="0">Review and keep location')
                 delete = page.index('name="delete" value="1">Review and delete location')
                 self.assertLess(keep, delete)  # Enter in a field submits the first: keeping
-                self.assertIn(primary, page[keep - 80:delete])
+                self.assertIn(suggested, page)
+                self.assertEqual(page.count("action-suggested"), 1)
         # The button decides whether the location is deleted.
         response = self.client.post(self.url, {"recursive": "0", "stage": "review", "delete": "0",
                                                f"item_{self.stock.pk}_destination": self.destination.pk,

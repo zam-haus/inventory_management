@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
 
-{% load django_bootstrap5 %}
+{% load django_bootstrap5 icons %}
 {% load i18n %}
 {% load static %}
 
@@ -17,7 +17,7 @@
      data-title="{% trans 'Scan EAN barcodes' %}"
      data-hint="{% trans 'Hold the EAN barcode of the product in front of the camera. Every scanned code is added to the barcode field.' %}"
      data-added="{% blocktrans with code='{code}' %}Added: {{ code }}{% endblocktrans %}"
-     data-duplicate="{% blocktrans with code='{code}' %}Already in the list: {{ code }}{% endblocktrans %}"></div>
+     data-duplicate="{% blocktrans with code='{code}' %}Already in the list: {{ code }}{% endblocktrans %}"><template>{% icon "upc-scan" %}</template></div>
 {% endblock %}
 
 {% if form.instance.id %}
@@ -36,7 +36,7 @@
 
     {% include 'inventory/inline_formsets.html' %}
 
-    <input type="submit" name="save" value="{% trans 'Save' %}" class="btn btn-primary mb-3">
+    <input type="submit" name="save" value="{% trans 'Save' %}" class="btn {% if object.pk %}btn-warning{% else %}btn-success{% endif %} mb-3">
 </form>
 {% endblock %}
 

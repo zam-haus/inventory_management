@@ -1,7 +1,7 @@
 # Permissions
 
 Frontend lists, details, searches and autocomplete are public. The printable
-inventory (`/inventory/print/`, 🖨️ on location pages and, only after a search, on
+inventory (`/inventory/print/`, the printer button on location pages and, only after a search, on
 the location list, where it preselects the locations found) is internal: it requires
 `inventory.print_inventory`, which migration `inventory.0023` grants to the local group.
 Editing requires login and Django's `add`, `change` or `delete` permission for the
@@ -10,7 +10,8 @@ Authorization → Groups**, then assign users to those groups. Superusers retain
 full access; being logged in or being staff alone does not grant inventory editing.
 
 For logged-in users, buttons for actions they may not perform stay visible but
-disabled. Hovering, focusing or tapping one says why ("ask an inventory admin"
+disabled, shown only as an outline (usable actions are filled, see
+[Icons and action buttons](icons.md#action-buttons)). Hovering, focusing or tapping one says why ("ask an inventory admin"
 for a missing permission). Guests do not see actions they lack the permission for; technical reasons (no
 JavaScript, no camera) are explained to them like to everyone else. Templates
 render these buttons with `{% disabled_action %}`

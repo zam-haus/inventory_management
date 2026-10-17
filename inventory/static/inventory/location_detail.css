@@ -10,13 +10,13 @@
 .location-breadcrumb { display: flex; flex-wrap: wrap; gap: .35rem .65rem; align-items: baseline; margin-bottom: 1.25rem; font-size: .9rem; }
 .location-breadcrumb a { padding: .35rem 0; }
 .location-heading { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1.25rem; }
-.location-heading-text { min-width: 0; flex: 1 1 16rem; }
+.location-heading-text { min-width: 0; flex: 1 1 auto; }
 .location-heading h1 { margin: .2rem 0 .6rem; font-size: clamp(1.6rem, 4vw, 2.3rem); font-weight: 650; }
 .location-heading h1.location-title-row { display: flex; flex-wrap: nowrap; align-items: center; gap: .75rem; margin: 0; }
 .location-title-row .location-identifier { flex: 0 1 auto; min-width: 0; max-width: 50%; font-size: inherit; font-weight: inherit; line-height: inherit; }
 .location-title-row .location-help-icon { font-size: 1rem; vertical-align: middle; }
 .location-title-name { flex: 1; min-width: 0; }
-/* The purpose belongs to the name but stays lighter; ✏️ edits it (location_purpose_editor.html). */
+/* The purpose belongs to the name but stays lighter; the pencil edits it (location_purpose_editor.html). */
 .location-title-purpose { font-weight: 400; }
 .location-edit-purpose { margin-left: .35rem; vertical-align: .2em; padding: .1rem .4rem; line-height: 1.2; }
 .location-header-info { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem 2rem; margin-top: 1rem; }
@@ -32,13 +32,13 @@
 .location-identifier { display: inline-block; padding: .25rem .6rem; background: #edf2f7; border: 0; border-radius: .35rem; font-family: monospace; font-size: 1rem; color: inherit; text-align: left; }
 .location-help { cursor: help; }
 .location-help-icon { padding: .25rem .4rem; border: 0; border-radius: .25rem; background: transparent; color: inherit; }
-.location-actions { display: flex; flex: 0 0 auto; flex-wrap: nowrap; gap: .6rem; min-width: min(24rem, 100%); max-width: 100%; }
+.location-actions { display: flex; flex: 0 0 auto; flex-wrap: nowrap; gap: .6rem; max-width: 100%; }
 .location-actions > .btn { flex: 0 1 auto; min-width: 0; }
 /* Never narrower than its button, which would then cover the gap. */
 .location-actions > .disabled-action { flex: 0 1 auto; }
 .location-heading > .location-actions { justify-content: flex-end; }
 .location-actions .btn { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; white-space: normal; }
-.location-actions .location-print { flex: 0 0 44px; width: 44px; font-size: 1.2rem; padding: .375rem; }
+.location-actions .location-print { flex: 0 0 auto; min-width: 44px; gap: .4rem; font-size: 1.2rem; padding: .375rem .65rem; }
 .location-detail { padding-bottom: 2.5rem; }
 .location-overview { display: flex; flex-wrap: wrap; gap: 1rem 2rem; justify-content: space-between; background: #f7f9fb; border: 1px solid var(--location-border); border-radius: .65rem; padding: 1.25rem; margin-bottom: 1.5rem; }
 .location-overview > div { flex: 1 1 20rem; min-width: 0; }
@@ -71,7 +71,6 @@
 .location-panel-title-row h2,
 .location-panel-title-row h3 { min-width: 0; }
 .location-add-item { display: inline-flex; align-items: center; justify-content: center; flex: 0 0 44px; width: 44px; height: 44px; padding: 0; font-size: 1.5rem; line-height: 1; }
-.location-move-here { display: inline-flex; align-items: center; justify-content: center; flex: 0 0 44px; width: 44px; height: 44px; padding: 0; font-size: 1.25rem; }
 .location-panel-heading h2,
 .location-panel-heading h3 { display: flex; flex-wrap: wrap; align-items: center; gap: .6rem; font-weight: 650; line-height: 1.3; margin: 0; }
 .location-panel-heading h2 { font-size: 1.5rem; }
@@ -143,9 +142,8 @@
 
 @media (max-width: 575.98px) {
     .location-header { padding-bottom: 1rem; }
-    .location-actions { width: 100%; gap: .4rem; }
+    .location-actions { gap: .4rem; }
     .location-actions .btn { font-size: .875rem; padding-left: .5rem; padding-right: .5rem; }
-    .location-actions .location-print { flex: 0 0 44px; }
     .location-overview { padding: 1rem; margin-bottom: 1rem; }
     .location-metadata-grid { gap: 1rem; }
     .location-type-properties > div { grid-template-columns: minmax(0, 1fr); gap: .15rem; }
@@ -177,3 +175,5 @@
 .location-contents a:hover { border-color: #0d6efd; background: #eef4ff; }
 .location-contents a:focus-visible { outline: 3px solid #0d6efd; outline-offset: 2px; }
 .location-contents-count { font-weight: 700; font-variant-numeric: tabular-nums; }
+/* Icon-only action buttons: the icon a little larger than the text, like the emojis were. */
+.location-print .bi, .location-edit-overview .bi { width: 1.25em; height: 1.25em; }

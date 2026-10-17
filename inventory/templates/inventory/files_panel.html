@@ -1,11 +1,11 @@
-{% load i18n actions %}
+{% load i18n actions icons %}
 {# show_add: files can be added here at all; can_add: the user may (quick add, quick_add_modals.html), #}
 {# otherwise logged-in users see it disabled; add_fallback: where to add without JavaScript. #}
 {% if files or general_files or can_add or show_add and user.is_authenticated %}
 <section class="item-panel" aria-labelledby="files-heading">
     <div class="item-panel-heading item-panel-title-row">
         <h2 id="files-heading">{% trans "Files" %} <span class="item-count">{% if file_count != None %}{{ file_count }}{% else %}{{ files|length }}{% endif %}</span></h2>
-        {% if can_add %}<a class="btn btn-primary item-panel-add" href="{{ add_fallback }}" data-quick-open="quick-file-modal" data-bs-toggle="tooltip" title="{% trans 'Add file' %}" aria-label="{% trans 'Add file' %}"><span aria-hidden="true">+</span></a>{% elif show_add %}{% disabled_action "+" name=_("Add file") classes="btn btn-primary item-panel-add" %}{% endif %}
+        {% if can_add %}<a class="btn btn-success item-panel-add" href="{{ add_fallback }}" data-quick-open="quick-file-modal" data-bs-toggle="tooltip" title="{% trans 'Add file' %}" aria-label="{% trans 'Add file' %}">{% icon "plus-lg" %}</a>{% elif show_add %}{% icon "plus-lg" as plus_icon %}{% disabled_action plus_icon name=_("Add file") classes="btn btn-success item-panel-add" %}{% endif %}
     </div>
     {% if not files and not general_files %}<p class="item-empty item-muted">{% trans "No files yet." %}</p>{% endif %}
     <ul class="item-panel-body unique-item-files">

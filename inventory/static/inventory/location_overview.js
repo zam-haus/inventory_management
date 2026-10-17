@@ -408,7 +408,7 @@
     document.querySelectorAll('[data-overview-open]').forEach(trigger => {
         trigger.addEventListener('click', event => {
             event.preventDefault();
-            // Without a photo yet, 📷 goes straight to the camera; with one, to the dialog.
+            // Without a photo yet, the camera button goes straight to the camera; with one, to the dialog.
             if (existingPhoto) modal.show(trigger);
             else pickPhoto({camera: true});
         });

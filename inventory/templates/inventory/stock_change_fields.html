@@ -1,4 +1,4 @@
-{% load i18n %}
+{% load i18n icons %}
 {# The fields of a stock change, shared by the dialog and the fallback page. #}
 <input type="hidden" name="next" value="{{ next }}">
 {{ form.request_id }}
@@ -9,9 +9,9 @@
     <legend class="form-label fs-6">{% trans "Do you remove or add stock?" %}</legend>
     <div class="stock-change-direction-options">
         <input type="radio" class="btn-check" name="direction" id="id_direction_decrease" value="decrease" required{% if form.direction.value == "decrease" %} checked{% endif %}>
-        <label class="btn btn-outline-danger stock-change-decrease" for="id_direction_decrease"><span class="stock-change-symbol" aria-hidden="true">↓ −</span> {% trans "Remove stock" %}</label>
+        <label class="btn btn-outline-danger stock-change-decrease" for="id_direction_decrease"><span class="stock-change-symbol" aria-hidden="true">{% icon "arrow-down" %}</span> {% trans "Remove stock" %}</label>
         <input type="radio" class="btn-check" name="direction" id="id_direction_increase" value="increase" required{% if form.direction.value == "increase" %} checked{% endif %}>
-        <label class="btn btn-outline-success stock-change-increase" for="id_direction_increase"><span class="stock-change-symbol" aria-hidden="true">↑ +</span> {% trans "Add stock" %}</label>
+        <label class="btn btn-outline-success stock-change-increase" for="id_direction_increase"><span class="stock-change-symbol" aria-hidden="true">{% icon "arrow-up" %}</span> {% trans "Add stock" %}</label>
     </div>
     <div class="text-danger small" data-change-field-errors="direction">{% for error in form.direction.errors %}<p class="mb-0">{{ error }}</p>{% endfor %}</div>
 </fieldset>

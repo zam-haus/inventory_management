@@ -1,7 +1,7 @@
 // Stock changes: choose remove or add, live sale value, "remove everything"
 // and safe submission.
 //
-// The 🛒 buttons on the item and location pages carry their stock entry in data
+// The cart buttons on the item and location pages carry their stock entry in data
 // attributes and open one shared Bootstrap modal, which submits in the
 // background and then reloads the page. Without JavaScript, the buttons lead to
 // the same form as a page, which this script enhances as well.
@@ -72,11 +72,13 @@
         form.dataset.direction = change || '';
         parts.details.hidden = !change;
         parts.submit.disabled = pending || !change;
-        parts.submit.classList.toggle('btn-primary', !change);
+        parts.submit.classList.toggle('btn-warning', !change);
         parts.submit.classList.toggle('btn-danger', change === 'decrease');
         parts.submit.classList.toggle('btn-success', increase);
         if (!pending) {
-            parts.submit.textContent = change ? `${increase ? '↑ +' : '↓ −'} ${increase ? text.labelSubmitIncrease : text.labelSubmitDecrease}` : parts.submit.dataset.initial;
+            parts.submit.replaceChildren(...(change
+                ? [window.appIcon ? window.appIcon(increase ? 'arrow-up' : 'arrow-down') : '', ` ${increase ? text.labelSubmitIncrease : text.labelSubmitDecrease}`]
+                : [parts.submit.dataset.initial]));
         }
         if (!change) return;
 

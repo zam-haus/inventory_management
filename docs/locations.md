@@ -8,13 +8,13 @@ choices (autocomplete, with the full path). Printed labels, the stored path
 (`descriptive_identifier`) and the admin keep the plain name. The purpose is
 included in location searches. Physical descriptions are kept separately.
 
-**✏️** right after the name (and purpose) in the heading of the location page
-edits the purpose in a small dialog. **📷** edits the photo in its own dialog:
+**Purpose** (pencil) right after the name (and purpose) in the heading of the location page
+edits the purpose in a small dialog. The camera button edits the photo in its own dialog:
 it sits beside **Overview photo** in the first panel (**At this location …**), or,
 while the location has no photo and that section is hidden, beside
-**At this location …** itself. Without a photo yet, **📷** opens the camera right
+**At this location …** itself. Without a photo yet, the camera button opens the camera right
 away and the dialog follows with the new photo; with a photo, it opens the dialog,
-where **📷 Take or choose a photo** lets the phone offer camera or library. Take an
+where **Take or choose a photo** lets the phone offer camera or library. Take an
 overview of everything stored at the location and keep neighbouring locations
 outside the frame. The optional crop step supports dragging a selection or
 adjusting its edges with sliders. You can also rotate the photo clockwise in 90° steps.
@@ -56,7 +56,7 @@ their list is edited in place.
 
 ## Moving contents and dissolving
 
-**📤 Move contents** and **❌ Dissolve location** open the same plan: choose a
+**Move contents** and **Dissolve** open the same plan: choose a
 destination, deletion or nothing (keep in place) for each stock entry and
 sub-location, optionally including all descendants. The plan ends with two
 buttons, **Review and keep location** and **Review and delete location**; the one

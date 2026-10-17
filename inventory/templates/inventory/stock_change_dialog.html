@@ -1,4 +1,4 @@
-{% load i18n %}
+{% load i18n icons %}
 <div class="modal fade stock-change-modal" id="stock-change" tabindex="-1" aria-labelledby="stock-change-title" aria-hidden="true">
     <div class="modal-dialog modal-dialog-scrollable">
         <div class="modal-content">
@@ -6,7 +6,7 @@
                 {% csrf_token %}
                 <div class="modal-header">
                     <div class="stock-change-heading">
-                        <h2 class="modal-title fs-5" id="stock-change-title"><span aria-hidden="true">🛒</span> {% trans "Change stock" %}</h2>
+                        <h2 class="modal-title fs-5" id="stock-change-title">{% icon "cart" %} {% trans "Change stock" %}</h2>
                         <p class="stock-change-subject"><strong data-change-item></strong> · <span data-change-location></span></p>
                     </div>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{% trans 'Cancel' %}"></button>
@@ -15,8 +15,8 @@
                     {% include 'inventory/stock_change_fields.html' with form=stock_change_form entry=None next='' is_last_stock=False %}
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">{% trans "Cancel" %}</button>
-                    <button type="submit" class="btn btn-primary" data-change-submit>{% trans "Save" %}</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{% trans "Cancel" %}</button>
+                    <button type="submit" class="btn btn-warning" data-change-submit>{% trans "Save" %}</button>
                 </div>
             </form>
         </div>

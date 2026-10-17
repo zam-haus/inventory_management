@@ -13,7 +13,7 @@
                     <label class="form-check-label" for="recursive">{% trans "Include all descendants and their stock entries" %}</label>
                 </div>
                 <input type="hidden" name="delete" value="{% if delete_root %}1{% else %}0{% endif %}">
-                <button class="btn btn-outline-secondary" type="submit">{% trans "Reload list" %}</button>
+                <button class="btn btn-secondary" type="submit">{% trans "Reload list" %}</button>
             </form>
         </div>
     </section>
@@ -43,11 +43,11 @@
                     <h2 id="bulk-heading">{% trans "Apply to all entries" %}</h2>
                     <div class="dissolve-bulk mt-3">
                         <div>{% bootstrap_field form.bulk_destination %}</div>
-                        {% if form.can_move_rows %}<button class="btn btn-outline-primary" type="button" id="dissolve-fill">{% trans "Use destination for all" %}</button>
-                        {% else %}{% disabled_action _("Use destination for all") classes="btn btn-outline-primary" %}{% endif %}
-                        {% if form.can_delete_rows %}<button class="btn btn-outline-danger" type="button" id="dissolve-delete-all">{% trans "Set all to delete" %}</button>
-                        {% else %}{% disabled_action _("Set all to delete") classes="btn btn-outline-danger" %}{% endif %}
-                        <button class="btn btn-outline-secondary" type="button" id="dissolve-keep-all">{% trans "Keep all in place" %}</button>
+                        {% if form.can_move_rows %}<button class="btn btn-warning" type="button" id="dissolve-fill">{% trans "Use destination for all" %}</button>
+                        {% else %}{% disabled_action _("Use destination for all") classes="btn btn-warning" %}{% endif %}
+                        {% if form.can_delete_rows %}<button class="btn btn-danger" type="button" id="dissolve-delete-all">{% trans "Set all to delete" %}</button>
+                        {% else %}{% disabled_action _("Set all to delete") classes="btn btn-danger" %}{% endif %}
+                        <button class="btn btn-secondary" type="button" id="dissolve-keep-all">{% trans "Keep all in place" %}</button>
                     </div>
                     <p class="location-muted">{% trans "These shortcuts only fill the form. You can adjust each entry before reviewing." %}</p>
                 </div>
@@ -83,15 +83,15 @@
         {% else %}
             <p>{% trans "This location is empty. There is nothing to move." %}</p>
         {% endif %}
-        {# Keeping comes first, so pressing Enter in a field never deletes the location. #}
+        {# Keeping comes first, so pressing Enter in a field never deletes the location. The one matching how the page was opened is marked as suggested. #}
         <div class="location-actions mt-3">
             {% if form.rows %}
-                <button class="btn {% if delete_root %}btn-outline-primary{% else %}btn-primary{% endif %}" type="submit" name="delete" value="0">{% trans "Review and keep location" %}</button>
+                <button class="btn btn-warning{% if not delete_root %} action-suggested{% endif %}" type="submit" name="delete" value="0">{% trans "Review and keep location" %}</button>
             {% endif %}
             {% if not delete_root_denied %}
-                <button class="btn {% if delete_root %}btn-danger{% else %}btn-outline-danger{% endif %}" type="submit" name="delete" value="1">{% trans "Review and delete location" %}</button>
+                <button class="btn btn-danger{% if delete_root %} action-suggested{% endif %}" type="submit" name="delete" value="1">{% trans "Review and delete location" %}</button>
             {% else %}
-                {% disabled_action _("Review and delete location") reason=delete_root_denied classes="btn btn-outline-danger" %}
+                {% disabled_action _("Review and delete location") reason=delete_root_denied classes="btn btn-danger" %}
             {% endif %}
         </div>
     </form>

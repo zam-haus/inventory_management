@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% load i18n static l10n %}
+{% load i18n static l10n icons %}
 
 {% block bootstrap5_extra_head %}
     {{ block.super }}
@@ -10,7 +10,7 @@
 
 {% block content %}
     <div class="stock-change-page">
-        <h1 class="fs-3"><span aria-hidden="true">🛒</span> {% trans "Change stock" %}</h1>
+        <h1 class="fs-3">{% icon "cart" %} {% trans "Change stock" %}</h1>
         <p class="stock-change-subject"><a href="{{ entry.item.get_absolute_url }}">{{ entry.item }}</a> · <a href="{{ entry.location.get_absolute_url }}">{{ entry.location.unique_identifier }}</a></p>
         <form method="post" action="{% url 'stock_change' entry.pk %}" class="stock-change-form" {% include 'inventory/stock_change_form_attrs.html' %}
               data-amount="{% if entry.amount != None %}{{ entry.amount|unlocalize }}{% endif %}" data-kind="{{ entry.amount_kind }}" data-amount-text="{{ entry.amount_text }}"
@@ -19,8 +19,8 @@
             {% csrf_token %}
             {% include 'inventory/stock_change_fields.html' %}
             <div class="stock-change-actions">
-                <a class="btn btn-outline-secondary" href="{{ next }}">{% trans "Cancel" %}</a>
-                <button type="submit" class="btn btn-primary" data-change-submit>{% trans "Save" %}</button>
+                <a class="btn btn-secondary" href="{{ next }}">{% trans "Cancel" %}</a>
+                <button type="submit" class="btn btn-warning" data-change-submit>{% trans "Save" %}</button>
             </div>
         </form>
     </div>

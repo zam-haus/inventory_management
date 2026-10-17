@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2022-03-20 20:24+0100\n"
+"POT-Creation-Date: 2026-10-17 20:50+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -18,18 +18,43 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
-#: templates/admin/login.html:7
+#: templates/admin/login.html:8 templates/registration/login.html:16
 msgid "Login via ZAM SSO"
 msgstr "mit ZAM SSO anmelden"
 
-#: templates/base.html:16
+#: templates/base.html:17
+msgid "ZAM inventory"
+msgstr ""
+
+#: templates/base.html:18
+msgid "Toggle navigation"
+msgstr ""
+
+#: templates/base.html:24
 msgid "Items"
 msgstr "Sache"
 
-#: templates/base.html:35
+#: templates/base.html:27
+msgid "Locations"
+msgstr ""
+
+#: templates/base.html:48
 msgid "Logout"
 msgstr "Abmelden"
 
-#: templates/base.html:38
+#: templates/base.html:51 templates/registration/login.html:4
+#: templates/registration/login.html:13
 msgid "Login"
 msgstr "Anmelden"
+
+#: templates/base.html:59
+msgid "(no title)"
+msgstr ""
+
+#: templates/base.html:61
+msgid "(no content)"
+msgstr ""
+
+#: templates/script_templates.html:10
+msgid "Actions"
+msgstr ""

@@ -1,5 +1,5 @@
 .location-overview-photo-actions { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; }
-.location-edit-overview { display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; padding: 0; font-size: 1.25rem; }
+.location-edit-overview { display: inline-flex; flex: none; align-items: center; justify-content: center; gap: .4rem; min-width: 44px; height: 44px; padding: 0 .65rem; font-size: 1.25rem; }
 .location-overview-body { padding: 0 1.2rem 1.2rem; }
 .location-overview-body > * + * { margin-top: 1rem; }
 .location-overview-photo { display: block; background: #f7f9fb; border-radius: .4rem; overflow: hidden; }

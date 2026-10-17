@@ -64,7 +64,7 @@
         {% csrf_token %}
         <input type="hidden" name="plan" value="{{ plan_token }}">
         <div class="d-flex flex-wrap gap-2">
-            <button class="btn btn-outline-secondary" type="submit" name="stage" value="edit">{% trans "Back to editing" %}</button>
+            <button class="btn btn-secondary" type="submit" name="stage" value="edit">{% trans "Back to editing" %}</button>
             <button class="btn btn-danger" type="submit" name="stage" value="confirm">{% trans "Confirm moves and deletions" %}</button>
         </div>
     </form>

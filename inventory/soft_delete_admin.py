@@ -1,6 +1,9 @@
 from django.contrib import admin
 from django.core.exceptions import PermissionDenied, ValidationError
+from django.utils.html import format_html
 from django.utils.translation import gettext_lazy as _
+
+from .icons import icon
 
 
 class DeletedObjectFilter(admin.SimpleListFilter):
@@ -40,7 +43,10 @@ class SoftDeleteAdminMixin:
 
     @admin.display(description=_("deleted"), ordering="is_deleted", empty_value="")
     def deleted_status(self, obj):
-        return "❌" if obj.is_deleted else ""
+        if not obj.is_deleted:
+            return ""
+        # The admin has no Bootstrap classes, so the colour comes from its own theme variables.
+        return format_html('<span title="{}" style="color: var(--error-fg)">{}</span>', _("deleted"), icon("trash3"))
 
     def get_deleted_objects(self, objs, request):
         objects = list(objs)

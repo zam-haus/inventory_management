@@ -52,9 +52,9 @@ def usage_level(level, long=False):
     The briefing requirement as a coloured symbol; the short form names the colour
     and explains it on hover, the long form shows the explanation.
     """
-    from ..models import USAGE_LEVEL_DESCRIPTIONS, USAGE_LEVEL_SYMBOLS, UsageLevel
+    from ..models import USAGE_LEVEL_DESCRIPTIONS, USAGE_LEVEL_ICONS, UsageLevel
 
     if not level:
         return {"level": None}
-    return {"level": level, "label": UsageLevel(level).label, "symbol": USAGE_LEVEL_SYMBOLS[level],
+    return {"level": level, "label": UsageLevel(level).label, "icon": USAGE_LEVEL_ICONS[level],
             "description": USAGE_LEVEL_DESCRIPTIONS[level], "long": long}

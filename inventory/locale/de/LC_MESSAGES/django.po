@@ -3085,3 +3085,21 @@ msgstr "Prüfen, Standort behalten"
 #: inventory/templates/inventory/location_dissolve.html
 msgid "Review and delete location"
 msgstr "Prüfen, Standort löschen"
+
+msgid "Sort descending"
+msgstr "Absteigend sortieren"
+
+msgid "Sort ascending"
+msgstr "Aufsteigend sortieren"
+
+msgid "Choose from photo library"
+msgstr "Aus der Fotomediathek auswählen"
+
+msgid "Move here"
+msgstr "Hierher verschieben"
+
+msgid "Print"
+msgstr "Drucken"
+
+msgid "Dissolve"
+msgstr "Auflösen"

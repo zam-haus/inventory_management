@@ -22,9 +22,10 @@
                 <div class="photo-lightbox-loading" role="status" hidden><span class="photo-lightbox-spinner" aria-hidden="true"></span><span class="visually-hidden"></span></div>
                 <div class="photo-lightbox-message" role="alert" hidden><p></p><button type="button" class="btn btn-light photo-lightbox-retry"></button></div>
             </div>
-            <button type="button" class="photo-lightbox-button photo-lightbox-prev"><span aria-hidden="true">❮</span></button>
-            <button type="button" class="photo-lightbox-button photo-lightbox-next"><span aria-hidden="true">❯</span></button>
-            <button type="button" class="photo-lightbox-button photo-lightbox-close"><span aria-hidden="true">×</span></button>`;
+            <button type="button" class="photo-lightbox-button photo-lightbox-prev" data-icon-slot="chevron-left"></button>
+            <button type="button" class="photo-lightbox-button photo-lightbox-next" data-icon-slot="chevron-right"></button>
+            <button type="button" class="photo-lightbox-button photo-lightbox-close" data-icon-slot="x-lg"></button>`;
+        if (window.appIcon) dialog.querySelectorAll('[data-icon-slot]').forEach(slot => slot.append(window.appIcon(slot.dataset.iconSlot)));
         document.body.append(dialog);
         const q = selector => dialog.querySelector(selector);
         const self = {

@@ -1,0 +1,11 @@
+{% load i18n icons %}{# Markup that scripts insert: icons (window.appIcon) and the menu for action rows (actions.js). #}
+<div hidden id="app-icons">
+    <template data-icon="chevron-left">{% icon "chevron-left" %}</template>
+    <template data-icon="chevron-right">{% icon "chevron-right" %}</template>
+    <template data-icon="star-fill">{% icon "star-fill" %}</template>
+    <template data-icon="arrow-up">{% icon "arrow-up" %}</template>
+    <template data-icon="arrow-down">{% icon "arrow-down" %}</template>
+    <template data-icon="plus-lg">{% icon "plus-lg" %}</template>
+    <template data-icon="x-lg">{% icon "x-lg" %}</template>
+    <template id="action-menu-template"><div class="dropdown action-menu"><button type="button" class="btn btn-secondary action-menu-toggle" data-bs-toggle="dropdown" aria-expanded="false" aria-label="{% trans 'Actions' %}">{% icon "three-dots-vertical" %}</button><ul class="dropdown-menu dropdown-menu-end"></ul></div></template>
+</div>

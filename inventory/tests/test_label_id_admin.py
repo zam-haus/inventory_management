@@ -168,7 +168,7 @@ class InvalidStoredCodeTests(InventoryFixture, TestCase):
     def test_list_marks_invalid_codes_and_filters_them(self):
         response = self.client.get(reverse("admin:inventory_labelid_changelist"))
         self.assertContains(response, "5QG-FNJ")
-        self.assertContains(response, "⚠ invalid", count=3)
+        self.assertContains(response, "bi-exclamation-triangle", count=3)
         response = self.client.get(reverse("admin:inventory_labelid_changelist"), {"validity": "invalid"})
         self.assertContains(response, "5QG-FNJ")
         self.assertContains(response, "1Q0-005")

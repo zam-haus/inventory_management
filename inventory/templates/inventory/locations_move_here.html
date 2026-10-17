@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% load django_bootstrap5 i18n static %}
+{% load django_bootstrap5 i18n static icons %}
 
 {% block bootstrap5_extra_head %}
     {{ block.super }}
@@ -21,10 +21,10 @@
             <div class="location-heading-text">
                 <p class="location-eyebrow">{% trans "Move locations here" %} · {{ object.type.name }}</p>
                 <h1>{{ object.name }}</h1>
-                <button type="button" class="location-identifier location-help" data-bs-toggle="tooltip" title="{% trans 'Unique identifier for this storage location, used on labels and to find the location in the inventory.' %}">{{ object.unique_identifier }} <span aria-hidden="true">ⓘ</span></button>
+                <button type="button" class="location-identifier location-help" data-bs-toggle="tooltip" title="{% trans 'Unique identifier for this storage location, used on labels and to find the location in the inventory.' %}">{{ object.unique_identifier }} {% icon "info-circle" %}</button>
             </div>
             <div class="location-actions">
-                <a class="btn btn-outline-secondary" href="{{ object.get_absolute_url }}">{% trans "Cancel" %}</a>
+                <a class="btn btn-secondary" href="{{ object.get_absolute_url }}">{% trans "Cancel" %}</a>
             </div>
         </div>
     </header>
@@ -46,13 +46,13 @@
             <form class="location-move-form" method="post" novalidate>
                 {% csrf_token %}
                 {% bootstrap_form form %}
-                <span class="disabled-action" tabindex="0" data-bs-toggle="tooltip" title="{% trans 'This needs JavaScript.' %}"><button type="button" class="btn btn-outline-primary location-scan-button" data-scan-locations disabled
+                <span class="disabled-action" tabindex="0" data-bs-toggle="tooltip" title="{% trans 'This needs JavaScript.' %}"><button type="button" class="btn btn-secondary location-scan-button" data-scan-locations disabled
                         data-title="{% trans 'Scan location labels' %}"
                         data-hint="{% trans 'Hold the QR code of a location label in front of the camera. Every scanned label is added to the list.' %}"
                         data-added="{% blocktrans with code='{code}' %}Added: {{ code }}{% endblocktrans %}"
-                        data-duplicate="{% blocktrans with code='{code}' %}Already in the list: {{ code }}{% endblocktrans %}"><span aria-hidden="true">📷</span> {% trans "Scan QR codes" %}</button></span>
+                        data-duplicate="{% blocktrans with code='{code}' %}Already in the list: {{ code }}{% endblocktrans %}">{% icon "qr-code-scan" %} {% trans "Scan QR codes" %}</button></span>
                 <div class="location-actions mt-3">
-                    <button class="btn btn-primary" type="submit">{% trans "Move locations here" %}</button>
+                    <button class="btn btn-warning" type="submit">{% trans "Move locations here" %}</button>
                 </div>
             </form>
         </section>

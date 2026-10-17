@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% load i18n static thumbnail mytemplatetags actions %}
+{% load i18n static thumbnail mytemplatetags actions icons %}
 
 {% block bootstrap5_extra_head %}
     {{ block.super }}
@@ -26,52 +26,59 @@
             <span aria-hidden="true">/</span>
             <a href="{{ object.get_absolute_url }}" aria-current="page">{{ object.name_with_short_name }}</a>
         </nav>
-        <div class="location-heading">
+        <div class="location-heading" data-action-row>
             <div class="location-heading-text">
                 <h1 class="location-title-row">
-                    <span class="location-identifier">{{ object.unique_identifier }} <button type="button" class="location-help location-help-icon" data-bs-toggle="tooltip" aria-label="{% trans 'Unique identifier for this storage location, used on labels and to find the location in the inventory.' %}" title="{% trans 'Unique identifier for this storage location, used on labels and to find the location in the inventory.' %}"><span aria-hidden="true">ⓘ</span></button></span>
+                    <span class="location-identifier">{{ object.unique_identifier }} <button type="button" class="location-help location-help-icon" data-bs-toggle="tooltip" aria-label="{% trans 'Unique identifier for this storage location, used on labels and to find the location in the inventory.' %}" title="{% trans 'Unique identifier for this storage location, used on labels and to find the location in the inventory.' %}">{% icon "info-circle" %}</button></span>
                     <span class="location-title-name">{{ object.name }}{% if object.purpose %}<span class="location-title-purpose">: {{ object.purpose }}</span>{% endif %}
                         {# Right after the last word, so it wraps with the text. #}
-                        {% if perms.inventory.change_location %}<a href="#location-purpose-editor" class="btn btn-sm btn-outline-secondary location-edit-purpose" data-purpose-open data-bs-toggle="tooltip" title="{% trans 'Edit purpose' %}" aria-label="{% trans 'Edit purpose' %}"><span aria-hidden="true">✏️</span></a>{% else %}{% disabled_action "✏️" name=_("Edit purpose") classes="btn btn-sm btn-outline-secondary location-edit-purpose" %}{% endif %}</span>
+                        {% if perms.inventory.change_location %}<a href="#location-purpose-editor" class="btn btn-sm btn-warning location-edit-purpose" data-purpose-open data-bs-toggle="tooltip" title="{% trans 'Edit purpose' %}">{% icon "pencil" %} <span class="action-label">{% trans "Purpose" %}</span></a>{% else %}{% icon "pencil" as edit_icon %}{% disabled_action edit_icon label=_("Purpose") name=_("Edit purpose") classes="btn btn-sm btn-warning location-edit-purpose" %}{% endif %}</span>
                 </h1>
             </div>
-            <div class="location-actions">
+            <div class="location-actions" data-action-group>
                 {% if not object.type.moveable %}
                     {% blocktrans with location_type=object.type.name asvar move_unavailable %}Moving is disabled for location type “{{ location_type }}”.{% endblocktrans %}
-                    {% disabled_action _("Move location") reason=move_unavailable %}
+                    {% icon "arrows-move" as move_icon %}{% disabled_action move_icon label=_("Move location") reason=move_unavailable classes="btn btn-warning location-print" %}
                 {% elif perms.inventory.change_location %}
-                    <a class="btn btn-outline-secondary" href="{% url 'location_move' pk=object.id %}">{% trans "Move location" %}</a>
+                    <a class="btn btn-warning location-print" href="{% url 'location_move' pk=object.id %}">{% icon "arrows-move" %} <span class="action-label">{% trans "Move location" %}</span></a>
                 {% else %}
-                    {% disabled_action _("Move location") %}
+                    {% icon "arrows-move" as move_icon %}{% disabled_action move_icon label=_("Move location") classes="btn btn-warning location-print" %}
                 {% endif %}
                 {% if perms.inventory.print_inventory %}
-                <a class="btn btn-outline-secondary location-print" href="{% url 'print_inventory' %}?locations={{ object.pk }}" aria-label="{% trans 'Print inventory' %}" data-bs-toggle="tooltip" title="{% trans 'Print inventory' %}"><span aria-hidden="true">🖨️</span></a>
+                <a class="btn btn-info location-print" href="{% url 'print_inventory' %}?locations={{ object.pk }}" data-bs-toggle="tooltip" title="{% trans 'Print inventory' %}">{% icon "printer" %} <span class="action-label">{% trans "Print" %}</span></a>
                 {% else %}
-                    {% disabled_action "🖨️" name=_("Print inventory") classes="btn btn-outline-secondary location-print" %}
+                    {% icon "printer" as print_icon %}{% disabled_action print_icon label=_("Print") name=_("Print inventory") classes="btn btn-info location-print" %}
+                {% endif %}
+                {% if object.type.no_sublocations %}
+                    {% icon "box-arrow-in-down" as move_here_icon %}{% disabled_action move_here_icon label=_("Move here") name=_("Move locations into this location") reason=_("This location cannot contain sub-locations.") classes="btn btn-warning location-print" %}
+                {% elif perms.inventory.change_location %}
+                    <a class="btn btn-warning location-print" href="{% url 'locations_move_here' pk=object.pk %}" data-bs-toggle="tooltip" title="{% trans 'Move locations into this location' %}">{% icon "box-arrow-in-down" %} <span class="action-label">{% trans "Move here" %}</span></a>
+                {% else %}
+                    {% icon "box-arrow-in-down" as move_here_icon %}{% disabled_action move_here_icon label=_("Move here") name=_("Move locations into this location") classes="btn btn-warning location-print" %}
                 {% endif %}
                 {% if perms.inventory.change_itemlocation or perms.inventory.change_location or perms.inventory.delete_itemlocation %}
-                    <a class="btn btn-outline-secondary location-print" href="{% url 'location_dissolve' pk=object.pk %}?delete=0" aria-label="{% trans 'Move contents' %}" data-bs-toggle="tooltip" title="{% trans 'Move contents' %}"><span aria-hidden="true">📤</span></a>
+                    <a class="btn btn-warning location-print" href="{% url 'location_dissolve' pk=object.pk %}?delete=0">{% icon "box-arrow-up" %} <span class="action-label">{% trans "Move contents" %}</span></a>
                 {% else %}
-                    {% disabled_action "📤" name=_("Move contents") classes="btn btn-outline-secondary location-print" %}
+                    {% icon "box-arrow-up" as move_contents_icon %}{% disabled_action move_contents_icon label=_("Move contents") classes="btn btn-warning location-print" %}
                 {% endif %}
                 {% if not dissolve_denied %}
-                    <a class="btn btn-outline-danger location-print" href="{% url 'location_dissolve' pk=object.pk %}" aria-label="{% trans 'Dissolve location' %}" data-bs-toggle="tooltip" title="{% trans 'Dissolve location' %}"><span aria-hidden="true">❌</span></a>
+                    <a class="btn btn-danger location-print" href="{% url 'location_dissolve' pk=object.pk %}" data-bs-toggle="tooltip" title="{% trans 'Dissolve location' %}">{% icon "trash3" %} <span class="action-label">{% trans "Dissolve" %}</span></a>
                 {% else %}
-                    {% disabled_action "❌" name=_("Dissolve location") reason=dissolve_denied classes="btn btn-outline-danger location-print" %}
+                    {% icon "trash3" as dissolve_icon %}{% disabled_action dissolve_icon label=_("Dissolve") name=_("Dissolve location") reason=dissolve_denied classes="btn btn-danger location-print" %}
                 {% endif %}
             </div>
         </div>
         <div class="location-header-info">
             <div class="location-header-path">
                 <div class="location-path-heading">
-                    <span class="location-eyebrow">{% trans "Location path" %} <button type="button" class="location-help location-help-icon" aria-label="{% trans 'Explain location path' %}" data-bs-toggle="tooltip" title="{% trans 'The full path from the top-level location to this storage location. Short identifiers are shown in square brackets.' %}"><span aria-hidden="true">ⓘ</span></button></span>
+                    <span class="location-eyebrow">{% trans "Location path" %} <button type="button" class="location-help location-help-icon" aria-label="{% trans 'Explain location path' %}" data-bs-toggle="tooltip" title="{% trans 'The full path from the top-level location to this storage location. Short identifiers are shown in square brackets.' %}">{% icon "info-circle" %}</button></span>
                 </div>
                 <p class="location-path">{{ object.descriptive_identifier }}</p>
             </div>
             <div class="location-header-description">
                 <div class="location-description-heading">
                     {% if object.physical_description %}<span class="location-eyebrow">{% trans "Physical description" %}</span>{% endif %}
-                    <button type="button" class="btn btn-outline-secondary btn-sm location-details-button" data-bs-toggle="modal" data-bs-target="#location-metadata" aria-controls="location-metadata" aria-haspopup="dialog">{% trans "Location details" %}</button>
+                    <button type="button" class="btn btn-info btn-sm location-details-button" data-bs-toggle="modal" data-bs-target="#location-metadata" aria-controls="location-metadata" aria-haspopup="dialog">{% trans "Location details" %}</button>
                 </div>
                 {% if object.physical_description %}<p class="location-physical-description">{{ object.physical_description|linebreaksbr }}</p>{% endif %}
             </div>
@@ -88,7 +95,7 @@
                     <div class="location-panel-heading">
                         <div class="location-panel-title-row">
                             <h2 id="location-stored-heading" class="fs-4">{% trans "At this location …" %}</h2>
-                            {% if not object.overview_photo %}{% include 'inventory/location_photo_button.html' %}{% endif %}
+                            {% if not object.overview_photo %}{% include 'inventory/location_photo_button.html' with labelled=True %}{% endif %}
                         </div>
                         <nav class="location-contents" aria-label="{% trans 'Contents' %}">
                             <ul>
@@ -124,9 +131,9 @@
                         <div class="location-panel-title-row">
                             <h2 id="location-items-heading" class="fs-4">{% if entries|length > 10 %}<label class="list-collapse-toggle" for="location-items-expanded">{% endif %}<span class="list-collapse-title">{% trans "Items" %} <span class="location-count" data-items-count>{{ items_count }}</span></span>{% if entries|length > 10 %}</label>{% endif %}</h2>
                             {% if perms.inventory.add_item and perms.inventory.add_itemlocation %}
-                            <a class="btn btn-primary location-add-item" href="{% url 'create_item' %}?location_id={{ object.pk }}" data-bs-toggle="tooltip" title="{% trans 'Add an item at this location' %}" aria-label="{% trans 'Add an item at this location' %}"><span aria-hidden="true">+</span></a>
+                            <a class="btn btn-success location-add-item" href="{% url 'create_item' %}?location_id={{ object.pk }}" data-bs-toggle="tooltip" title="{% trans 'Add an item at this location' %}" aria-label="{% trans 'Add an item at this location' %}">{% icon "plus-lg" %}</a>
                             {% else %}
-                            {% disabled_action "+" name=_("Add an item at this location") classes="btn btn-primary location-add-item" %}
+                            {% icon "plus-lg" as plus_icon %}{% disabled_action plus_icon name=_("Add an item at this location") classes="btn btn-success location-add-item" %}
                             {% endif %}
                         </div>
                         <p class="location-muted">{% trans "Only items stored directly at this location are shown." %}
@@ -182,9 +189,9 @@
                         <div class="location-panel-title-row">
                             <h2 id="location-unique-items-heading" class="fs-4">{% if unique_items|length > 10 %}<label class="list-collapse-toggle" for="location-unique-items-expanded">{% endif %}<span class="list-collapse-title">{% trans "Unique items" %} <span class="location-count">{{ unique_items|length }}</span></span>{% if unique_items|length > 10 %}</label>{% endif %}</h2>
                             {% if perms.inventory.add_uniqueitem and perms.inventory.claim_labelid %}
-                            <a class="btn btn-primary location-add-item" href="{% url 'create_unique_item' %}?location={{ object.pk }}" data-bs-toggle="tooltip" title="{% trans 'Add a unique item at this location' %}" aria-label="{% trans 'Add a unique item at this location' %}"><span aria-hidden="true">+</span></a>
+                            <a class="btn btn-success location-add-item" href="{% url 'create_unique_item' %}?location={{ object.pk }}" data-bs-toggle="tooltip" title="{% trans 'Add a unique item at this location' %}" aria-label="{% trans 'Add a unique item at this location' %}">{% icon "plus-lg" %}</a>
                             {% else %}
-                            {% disabled_action "+" name=_("Add a unique item at this location") classes="btn btn-primary location-add-item" %}
+                            {% icon "plus-lg" as plus_icon %}{% disabled_action plus_icon name=_("Add a unique item at this location") classes="btn btn-success location-add-item" %}
                             {% endif %}
                         </div>
                         <p class="location-muted">{% blocktrans with name=label_id_name %}Single objects with their own {{ name }}, such as machines or fire extinguishers.{% endblocktrans %}</p>
@@ -240,13 +247,6 @@
                 <div class="location-panel-heading">
                     <div class="location-panel-title-row">
                         <h2 id="location-children-heading" class="fs-4">{% if children|length > 10 %}<label class="list-collapse-toggle" for="location-children-expanded">{% endif %}<span class="list-collapse-title">{% trans "Sub-Locations" %} <span class="location-count">{{ children|length }}</span></span>{% if children|length > 10 %}</label>{% endif %}</h2>
-                        {% if object.type.no_sublocations %}
-                            {% disabled_action "📥" name=_("Move locations into this location") reason=_("This location cannot contain sub-locations.") classes="btn btn-outline-secondary location-move-here" %}
-                        {% elif perms.inventory.change_location %}
-                            <a class="btn btn-outline-secondary location-move-here" href="{% url 'locations_move_here' pk=object.pk %}" data-bs-toggle="tooltip" title="{% trans 'Move locations into this location' %}" aria-label="{% trans 'Move locations into this location' %}"><span aria-hidden="true">📥</span></a>
-                        {% else %}
-                            {% disabled_action "📥" name=_("Move locations into this location") classes="btn btn-outline-secondary location-move-here" %}
-                        {% endif %}
                     </div>
                 </div>
                 <ul class="location-child-list list-collapse-list">
@@ -254,7 +254,7 @@
                         <li>
                             <a href="{{ child.get_absolute_url }}">
                                 <span><span class="location-child-name fs-6">{{ child.display_name }}</span><span class="location-child-identifier">{{ child.unique_identifier }}</span></span>
-                                <span class="location-child-arrow" aria-hidden="true">→</span>
+                                <span class="location-child-arrow" aria-hidden="true">{% icon "chevron-right" %}</span>
                             </a>
                         </li>
                     {% empty %}

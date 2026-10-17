@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
 
-{% load i18n static %}
+{% load i18n static icons %}
 
 {% block bootstrap5_extra_head %}
     {{ block.super }}
@@ -13,18 +13,18 @@
 <div class="mx-auto" style="max-width: 36rem">
     <form method="get" action="{% url 'index_items' %}" role="search">
         <div class="input-group input-group-lg mb-3">
-            <span class="input-group-text" aria-hidden="true">🔎</span>
+            <span class="input-group-text" aria-hidden="true">{% icon "search" %}</span>
             <input type="search" class="form-control" name="q" aria-label="{% trans 'Search' %}"
                    placeholder="{% blocktrans with name=label_id_name %}Name, identifier or {{ name }}{% endblocktrans %}" enterkeyhint="search">
         </div>
         <div class="d-grid gap-2 d-sm-flex">
-            <button type="submit" class="btn btn-primary flex-sm-fill">{% trans "Search items" %}</button>
-            <button type="submit" class="btn btn-outline-primary flex-sm-fill" formaction="{% url 'index_locations' %}">{% trans "Search locations" %}</button>
-            <span class="disabled-action flex-sm-fill" tabindex="0" data-bs-toggle="tooltip" title="{% trans 'This needs JavaScript.' %}"><button type="button" class="btn btn-outline-secondary flex-sm-fill" data-scan-link disabled
+            <button type="submit" class="btn btn-info flex-sm-fill">{% trans "Search items" %}</button>
+            <button type="submit" class="btn btn-info flex-sm-fill" formaction="{% url 'index_locations' %}">{% trans "Search locations" %}</button>
+            <span class="disabled-action flex-sm-fill" tabindex="0" data-bs-toggle="tooltip" title="{% trans 'This needs JavaScript.' %}"><button type="button" class="btn btn-info flex-sm-fill" data-scan-link disabled
                     data-title="{% trans 'Scan QR code' %}"
                     data-hint="{% trans 'Hold the QR code of a label in front of the camera to open it.' %}"
                     data-opening="{% trans 'Opening {code}' %}"
-                    data-foreign="{% trans 'Not a link to this inventory: {code}' %}">📷 {% trans "Scan QR code" %}</button></span>
+                    data-foreign="{% trans 'Not a link to this inventory: {code}' %}">{% icon "qr-code-scan" %} {% trans "Scan QR code" %}</button></span>
         </div>
     </form>
 </div>

@@ -34,7 +34,8 @@ USAGE_LEVEL_DESCRIPTIONS = {
     UsageLevel.YELLOW: _("Yellow: use with care, ask if in doubt"),
     UsageLevel.RED: _("Red: use only after a briefing"),
 }
-USAGE_LEVEL_SYMBOLS = {UsageLevel.GREEN: "✓", UsageLevel.YELLOW: "!", UsageLevel.RED: "✕"}
+# Icons (inventory/icons.py) inside the coloured circle of the briefing badge.
+USAGE_LEVEL_ICONS = {UsageLevel.GREEN: "check-lg", UsageLevel.YELLOW: "exclamation-lg", UsageLevel.RED: "x-lg"}
 
 
 class Item(SoftDeleteModel):

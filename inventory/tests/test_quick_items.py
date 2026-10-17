@@ -11,6 +11,7 @@ from django.urls import reverse
 from PIL import Image
 
 from ..forms import ItemLocationForm
+from ..icons import icon
 from ..models import Item, ItemBarcode, ItemImage, ItemLocation, Location, LocationType, MeasurementUnit
 
 
@@ -248,8 +249,8 @@ class QuickItemTests(TestCase):
         self.creator.user_permissions.add(*permissions("print_inventory"))
         response = self.client.get(reverse("index_locations"), {"q": " Shelf A&B "})
         self.assertContains(response, reverse("print_inventory") + "?q=Shelf%20A%26B")
-        # Only the printer symbol; the text is for screen readers and the tooltip.
-        self.assertContains(response, '<span aria-hidden="true">🖨️</span></a>', html=False)
+        # The printer icon with a short text; the tooltip names what is printed.
+        self.assertContains(response, icon("printer") + ' <span class="action-label">Print</span></a>', html=False)
 
     def test_location_list_offers_printing_only_for_a_search(self):
         self.creator.user_permissions.add(*permissions("print_inventory"))
@@ -257,7 +258,7 @@ class QuickItemTests(TestCase):
             with self.subTest(params=params):
                 response = self.client.get(reverse("index_locations"), params)
                 self.assertNotContains(response, reverse("print_inventory"))
-                self.assertNotContains(response, "🖨️")
+                self.assertNotContains(response, "bi-printer")
 
     def test_entering_an_amount_turns_a_quick_item_into_a_regular_item(self):
         entry = self.quick_item()

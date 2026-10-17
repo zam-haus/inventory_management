@@ -45,10 +45,10 @@
           {% if user.is_authenticated %}
           <form action="{% if oidc_enabled %}{% url 'oidc_logout' %}{% else %}{% url 'logout' %}{% endif %}" method="post" class="d-flex">
             {% csrf_token %}
-            <button class="btn btn-sm btn-outline-warning" type="submit">{% trans 'Logout' %}</button>
+            <button class="btn btn-sm btn-secondary" type="submit">{% trans 'Logout' %}</button>
           </form>
           {% else %}
-          <a class="btn btn-sm btn-outline-warning" href="{% if oidc_enabled %}{% url 'oidc_authentication_init' %}{% else %}{% url 'login' %}{% endif %}?next={{ request.get_full_path|urlencode }}">{% trans 'Login' %}</a>
+          <a class="btn btn-sm btn-secondary" href="{% if oidc_enabled %}{% url 'oidc_authentication_init' %}{% else %}{% url 'login' %}{% endif %}?next={{ request.get_full_path|urlencode }}">{% trans 'Login' %}</a>
           {% endif %}
         </div>
       </div>
@@ -65,5 +65,6 @@
 
 {% block bootstrap5_extra_script %}
     {{ block.super }}
+    {% include 'script_templates.html' %}
     <script src="{% static 'inventory/actions.js' %}"></script>
 {% endblock %}

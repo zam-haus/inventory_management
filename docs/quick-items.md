@@ -9,14 +9,14 @@ overview at the top. They are edited right in the list:
   it; the cursor stays in a new empty field for the next one.
 * Edit a name in place; it is saved when you press Enter or leave the field.
   Emptying a name and leaving the field (or pressing Enter) deletes the item.
-* **📷** takes or chooses a single photo, uploaded right away and shown as a
+* The camera button takes or chooses a single photo, uploaded right away and shown as a
   thumbnail (it opens in the lightbox); another photo replaces it. More photos
   are added on the item page. Needs `inventory.add_itemimage` as well.
-* **×** deletes after five seconds, during which **Undo** keeps the item.
+* The cross deletes after five seconds, during which **Undo** keeps the item.
   Leaving the page sends pending deletions immediately.
-* On narrow screens, 📷, **i** and **×** are entries in the **⋯** menu of each row;
+* On narrow screens, photo, details and delete are entries in the actions menu (three dots) of each row;
   **Undo** still appears in the row.
-* **i** opens the item page. Entering an amount there turns the quick-item into
+* **Details** (chevron) opens the item page. Entering an amount there turns the quick-item into
   a regular item, which can no longer return to an unknown amount.
 
 Quick-items are found by the regular item search. Managing them requires

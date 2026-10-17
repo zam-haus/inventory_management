@@ -16,6 +16,7 @@ from django.utils.translation import gettext_lazy as _, ngettext
 from django.views.generic import FormView
 
 from . import models
+from .icons import icon
 from .forms import AdminItemLocationForm, AdminLocationForm
 from .soft_delete import SoftDeleteModel
 from .soft_delete_admin import DeletedObjectFilter, SoftDeleteAdminMixin
@@ -373,12 +374,12 @@ class StockChangeDisplayMixin:
 
     @admin.display(description=_("change"), ordering="amount")
     def change(self, obj):
-        sign, arrow, color = ("+", "↑", "#198754") if obj.is_increase else ("−", "↓", "#dc3545")
+        sign, arrow, color = ("+", "arrow-up", "#198754") if obj.is_increase else ("−", "arrow-down", "#dc3545")
         if obj.amount is None:
             amount = _("everything (amount unknown)") if obj.entry_removed else _("unknown amount")
         else:
             amount = ("~" if obj.is_estimate else "") + obj.amount_text(obj.amount)
-        return format_html('<span style="color: {}; font-weight: 600">{} {}{}</span>', color, arrow, sign, amount)
+        return format_html('<span style="color: {}; font-weight: 600">{} {}{}</span>', color, icon(arrow), sign, amount)
 
     @admin.display(description=_("stock"))
     def stock(self, obj):

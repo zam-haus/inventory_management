@@ -1,4 +1,4 @@
-.stock-change-button { display: inline-flex; align-items: center; justify-content: center; flex: 0 0 44px; width: 44px; height: 44px; padding: 0; font-size: 1.25rem; line-height: 1; }
+.stock-change-button { display: inline-flex; align-items: center; justify-content: center; gap: .4rem; flex: 0 0 auto; min-width: 44px; height: 44px; padding: 0 .65rem; font-size: 1.25rem; line-height: 1; }
 .stock-change-heading { min-width: 0; }
 .stock-change-subject { margin: .25rem 0 0; color: #59636e; overflow-wrap: anywhere; }
 .stock-change-muted { color: #59636e; }

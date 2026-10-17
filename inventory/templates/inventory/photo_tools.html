@@ -1,12 +1,12 @@
-{% load i18n %}
+{% load i18n icons %}
 {# Crop and rotate a photo before uploading (photo_editor.js). #}
 <div class="media-photo-tools" data-photo-tools hidden>
     <img class="media-modal-preview" data-photo-preview alt="{% trans 'Photo preview' %}" hidden>
     <div class="media-photo-actions">
-        <button type="button" class="btn btn-outline-secondary btn-sm" data-photo-library>{% trans "Choose from photo library" %}</button>
+        <button type="button" class="btn btn-secondary btn-sm" data-photo-library>{% trans "Choose from photo library" %}</button>
         <input type="file" accept="image/*" data-photo-library-input hidden aria-label="{% trans 'Choose from photo library' %}">
-        <button type="button" class="btn btn-outline-secondary btn-sm" data-photo-crop-toggle aria-expanded="false" aria-controls="{{ crop_id }}" disabled>{% trans "Crop photo (optional)" %}</button>
-        <button type="button" class="btn btn-outline-secondary btn-sm" data-photo-rotate title="{% trans 'Rotate 90° right and reset the crop selection.' %}" disabled><span aria-hidden="true">↷</span> {% trans "Rotate right" %}</button>
+        <button type="button" class="btn btn-secondary btn-sm" data-photo-crop-toggle aria-expanded="false" aria-controls="{{ crop_id }}" disabled>{% trans "Crop photo (optional)" %}</button>
+        <button type="button" class="btn btn-secondary btn-sm" data-photo-rotate title="{% trans 'Rotate 90° right and reset the crop selection.' %}" disabled>{% icon "arrow-clockwise" %} {% trans "Rotate right" %}</button>
     </div>
     <p class="form-text" role="status" data-photo-status
        data-loading="{% trans 'Loading photo…' %}"
@@ -25,6 +25,6 @@
             <label>{% trans "Top edge" %}<input type="range" min="0" max="99" value="0" data-crop-edge="top"></label>
             <label>{% trans "Bottom edge" %}<input type="range" min="1" max="100" value="100" data-crop-edge="bottom"></label>
         </div>
-        <button type="button" class="btn btn-outline-secondary btn-sm" data-photo-reset-crop>{% trans "Use full photo" %}</button>
+        <button type="button" class="btn btn-secondary btn-sm" data-photo-reset-crop>{% trans "Use full photo" %}</button>
     </div>
 </div>

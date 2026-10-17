@@ -1,6 +1,7 @@
-{% load i18n actions %}{# 📷 for the overview photo: beside the photo, or beside "At this location …" while there is none. #}
+{% load i18n actions icons %}{# The camera for the overview photo: beside the photo, or beside "At this location …" while there is none (`labelled`: then it says what it is for). A new photo is created (green), an existing one changed (yellow). #}
+{% if object.overview_photo %}{% firstof "btn btn-warning location-edit-overview" as photo_classes %}{% else %}{% firstof "btn btn-success location-edit-overview" as photo_classes %}{% endif %}
 {% if perms.inventory.change_location %}
-    <a href="#location-overview-editor" class="btn btn-primary location-edit-overview" data-overview-open data-bs-toggle="tooltip" title="{% trans 'Edit overview photo' %}" aria-label="{% trans 'Edit overview photo' %}"><span aria-hidden="true">📷</span></a>
+    <a href="#location-overview-editor" class="{{ photo_classes }}" data-overview-open data-bs-toggle="tooltip" title="{% trans 'Edit overview photo' %}"{% if not labelled %} aria-label="{% trans 'Edit overview photo' %}"{% endif %}>{% icon "camera" %}{% if labelled %} <span class="action-label">{% trans "Overview photo" %}</span>{% endif %}</a>
 {% else %}
-    {% disabled_action "📷" name=_("Edit overview photo") classes="btn btn-primary location-edit-overview" %}
+    {% icon "camera" as camera_icon %}{% if labelled %}{% disabled_action camera_icon label=_("Overview photo") name=_("Edit overview photo") classes=photo_classes %}{% else %}{% disabled_action camera_icon name=_("Edit overview photo") classes=photo_classes %}{% endif %}
 {% endif %}
