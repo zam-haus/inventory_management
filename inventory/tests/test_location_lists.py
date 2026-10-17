@@ -30,3 +30,5 @@ class LocationListCollapseTests(TestCase):
         self.assertContains(response, "Alle 11 anzeigen")
         self.assertNotContains(response, 'id="location-items-expanded"')
         self.assertNotContains(response, 'id="location-unique-items-expanded"')
+        # Keeps collapsed entries findable with the browser's find-in-page (hidden="until-found").
+        self.assertContains(response, "inventory/list_collapse.js")

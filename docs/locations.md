@@ -41,5 +41,8 @@ each as a chip linking to its panel. Lists with
 more than 10 entries show only the first 5 at first. Clicking the section heading
 (marked with a triangle) or **Show all** below the list shows all entries;
 clicking the heading again collapses it. This works without JavaScript
-(`inventory/static/inventory/list_collapse.css`). Quick-items are never
-collapsed, because their list is edited in place.
+(`inventory/static/inventory/list_collapse.css`). Where the browser supports
+`hidden="until-found"`, `list_collapse.js` hides the entries that way instead:
+find-in-page (and links to a text fragment) then also finds collapsed entries,
+and revealing one expands the list. Quick-items are never collapsed, because
+their list is edited in place.

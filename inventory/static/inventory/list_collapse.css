@@ -16,7 +16,11 @@
 :has(> .list-collapse-toggle) { flex-grow: 1; }
 .list-collapse-state:checked ~ * .list-collapse-toggle::before { transform: rotate(90deg); }
 .list-collapse-state:focus-visible ~ * .list-collapse-toggle { outline: 3px solid #0d6efd; outline-offset: 3px; border-radius: .25rem; }
-:has(> .list-collapse-state:not(:checked)) .list-collapse-list > li:nth-child(n+6) { display: none; }
+:has(> .list-collapse-state:not(:checked)):not(.list-collapse-searchable) .list-collapse-list > li:nth-child(n+6) { display: none; }
+/* With list_collapse.js the browser hides them instead (hidden="until-found"), so find-in-page
+   still finds them. Bootstrap's [hidden] { display: none } would prevent that, and the hidden
+   entries must not leave their padding and borders behind. */
+.list-collapse-list > li[hidden="until-found"] { display: block !important; margin: 0 !important; padding: 0 !important; border: 0 !important; }
 .list-collapse-more { display: block; margin: 0; padding: .75rem 1.2rem; border-top: 1px solid var(--location-border, #dee2e6); color: #0d6efd; cursor: pointer; }
 .list-collapse-more:hover { background: #f7f9fb; text-decoration: underline; }
 :has(> .list-collapse-state:checked) .list-collapse-more { display: none; }
