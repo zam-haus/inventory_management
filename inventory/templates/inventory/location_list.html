@@ -19,16 +19,18 @@
         </div>
         </form>
     </div>
-    {% if perms.inventory.print_inventory or user.is_authenticated %}
+    {# Printing applies to the locations found, so it is offered only for a search. #}
+    {% with query=request.GET.q.strip %}
+    {% if query and perms.inventory.print_inventory or query and user.is_authenticated %}
     <div class="col-auto">
         {% if perms.inventory.print_inventory %}
-        <a href="{% url 'print_inventory' %}{% if request.GET.q %}?q={{ request.GET.q|urlencode }}{% endif %}" class="btn btn-outline-secondary" title="{% if request.GET.q %}{% trans 'Print inventory of the locations found' %}{% else %}{% trans 'Print inventory for selected locations' %}{% endif %}"><span aria-hidden="true">🖨️</span> {% trans "Print inventory" %}</a>
+        <a href="{% url 'print_inventory' %}?q={{ query|urlencode }}" class="btn btn-outline-secondary" data-bs-toggle="tooltip" title="{% trans 'Print inventory of the locations found' %}" aria-label="{% trans 'Print inventory of the locations found' %}"><span aria-hidden="true">🖨️</span></a>
         {% else %}
-        {% trans "Print inventory" as print_label %}
-        {% disabled_action "🖨️ "|add:print_label name=print_label %}
+        {% disabled_action "🖨️" name=_("Print inventory of the locations found") %}
         {% endif %}
     </div>
     {% endif %}
+    {% endwith %}
 </div>
 <table class="table table-striped">
     <thead><tr>

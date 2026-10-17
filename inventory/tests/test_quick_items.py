@@ -244,9 +244,20 @@ class QuickItemTests(TestCase):
     def test_location_list_print_button_carries_the_search(self):
         response = self.client.get(reverse("index_locations"), {"q": "Shelf A&B"})
         self.assertNotContains(response, reverse("print_inventory"))
+        self.assertContains(response, 'aria-label="Print inventory of the locations found"')  # visible, but disabled
         self.creator.user_permissions.add(*permissions("print_inventory"))
-        response = self.client.get(reverse("index_locations"), {"q": "Shelf A&B"})
+        response = self.client.get(reverse("index_locations"), {"q": " Shelf A&B "})
         self.assertContains(response, reverse("print_inventory") + "?q=Shelf%20A%26B")
+        # Only the printer symbol; the text is for screen readers and the tooltip.
+        self.assertContains(response, '<span aria-hidden="true">🖨️</span></a>', html=False)
+
+    def test_location_list_offers_printing_only_for_a_search(self):
+        self.creator.user_permissions.add(*permissions("print_inventory"))
+        for params in ({}, {"q": ""}, {"q": "   "}):
+            with self.subTest(params=params):
+                response = self.client.get(reverse("index_locations"), params)
+                self.assertNotContains(response, reverse("print_inventory"))
+                self.assertNotContains(response, "🖨️")
 
     def test_entering_an_amount_turns_a_quick_item_into_a_regular_item(self):
         entry = self.quick_item()

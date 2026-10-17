@@ -1,8 +1,8 @@
 # Permissions
 
 Frontend lists, details, searches and autocomplete are public. The printable
-inventory (`/inventory/print/`, 🖨️ on location pages and on the location list,
-where it preselects the locations found by the search) is internal: it requires
+inventory (`/inventory/print/`, 🖨️ on location pages and, only after a search, on
+the location list, where it preselects the locations found) is internal: it requires
 `inventory.print_inventory`, which migration `inventory.0023` grants to the local group.
 Editing requires login and Django's `add`, `change` or `delete` permission for the
 relevant model. Assign permissions to groups in **Admin → Authentication and
