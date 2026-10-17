@@ -1,6 +1,6 @@
 # ZAM Inventory Management
 
-The inventory system of the ZAM, running at https://inv.zam.haus. It is built
+The inventory system of the ZAM, running at https://inventar.zam.haus. It is built
 for quick and easy data collection without any previous knowledge about the
 items: photograph and count what is on a shelf first, annotate later.
 
@@ -72,7 +72,10 @@ and nginx in front of it.
 
 1. Clone this repository.
 2. Copy `.env.example` to `.env` and edit at least:
-   * `ALLOWED_HOSTS`: the domains used to access the interface
+   * `ALLOWED_HOSTS`: the main domains (`inventar.zam.haus`, the label ID hosts);
+     other domains are redirected before this check (see [Domains](#domains))
+   * `DEFAULT_DOMAIN`: the main address, default `https://inventar.zam.haus` (a bare
+     domain means HTTPS)
    * `SECRET_KEY`: a long random string
    * `POSTGRES_PASSWORD`: a random string
    * `MQTT_PASSWORD`: the MQTT password (only needed for printing)
@@ -99,6 +102,23 @@ resolver hosts and local network detection are described in
 [Label IDs](docs/label-ids.md) and [Permissions](docs/permissions.md);
 [`.env.example`](.env.example) lists all variables.
 
+### Domains
+
+Every domain name reaching the app is redirected (permanently, keeping path and
+query) to its main address (`imzam/canonical_host.py`):
+
+* the inventory to `DEFAULT_DOMAIN` (`https://inventar.zam.haus`), e.g. from the
+  earlier `inv.zam.haus`, whose URLs are still on location labels;
+* the label ID resolver hosts (`LABEL_ID_RESOLVER_HOSTS`) to `LABEL_ID_RESOLVER_URL`
+  (`https://id.zam.haus/`), except label scans: `i.zam.haus/<CODE>` from a QR code
+  goes straight on to the inventory, where the scan is recorded with the logged-in user
+  (see [Label IDs](docs/label-ids.md)).
+
+Logins (cookies per domain) and the installed app thus always use the main
+address. IP addresses, `localhost` and `*.localhost` are never redirected (local
+development); `CANONICAL_HOST_REDIRECT=false` turns redirecting off. Scans of the
+earlier domains (`DOMAIN_ALIASES`) are still recognised in location fields and by the
+camera scanner. New location labels use `DEFAULT_DOMAIN`.
 ## License
 
 See [LICENSE](LICENSE).

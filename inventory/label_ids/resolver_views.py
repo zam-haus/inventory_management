@@ -1,6 +1,6 @@
 """
 The resolver behind every printed QR code. i.zam.haus/<id>, id.zam.haus/<id>
-and inv.zam.haus/id/<id> all run these views and answer identically; only
+and inventar.zam.haus/id/<id> all run these views and answer identically; only
 redirects into the inventory are absolute on the resolver hosts.
 
 Kept free of inventory code so it can be split out later: targets only need

@@ -10,7 +10,7 @@ titles, texts, the admin and the logo on printed labels. Code, database and
 settings always say "label ID", so another organization only changes that
 setting (and the hosts below).
 
-* **Resolver:** `i.zam.haus/<id>`, `id.zam.haus/<id>` and `inv.zam.haus/id/<id>`
+* **Resolver:** `i.zam.haus/<id>`, `id.zam.haus/<id>` and `inventar.zam.haus/id/<id>`
   behave identically. Locally, use `localhost:8000/id/<id>`. The resolver
   accepts any typed or scanned form (`k7r 4xd`, lookalikes such as `O`/`0`) and
   responds as follows:
@@ -32,7 +32,13 @@ setting (and the hosts below).
   they must also be in `ALLOWED_HOSTS`. `LABEL_ID_BASE_URL` (default
   `https://i.zam.haus/`) is the URL in QR codes and labels; for local testing set
   it to `http://i.localhost:8000/` (larger QR codes). `LABEL_ID_INVENTORY_BASE` sets where they
-  redirect to and defaults to `DEFAULT_DOMAIN`.
+  redirect to and defaults to `DEFAULT_DOMAIN`. `LABEL_ID_RESOLVER_URL` (default
+  `https://id.zam.haus/`) is the main resolver address: the other resolver hosts
+  redirect there, keeping the path, except label scans (`/<CODE>` exactly as in a QR
+  code), which go straight on to `/id/<code>?via=label_scan` on the inventory, so
+  they are recorded without an extra hop. The inventory's own `/id/` URLs stay on the
+  inventory: sending them to the resolver would record link clicks as scans. See
+  [Domains](../README.md#domains).
 * **Invalid stored codes:** IDs that are no longer valid, e.g. created under an
   earlier alphabet, stay accessible in the admin. The list marks them "invalid" with a warning triangle
   and has a *validity* filter; their page explains why and shows no label or

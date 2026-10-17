@@ -1,7 +1,7 @@
 import logging
 import mimetypes
 from pathlib import PurePath
-from urllib.parse import urlencode
+from urllib.parse import urlencode, urlsplit
 
 import extra_views
 from dal import autocomplete
@@ -36,8 +36,11 @@ from .label_ids.search import LabelIdSearchMixin
 logger = logging.getLogger(__name__)
 
 def index(request):
-    # The QR scanner only opens links to hosts this site serves (patterns as in ALLOWED_HOSTS).
-    scan_hosts = sorted({*settings.ALLOWED_HOSTS, split_domain_port(request.get_host())[0]})
+    # The QR scanner only opens links to hosts this site serves (patterns as in ALLOWED_HOSTS),
+    # including earlier domains on old labels, which redirect to the main one.
+    aliases = {urlsplit(url).hostname for url in (*settings.DOMAIN_ALIASES, settings.LABEL_ID_BASE_URL, settings.LABEL_ID_RESOLVER_URL)}
+    scan_hosts = sorted({*settings.ALLOWED_HOSTS, *settings.LABEL_ID_RESOLVER_HOSTS, *(host for host in aliases if host),
+                         split_domain_port(request.get_host())[0]})
     return render(request, "inventory/index.html", {"scan_hosts": scan_hosts})
 
 class LocationAutocomplete(autocomplete.Select2QuerySetView):

@@ -97,6 +97,13 @@ class ScannedLayoutMismatchTests(TestCase):
         box = self.boxes[0]
         self.assertEqual(resolve_location_reference(retype(self.label_url(box), "us", "de")), box)
 
+    @override_settings(DEFAULT_DOMAIN="https://inventar.zam.haus", DOMAIN_ALIASES=["https://inv.zam.haus"])
+    def test_old_labels_with_an_earlier_domain_still_resolve(self):
+        box = self.boxes[0]
+        old_label = "https://inv.zam.haus" + reverse("view_location", args=[box.pk, box.unique_identifier])
+        self.assertEqual(resolve_location_reference(old_label), box)
+        self.assertEqual(resolve_location_reference(retype(old_label, "us", "de")), box)
+
     def test_move_here_accepts_scans_from_mismatched_layouts(self):
         self.client.force_login(self.user)
         lines = [

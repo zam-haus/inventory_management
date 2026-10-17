@@ -10,8 +10,9 @@ from .keyboard_layouts import layout_corrections
 from .models import Location
 
 
-def scan_prefix():
-    return settings.DEFAULT_DOMAIN.rstrip("/") + "/"
+def scan_prefixes():
+    """Location labels start with DEFAULT_DOMAIN, old ones with an earlier domain (DOMAIN_ALIASES)."""
+    return [url.rstrip("/") + "/" for url in (settings.DEFAULT_DOMAIN, *getattr(settings, "DOMAIN_ALIASES", ()))]
 
 
 def resolve_location_reference(value):
@@ -19,10 +20,11 @@ def resolve_location_reference(value):
     try:
         return _resolve(value)
     except ValidationError as error:
-        # Label URLs start with DEFAULT_DOMAIN; a garbled start reveals which
+        # Label URLs start with a known domain; a garbled start reveals which
         # scanner and host layouts were mixed up.
         locations = set()
-        for corrected in layout_corrections(value, scan_prefix()):
+        corrections = {corrected for prefix in scan_prefixes() for corrected in layout_corrections(value, prefix)}
+        for corrected in corrections:
             try:
                 locations.add(_resolve(corrected))
             except ValidationError:

@@ -14,6 +14,12 @@ def parse_bool(value):
     raise ValueError(f"invalid truth value {value!r}")
 
 
+def with_scheme(url):
+    """Address settings may be given as a bare domain ("inventar.zam.haus"); HTTPS is meant then."""
+    url = url.strip()
+    return url if not url or "://" in url else f"https://{url}"
+
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -39,7 +45,17 @@ SECRET_KEY = os.getenv("SECRET_KEY", None)
 DEBUG = parse_bool(os.getenv("DEBUG", "false"))
 ADMINS = json.loads(os.getenv("ADMINS", "[]"))
 
-DEFAULT_DOMAIN = "https://inv.zam.haus"
+# The inventory's main address (also in printed location labels); a bare domain means HTTPS. Every other domain
+# name redirects here, keeping path and query (imzam/canonical_host.py); label ID
+# resolver hosts redirect to LABEL_ID_RESOLVER_URL instead. Never redirected: IP
+# addresses, localhost and *.localhost. CANONICAL_HOST_REDIRECT=false turns it off.
+DEFAULT_DOMAIN = with_scheme(os.getenv("DEFAULT_DOMAIN", "https://inventar.zam.haus"))
+CANONICAL_HOST_REDIRECT = parse_bool(os.getenv("CANONICAL_HOST_REDIRECT", "true"))
+# Earlier addresses of the inventory, found on old location labels: they redirect like
+# every other domain, and scans of their URLs are still recognised.
+DOMAIN_ALIASES = [
+    with_scheme(url) for url in os.getenv("DOMAIN_ALIASES", "https://inv.zam.haus").split(",") if url.strip()
+]
 
 # label IDs: hosts that serve only the QR resolver (they behave like DEFAULT_DOMAIN/id/).
 # Each must also be in ALLOWED_HOSTS. i.localhost / id.localhost help local testing.
@@ -49,10 +65,13 @@ LABEL_ID_RESOLVER_HOSTS = [
     if host.strip()
 ]
 # Where resolver hosts redirect to; defaults to DEFAULT_DOMAIN.
-LABEL_ID_INVENTORY_BASE = os.getenv("LABEL_ID_INVENTORY_BASE")
+LABEL_ID_INVENTORY_BASE = with_scheme(os.getenv("LABEL_ID_INVENTORY_BASE", "")) or None
+# The main resolver address: the other resolver hosts redirect there, except label scans,
+# which go straight on to the inventory (see imzam/canonical_host.py).
+LABEL_ID_RESOLVER_URL = with_scheme(os.getenv("LABEL_ID_RESOLVER_URL", "https://id.zam.haus/"))
 # Base URL in the QR codes of label IDs (uppercased for the QR alphanumeric mode). Only
 # https://i.zam.haus/ fits QR version 1; longer bases (local testing) make the codes larger.
-LABEL_ID_BASE_URL = os.getenv("LABEL_ID_BASE_URL", "https://i.zam.haus/")
+LABEL_ID_BASE_URL = with_scheme(os.getenv("LABEL_ID_BASE_URL", "https://i.zam.haus/"))
 # The name users see for label IDs (UI, labels); code and database say "label ID".
 LABEL_ID_NAME = os.getenv("LABEL_ID_NAME", "ZAMid")
 # How many label scans and web form entries are kept per label ID (see inventory/label_ids/access.py).
@@ -113,6 +132,8 @@ COMPUTEDFIELDS_ALLOW_RECURSION = True
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    # Redirects other domains to DEFAULT_DOMAIN / LABEL_ID_RESOLVER_URL; before routing by host.
+    "imzam.canonical_host.CanonicalHostMiddleware",
     # Routes i.zam.haus / id.zam.haus to the label ID resolver; before CommonMiddleware.
     "inventory.label_ids.middleware.ResolverHostMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",

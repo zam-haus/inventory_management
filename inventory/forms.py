@@ -17,7 +17,7 @@ from dal import autocomplete
 
 
 from .keyboard_layouts import layout_corrections
-from .location_lookup import scan_prefix
+from .location_lookup import scan_prefixes
 from .permissions import location_deletion_denied
 from .models import (
     USAGE_LEVEL_DESCRIPTIONS, BarcodeType, Item, ItemBarcode, ItemFile, ItemImage, ItemLocation, Location, StockChange,
@@ -835,7 +835,7 @@ class LocationsMoveHereForm(Form):
         identifiers = []
         for chunk in self.cleaned_data["identifiers"].split():
             # A scanner with another keyboard layout may type ";" inside a URL.
-            if any(layout_corrections(chunk, scan_prefix())):
+            if any(any(layout_corrections(chunk, prefix)) for prefix in scan_prefixes()):
                 identifiers.append(chunk)
             else:
                 identifiers.extend(value for value in chunk.split(";") if value)
