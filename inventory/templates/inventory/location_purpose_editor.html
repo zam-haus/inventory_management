@@ -1,0 +1,27 @@
+{% load i18n %}{# The purpose, shown with the location's name; location_purpose.js makes this a dialog. #}
+<section id="location-purpose-editor" class="location-overview-editor location-purpose-editor" tabindex="-1" aria-labelledby="location-purpose-editor-title" data-open="{{ purpose_editor_open|yesno:'true,false' }}">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form action="{% url 'location_purpose_update' object.pk %}" method="post">
+                {% csrf_token %}
+                <div class="modal-header">
+                    <h2 class="modal-title fs-5" id="location-purpose-editor-title">{% trans "Edit purpose" %}</h2>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" data-purpose-enhanced hidden aria-label="{% trans 'Cancel' %}"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="location-overview-field-heading">
+                        <label for="{{ purpose_form.purpose.id_for_label }}" class="form-label">{% trans "Purpose" %}</label>
+                        <span class="location-muted" data-purpose-count aria-hidden="true">{{ purpose_form.purpose.value|default:""|length }} / 50</span>
+                    </div>
+                    {{ purpose_form.purpose }}
+                    <p class="form-text">{% blocktrans with name=object.name %}What the location is for. It is shown with its name, e.g. “{{ name }}: Carp project”.{% endblocktrans %}</p>
+                    <div class="text-danger" data-purpose-errors>{{ purpose_form.purpose.errors }}</div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal" data-purpose-enhanced hidden>{% trans "Cancel" %}</button>
+                    <button type="submit" class="btn btn-primary">{% trans "Save purpose" %}</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</section>

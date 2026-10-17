@@ -134,7 +134,7 @@ class LocationAdmin(ClaimOnAddMixin, SoftDeleteAdminMixin, admin.ModelAdmin):
     list_display = ("locatable_identifier", "name", "descriptive_identifier", "deleted_status")
     ordering = ("locatable_identifier",)
     readonly_fields = ("label_image_tag",)
-    search_fields = ('locatable_identifier', 'name', 'summary', 'physical_description')
+    search_fields = ('locatable_identifier', 'name', 'purpose', 'physical_description')
     actions = ["send_to_printer_action", "send_to_printer_twice_action"]
     inlines = [LocationInline]
     form = AdminLocationForm

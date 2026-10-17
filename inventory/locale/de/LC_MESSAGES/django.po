@@ -774,9 +774,6 @@ msgstr "Nimm ein Übersichtsfoto von allem auf, was hier gelagert wird. Begrenze
 msgid "Take or select a photo"
 msgstr "Foto aufnehmen oder auswählen"
 
-msgid "Choose from photo library"
-msgstr "Aus der Fotomediathek auswählen"
-
 msgid "Crop photo (optional)"
 msgstr "Foto zuschneiden (optional)"
 
@@ -3027,3 +3024,56 @@ msgstr "Alle mit Löschberechtigung dürfen Standorte dieses Typs hier löschen.
 #: inventory/templates/inventory/location_metadata.html
 msgid "Locations of this type can only be deleted in the admin."
 msgstr "Standorte dieses Typs lassen sich nur im Admin-Bereich löschen."
+
+#: inventory/models/location.py
+msgid "purpose"
+msgstr "Zweck"
+
+#: inventory/templates/inventory/location_purpose_editor.html
+#: inventory/templates/inventory/location_history.html
+msgid "Purpose"
+msgstr "Zweck"
+
+#: inventory/models/location.py
+msgid "The purpose must be a single line."
+msgstr "Der Zweck muss in eine Zeile passen."
+
+#: inventory/templates/inventory/location_detail.html
+#: inventory/templates/inventory/location_purpose_editor.html
+msgid "Edit purpose"
+msgstr "Zweck bearbeiten"
+
+#: inventory/templates/inventory/location_purpose_editor.html
+msgid "Save purpose"
+msgstr "Zweck speichern"
+
+#: inventory/templates/inventory/location_detail.html
+#: inventory/templates/inventory/location_overview_editor.html
+msgid "Edit overview photo"
+msgstr "Übersichtsfoto bearbeiten"
+
+#: inventory/templates/inventory/location_overview_editor.html
+msgid "Save photo"
+msgstr "Foto speichern"
+
+#: inventory/location_overview_views.py
+msgid "Overview photo saved."
+msgstr "Übersichtsfoto gespeichert."
+
+#: inventory/location_overview_views.py
+msgid "Purpose saved."
+msgstr "Zweck gespeichert."
+
+#: inventory/templates/inventory/location_detail.html
+#, python-format
+msgid "Overview photo of %(location)s"
+msgstr "Übersichtsfoto von %(location)s"
+
+#: inventory/templates/inventory/location_purpose_editor.html
+#, python-format
+msgid "What the location is for. It is shown with its name, e.g. “%(name)s: Carp project”."
+msgstr "Wofür der Standort da ist. Er wird mit dem Namen angezeigt, z. B. „%(name)s: Karpfenprojekt“."
+
+#: inventory/templates/inventory/location_overview_editor.html
+msgid "Take or choose a photo"
+msgstr "Bild aufnehmen bzw. auswählen"

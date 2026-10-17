@@ -43,16 +43,23 @@ class LocationMultipleChoiceField(ModelMultipleChoiceField):
         return super().clean(value)
 
 
+class LocationPurposeForm(ModelForm):
+    class Meta:
+        model = Location
+        fields = ["purpose"]
+        widgets = {"purpose": TextInput(attrs={"class": "form-control", "maxlength": 50})}
+
+
 class LocationOverviewForm(ModelForm):
+    """The overview photo of a location; its purpose has LocationPurposeForm."""
     remove_photo = BooleanField(
         required=False, label=_("Remove overview photo"),
     )
 
     class Meta:
         model = Location
-        fields = ["summary", "overview_photo"]
+        fields = ["overview_photo"]
         widgets = {
-            "summary": TextInput(attrs={"class": "form-control", "maxlength": 50}),
             "overview_photo": FileInput(attrs={"accept": "image/*", "capture": "environment"}),
         }
 

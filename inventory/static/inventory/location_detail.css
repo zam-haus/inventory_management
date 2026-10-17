@@ -16,6 +16,9 @@
 .location-title-row .location-identifier { flex: 0 1 auto; min-width: 0; max-width: 50%; font-size: inherit; font-weight: inherit; line-height: inherit; }
 .location-title-row .location-help-icon { font-size: 1rem; vertical-align: middle; }
 .location-title-name { flex: 1; min-width: 0; }
+/* The purpose belongs to the name but stays lighter; ✏️ edits it (location_purpose_editor.html). */
+.location-title-purpose { font-weight: 400; }
+.location-edit-purpose { margin-left: .35rem; vertical-align: .2em; padding: .1rem .4rem; line-height: 1.2; }
 .location-header-info { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem 2rem; margin-top: 1rem; }
 .location-path-heading,
 .location-description-heading { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem 1rem; min-height: 40px; margin-bottom: .4rem; }
@@ -60,7 +63,7 @@
 .location-type-properties dd { margin: 0; }
 .location-layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(15rem, .42fr); gap: 1.5rem; align-items: start; }
 .location-layout-single { grid-template-columns: minmax(0, 1fr); }
-/* Left column: "Stored here" with the summary, then a panel per kind of entry. */
+/* Left column: "Stored here" with the overview photo, then a panel per kind of entry. */
 .location-main { display: grid; gap: 1.5rem; min-width: 0; }
 .location-panel { min-width: 0; border: 1px solid var(--location-border); border-radius: .65rem; background: #fff; }
 .location-panel-heading { padding: 1.2rem; }
@@ -73,7 +76,7 @@
 .location-panel-heading h3 { display: flex; flex-wrap: wrap; align-items: center; gap: .6rem; font-weight: 650; line-height: 1.3; margin: 0; }
 .location-panel-heading h2 { font-size: 1.5rem; }
 .location-panel-heading h3 { font-size: 1.25rem; }
-.location-summary > .location-panel-heading { padding-top: 0; }
+.location-photo-panel > .location-panel-heading { padding-top: 0; }
 .location-panel-heading p { margin: .65rem 0 0; }
 .location-panel-heading p a { display: inline-block; }
 .location-count { padding: .2rem .5rem; border-radius: 1rem; background: #edf2f7; color: #485460; font-size: .8rem; font-weight: 600; }

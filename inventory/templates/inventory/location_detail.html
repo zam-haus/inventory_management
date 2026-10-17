@@ -30,7 +30,9 @@
             <div class="location-heading-text">
                 <h1 class="location-title-row">
                     <span class="location-identifier">{{ object.unique_identifier }} <button type="button" class="location-help location-help-icon" data-bs-toggle="tooltip" aria-label="{% trans 'Unique identifier for this storage location, used on labels and to find the location in the inventory.' %}" title="{% trans 'Unique identifier for this storage location, used on labels and to find the location in the inventory.' %}"><span aria-hidden="true">ⓘ</span></button></span>
-                    <span class="location-title-name">{{ object.name }}</span>
+                    <span class="location-title-name">{{ object.name }}{% if object.purpose %}<span class="location-title-purpose">: {{ object.purpose }}</span>{% endif %}
+                        {# Right after the last word, so it wraps with the text. #}
+                        {% if perms.inventory.change_location %}<a href="#location-purpose-editor" class="btn btn-sm btn-outline-secondary location-edit-purpose" data-purpose-open data-bs-toggle="tooltip" title="{% trans 'Edit purpose' %}" aria-label="{% trans 'Edit purpose' %}"><span aria-hidden="true">✏️</span></a>{% else %}{% disabled_action "✏️" name=_("Edit purpose") classes="btn btn-sm btn-outline-secondary location-edit-purpose" %}{% endif %}</span>
                 </h1>
             </div>
             <div class="location-actions">
@@ -84,7 +86,10 @@
             <div class="location-main">
                 <section class="location-panel location-stored" aria-labelledby="location-stored-heading">
                     <div class="location-panel-heading">
-                        <h2 id="location-stored-heading" class="fs-4">{% trans "At this location …" %}</h2>
+                        <div class="location-panel-title-row">
+                            <h2 id="location-stored-heading" class="fs-4">{% trans "At this location …" %}</h2>
+                            {% if not object.overview_photo %}{% include 'inventory/location_photo_button.html' %}{% endif %}
+                        </div>
                         <nav class="location-contents" aria-label="{% trans 'Contents' %}">
                             <ul>
                                 <li><a href="#location-items"><span class="location-contents-count" data-items-count>{{ items_count }}</span> {% trans "Items" %}</a></li>
@@ -93,32 +98,24 @@
                             </ul>
                         </nav>
                     </div>
-                    <section class="location-summary" aria-labelledby="location-summary-heading">
+                    {% if object.overview_photo %}
+                    <section class="location-photo-panel" aria-labelledby="location-overview-heading">
                         <div class="location-panel-heading location-panel-title-row">
-                            <h3 id="location-summary-heading" class="fs-5">{% trans "Summary" %}</h3>
-                            {% if perms.inventory.change_location %}
-                                <a href="#location-overview-editor" class="btn btn-primary location-edit-overview" data-overview-open data-bs-toggle="tooltip" title="{% trans 'Edit summary' %}" aria-label="{% trans 'Edit summary' %}"><span aria-hidden="true">📷</span></a>
-                            {% else %}
-                                {% disabled_action "📷" name=_("Edit summary") classes="btn btn-primary location-edit-overview" %}
-                            {% endif %}
+                            <h3 id="location-overview-heading" class="fs-5">{% trans "Overview photo" %}</h3>
+                            {% include 'inventory/location_photo_button.html' %}
                         </div>
                         <div class="location-overview-body">
-                            {% if object.summary %}<p class="location-overview-summary">{{ object.summary }}</p>{% endif %}
-                            {% if object.overview_photo %}
-                                <a class="location-overview-photo" href="{{ object.overview_photo.url }}" target="_blank" rel="noopener">
-                                    {# Shown at most 24rem high; the link and lightbox open the full photo. #}
-                                    {% thumbnail object.overview_photo "1600x768" upscale=False as im %}
-                                        <img src="{{ im.url }}" width="{{ im.width }}" height="{{ im.height }}" alt="{% blocktrans with location=object.name %}Summary of {{ location }}{% endblocktrans %}" loading="lazy">
-                                    {% empty %}
-                                        <img src="{{ object.overview_photo.url }}" alt="{% blocktrans with location=object.name %}Summary of {{ location }}{% endblocktrans %}" loading="lazy">
-                                    {% endthumbnail %}
-                                </a>
-                            {% endif %}
-                            {% if not object.summary and not object.overview_photo %}
-                                <p class="location-muted">{% trans "No summary added yet." %}</p>
-                            {% endif %}
+                            <a class="location-overview-photo" href="{{ object.overview_photo.url }}" target="_blank" rel="noopener">
+                                {# Shown at most 24rem high; the link and lightbox open the full photo. #}
+                                {% thumbnail object.overview_photo "1600x768" upscale=False as im %}
+                                    <img src="{{ im.url }}" width="{{ im.width }}" height="{{ im.height }}" alt="{% blocktrans with location=object.display_name %}Overview photo of {{ location }}{% endblocktrans %}" loading="lazy">
+                                {% empty %}
+                                    <img src="{{ object.overview_photo.url }}" alt="{% blocktrans with location=object.display_name %}Overview photo of {{ location }}{% endblocktrans %}" loading="lazy">
+                                {% endthumbnail %}
+                            </a>
                         </div>
                     </section>
+                    {% endif %}
                 </section>
 
                 <section class="location-panel location-stored-items" id="location-items" aria-labelledby="location-items-heading">
@@ -256,7 +253,7 @@
                     {% for child in children %}
                         <li>
                             <a href="{{ child.get_absolute_url }}">
-                                <span><span class="location-child-name fs-6">{{ child.name }}</span><span class="location-child-identifier">{{ child.unique_identifier }}</span></span>
+                                <span><span class="location-child-name fs-6">{{ child.display_name }}</span><span class="location-child-identifier">{{ child.unique_identifier }}</span></span>
                                 <span class="location-child-arrow" aria-hidden="true">→</span>
                             </a>
                         </li>
@@ -271,7 +268,7 @@
     </div>
     {% endwith %}
     {% include 'inventory/location_metadata.html' %}
-    {% if perms.inventory.change_location %}{% include 'inventory/location_overview_editor.html' %}{% endif %}
+    {% if perms.inventory.change_location %}{% include 'inventory/location_overview_editor.html' %}{% include 'inventory/location_purpose_editor.html' %}{% endif %}
     {% if stock_change_form %}{% include 'inventory/stock_change_dialog.html' %}{% endif %}
 {% endblock %}
 
@@ -280,7 +277,7 @@
     <script src="{% static 'inventory/photo_lightbox.js' %}"></script>
     <script src="{% static 'inventory/location_detail.js' %}"></script>
     <script src="{% static 'inventory/list_collapse.js' %}"></script>
-    {% if perms.inventory.change_location %}<script src="{% static 'inventory/location_overview.js' %}"></script>{% endif %}
+    {% if perms.inventory.change_location %}<script src="{% static 'inventory/location_overview.js' %}"></script><script src="{% static 'inventory/location_purpose.js' %}"></script>{% endif %}
     {% if can_manage_quick_items %}<script src="{% static 'inventory/location_quick_items.js' %}"></script>{% endif %}
     {% if stock_change_form %}<script src="{% static 'inventory/stock_change.js' %}"></script>{% endif %}
 {% endblock %}

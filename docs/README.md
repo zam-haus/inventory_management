@@ -4,7 +4,7 @@ How the ZAM inventory works, feature by feature. Setup and deployment are
 covered in the [project README](../README.md).
 
 * [Concepts](concepts.md): bulk items vs. unique items, locations, initial data collection
-* [Location summaries](locations.md): overview photo, summary line and change history
+* [Location purpose and photo](locations.md): purpose shown with the name, overview photo and change history
 * [Quick-items](quick-items.md): items known only by name, edited in the location list
 * [Stock changes](stock-changes.md): the 🛒 dialog and the stock change log
 * [Unique items](unique-items.md): single objects (*Einzelobjekte*) with their own label ID, owner and history

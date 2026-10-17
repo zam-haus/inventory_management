@@ -4,7 +4,7 @@
 
     const form = editor.querySelector('form');
     const photoInput = form.elements.overview_photo;
-    const libraryInput = editor.querySelector('[data-overview-library-input]');
+    const takeButton = editor.querySelector('[data-overview-take]');
     const removeInput = form.elements.remove_photo;
     const removeControl = editor.querySelector('[data-overview-remove]');
     const preview = editor.querySelector('[data-overview-preview]');
@@ -18,7 +18,6 @@
     const save = editor.querySelector('[data-overview-save]');
     const errors = editor.querySelector('[data-overview-errors]');
     const status = editor.querySelector('[data-overview-photo-status]');
-    const counter = editor.querySelector('[data-overview-count]');
     let selectedFile = null;
     // Set when the current photo is being cropped or rotated instead of a new one.
     let editingExisting = false;
@@ -34,16 +33,19 @@
 
     editor.classList.add('modal', 'fade');
     editor.querySelectorAll('[data-overview-enhanced]').forEach(element => { element.hidden = false; });
+    // The file field stays in the page (iOS opens a picker only for a rendered field), just out of sight.
+    editor.querySelectorAll('[data-overview-plain]').forEach(element => {
+        if (element === photoInput) {
+            element.classList.add('visually-hidden');
+            element.tabIndex = -1;
+        } else element.hidden = true;
+    });
     const modal = new bootstrap.Modal(editor);
-
-    function updateCounter() {
-        counter.textContent = `${Array.from(form.elements.summary.value).length} / 50`;
-    }
 
     function updateBusy() {
         save.disabled = submitting || imageLoading;
         form.setAttribute('aria-busy', String(submitting || imageLoading));
-        editor.querySelectorAll('[data-bs-dismiss="modal"], input, [data-overview-library], [data-overview-reset-crop]').forEach(element => {
+        editor.querySelectorAll('[data-bs-dismiss="modal"], input, [data-overview-take], [data-overview-reset-crop]').forEach(element => {
             element.disabled = submitting;
         });
         // The current photo can be edited too; it is loaded on first use.
@@ -137,7 +139,6 @@
         editingExisting = false;
         imageLoading = false;
         photoInput.value = '';
-        libraryInput.value = '';
         if (photoURL) URL.revokeObjectURL(photoURL);
         photoURL = null;
         if (existingPhoto) preview.src = existingPhoto;
@@ -371,9 +372,21 @@
         }
     });
 
-    photoInput.addEventListener('change', () => { selectPhoto(photoInput.files[0]); });
-    libraryInput.addEventListener('change', () => { selectPhoto(libraryInput.files[0]); });
-    editor.querySelector('[data-overview-library]').addEventListener('click', () => { libraryInput.click(); });
+    // Opens the device's picker: camera (capture) for a first photo, otherwise camera or library.
+    function pickPhoto({camera = false} = {}) {
+        if (camera) photoInput.setAttribute('capture', 'environment');
+        else photoInput.removeAttribute('capture');
+        photoInput.click();
+    }
+
+    photoInput.addEventListener('change', () => {
+        const file = photoInput.files[0];
+        if (!file) return;
+        selectPhoto(file);
+        // A first photo is taken before the dialog opens; it shows up there for cropping and saving.
+        if (!editor.classList.contains('show')) modal.show();
+    });
+    takeButton.addEventListener('click', () => { pickPhoto(); });
     cropToggle.addEventListener('click', async () => {
         if (!await loadExistingPhoto()) return;
         setCropEnabled(!cropEnabled);
@@ -392,14 +405,15 @@
         preview.hidden = removeInput.checked || !preview.getAttribute('src');
         updateBusy();
     });
-    form.elements.summary.addEventListener('input', updateCounter);
     document.querySelectorAll('[data-overview-open]').forEach(trigger => {
         trigger.addEventListener('click', event => {
             event.preventDefault();
-            modal.show(trigger);
+            // Without a photo yet, 📷 goes straight to the camera; with one, to the dialog.
+            if (existingPhoto) modal.show(trigger);
+            else pickPhoto({camera: true});
         });
     });
-    editor.addEventListener('shown.bs.modal', () => { form.elements.summary.focus(); });
+    editor.addEventListener('shown.bs.modal', () => { takeButton.focus(); });
     editor.addEventListener('hide.bs.modal', event => {
         // A confirmed save cannot be cancelled once it has reached the server.
         if (submitting) event.preventDefault();
@@ -408,9 +422,7 @@
         form.reset();
         clearNewPhoto();
         clearErrors();
-        updateCounter();
     });
-    updateCounter();
     updateBusy();
     preview.hidden = removeInput.checked || !existingPhoto;
     if (editor.dataset.open === 'true' || window.location.hash === '#location-overview-editor') modal.show();

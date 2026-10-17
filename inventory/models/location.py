@@ -224,11 +224,12 @@ class Location(SoftDeleteModel, ComputedFieldsModel):
     )
 
     physical_description = models.TextField(_("physical description"), blank=True)
-    summary = models.CharField(
-        _("summary"), max_length=50, blank=True,
+    # What the location is for, shown with its name ("Box 23: Carp project", see display_name).
+    purpose = models.CharField(
+        _("purpose"), max_length=50, blank=True,
         validators=[validators.RegexValidator(
             r"[\r\n]", inverse_match=True,
-            message=_("The summary must be a single line."),
+            message=_("The purpose must be a single line."),
         )],
     )
     overview_photo = models.ImageField(
@@ -254,7 +255,7 @@ class Location(SoftDeleteModel, ComputedFieldsModel):
 
     def save(self, *args, actor=None, **kwargs):
         using = kwargs.get("using") or router.db_for_write(type(self), instance=self)
-        fields = ("summary", "overview_photo")
+        fields = ("purpose", "overview_photo")
         actor = actor or getattr(self, "_history_actor", None)
         with transaction.atomic(using=using):
             previous = None
@@ -340,6 +341,16 @@ class Location(SoftDeleteModel, ComputedFieldsModel):
     @property
     def name_with_short_name(self):
         return f"{self.name} [{self.short_name}]"
+
+    @property
+    def display_name(self):
+        """The name as pages and lists show it, with the purpose: "Box 23: Carp project"."""
+        return f"{self.name}: {self.purpose}" if self.purpose else self.name
+
+    @property
+    def path_with_purpose(self):
+        """The full path (descriptive_identifier) with the purpose, e.g. for choosing a location."""
+        return f"{self.descriptive_identifier}: {self.purpose}" if self.purpose else self.descriptive_identifier
 
     def validate_deletion(self, *, hard=False, soft_ids=(), hard_ids=()):
         children = self.children.all() if hard else self.children.filter(is_deleted=False)

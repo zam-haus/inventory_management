@@ -5,29 +5,21 @@
             <form action="{% url 'location_overview_update' object.pk %}" method="post" enctype="multipart/form-data" id="location-overview-form">
                 {% csrf_token %}
                 <div class="modal-header">
-                    <h2 class="modal-title fs-5" id="location-overview-editor-title">{% trans "Edit location summary" %}</h2>
+                    <h2 class="modal-title fs-5" id="location-overview-editor-title">{% trans "Edit overview photo" %}</h2>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" data-overview-enhanced hidden aria-label="{% trans 'Cancel' %}"></button>
                 </div>
                 <div class="modal-body">
                     <div class="alert alert-danger" role="alert" data-overview-errors{% if not overview_form.non_field_errors %} hidden{% endif %}>
                         {% for error in overview_form.non_field_errors %}<p>{{ error }}</p>{% endfor %}
                     </div>
-                    <div class="mb-3">
-                        <div class="location-overview-field-heading">
-                            <label for="{{ overview_form.summary.id_for_label }}" class="form-label">{% trans "Summary" %}</label>
-                            <span class="location-muted" data-overview-count aria-hidden="true">0 / 50</span>
-                        </div>
-                        {{ overview_form.summary }}
-                        <div class="text-danger" data-overview-field-errors="summary">{{ overview_form.summary.errors }}</div>
-                    </div>
                     <fieldset class="location-overview-photo-field">
                         <legend class="form-label">{% trans "Overview photo" %}</legend>
                         <p class="form-text mt-0" id="location-overview-photo-help">{% trans "Take an overview photo of everything stored here. Keep the frame within this location; you can crop the photo before saving." %}</p>
-                        <label for="id_overview_photo" class="form-label">{% trans "Take or select a photo" %}</label>
-                        <input type="file" name="overview_photo" id="id_overview_photo" class="form-control" accept="image/*" capture="environment" aria-describedby="location-overview-photo-help">
+                        {# Without JavaScript the plain file field; location_overview.js shows the button instead. #}
+                        <label for="id_overview_photo" class="form-label" data-overview-plain>{% trans "Take or select a photo" %}</label>
+                        <input type="file" name="overview_photo" id="id_overview_photo" class="form-control" accept="image/*" capture="environment" aria-describedby="location-overview-photo-help" data-overview-plain>
                         <div class="location-overview-photo-actions mt-2" data-overview-enhanced hidden>
-                            <button type="button" class="btn btn-outline-secondary btn-sm" data-overview-library>{% trans "Choose from photo library" %}</button>
-                            <input type="file" accept="image/*" data-overview-library-input hidden aria-label="{% trans 'Choose from photo library' %}">
+                            <button type="button" class="btn btn-primary" data-overview-take><span aria-hidden="true">📷</span> {% trans "Take or choose a photo" %}</button>
                             <button type="button" class="btn btn-outline-secondary btn-sm" data-overview-crop-toggle aria-expanded="false" aria-controls="location-overview-crop" disabled>{% trans "Crop photo (optional)" %}</button>
                             <button type="button" class="btn btn-outline-secondary btn-sm" data-overview-rotate="1" title="{% trans 'Rotate 90° right and reset the crop selection.' %}" disabled><span aria-hidden="true">↷</span> {% trans "Rotate right" %}</button>
                         </div>
@@ -62,9 +54,8 @@
                     </fieldset>
                 </div>
                 <div class="modal-footer">
-                    <span class="location-muted me-auto">{% trans "All changes are saved together." %}</span>
                     <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal" data-overview-enhanced hidden>{% trans "Cancel" %}</button>
-                    <button type="submit" class="btn btn-primary" data-overview-save>{% trans "Save summary" %}</button>
+                    <button type="submit" class="btn btn-primary" data-overview-save>{% trans "Save photo" %}</button>
                 </div>
             </form>
         </div>

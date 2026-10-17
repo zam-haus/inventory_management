@@ -5,7 +5,7 @@ for quick and easy data collection without any previous knowledge about the
 items: photograph and count what is on a shelf first, annotate later.
 
 * **Locations** form a tree (rooms, shelves, boxes), each with a printed QR
-  label, an overview photo and a short summary.
+  label, an overview photo and a purpose shown with the name.
 * **Items** are either bulk items, counted per location, or unique items:
   single objects such as machines or tools with their own label, owner and
   history.

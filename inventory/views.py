@@ -41,6 +41,9 @@ def index(request):
     return render(request, "inventory/index.html", {"scan_hosts": scan_hosts})
 
 class LocationAutocomplete(autocomplete.Select2QuerySetView):
+    def get_result_label(self, result):
+        return result.path_with_purpose
+
     def get_queryset(self):
         qs = models.Location.active.all()
 
@@ -50,7 +53,7 @@ class LocationAutocomplete(autocomplete.Select2QuerySetView):
             qs = qs.filter(
                 Q(name__icontains=query) |
                 Q(unique_identifier__icontains=query) |
-                Q(summary__icontains=query) |
+                Q(purpose__icontains=query) |
                 Q(physical_description__icontains=query)
             )
 
@@ -130,6 +133,7 @@ class DetailLocationView(DetailView):
             context["stock_change_form"] = forms.StockChangeForm()
         if self.request.user.has_perm("inventory.change_location"):
             context.setdefault("overview_form", forms.LocationOverviewForm(instance=self.object))
+            context.setdefault("purpose_form", forms.LocationPurposeForm(instance=self.object))
         return context
 
     def get(self, request, *args, **kwargs):
@@ -484,7 +488,7 @@ class SearchableLocationListView(
         ListView):
     search_fields = [
         "locatable_identifier", "name", "descriptive_identifier",
-        "summary", "physical_description",
+        "purpose", "physical_description",
     ]
     search_date_fields = []
     sort_fields = ["unique_identifier"]
@@ -496,12 +500,15 @@ class SearchableLocationListView(
 
 
 class ParentLocationAutocompleteView(autocomplete.Select2QuerySetView):
+    def get_result_label(self, result):
+        return result.path_with_purpose
+
     def get_queryset(self):
         qs = models.Location.active.filter(type__no_sublocations = False)
         if self.q:
             qs = qs.filter(
                 Q(name__icontains=self.q) | Q(unique_identifier__icontains=self.q) |
-                Q(summary__icontains=self.q) | Q(physical_description__icontains=self.q)
+                Q(purpose__icontains=self.q) | Q(physical_description__icontains=self.q)
             )
         return qs
 

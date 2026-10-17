@@ -46,22 +46,22 @@
                         </header>
 
                         {% if event.event_type == 'overview_updated' %}
-                            {% if event.before.summary != event.after.summary %}
-                                <section class="location-history-change" aria-labelledby="history-summary-{{ event.pk }}">
-                                    <h3 id="history-summary-{{ event.pk }}">{% trans "Summary" %}</h3>
+                            {% if event.before.purpose != event.after.purpose %}
+                                <section class="location-history-change" aria-labelledby="history-purpose-{{ event.pk }}">
+                                    <h3 id="history-purpose-{{ event.pk }}">{% trans "Purpose" %}</h3>
                                     <div class="location-history-comparison">
                                         <div>
                                             <h4>{% trans "Before" %}</h4>
-                                            {% if event.before.summary %}
-                                                <p>{{ event.before.summary }}</p>
+                                            {% if event.before.purpose %}
+                                                <p>{{ event.before.purpose }}</p>
                                             {% else %}
                                                 <p class="location-muted">{% trans "Not set" %}</p>
                                             {% endif %}
                                         </div>
                                         <div>
                                             <h4>{% trans "After" %}</h4>
-                                            {% if event.after.summary %}
-                                                <p>{{ event.after.summary }}</p>
+                                            {% if event.after.purpose %}
+                                                <p>{{ event.after.purpose }}</p>
                                             {% else %}
                                                 <p class="location-muted">{% trans "Not set" %}</p>
                                             {% endif %}

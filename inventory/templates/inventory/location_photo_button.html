@@ -1,0 +1,6 @@
+{% load i18n actions %}{# 📷 for the overview photo: beside the photo, or beside "At this location …" while there is none. #}
+{% if perms.inventory.change_location %}
+    <a href="#location-overview-editor" class="btn btn-primary location-edit-overview" data-overview-open data-bs-toggle="tooltip" title="{% trans 'Edit overview photo' %}" aria-label="{% trans 'Edit overview photo' %}"><span aria-hidden="true">📷</span></a>
+{% else %}
+    {% disabled_action "📷" name=_("Edit overview photo") classes="btn btn-primary location-edit-overview" %}
+{% endif %}
