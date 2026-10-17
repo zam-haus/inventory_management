@@ -48,6 +48,7 @@
     "fields": {
         "name": "Haus+Etage",
         "unique": true,
+        "deletable_in_frontend": false,
         "auto_name_prefix": "",
         "auto_short_name_prefix": "",
         "auto_short_name_padding_length": 0,
@@ -61,6 +62,7 @@
     "fields": {
         "name": "Schrank",
         "unique": true,
+        "deletable_in_frontend": true,
         "auto_name_prefix": "Schrank",
         "auto_short_name_prefix": "S",
         "auto_short_name_padding_length": 3,
@@ -74,6 +76,7 @@
     "fields": {
         "name": "Regal",
         "unique": true,
+        "deletable_in_frontend": true,
         "auto_name_prefix": "Regal",
         "auto_short_name_prefix": "R",
         "auto_short_name_padding_length": 3,
@@ -87,6 +90,7 @@
     "fields": {
         "name": "Palette",
         "unique": true,
+        "deletable_in_frontend": true,
         "auto_name_prefix": "Palette",
         "auto_short_name_prefix": "P",
         "auto_short_name_padding_length": 4,
@@ -100,6 +104,7 @@
     "fields": {
         "name": "Kiste",
         "unique": true,
+        "deletable_in_frontend": false,
         "auto_name_prefix": "Kiste",
         "auto_short_name_prefix": "K",
         "auto_short_name_padding_length": 4,
@@ -113,6 +118,7 @@
     "fields": {
         "name": "Raum/Bereich",
         "unique": false,
+        "deletable_in_frontend": false,
         "auto_name_prefix": "",
         "auto_short_name_prefix": "",
         "auto_short_name_padding_length": 0,
@@ -126,6 +132,7 @@
     "fields": {
         "name": "Fach/Schub",
         "unique": false,
+        "deletable_in_frontend": true,
         "auto_name_prefix": "Fach",
         "auto_short_name_prefix": "",
         "auto_short_name_padding_length": 0,

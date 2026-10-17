@@ -2996,3 +2996,34 @@ msgstr "Aktionen"
 #, python-format
 msgid "Actions for “%(name)s”"
 msgstr "Aktionen für „%(name)s“"
+
+#: inventory/models/location.py
+msgid "deletable outside the admin"
+msgstr "außerhalb des Admin-Bereichs löschbar"
+
+#: inventory/models/location.py
+msgid ""
+"Users with the delete permission may delete locations of this type on the "
+"inventory pages, e.g. shelves or drawers. Otherwise they can only be deleted "
+"in the admin."
+msgstr ""
+"Benutzer mit Löschberechtigung dürfen Standorte dieses Typs auf den "
+"Inventarseiten löschen, z. B. Regale oder Schubladen. Sonst lassen sie sich "
+"nur im Admin-Bereich löschen."
+
+#: inventory/permissions.py
+#, python-format
+msgid "Locations of type “%(type)s” can only be deleted in the admin."
+msgstr "Standorte vom Typ „%(type)s“ lassen sich nur im Admin-Bereich löschen."
+
+#: inventory/templates/inventory/location_metadata.html
+msgid "Deleting"
+msgstr "Löschen"
+
+#: inventory/templates/inventory/location_metadata.html
+msgid "Everyone with the delete permission may delete locations of this type here."
+msgstr "Alle mit Löschberechtigung dürfen Standorte dieses Typs hier löschen."
+
+#: inventory/templates/inventory/location_metadata.html
+msgid "Locations of this type can only be deleted in the admin."
+msgstr "Standorte dieses Typs lassen sich nur im Admin-Bereich löschen."

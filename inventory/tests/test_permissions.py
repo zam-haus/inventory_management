@@ -25,7 +25,7 @@ class InventoryPermissionTests(TestCase):
         cls.user = get_user_model().objects.create_user(username="editor")
         cls.group = Group.objects.create(name="Inventory editors")
         cls.user.groups.add(cls.group)
-        kind = LocationType.objects.create(name="Room", unique=True, moveable=True)
+        kind = LocationType.objects.create(name="Room", unique=True, moveable=True, deletable_in_frontend=True)
         cls.root = Location.objects.create(name="Root", short_name="ROOT", type=kind)
         cls.destination = Location.objects.create(name="Destination", short_name="DEST", type=kind)
         cls.child = Location.objects.create(name="Child", short_name="CHILD", type=kind, parent_location=cls.root)

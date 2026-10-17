@@ -14,12 +14,12 @@
                 </div>
                 <div class="form-check">
                     <input type="hidden" name="delete" value="0">
-                    {% if perms.inventory.delete_location %}
+                    {% if not delete_root_denied %}
                         <input class="form-check-input" id="delete-root" type="checkbox" name="delete" value="1" {% if delete_root %}checked{% endif %}>
                         <label class="form-check-label" for="delete-root">{% trans "Delete this location once it is empty" %}</label>
                     {% else %}
-                        <input class="form-check-input" id="delete-root" type="checkbox" disabled title="{% trans 'You do not have permission to delete this location.' %}">
-                        <label class="form-check-label" for="delete-root" title="{% trans 'You do not have permission to delete this location.' %}">{% trans "Delete this location once it is empty" %}</label>
+                        <input class="form-check-input" id="delete-root" type="checkbox" disabled title="{{ delete_root_denied }}">
+                        <label class="form-check-label" for="delete-root" title="{{ delete_root_denied }}">{% trans "Delete this location once it is empty" %}</label>
                     {% endif %}
                 </div>
                 <button class="btn btn-outline-secondary" type="submit">{% trans "Reload list" %}</button>

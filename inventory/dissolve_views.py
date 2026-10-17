@@ -10,7 +10,7 @@ from django.views import View
 from .dissolution import DissolutionPlan
 from .forms import DissolveLocationForm
 from .models import Location, StockChange
-from .permissions import CONTENT_MOVE_PERMISSIONS, require_dissolution_permissions
+from .permissions import CONTENT_MOVE_PERMISSIONS, location_deletion_denied, require_dissolution_permissions
 from .stock_log import stock_changes
 
 
@@ -22,26 +22,27 @@ class DissolveLocationView(PermissionRequiredMixin, View):
         # Deleting the location is checked per plan; moving contents alone needs no delete permission.
         return any(self.request.user.has_perm(permission) for permission in CONTENT_MOVE_PERMISSIONS)
 
-    def check_delete_permission(self, delete_root):
-        if delete_root and not self.request.user.has_perm("inventory.delete_location"):
+    def check_delete_permission(self, delete_root, root):
+        if delete_root and location_deletion_denied(self.request.user, root):
             raise PermissionDenied
 
     def show_plan(self, request, plan, form=None):
         return render(request, "inventory/location_dissolve.html", {
             "object": plan.root, "recursive": plan.recursive, "delete_root": plan.delete_root,
+            "delete_root_denied": location_deletion_denied(request.user, plan.root),
             "blocking_unique_items": plan.blocking_unique_items,
             "form": form if form is not None else DissolveLocationForm(plan=plan, user=request.user),
         })
 
     def get(self, request, pk):
         delete_root = request.GET.get("delete") != "0"
-        self.check_delete_permission(delete_root)
-        plan = DissolutionPlan(get_object_or_404(Location.active, pk=pk), request.GET.get("recursive") == "1",
-                               delete_root=delete_root)
+        root = get_object_or_404(Location.active.select_related("type"), pk=pk)
+        self.check_delete_permission(delete_root, root)
+        plan = DissolutionPlan(root, request.GET.get("recursive") == "1", delete_root=delete_root)
         return self.show_plan(request, plan)
 
     def post(self, request, pk):
-        root = get_object_or_404(Location.active, pk=pk)
+        root = get_object_or_404(Location.active.select_related("type"), pk=pk)
         stage = request.POST.get("stage", "review")
         recursive = request.POST.get("recursive") == "1"
         delete_root = request.POST.get("delete") != "0"
@@ -55,9 +56,9 @@ class DissolveLocationView(PermissionRequiredMixin, View):
             except (signing.BadSignature, KeyError):
                 messages.error(request, _("The confirmation expired or is invalid. Review the plan again."))
                 return redirect("location_dissolve", pk=pk)
-            self.check_delete_permission(delete_root)
+            self.check_delete_permission(delete_root, root)
             if stage == "confirm":
-                require_dissolution_permissions(request.user, payload["operations"], delete_root)
+                require_dissolution_permissions(request.user, payload["operations"], delete_root, root)
                 try:
                     with transaction.atomic():
                         plan = DissolutionPlan(root, recursive, lock=True, delete_root=delete_root)
@@ -85,13 +86,13 @@ class DissolveLocationView(PermissionRequiredMixin, View):
             plan = DissolutionPlan(root, recursive, delete_root=delete_root)
             return self.show_plan(request, plan, DissolveLocationForm(data, plan=plan, user=request.user))
 
-        self.check_delete_permission(delete_root)
+        self.check_delete_permission(delete_root, root)
         plan = DissolutionPlan(root, recursive, delete_root=delete_root)
         form = DissolveLocationForm(request.POST, plan=plan, user=request.user)
         if not form.is_valid():
             return self.show_plan(request, plan, form)
         operations = form.cleaned_data["operations"]
-        require_dissolution_permissions(request.user, operations, delete_root)
+        require_dissolution_permissions(request.user, operations, delete_root, root)
         token = signing.dumps({
             "root": pk, "recursive": recursive, "delete_root": delete_root, "operations": operations,
             "fingerprint": plan.fingerprint(),

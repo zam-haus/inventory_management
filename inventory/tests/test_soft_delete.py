@@ -22,7 +22,7 @@ from ..models import Item, ItemBarcode, ItemFile, ItemImage, ItemLocation, Locat
 class SoftDeleteTests(TestCase):
     @classmethod
     def setUpTestData(cls):
-        cls.kind = LocationType.objects.create(name="Room", unique=True, moveable=True)
+        cls.kind = LocationType.objects.create(name="Room", unique=True, moveable=True, deletable_in_frontend=True)
         cls.location = Location.objects.create(type=cls.kind, name="Storage", short_name="S")
         cls.other = Location.objects.create(type=cls.kind, name="Other", short_name="O")
         cls.unit = MeasurementUnit.objects.create(name="Piece", short="pc")

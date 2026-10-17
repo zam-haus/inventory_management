@@ -3,6 +3,7 @@
 from django.contrib.auth.mixins import PermissionRequiredMixin
 from django.core.exceptions import PermissionDenied
 from django.db import transaction
+from django.utils.translation import gettext as _
 
 from .models import StockChange
 from .stock_log import stock_changes
@@ -25,7 +26,23 @@ CONTENT_MOVE_PERMISSIONS = (
 )
 
 
-def require_dissolution_permissions(user, operations, delete_root=True):
+def location_deletion_denied(user, location):
+    """
+    Why `user` may not delete `location` on the inventory pages, or None. Location types that
+    are not deletable there can only be deleted in the admin, also by staff.
+    """
+    if not user.has_perm("inventory.delete_location"):
+        return _("You do not have permission to delete this location.")
+    if not location.type.deletable_in_frontend:
+        return _("Locations of type “%(type)s” can only be deleted in the admin.") % {"type": location.type}
+    return None
+
+
+def can_delete_location(user, location):
+    return location_deletion_denied(user, location) is None
+
+
+def require_dissolution_permissions(user, operations, delete_root=True, root=None):
     permissions = {"inventory.delete_location"} if delete_root else set()
     for kind, _pk, action, _destination in operations:
         if action == "keep":
@@ -34,6 +51,12 @@ def require_dissolution_permissions(user, operations, delete_root=True):
         verb = "delete" if action == "delete" else "change"
         permissions.add(f"inventory.{verb}_{model}")
     if not user.has_perms(permissions):
+        raise PermissionDenied
+    from .models import Location
+    deleted = {pk for kind, pk, action, _destination in operations if kind == "location" and action == "delete"}
+    if delete_root and root is not None:
+        deleted.add(root.pk)
+    if any(not can_delete_location(user, location) for location in Location.objects.filter(pk__in=deleted).select_related("type")):
         raise PermissionDenied
 
 

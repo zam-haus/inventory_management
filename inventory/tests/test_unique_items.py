@@ -16,7 +16,7 @@ from django.urls import reverse
 
 from accounts.models import Team
 from ..actor import acting_as
-from ..models import Item, ItemLocation, Location, UniqueItem, UniqueItemEvent, UsageLevel, LabelId
+from ..models import Item, ItemLocation, LabelId, Location, LocationType, UniqueItem, UniqueItemEvent, UsageLevel
 from ..label_ids import services
 from ..label_ids.testing import SETTINGS, InventoryFixture, make_id, local_group
 
@@ -452,6 +452,7 @@ class UniqueItemLocationTests(UniqueItemFixture, TestCase):
     @classmethod
     def setUpTestData(cls):
         cls.create_unique_items()
+        LocationType.objects.filter(pk=cls.kind.pk).update(deletable_in_frontend=True)
         cls.admin = get_user_model().objects.create_user(username="admin")
         grant(cls.admin, "delete_location", "change_location", "delete_itemlocation", "change_itemlocation",
               "dispose_uniqueitem")

@@ -52,10 +52,10 @@
                 {% else %}
                     {% disabled_action "📤" name=_("Move contents") classes="btn btn-outline-secondary location-print" %}
                 {% endif %}
-                {% if perms.inventory.delete_location %}
+                {% if not dissolve_denied %}
                     <a class="btn btn-outline-danger location-print" href="{% url 'location_dissolve' pk=object.pk %}" aria-label="{% trans 'Dissolve location' %}" data-bs-toggle="tooltip" title="{% trans 'Dissolve location' %}"><span aria-hidden="true">❌</span></a>
                 {% else %}
-                    {% disabled_action "❌" name=_("Dissolve location") classes="btn btn-outline-danger location-print" %}
+                    {% disabled_action "❌" name=_("Dissolve location") reason=dissolve_denied classes="btn btn-outline-danger location-print" %}
                 {% endif %}
             </div>
         </div>

@@ -30,6 +30,12 @@ class LocationType(models.Model):
     moveable = models.BooleanField(_("moveable flag"), default=False)
     # set if Location.short is to be globally unique
     unique = models.BooleanField(_("unique flag"), default=False)
+    # Outside the admin, locations of this type can only be deleted if set (permissions.can_delete_location).
+    deletable_in_frontend = models.BooleanField(
+        _("deletable outside the admin"), default=False,
+        help_text=_("Users with the delete permission may delete locations of this type on the inventory pages, "
+                    "e.g. shelves or drawers. Otherwise they can only be deleted in the admin."),
+    )
     # for automatic generation of unique names and short_names:
     auto_name_prefix = models.CharField(
         _("name prefix"), max_length=16, default="", blank=True

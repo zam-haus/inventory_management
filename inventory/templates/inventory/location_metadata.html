@@ -46,6 +46,10 @@
                             <dd>{% if object.type.no_sublocations %}{% trans "This location cannot contain sub-locations." %}{% else %}{% trans "This location can contain sub-locations." %}{% endif %}</dd>
                         </div>
                         <div>
+                            <dt>{% trans "Deleting" %}</dt>
+                            <dd>{% if object.type.deletable_in_frontend %}{% trans "Everyone with the delete permission may delete locations of this type here." %}{% else %}{% trans "Locations of this type can only be deleted in the admin." %}{% endif %}</dd>
+                        </div>
+                        <div>
                             <dt>{% trans "Unique identifier" %}</dt>
                             <dd>{% if object.type.unique %}{% trans "The unique identifier is independent of the parent location." %}{% else %}{% trans "The unique identifier includes the parent location’s identifier." %}{% endif %}</dd>
                         </div>

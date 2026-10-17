@@ -313,8 +313,8 @@ class AutomaticStockLogTests(TestCase):
     @classmethod
     def setUpTestData(cls):
         cls.unit = MeasurementUnit.objects.create(pk=1, name="Piece", short="pc")
-        cls.room = LocationType.objects.create(name="Room", unique=True, moveable=True)
-        cls.box = LocationType.objects.create(name="Box", moveable=True)
+        cls.room = LocationType.objects.create(name="Room", unique=True, moveable=True, deletable_in_frontend=True)
+        cls.box = LocationType.objects.create(name="Box", moveable=True, deletable_in_frontend=True)
         cls.shelf = Location.objects.create(type=cls.room, name="Shelf", short_name="SH")
         cls.user = get_user_model().objects.create_superuser(username="admin")
 

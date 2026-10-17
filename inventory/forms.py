@@ -18,6 +18,7 @@ from dal import autocomplete
 
 from .keyboard_layouts import layout_corrections
 from .location_lookup import scan_prefix
+from .permissions import location_deletion_denied
 from .models import (
     USAGE_LEVEL_DESCRIPTIONS, BarcodeType, Item, ItemBarcode, ItemFile, ItemImage, ItemLocation, Location, StockChange,
     UniqueItem, UsageLevel, LabelId,
@@ -762,13 +763,19 @@ class DissolveLocationForm(Form):
         for row in plan.rows:
             key = row["key"]
             model = "location" if row["kind"] == "location" else "itemlocation"
-            can_delete = user.has_perm(f"inventory.delete_{model}")
+            if row["kind"] == "location":
+                delete_denied = location_deletion_denied(user, row["object"])
+            elif not user.has_perm("inventory.delete_itemlocation"):
+                delete_denied = _("You do not have permission to delete this entry.")
+            else:
+                delete_denied = None
+            can_delete = delete_denied is None
             can_move = user.has_perm(f"inventory.change_{model}")
             self.can_move_rows |= can_move
             self.can_delete_rows |= can_delete
             self.fields[key + "_delete"] = BooleanField(label=_("Delete"), required=False, disabled=not can_delete)
             if not can_delete:
-                self.fields[key + "_delete"].widget.attrs["title"] = _("You do not have permission to delete this entry.")
+                self.fields[key + "_delete"].widget.attrs["title"] = delete_denied
             queryset = destinations
             if row["kind"] == "location":
                 queryset = queryset.exclude(pk=row["object"].pk).filter(type__no_sublocations=False)
@@ -793,6 +800,8 @@ class DissolveLocationForm(Form):
             verb = "delete" if action == "delete" else "change"
             if action != "keep" and not self.user.has_perm(f"inventory.{verb}_{model}"):
                 self.add_error(None, _("You do not have permission for the selected action."))
+            elif action == "delete" and row["kind"] == "location" and location_deletion_denied(self.user, row["object"]):
+                self.add_error(None, location_deletion_denied(self.user, row["object"]))
             operations.append([row["kind"], row["object"].pk, action, destination.pk if action == "move" else None])
         deleted = self.plan.deleted_locations(operations)
         for row, (kind, _pk, action, destination) in zip(self.plan.rows, operations):

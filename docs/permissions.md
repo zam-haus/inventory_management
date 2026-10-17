@@ -28,6 +28,15 @@ deleting it once empty, additionally requires `delete_location`. Permissions are
 again when confirming the plan. Changing the deleted flag in admin also
 requires the corresponding delete permission.
 
+On the inventory pages, `delete_location` covers only locations whose location type
+is **deletable outside the admin** (`LocationType.deletable_in_frontend`, set in admin);
+this applies to staff too. Locations of other types can only be deleted in the admin.
+Migration `inventory.0034` allows it for *Regal*, *Fach/Schub*, *Karton*, *Palette* and
+*Schrank*; *Kiste*, *Haus+Etage*, *Raum/Bereich* and new types are admin-only. The
+delete options stay visible but disabled, saying why
+(`inventory.permissions.location_deletion_denied`); the location details list the
+property with the other location type properties.
+
 Migration `accounts.0002_zam_local_group` creates the reserved **local group**
 (`LOCAL_GROUP_NAME`, by default `ZAM-local`) with add and change permissions for
 inventory models, but no delete permissions. Its permissions can subsequently be

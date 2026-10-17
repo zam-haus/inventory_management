@@ -24,7 +24,7 @@ from ..models import Item, ItemLocation, Location, LocationType, MeasurementUnit
 class LocationSoftDeletionTests(TestCase):
     @classmethod
     def setUpTestData(cls):
-        cls.kind = LocationType.objects.create(name="Room", unique=True, moveable=True)
+        cls.kind = LocationType.objects.create(name="Room", unique=True, moveable=True, deletable_in_frontend=True)
         cls.parent = Location.objects.create(type=cls.kind, name="Parent", short_name="P")
         cls.archived = Location.objects.create(type=cls.kind, name="Archived room", short_name="OLD", parent_location=cls.parent)
         cls.live = Location.objects.create(type=cls.kind, name="Live room", short_name="NEW", parent_location=cls.parent)

@@ -26,7 +26,7 @@ from django.views.generic import DetailView, ListView, UpdateView
 
 from . import forms, models
 from .location_lookup import resolve_location_reference
-from .permissions import QUICK_ITEM_PERMISSIONS, UNIQUE_ITEM_CREATE_PERMISSIONS, ItemEditorPermissionMixin
+from .permissions import QUICK_ITEM_PERMISSIONS, UNIQUE_ITEM_CREATE_PERMISSIONS, ItemEditorPermissionMixin, location_deletion_denied
 from .stock_change_views import mark_last_stock
 from .label_ids import services
 from .label_ids.lookup import annotate_label_code
@@ -118,6 +118,7 @@ class DetailLocationView(DetailView):
         context["quick_entries"] = [entry for entry in entries if entry.is_quick_item]
         context["entries"] = [entry for entry in entries if not entry.is_quick_item]
         context["can_manage_quick_items"] = self.request.user.has_perms(QUICK_ITEM_PERMISSIONS)
+        context["dissolve_denied"] = location_deletion_denied(self.request.user, self.object)
         context["can_add_quick_photos"] = self.request.user.has_perms((*QUICK_ITEM_PERMISSIONS, "inventory.add_itemimage"))
         # Quick-items are listed with the items and counted with them.
         context["items_count"] = len(entries)

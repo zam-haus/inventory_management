@@ -23,8 +23,9 @@ TEST_SETTINGS = override_settings(
 class DissolutionTestCase(TestCase):
     @classmethod
     def setUpTestData(cls):
-        cls.room_type = LocationType.objects.create(name="Room", unique=True, moveable=True)
-        cls.box_type = LocationType.objects.create(name="Box", moveable=True)
+        # Deletable without admin access, so the plans here are not limited by the location type.
+        cls.room_type = LocationType.objects.create(name="Room", unique=True, moveable=True, deletable_in_frontend=True)
+        cls.box_type = LocationType.objects.create(name="Box", moveable=True, deletable_in_frontend=True)
         cls.parent = Location.objects.create(type=cls.room_type, name="Parent", short_name="P")
         cls.root = Location.objects.create(type=cls.box_type, name="Root", short_name="R", parent_location=cls.parent)
         cls.child = Location.objects.create(type=cls.box_type, name="Child", short_name="C", parent_location=cls.root)
@@ -386,3 +387,81 @@ class MoveContentsTests(DissolutionTestCase):
         # Asking to delete the location still requires the permission.
         self.assertEqual(self.post({("location", self.child): self.destination}, delete="1").status_code, 403)
         self.assertTrue(Location.active.filter(pk=self.root.pk).exists())
+
+
+@TEST_SETTINGS
+class LocationTypeDeletionTests(DissolutionTestCase):
+    """Outside the admin, only locations of types that allow it can be deleted (LocationType.deletable_in_frontend)."""
+
+    def setUp(self):
+        super().setUp()
+        LocationType.objects.filter(pk=self.box_type.pk).update(deletable_in_frontend=False)
+
+    def review(self, **values):
+        return self.client.post(self.url, {"recursive": "0", "stage": "review", **values})
+
+    def test_protected_root_cannot_be_dissolved_but_its_contents_can_move(self):
+        detail = self.client.get(self.root.get_absolute_url())
+        self.assertNotContains(detail, f'href="{self.url}"')
+        self.assertContains(detail, "Locations of type “Box” can only be deleted in the admin.")
+        self.assertEqual(self.client.get(self.url).status_code, 403)
+        page = self.client.get(self.url, {"delete": "0"})
+        self.assertContains(page, 'id="delete-root" type="checkbox" disabled title="Locations of type “Box” can only be deleted in the admin."')
+        self.assertEqual(self.review(delete="1").status_code, 403)
+        self.assert_unchanged()
+
+    def test_protected_sub_location_cannot_be_selected_or_forged_for_deletion(self):
+        LocationType.objects.filter(pk=self.room_type.pk).update(deletable_in_frontend=True)
+        Location.objects.filter(pk=self.root.pk).update(type=self.room_type)
+        page = self.client.get(self.url)
+        self.assertContains(page, "Locations of type “Box” can only be deleted in the admin.")
+        response = self.review(**{f"location_{self.child.pk}_delete": "on", f"item_{self.stock.pk}_destination": self.destination.pk})
+        self.assertNotIn("plan_token", response.context or {})
+        self.assertTrue(Location.active.filter(pk=self.child.pk).exists())
+        # A confirmation that claims to delete it anyway is refused.
+        from django.core import signing
+        from ..dissolve_views import DissolveLocationView
+        from ..dissolution import DissolutionPlan
+        plan = DissolutionPlan(self.root, delete_root=True)
+        operations = [["item", self.stock.pk, "move", self.destination.pk], ["location", self.child.pk, "delete", None]]
+        token = signing.dumps({"root": self.root.pk, "recursive": False, "delete_root": True, "operations": operations,
+                               "fingerprint": plan.fingerprint()}, salt=DissolveLocationView.salt, compress=True)
+        self.assertEqual(self.client.post(self.url, {"stage": "confirm", "plan": token}).status_code, 403)
+        self.assertTrue(Location.active.filter(pk=self.child.pk).exists())
+
+    def test_location_details_show_whether_non_admins_may_delete(self):
+        self.assertContains(self.client.get(self.root.get_absolute_url()), "Locations of this type can only be deleted in the admin.")
+        LocationType.objects.filter(pk=self.box_type.pk).update(deletable_in_frontend=True)
+        self.assertContains(self.client.get(self.root.get_absolute_url()),
+                            "Everyone with the delete permission may delete locations of this type here.")
+
+    def test_staff_too_delete_protected_types_only_in_the_admin(self):
+        from django.contrib import admin
+        from django.test import RequestFactory
+        from ..admin import LocationAdmin
+        get_user_model().objects.filter(pk=self.user.pk).update(is_staff=True)
+        staff = get_user_model().objects.get(pk=self.user.pk)
+        self.client.force_login(staff)
+        self.assertContains(self.client.get(self.root.get_absolute_url()), "can only be deleted in the admin")
+        self.assertEqual(self.client.get(self.url).status_code, 403)
+        request = RequestFactory().get("/admin/")
+        request.user = staff
+        self.assertTrue(LocationAdmin(Location, admin.site).has_delete_permission(request, self.root))
+
+    def test_without_the_delete_permission_the_type_does_not_matter(self):
+        LocationType.objects.filter(pk=self.box_type.pk).update(deletable_in_frontend=True)
+        self.user.user_permissions.remove(Permission.objects.get(codename="delete_location"))
+        self.client.force_login(get_user_model().objects.get(pk=self.user.pk))
+        self.assertContains(self.client.get(self.root.get_absolute_url()), "You do not have permission to delete this location.")
+        self.assertEqual(self.client.get(self.url).status_code, 403)
+
+    def test_migration_allows_the_agreed_types(self):
+        from importlib import import_module
+        from django.apps import apps
+        migration = import_module("inventory.migrations.0034_location_type_deletable_in_frontend")
+        names = ["Haus+Etage", "Raum/Bereich", "Kiste", "Regal", "Fach/Schub", "Karton", "Palette", "Schrank", "Other"]
+        for name in names:
+            LocationType.objects.create(name=name)
+        migration.allow_deletion(apps, None)
+        allowed = set(LocationType.objects.filter(name__in=names, deletable_in_frontend=True).values_list("name", flat=True))
+        self.assertEqual(allowed, {"Regal", "Fach/Schub", "Karton", "Palette", "Schrank"})

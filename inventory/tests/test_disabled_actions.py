@@ -30,7 +30,7 @@ class UnavailableActionsStayVisibleTests(TestCase):
     @classmethod
     def setUpTestData(cls):
         MeasurementUnit.objects.create(pk=1, name="Piece", short="pc")
-        room = LocationType.objects.create(name="Room", unique=True, moveable=True)
+        room = LocationType.objects.create(name="Room", unique=True, moveable=True, deletable_in_frontend=True)
         cls.shelf = Location.objects.create(type=room, name="Shelf", short_name="SH")
         cls.item = Item.objects.create(name="Resistor")
         ItemLocation.objects.create(item=cls.item, location=cls.shelf, amount=10)
