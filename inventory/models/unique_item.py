@@ -1,7 +1,7 @@
 """
 Unique items: single physical objects of an item tracked as unique items (an
 Item with kind "unique"), such as one particular fire extinguisher. Each one is
-at exactly one location and identified by its ZAM ID. Unique items are never
+at exactly one location and identified by its label ID. Unique items are never
 deleted: they leave the inventory by being disposed, and UniqueItemEvent keeps
 their history.
 """
@@ -99,28 +99,28 @@ class UniqueItem(models.Model):
         ]
 
     def __str__(self):
-        code = self.zam_display
+        code = self.label_display
         return f"{self.item} {code}" if code else f"{self.item} #{self.pk}"
 
     def get_absolute_url(self):
         return reverse("view_unique_item", kwargs={"pk": self.pk})
 
     @property
-    def zam_code(self):
-        """The active ZAM ID code; annotate_zam_code() fills it without a query."""
-        if "_zam_code" not in self.__dict__:
-            from ..zamid.lookup import active_code
-            self._zam_code = active_code(self)
-        return self._zam_code
+    def label_code(self):
+        """The active label ID code; annotate_label_code() fills it without a query."""
+        if "_label_code" not in self.__dict__:
+            from ..label_ids.lookup import active_code
+            self._label_code = active_code(self)
+        return self._label_code
 
-    @zam_code.setter
-    def zam_code(self, value):
-        self._zam_code = value
+    @label_code.setter
+    def label_code(self, value):
+        self._label_code = value
 
     @property
-    def zam_display(self):
-        from ..zamid import core
-        return core.display(self.zam_code) if self.zam_code else ""
+    def label_display(self):
+        from ..label_ids import core
+        return core.display(self.label_code) if self.label_code else ""
 
     @property
     def is_disposed(self):
@@ -208,7 +208,7 @@ class UniqueItem(models.Model):
             return result
 
     def dispose(self, reason, note="", actor=None):
-        """Remove the unique item from the inventory. Its ZAM ID stays assigned."""
+        """Remove the unique item from the inventory. Its label ID stays assigned."""
         self.disposed_at = timezone.now()
         self.disposal_reason = reason
         self.disposal_note = note

@@ -186,13 +186,13 @@
                     <div class="location-panel-heading">
                         <div class="location-panel-title-row">
                             <h2 id="location-unique-items-heading" class="fs-4">{% if unique_items|length > 10 %}<label class="list-collapse-toggle" for="location-unique-items-expanded">{% endif %}<span class="list-collapse-title">{% trans "Unique items" %} <span class="location-count">{{ unique_items|length }}</span></span>{% if unique_items|length > 10 %}</label>{% endif %}</h2>
-                            {% if perms.inventory.add_uniqueitem and perms.inventory.claim_zamid %}
+                            {% if perms.inventory.add_uniqueitem and perms.inventory.claim_labelid %}
                             <a class="btn btn-primary location-add-item" href="{% url 'create_unique_item' %}?location={{ object.pk }}" data-bs-toggle="tooltip" title="{% trans 'Add a unique item at this location' %}" aria-label="{% trans 'Add a unique item at this location' %}"><span aria-hidden="true">+</span></a>
                             {% else %}
                             {% disabled_action "+" name=_("Add a unique item at this location") classes="btn btn-primary location-add-item" %}
                             {% endif %}
                         </div>
-                        <p class="location-muted">{% trans "Single objects with their own ZAM ID, such as machines or fire extinguishers." %}</p>
+                        <p class="location-muted">{% blocktrans with name=label_id_name %}Single objects with their own {{ name }}, such as machines or fire extinguishers.{% endblocktrans %}</p>
                     </div>
                     {% if unique_items %}
                         <div class="location-item-columns" aria-hidden="true">
@@ -204,7 +204,7 @@
                             {% for unique_item in unique_items %}
                                 <li class="location-item">
                                     <div class="location-item-info">
-                                        <h3 class="fs-6"><a href="{{ unique_item.get_absolute_url }}">{{ unique_item.item }} {% if unique_item.zam_code %}<span class="unique-item-code">{{ unique_item.zam_display }}</span>{% else %}#{{ unique_item.pk }}{% endif %}</a></h3>
+                                        <h3 class="fs-6"><a href="{{ unique_item.get_absolute_url }}">{{ unique_item.item }} {% if unique_item.label_code %}<span class="unique-item-code">{{ unique_item.label_display }}</span>{% else %}#{{ unique_item.pk }}{% endif %}</a></h3>
                                         {% if unique_item.notes %}<p class="location-item-description location-muted">{{ unique_item.notes|markdown_plain|truncatechars:160 }}</p>{% endif %}
                                     </div>
                                     <div class="location-amount">{% usage_level unique_item.effective_usage_level %}</div>

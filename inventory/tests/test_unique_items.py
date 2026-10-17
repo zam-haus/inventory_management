@@ -16,9 +16,9 @@ from django.urls import reverse
 
 from accounts.models import Team
 from ..actor import acting_as
-from ..models import Item, ItemLocation, Location, UniqueItem, UniqueItemEvent, UsageLevel, ZamId
-from ..zamid import services
-from ..zamid.testing import SETTINGS, InventoryFixture, make_id, zam_local_group
+from ..models import Item, ItemLocation, Location, UniqueItem, UniqueItemEvent, UsageLevel, LabelId
+from ..label_ids import services
+from ..label_ids.testing import SETTINGS, InventoryFixture, make_id, local_group
 
 
 def grant(user, *codenames):
@@ -33,9 +33,9 @@ class UniqueItemFixture(InventoryFixture):
         # Invented people only.
         cls.member = User.objects.create_user(username="member", first_name="Alex", last_name="Example",
                                               email="alex@example.org")
-        cls.member.groups.add(zam_local_group())
+        cls.member.groups.add(local_group())
         cls.insider = User.objects.create_user(username="insider", first_name="Sam", last_name="Sample")
-        cls.insider.groups.add(zam_local_group())
+        cls.insider.groups.add(local_group())
         grant(cls.insider, "view_internal_details", "dispose_uniqueitem")
         cls.owner = User.objects.create_user(username="owner", first_name="Robin", last_name="Private",
                                              email="robin@example.org")
@@ -44,7 +44,7 @@ class UniqueItemFixture(InventoryFixture):
         cls.extinguisher = Item.objects.create(name="Fire extinguisher", kind=Item.Kind.UNIQUE,
                                                usage_level=UsageLevel.GREEN, measurement_unit=cls.unit)
         cls.unique_item = UniqueItem.objects.create(item=cls.extinguisher, location=cls.location)
-        cls.zid = services.claim(make_id("K7Q4X").code, cls.unique_item, None)
+        cls.lid = services.claim(make_id("K7R4X").code, cls.unique_item, None)
 
 
 @override_settings(**SETTINGS)
@@ -121,9 +121,9 @@ class UniqueItemModelTests(UniqueItemFixture, TestCase):
 
     def test_disposal_keeps_the_id(self):
         self.unique_item.dispose(UniqueItem.DisposalReason.LOST)
-        self.assertEqual(ZamId.objects.get(pk=self.zid.pk).status, ZamId.Status.ASSIGNED)
-        self.assertEqual(str(self.unique_item), "Fire extinguisher K7Q-4XD")
-        with self.assertRaises(services.ZamIdError):
+        self.assertEqual(LabelId.objects.get(pk=self.lid.pk).status, LabelId.Status.ASSIGNED)
+        self.assertEqual(str(self.unique_item), "Fire extinguisher K7R-4XD")
+        with self.assertRaises(services.LabelIdError):
             services.claim(make_id("12345").code, self.unique_item, None)
 
 
@@ -151,14 +151,14 @@ class UniqueItemViewTests(UniqueItemFixture, TestCase):
 
     def create_data(self, **extra):
         return {
-            "item": self.extinguisher.pk, "location": self.location.pk, "zam_choice": "generate",
+            "item": self.extinguisher.pk, "location": self.location.pk, "label_choice": "generate",
             "files-TOTAL_FORMS": "0", "files-INITIAL_FORMS": "0", "images-TOTAL_FORMS": "0", "images-INITIAL_FORMS": "0", **extra,
         }
 
     def test_public_page_shows_first_names_and_team_only(self):
         response = self.client.get(self.unique_item.get_absolute_url())
-        self.assertContains(response, "K7Q-4XD")
-        self.assertContains(response, reverse("zamid_label", args=[self.zid.code]) + "?printer=P900&amp;tape=24")
+        self.assertContains(response, "K7R-4XD")
+        self.assertContains(response, reverse("label_id_label", args=[self.lid.code]) + "?printer=P900&amp;tape=24")
         self.assertContains(response, "Woodworking")
         self.assertContains(response, "Alex")
         self.assertContains(response, "Not ZAM property: Robin")
@@ -199,23 +199,23 @@ class UniqueItemViewTests(UniqueItemFixture, TestCase):
         self.assertNotContains(self.client.get(self.unique_item.get_absolute_url()), "Not ZAM property")
 
     def test_label_of_assigned_id_is_public(self):
-        url = reverse("zamid_label", args=[self.zid.code])
+        url = reverse("label_id_label", args=[self.lid.code])
         response = self.client.get(url, {"printer": "P900", "tape": 24})
         self.assertEqual((response.status_code, response["Content-Type"]), (200, "image/png"))
         reserved = make_id("ABCDE")
-        self.assertEqual(self.client.get(reverse("zamid_label", args=[reserved.code])).status_code, 302)
+        self.assertEqual(self.client.get(reverse("label_id_label", args=[reserved.code])).status_code, 302)
         self.client.force_login(self.member)
-        self.assertEqual(self.client.get(reverse("zamid_label", args=[reserved.code])).status_code, 403)
+        self.assertEqual(self.client.get(reverse("label_id_label", args=[reserved.code])).status_code, 403)
 
     def test_create_generates_an_id(self):
         self.client.force_login(self.member)
-        before = ZamId.objects.count()
+        before = LabelId.objects.count()
         response = self.client.post(reverse("create_unique_item"), self.create_data(owner_first_name="Kim"))
         unique_item = UniqueItem.objects.latest("pk")
         self.assertRedirects(response, unique_item.get_absolute_url(), fetch_redirect_response=False)
-        self.assertEqual(ZamId.objects.count(), before + 1)
-        zid = ZamId.objects.get(unique_item=unique_item)
-        self.assertEqual((zid.status, zid.assigned_by, zid.batch), (ZamId.Status.ASSIGNED, self.member, "unique_item"))
+        self.assertEqual(LabelId.objects.count(), before + 1)
+        lid = LabelId.objects.get(unique_item=unique_item)
+        self.assertEqual((lid.status, lid.assigned_by, lid.batch), (LabelId.Status.ASSIGNED, self.member, "unique_item"))
         self.assertEqual(unique_item.events.get().actor, self.member)
         self.assertEqual(unique_item.owner_first_name, "Kim")
 
@@ -223,17 +223,17 @@ class UniqueItemViewTests(UniqueItemFixture, TestCase):
         self.client.force_login(self.member)
         reserved = make_id("ABCDE")
         response = self.client.post(reverse("create_unique_item"), self.create_data(
-            zam_choice="reserved", zam_code=f"https://i.zam.haus/{reserved.code}"))
+            label_choice="reserved", label_code=f"https://i.zam.haus/{reserved.code}"))
         self.assertEqual(response.status_code, 302)
-        self.assertEqual(ZamId.objects.get(pk=reserved.pk).unique_item, UniqueItem.objects.latest("pk"))
+        self.assertEqual(LabelId.objects.get(pk=reserved.pk).unique_item, UniqueItem.objects.latest("pk"))
 
     def test_used_label_saves_nothing(self):
         self.client.force_login(self.member)
         count = UniqueItem.objects.count()
         response = self.client.post(reverse("create_unique_item"), self.create_data(
-            zam_choice="reserved", zam_code=self.zid.code))
+            label_choice="reserved", label_code=self.lid.code))
         self.assertEqual(response.status_code, 200)
-        self.assertIn("zam_code", response.context["form"].errors)
+        self.assertIn("label_code", response.context["form"].errors)
         self.assertEqual(UniqueItem.objects.count(), count)
 
     def test_claim_race_rolls_back(self):
@@ -244,10 +244,10 @@ class UniqueItemViewTests(UniqueItemFixture, TestCase):
 
         def claim_taken(code, target, user):
             services.claim = original
-            raise services.ZamIdError("The ID is already in use.")
+            raise services.LabelIdError("The ID is already in use.")
         services.claim = claim_taken
         self.addCleanup(setattr, services, "claim", original)
-        response = self.client.post(reverse("create_unique_item"), self.create_data(zam_choice="reserved", zam_code=reserved.code))
+        response = self.client.post(reverse("create_unique_item"), self.create_data(label_choice="reserved", label_code=reserved.code))
         self.assertEqual(response.status_code, 302)
         self.assertEqual(UniqueItem.objects.count(), count)
         self.assertEqual(UniqueItemEvent.objects.filter(unique_item__pk__gt=self.unique_item.pk).count(), 0)
@@ -298,17 +298,17 @@ class UniqueItemViewTests(UniqueItemFixture, TestCase):
         self.assertRedirects(response, self.location.get_absolute_url(), fetch_redirect_response=False)
         self.assertEqual(list(self.client.get(self.location.get_absolute_url()).context["unique_items"]), [])
         # The old label still leads to the unique item's page, which explains what happened.
-        response = self.client.get(reverse("zamid_resolve", args=[self.zid.code]))
+        response = self.client.get(reverse("label_id_resolve", args=[self.lid.code]))
         self.assertRedirects(response, self.unique_item.get_absolute_url(), fetch_redirect_response=False)
         self.assertContains(self.client.get(self.unique_item.get_absolute_url()), "Removed from the inventory")
         self.assertEqual(self.client.get(url).status_code, 404)
 
     def test_location_and_item_pages_list_unique_items(self):
         response = self.client.get(self.location.get_absolute_url())
-        self.assertContains(response, "K7Q-4XD")
+        self.assertContains(response, "K7R-4XD")
         self.assertContains(response, self.unique_item.get_absolute_url())
         response = self.client.get(self.extinguisher.get_absolute_url())
-        self.assertContains(response, "K7Q-4XD")
+        self.assertContains(response, "K7R-4XD")
         self.assertEqual(len(response.context["unique_items"]), 1)
 
     def test_item_search_offers_a_new_item_last(self):
@@ -331,7 +331,7 @@ class UniqueItemViewTests(UniqueItemFixture, TestCase):
         unique_item = ladder.unique_items.get()
         self.assertRedirects(response, unique_item.get_absolute_url(), fetch_redirect_response=False)
         self.assertEqual((ladder.kind, unique_item.location), (Item.Kind.UNIQUE, self.location))
-        self.assertTrue(ZamId.objects.filter(unique_item=unique_item, status=ZamId.Status.ASSIGNED).exists())
+        self.assertTrue(LabelId.objects.filter(unique_item=unique_item, status=LabelId.Status.ASSIGNED).exists())
 
     def test_new_item_is_only_created_with_the_unique_item(self):
         self.client.force_login(self.member)
@@ -344,7 +344,7 @@ class UniqueItemViewTests(UniqueItemFixture, TestCase):
 
     def test_new_item_needs_permission(self):
         user = get_user_model().objects.create_user(username="adder")
-        grant(user, "add_uniqueitem", "claim_zamid")
+        grant(user, "add_uniqueitem", "claim_labelid")
         self.client.force_login(user)
         response = self.client.post(reverse("create_unique_item"), self.create_data(item="new:Ladder"))
         self.assertIn("item", response.context["form"].errors)
@@ -354,7 +354,7 @@ class UniqueItemViewTests(UniqueItemFixture, TestCase):
         response = self.client.get(self.unique_item.get_absolute_url())
         self.assertContains(response, f'<a href="{reverse("index_items")}">Items</a>', html=True)
         self.assertContains(response, f'<a href="{self.extinguisher.get_absolute_url()}">Fire extinguisher</a>', html=True)
-        self.assertContains(response, f'<a href="{self.unique_item.get_absolute_url()}" aria-current="page">K7Q-4XD</a>', html=True)
+        self.assertContains(response, f'<a href="{self.unique_item.get_absolute_url()}" aria-current="page">K7R-4XD</a>', html=True)
         drawer = Location.objects.create(name="Drawer", short_name="D2", type=self.kind, parent_location=self.shelf)
         response = self.client.get(drawer.get_absolute_url())
         content = response.content.decode()
@@ -365,7 +365,7 @@ class UniqueItemViewTests(UniqueItemFixture, TestCase):
         self.assertNotIn(f">{drawer.locatable_identifier}</a>", content)
 
     def test_search_by_id_opens_the_unique_item(self):
-        response = self.client.get(reverse("index_items"), {"q": "k7q-4xd"}, follow=True)
+        response = self.client.get(reverse("index_items"), {"q": "k7r-4xd"}, follow=True)
         self.assertEqual(response.redirect_chain[-1][0], self.unique_item.get_absolute_url())
 
     def new_item_data(self, kind="unique", **first):
@@ -375,7 +375,7 @@ class UniqueItemViewTests(UniqueItemFixture, TestCase):
                 "itemimage_set-TOTAL_FORMS": "0", "itemimage_set-INITIAL_FORMS": "0",
                 "itemfile_set-TOTAL_FORMS": "0", "itemfile_set-INITIAL_FORMS": "0",
                 "first_unique_item-TOTAL_FORMS": "1", "first_unique_item-INITIAL_FORMS": "0",
-                "first_unique_item-0-zam_choice": "generate"}
+                "first_unique_item-0-label_choice": "generate"}
         data.update({f"first_unique_item-0-{key}": value for key, value in first.items()})
         return data
 
@@ -395,7 +395,7 @@ class UniqueItemViewTests(UniqueItemFixture, TestCase):
         self.assertEqual((saw.kind, saw.usage_level, saw.itemlocation_set.count()), (Item.Kind.UNIQUE, "red", 0))
         first = saw.unique_items.get()
         self.assertRedirects(response, first.get_absolute_url(), fetch_redirect_response=False)
-        self.assertEqual((first.location, ZamId.objects.get(unique_item=first).status), (self.shelf, ZamId.Status.ASSIGNED))
+        self.assertEqual((first.location, LabelId.objects.get(unique_item=first).status), (self.shelf, LabelId.Status.ASSIGNED))
         self.assertEqual(first.events.get().actor, self.member)
 
     def test_new_item_needs_a_location_and_a_valid_label(self):
@@ -404,12 +404,12 @@ class UniqueItemViewTests(UniqueItemFixture, TestCase):
         response = self.client.post(url, self.new_item_data(location=""))
         self.assertEqual(response.status_code, 200)
         self.assertIn("location", response.context["inlines"][3].forms[0].errors)
-        response = self.client.post(url, self.new_item_data(location=self.shelf.pk, zam_choice="reserved", zam_code=self.zid.code))
-        self.assertIn("zam_code", response.context["inlines"][3].forms[0].errors)
+        response = self.client.post(url, self.new_item_data(location=self.shelf.pk, label_choice="reserved", label_code=self.lid.code))
+        self.assertIn("label_code", response.context["inlines"][3].forms[0].errors)
         self.assertFalse(Item.objects.filter(name="Circular saw").exists())
         reserved = make_id("ABCDE")
-        self.client.post(url, self.new_item_data(location=self.shelf.pk, zam_choice="reserved", zam_code=reserved.code))
-        self.assertEqual(ZamId.objects.get(pk=reserved.pk).unique_item.item.name, "Circular saw")
+        self.client.post(url, self.new_item_data(location=self.shelf.pk, label_choice="reserved", label_code=reserved.code))
+        self.assertEqual(LabelId.objects.get(pk=reserved.pk).unique_item.item.name, "Circular saw")
 
     def test_new_item_with_unique_items_needs_their_permissions(self):
         user = get_user_model().objects.create_user(username="adder")
@@ -493,9 +493,9 @@ class UniqueItemLocationTests(UniqueItemFixture, TestCase):
         return Location.objects.create(name="Storage", short_name="ST", type=self.kind)
 
     def test_missing_ids_are_reported(self):
-        services.retire(self.zid.code, None)
+        services.retire(self.lid.code, None)
         out = StringIO()
-        call_command("zamid_check", "--missing", stdout=out)
+        call_command("label_id_check", "--missing", stdout=out)
         self.assertIn(f"unique item #{self.unique_item.pk}", out.getvalue())
 
 
@@ -517,12 +517,12 @@ class UniqueItemAdminTests(UniqueItemFixture, TestCase):
 
     def test_admin_add_generates_an_id(self):
         unique_item = self.add()
-        self.assertEqual(ZamId.objects.get(unique_item=unique_item).status, ZamId.Status.ASSIGNED)
+        self.assertEqual(LabelId.objects.get(unique_item=unique_item).status, LabelId.Status.ASSIGNED)
 
     def test_admin_add_claims_the_scanned_label(self):
         reserved = make_id("ABCDE")
-        unique_item = self.add(f"?zamid={reserved.code}")
-        self.assertEqual(ZamId.objects.get(pk=reserved.pk).unique_item, unique_item)
+        unique_item = self.add(f"?label_id={reserved.code}")
+        self.assertEqual(LabelId.objects.get(pk=reserved.pk).unique_item, unique_item)
 
 
 class ForSaleMigrationTests(TransactionTestCase):
@@ -649,7 +649,7 @@ class InternalFieldsOnCreationTests(UniqueItemFixture, TestCase):
     def create(self, user, **data):
         self.client.force_login(user)
         return self.client.post(reverse("create_unique_item"), {
-            "item": self.extinguisher.pk, "location": self.location.pk, "zam_choice": "generate",
+            "item": self.extinguisher.pk, "location": self.location.pk, "label_choice": "generate",
             "owner_user": self.owner.pk, "responsible_user": self.member.pk, "purchase_price": "10.00",
             "images-TOTAL_FORMS": "0", "images-INITIAL_FORMS": "0", "files-TOTAL_FORMS": "0", "files-INITIAL_FORMS": "0",
             **data})

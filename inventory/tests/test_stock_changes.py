@@ -247,7 +247,7 @@ class StockChangeDialogTests(TestCase):
         self.entry.refresh_from_db()
         self.assertEqual(self.entry.amount, 10)
 
-    def test_zam_local_group_may_remove_stock(self):
+    def test_local_group_may_remove_stock(self):
         group = Group.objects.get(name="ZAM-local")
         self.assertTrue(group.permissions.filter(codename="add_stockchange").exists())
         self.assertFalse(group.permissions.filter(codename="view_stockchange").exists())

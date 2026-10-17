@@ -20,11 +20,11 @@ from .keyboard_layouts import layout_corrections
 from .location_lookup import scan_prefix
 from .models import (
     USAGE_LEVEL_DESCRIPTIONS, BarcodeType, Item, ItemBarcode, ItemFile, ItemImage, ItemLocation, Location, StockChange,
-    UniqueItem, UsageLevel, ZamId,
+    UniqueItem, UsageLevel, LabelId,
 )
 from .widgets import NEW_ITEM_PREFIX, AutocompleteSelect, ItemOrNewSelect
-from .zamid import core as zamid_core, parsing as zamid_parsing
-from .zamid.lookup import annotate_zam_code
+from .label_ids import core as label_id_core, naming as label_id_naming, parsing as label_id_parsing
+from .label_ids.lookup import annotate_label_code
 
 
 class LocationMultipleChoiceField(ModelMultipleChoiceField):
@@ -339,8 +339,9 @@ class NewItemForm(BaseItemForm):
             layout.HTML(format_html(
                 '<p class="text-muted" data-for-kind="bulk">{}</p><p class="text-muted" data-for-kind="unique">{}</p>',
                 _("A bulk item is counted per location, such as screws or filament."),
-                _("Unique items are objects tracked one by one, each with its own ZAM ID, such as fire extinguishers "
-                  "or machines. This item describes them; enter the first one below and add more later."),
+                _("Unique items are objects tracked one by one, each with its own {name}, such as fire extinguishers "
+                  "or machines. This item describes them; enter the first one below and add more later.").format(
+                    name=label_id_naming.name()),
             )),
             "name",
             "category",
@@ -467,7 +468,7 @@ PRIMARY_PHOTO_CHECKBOX = layout.HTML("""
 
 
 def unique_item_choice_label(unique_item):
-    code = unique_item.zam_display or f"#{unique_item.pk}"
+    code = unique_item.label_display or f"#{unique_item.pk}"
     where = unique_item.location.locatable_identifier if unique_item.location else _("removed from the inventory")
     return f"{code} @ {where}"
 
@@ -479,7 +480,7 @@ def offer_unique_items(formset, item):
     """
     unique_items = []
     if item is not None and item.pk and item.tracks_unique_items:
-        unique_items = list(annotate_zam_code(item.unique_items.select_related("location")))
+        unique_items = list(annotate_label_code(item.unique_items.select_related("location")))
     for form in formset.forms:
         if not unique_items:
             form.fields.pop("unique_item", None)
@@ -1064,16 +1065,16 @@ class UniqueItemForm(NewItemAlongsideMixin, ModelForm):
         ]
 
 
-class ZamIdChoiceForm(Form):
-    """Every unique item gets its ZAM ID when it is created: a reserved label or a new one."""
+class LabelIdChoiceForm(Form):
+    """Every unique item gets its label ID when it is created: a reserved label or a new one."""
 
     GENERATE, RESERVED = "generate", "reserved"
-    zam_choice = ChoiceField(
-        label=_("ZAM ID"), initial=GENERATE, widget=RadioSelect,
+    label_choice = ChoiceField(
+        label=label_id_naming.NAME, initial=GENERATE, widget=RadioSelect,
         choices=[(GENERATE, _("Generate a new ID and print its label")),
                  (RESERVED, _("Use a pre-printed label"))],
     )
-    zam_code = CharField(
+    label_code = CharField(
         label=_("ID on the label"), required=False, max_length=200,
         help_text=_("Scan the label or type the ID printed on it."),
         widget=TextInput(attrs={"autocomplete": "off", "autocapitalize": "characters"}),
@@ -1082,41 +1083,41 @@ class ZamIdChoiceForm(Form):
     @staticmethod
     def label_row():
         return layout.Div(
-            layout.Div("zam_choice", css_class="col-sm-6"),
-            layout.Div("zam_code", css_class="col-sm-6"),
+            layout.Div("label_choice", css_class="col-sm-6"),
+            layout.Div("label_code", css_class="col-sm-6"),
             css_class="row",
         )
 
     def clean(self):
         cleaned = super().clean()
-        if cleaned.get("zam_choice") != self.RESERVED:
-            cleaned["zam_code"] = None
+        if cleaned.get("label_choice") != self.RESERVED:
+            cleaned["label_code"] = None
             return cleaned
-        raw = (cleaned.get("zam_code") or "").strip()
+        raw = (cleaned.get("label_code") or "").strip()
         if not raw:
-            self.add_error("zam_code", _("Scan or enter the ID on the label."))
+            self.add_error("label_code", _("Scan or enter the ID on the label."))
             return cleaned
         try:
-            code = zamid_parsing.code_from_scan(raw)
-        except zamid_core.InvalidZamId:
-            self.add_error("zam_code", _("%(code)s is not a valid ID.") % {"code": raw})
+            code = label_id_parsing.code_from_scan(raw)
+        except label_id_core.InvalidLabelId:
+            self.add_error("label_code", _("%(code)s is not a valid ID.") % {"code": raw})
             return cleaned
-        zid = ZamId.objects.filter(pk=code).first()
-        if zid is None:
-            self.add_error("zam_code", _("The ID %(code)s does not exist.") % {"code": zamid_core.display(code)})
-        elif zid.status != ZamId.Status.RESERVED:
-            self.add_error("zam_code", _("The ID %(code)s is already in use or retired.") % {"code": zid.display})
+        lid = LabelId.objects.filter(pk=code).first()
+        if lid is None:
+            self.add_error("label_code", _("The ID %(code)s does not exist.") % {"code": label_id_core.display(code)})
+        elif lid.status != LabelId.Status.RESERVED:
+            self.add_error("label_code", _("The ID %(code)s is already in use or retired.") % {"code": lid.display})
         else:
-            cleaned["zam_code"] = code
+            cleaned["label_code"] = code
         return cleaned
 
 
-class NewUniqueItemForm(ZamIdChoiceForm, UniqueItemForm):
+class NewUniqueItemForm(LabelIdChoiceForm, UniqueItemForm):
     def layout_fields(self):
         return [layout.Fieldset(_("Label"), self.label_row()), *super().layout_fields()]
 
 
-class FirstUniqueItemForm(ZamIdChoiceForm, ModelForm):
+class FirstUniqueItemForm(LabelIdChoiceForm, ModelForm):
     """Creating an item tracked as unique items includes its first unique item, like stock for a bulk item."""
 
     class Meta:
@@ -1155,7 +1156,7 @@ class FirstUniqueItemInline(InlineFormSetFactory):
         formset.helper.disable_csrf = True
         formset.helper.include_media = False
         formset.helper.form_title = _("First unique item")
-        formset.helper.layout = layout.Layout("location", ZamIdChoiceForm.label_row())
+        formset.helper.layout = layout.Layout("location", LabelIdChoiceForm.label_row())
         return formset
 
 

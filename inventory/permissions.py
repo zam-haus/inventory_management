@@ -10,8 +10,8 @@ from .stock_log import stock_changes
 
 # Anyone who may create items may manage quick-items while they stay quick-items.
 QUICK_ITEM_PERMISSIONS = ("inventory.add_item", "inventory.add_itemlocation")
-# Every new unique item gets a ZAM ID right away.
-UNIQUE_ITEM_CREATE_PERMISSIONS = ("inventory.add_uniqueitem", "inventory.claim_zamid")
+# Every new unique item gets a label ID right away.
+UNIQUE_ITEM_CREATE_PERMISSIONS = ("inventory.add_uniqueitem", "inventory.claim_labelid")
 
 
 def model_permission(model, action):

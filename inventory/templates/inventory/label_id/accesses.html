@@ -1,0 +1,15 @@
+{% load i18n %}{% if accesses %}
+<table class="table table-sm w-auto label-id-accesses">
+    <thead><tr><th>{% trans "time" %}</th><th>{% trans "access method" %}</th><th>{% blocktrans with name=local_network_name %}at {{ name }}{% endblocktrans %}</th>{% if show_user %}<th>{% trans "user" %}</th>{% endif %}</tr></thead>
+    <tbody>
+    {% for entry in accesses %}
+        <tr>
+            <td>{{ entry.accessed_at|date:"SHORT_DATETIME_FORMAT" }}</td>
+            <td>{{ entry.get_method_display }}</td>
+            <td>{% if entry.local_network %}{% trans "yes" %}{% else %}{% trans "no" %}{% endif %}</td>
+            {% if show_user %}<td>{% if entry.user %}{{ entry.user.get_username }}{% else %}{% trans "not logged in" %}{% endif %}</td>{% endif %}
+        </tr>
+    {% endfor %}
+    </tbody>
+</table>
+{% else %}<p class="text-muted small">{% trans "Not scanned or entered in a web form yet." %}</p>{% endif %}

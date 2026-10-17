@@ -192,7 +192,7 @@ class Location(SoftDeleteModel, ComputedFieldsModel):
         verbose_name = _("location")
         verbose_name_plural = _("locations")
         ordering = ("locatable_identifier",)
-        # The printable inventory is for ZAM-local members (granted by migration 0023).
+        # The printable inventory is for members of the local group (granted by migration 0023).
         permissions = [("print_inventory", _("Can print the inventory of locations"))]
 
     type = models.ForeignKey(LocationType, on_delete=models.PROTECT, verbose_name=_("type"))

@@ -20,9 +20,9 @@ from .forms import AdminItemLocationForm, AdminLocationForm
 from .soft_delete import SoftDeleteModel
 from .soft_delete_admin import DeletedObjectFilter, SoftDeleteAdminMixin
 from .stock_log import stock_changes
-from .zamid import core as zamid_core, parsing as zamid_parsing, services as zamid_services
-from .zamid.admin import ClaimOnAddMixin  # also registers ZamIdAdmin
-from .zamid.lookup import annotate_zam_code
+from .label_ids import core as label_id_core, naming as label_id_naming, parsing as label_id_parsing, services as label_id_services
+from .label_ids.admin import ClaimOnAddMixin  # also registers LabelIdAdmin
+from .label_ids.lookup import annotate_label_code
 
 
 admin.site.register(models.LocationType)
@@ -509,11 +509,11 @@ class UniqueItemEventInline(CappedInlineMixin, admin.TabularInline):
 
 @admin.register(models.UniqueItem)
 class UniqueItemAdmin(admin.ModelAdmin):
-    list_display = ("__str__", "zam_code_display", "location", "responsible_team", "disposed_at")
+    list_display = ("__str__", "label_code_display", "location", "responsible_team", "disposed_at")
     list_filter = ("item", "responsible_team", ("disposed_at", admin.EmptyFieldListFilter))
     search_fields = ("item__name", "notes", "owner_first_name")
     autocomplete_fields = ("item", "location", "responsible_user", "owner_user")
-    readonly_fields = ("zam_code_display",)
+    readonly_fields = ("label_code_display",)
     inlines = [UniqueItemImageInline, UniqueItemFileInline, UniqueItemEventInline]
 
     INTERNAL_FIELDS = ("owner_user", "responsible_user", "owner_contact", "purchase_price")
@@ -532,7 +532,7 @@ class UniqueItemAdmin(admin.ModelAdmin):
             fields = (*fields, "owner_user", "owner_first_name", "owner_contact")
         return fields
     fieldsets = (
-        (None, {"fields": ("zam_code_display", "item", "location", "usage_level", "warranty_until", "notes")}),
+        (None, {"fields": ("label_code_display", "item", "location", "usage_level", "warranty_until", "notes")}),
         (_("Responsibility"), {"fields": ("responsible_team", "responsible_user")}),
         (_("Owner"), {"fields": ("owner_user", "owner_first_name", "owner_contact")}),
         (_("Procurement"), {"fields": ("purchase_date", "purchase_price", "procurement_source")}),
@@ -540,29 +540,29 @@ class UniqueItemAdmin(admin.ModelAdmin):
     )
 
     def get_queryset(self, request):
-        return annotate_zam_code(super().get_queryset(request).select_related("item", "location"))
+        return annotate_label_code(super().get_queryset(request).select_related("item", "location"))
 
-    @admin.display(description=_("ZAM ID"), ordering="zam_code")
-    def zam_code_display(self, obj):
-        return obj.zam_display or "–"
+    @admin.display(description=label_id_naming.NAME, ordering="label_code")
+    def label_code_display(self, obj):
+        return obj.label_display or "–"
 
     @transaction.atomic
     def save_model(self, request, obj, form, change):
         obj.save(actor=request.user)
         if change:
             return
-        # Every unique item gets its ID right away: the scanned label (?zamid=) or a new one.
-        raw = request.GET.get("zamid")
+        # Every unique item gets its ID right away: the scanned label (?label_id=) or a new one.
+        raw = request.GET.get("label_id")
         if raw:
             try:
-                zid = zamid_services.claim(zamid_parsing.code_from_scan(raw), obj, request.user)
-            except (zamid_core.InvalidZamId, zamid_services.ZamIdError) as error:
+                lid = label_id_services.claim(label_id_parsing.code_from_scan(raw), obj, request.user)
+            except (label_id_core.InvalidLabelId, label_id_services.LabelIdError) as error:
                 messages.warning(request, _("%(code)s could not be used (%(error)s); a new ID was generated.")
                                  % {"code": raw, "error": error})
                 raw = None
         if not raw:
-            zid = zamid_services.generate_and_claim(obj, request.user)
-        messages.success(request, _("The ID %(code)s now belongs to %(target)s.") % {"code": zid.display, "target": obj})
+            lid = label_id_services.generate_and_claim(obj, request.user)
+        messages.success(request, _("The ID %(code)s now belongs to %(target)s.") % {"code": lid.display, "target": obj})
 
     def has_delete_permission(self, request, obj=None):
         # Unique items leave the inventory by being disposed; their history stays.

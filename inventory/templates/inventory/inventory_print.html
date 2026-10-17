@@ -121,7 +121,7 @@
                         <article class="item">
                             <h3>{{ unique_item.item }}</h3>
                             <div class="facts">
-                                <span><strong>{% trans "ZAM ID" %}:</strong> {% if unique_item.zam_code %}{{ unique_item.zam_display }}{% else %}–{% endif %}</span>
+                                <span><strong>{{ label_id_name }}:</strong> {% if unique_item.label_code %}{{ unique_item.label_display }}{% else %}–{% endif %}</span>
                                 <span><strong>{% trans "Location identifier" %}:</strong> {{ unique_item.location.unique_identifier }}</span>
                                 {% if unique_item.effective_usage_level %}<span><strong>{% trans "Usage level" %}:</strong> {{ unique_item.get_effective_usage_level_display }}</span>{% endif %}
                             </div>

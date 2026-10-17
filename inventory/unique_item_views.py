@@ -1,6 +1,6 @@
-"""Unique items: single physical objects with a ZAM ID, one location and a history.
+"""Unique items: single physical objects with a label ID, one location and a history.
 
-Every unique_item is created together with its ZAM ID, either a pre-printed label
+Every unique_item is created together with its label ID, either a pre-printed label
 or a newly generated one. UniqueItems leave the inventory one by one (dispose);
 they are never deleted with their location.
 """
@@ -20,9 +20,9 @@ from django.views.generic import DetailView
 from . import forms
 from .models import Item, Location, UniqueItem
 from .permissions import UNIQUE_ITEM_CREATE_PERMISSIONS, ItemEditorPermissionMixin
-from .zamid import labels, services
+from .label_ids import labels, services
 from .widgets import NEW_ITEM_PREFIX
-from .zamid.lookup import active_id, annotate_zam_code
+from .label_ids.lookup import active_id, annotate_label_code
 
 
 class DetailUniqueItemView(DetailView):
@@ -34,12 +34,12 @@ class DetailUniqueItemView(DetailView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        zid = active_id(self.object)
-        self.object.zam_code = zid.code if zid else None
+        lid = active_id(self.object)
+        self.object.label_code = lid.code if lid else None
         # This object's own photos and files come first, then those of the item in general.
         images = self.object.item.general_images
         context.update(
-            zid=zid,
+            lid=lid,
             own_images=list(self.object.images.all()), images=images, item_images_count=len(images),
             files=list(self.object.files.all()),
             general_files=list(self.object.item.itemfile_set.filter(unique_item__isnull=True)),
@@ -80,19 +80,19 @@ class CreateUniqueItemView(UniqueItemEditorMixin, extra_views.CreateWithInlinesV
     def forms_valid(self, form, inlines):
         response = super().forms_valid(form, inlines)
         # The unique item and its ID are saved together, or not at all.
-        code = form.cleaned_data.get("zam_code")
+        code = form.cleaned_data.get("label_code")
         if code:
-            zid = services.claim(code, self.object, self.request.user)
+            lid = services.claim(code, self.object, self.request.user)
         else:
-            zid = services.generate_and_claim(self.object, self.request.user)
+            lid = services.generate_and_claim(self.object, self.request.user)
         messages.success(self.request, _("The ID %(code)s now belongs to %(target)s.") % {
-            "code": zid.display, "target": self.object})
+            "code": lid.display, "target": self.object})
         return response
 
     def post(self, request, *args, **kwargs):
         try:
             return super().post(request, *args, **kwargs)
-        except services.ZamIdError as error:
+        except services.LabelIdError as error:
             # Someone claimed the label in the meantime; nothing was saved.
             messages.error(request, str(error))
             return redirect(request.get_full_path())
@@ -182,9 +182,9 @@ class UniqueItemWithoutIdAutocomplete(autocomplete.Select2QuerySetView):
     """Unique items in the inventory whose ID was retired: the only ones that can get a new label."""
 
     def get_queryset(self):
-        if not self.request.user.has_perm("inventory.claim_zamid"):
+        if not self.request.user.has_perm("inventory.claim_labelid"):
             return UniqueItem.objects.none()
-        qs = annotate_zam_code(UniqueItem.active.select_related("item")).filter(zam_code__isnull=True)
+        qs = annotate_label_code(UniqueItem.active.select_related("item")).filter(label_code__isnull=True)
         if self.q:
             condition = Q(item__name__icontains=self.q)
             if self.q.isdigit():

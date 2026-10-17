@@ -14,8 +14,8 @@ the regular items, and are edited right there:
   a regular item, which can no longer return to an unknown amount.
 
 Quick-items are found by the regular item search. Managing them requires
-`inventory.add_item` and `inventory.add_itemlocation` (granted to ZAM-local
-users). Deletion is permanent, but only while an item is still a quick-item:
+`inventory.add_item` and `inventory.add_itemlocation` (granted to the local
+group). Deletion is permanent, but only while an item is still a quick-item:
 items with an amount, photos, files, barcodes or a second location are never
 deleted from this list. Without JavaScript, the list still works through plain
 form submissions.

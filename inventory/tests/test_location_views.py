@@ -157,7 +157,7 @@ class LocationsMoveHereTests(TestCase):
         self.box.refresh_from_db()
         self.assertEqual(self.box.parent_location_id, self.source.pk)
         session = self.client.session
-        session["is_zam_local"] = True
+        session["is_local_visit"] = True
         session.save()
         self.assertEqual(self.client.post(self.url, {"identifiers": str(self.box.pk)}).status_code, 302)
         self.box.refresh_from_db()
@@ -207,7 +207,7 @@ class PrintableInventoryTests(TestCase):
         request = self.factory.get(reverse("print_inventory"), data)
         # By default someone allowed to print (an active superuser has every permission).
         request.user = user if user is not None else get_user_model()(is_active=True, is_superuser=True)
-        request.session = {"is_zam_local": local}
+        request.session = {"is_local_visit": local}
         with override(language):
             return resolve(request.path).func(request)
 
@@ -342,8 +342,8 @@ class PrintableInventoryTests(TestCase):
         ItemLocation.objects.filter(location=self.other).delete()
         self.assertContains(self.report([self.other]), "No items in the selected locations")
 
-    def test_internal_for_zam_local_members(self):
-        # Anonymous visitors log in first; logged-in users need the permission ZAM-local has.
+    def test_internal_for_local_members(self):
+        # Anonymous visitors log in first; logged-in users need the permission the local group has.
         self.assertEqual(self.report([self.root], user=AnonymousUser()).status_code, 302)
         outsider = get_user_model().objects.create_user(username="outsider")
         with self.assertRaises(PermissionDenied):

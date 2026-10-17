@@ -10,8 +10,8 @@ from django.views import View
 
 from . import forms
 from .location_lookup import resolve_location_reference
-from .models import Item, ItemImage, Location, UniqueItem, ZamId
-from .zamid import core as zamid_core, parsing as zamid_parsing
+from .models import Item, ItemImage, Location, UniqueItem, LabelId
+from .label_ids import core as label_id_core, parsing as label_id_parsing
 
 
 class QuickAddView(PermissionRequiredMixin, View):
@@ -82,14 +82,14 @@ class MoveUniqueItemView(PermissionRequiredMixin, View):
 
 
 def location_lookup(request):
-    """A typed or scanned location reference (ZAM ID, label URL or identifier) as JSON for the move dialog."""
+    """A typed or scanned location reference (label ID, label URL or identifier) as JSON for the move dialog."""
     raw = request.GET.get("q", "").strip()
     location = None
     try:
-        zid = ZamId.objects.select_related("location").filter(pk=zamid_parsing.code_from_scan(raw)).first()
-        if zid is not None and zid.status == ZamId.Status.ASSIGNED and zid.location and not zid.location.is_deleted:
-            location = zid.location
-    except zamid_core.InvalidZamId:
+        lid = LabelId.objects.select_related("location").filter(pk=label_id_parsing.code_from_scan(raw)).first()
+        if lid is not None and lid.status == LabelId.Status.ASSIGNED and lid.location and not lid.location.is_deleted:
+            location = lid.location
+    except label_id_core.InvalidLabelId:
         pass
     if location is None:
         try:

@@ -33,4 +33,4 @@ amount, which turns them into regular items. The log is append-only and
 visible only in the admin (**Stock changes**, and on each item's admin page),
 which requires `inventory.view_stockchange`. Using the dialog requires
 `inventory.add_stockchange`, which migration `inventory.0020_stock_change` grants
-to the ZAM-local group.
+to the local group.

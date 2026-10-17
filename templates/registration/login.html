@@ -1,0 +1,20 @@
+{% extends 'base.html' %}
+{% load i18n django_bootstrap5 %}
+
+{% block title %}{% trans "Login" %}{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-6 col-lg-4">
+        <form method="post" action="{% url 'login' %}">
+            {% csrf_token %}
+            {% bootstrap_form form %}
+            <input type="hidden" name="next" value="{{ next }}">
+            <button class="btn btn-primary" type="submit">{% trans "Login" %}</button>
+        </form>
+        {% if oidc_enabled %}
+            <p class="mt-3"><a href="{% url 'oidc_authentication_init' %}?next={{ next|urlencode }}">{% trans "Login via ZAM SSO" %}</a></p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

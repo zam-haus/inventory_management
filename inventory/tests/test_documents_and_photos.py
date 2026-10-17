@@ -17,8 +17,8 @@ from PIL import Image
 
 from ..models import ItemFile, ItemImage, ItemLocation, UniqueItem
 from .test_unique_items import UniqueItemFixture, grant
-from ..zamid import services
-from ..zamid.testing import SETTINGS, make_id, zam_local_group
+from ..label_ids import services
+from ..label_ids.testing import SETTINGS, make_id, local_group
 
 
 def png(color="red"):
@@ -169,7 +169,7 @@ class ItemListTests(UniqueItemFixture, TestCase):
 
     def test_ids_and_locations_in_the_location_column(self):
         response = self.client.get(reverse("index_items"))
-        self.assertContains(response, f'<a href="{self.unique_item.get_absolute_url()}">K7Q-4XD</a>', html=True)
+        self.assertContains(response, f'<a href="{self.unique_item.get_absolute_url()}">K7R-4XD</a>', html=True)
         self.assertContains(response, f'<a href="{self.second.get_absolute_url()}">#{self.second.pk}</a>', html=True)
         self.assertContains(response, f'title="{self.shelf.descriptive_identifier}"')
         self.assertNotContains(response, self.gone.get_absolute_url())
@@ -273,7 +273,7 @@ class LevelTests(MediaMixin, UniqueItemFixture, TestCase):
         response = self.client.get(url)
         field = response.context["inlines"][1].forms[0].fields["unique_item"]
         self.assertEqual(field.empty_label, "The item in general")
-        self.assertIn("K7Q-4XD @ WS", [label for _value, label in field.choices])
+        self.assertIn("K7R-4XD @ WS", [label for _value, label in field.choices])
         data = self.item_data(**{
             "itemfile_set-TOTAL_FORMS": "2", "itemfile_set-INITIAL_FORMS": "1",
             "itemfile_set-0-id": self.manual.pk, "itemfile_set-0-description": "Manual", "itemfile_set-0-unique_item": "",
@@ -345,7 +345,7 @@ class GalleryFormTests(MediaMixin, UniqueItemFixture, TestCase):
     def setUpTestData(cls):
         cls.create_unique_items()
         cls.editor = get_user_model().objects.create_user(username="editor")
-        cls.editor.groups.add(zam_local_group())
+        cls.editor.groups.add(local_group())
         grant(cls.editor, "delete_itemimage", "delete_itemfile")
 
     def setUp(self):

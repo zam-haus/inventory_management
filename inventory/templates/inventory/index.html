@@ -15,7 +15,7 @@
         <div class="input-group input-group-lg mb-3">
             <span class="input-group-text" aria-hidden="true">🔎</span>
             <input type="search" class="form-control" name="q" aria-label="{% trans 'Search' %}"
-                   placeholder="{% trans 'Name, identifier or ZAM ID' %}" enterkeyhint="search">
+                   placeholder="{% blocktrans with name=label_id_name %}Name, identifier or {{ name }}{% endblocktrans %}" enterkeyhint="search">
         </div>
         <div class="d-grid gap-2 d-sm-flex">
             <button type="submit" class="btn btn-primary flex-sm-fill">{% trans "Search items" %}</button>

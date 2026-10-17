@@ -41,15 +41,22 @@ ADMINS = json.loads(os.getenv("ADMINS", "[]"))
 
 DEFAULT_DOMAIN = "https://inv.zam.haus"
 
-# ZAM IDs: hosts that serve only the QR resolver (they behave like DEFAULT_DOMAIN/id/).
+# label IDs: hosts that serve only the QR resolver (they behave like DEFAULT_DOMAIN/id/).
 # Each must also be in ALLOWED_HOSTS. i.localhost / id.localhost help local testing.
-ZAMID_RESOLVER_HOSTS = [
+LABEL_ID_RESOLVER_HOSTS = [
     host.strip()
-    for host in os.getenv("ZAMID_RESOLVER_HOSTS", "i.zam.haus,id.zam.haus,i.localhost,id.localhost").split(",")
+    for host in os.getenv("LABEL_ID_RESOLVER_HOSTS", "i.zam.haus,id.zam.haus,i.localhost,id.localhost").split(",")
     if host.strip()
 ]
 # Where resolver hosts redirect to; defaults to DEFAULT_DOMAIN.
-ZAMID_INVENTORY_BASE = os.getenv("ZAMID_INVENTORY_BASE")
+LABEL_ID_INVENTORY_BASE = os.getenv("LABEL_ID_INVENTORY_BASE")
+# Base URL in the QR codes of label IDs (uppercased for the QR alphanumeric mode). Only
+# https://i.zam.haus/ fits QR version 1; longer bases (local testing) make the codes larger.
+LABEL_ID_BASE_URL = os.getenv("LABEL_ID_BASE_URL", "https://i.zam.haus/")
+# The name users see for label IDs (UI, labels); code and database say "label ID".
+LABEL_ID_NAME = os.getenv("LABEL_ID_NAME", "ZAMid")
+# How many label scans and web form entries are kept per label ID (see inventory/label_ids/access.py).
+LABEL_ID_ACCESS_KEEP = int(os.getenv("LABEL_ID_ACCESS_KEEP", "5"))
 
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
@@ -107,8 +114,8 @@ COMPUTEDFIELDS_ALLOW_RECURSION = True
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
-    # Routes i.zam.haus / id.zam.haus to the ZAM ID resolver; before CommonMiddleware.
-    "inventory.zamid.middleware.ResolverHostMiddleware",
+    # Routes i.zam.haus / id.zam.haus to the label ID resolver; before CommonMiddleware.
+    "inventory.label_ids.middleware.ResolverHostMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -119,7 +126,7 @@ MIDDLEWARE = [
     "django.middleware.locale.LocaleMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",
     'mozilla_django_oidc.middleware.SessionRefresh',
-    'imzam.zam_local.ZAMLocalMiddleware',
+    'imzam.local_network.LocalNetworkMiddleware',
 ]
 
 ROOT_URLCONF = "imzam.urls"
@@ -138,6 +145,9 @@ TEMPLATES = [
                 "django.template.context_processors.static",
                 "django.template.context_processors.media",
                 "inventory.favicon.favicon_context",
+                "accounts.context_processors.local_network",
+                "accounts.context_processors.login",
+                "inventory.label_ids.naming.context",
             ],
         },
     },
@@ -188,6 +198,10 @@ AUTHENTICATION_BACKENDS = (
     'django.contrib.auth.backends.ModelBackend',
     'accounts.auth.CustomOidcAuthenticationBackend',
 )
+
+# Log in through OIDC (SSO)? Unset: yes if OIDC_RP_CLIENT_SECRET is configured, otherwise
+# Django's own login (local development, or running without an SSO system).
+OIDC_ENABLED = parse_bool(os.environ["OIDC_ENABLED"]) if os.getenv("OIDC_ENABLED") else None
 
 OIDC_RP_CLIENT_ID = os.getenv('OIDC_RP_CLIENT_ID', 'inv.zam.haus')
 OIDC_RP_CLIENT_SECRET = os.getenv('OIDC_RP_CLIENT_SECRET')
@@ -262,13 +276,20 @@ MQTT_PASSWORD_AUTH = dict(
 # this topic is write-restricted on mqtt.zam.haus
 MQTT_PRINTER_TOPIC = "im-label-print-queue/"
 
-# ZAM membership: hostnames (all A records), IP addresses, or CIDR networks.
-ZAM_LOCAL_SOURCES = [
+# Local network: requests from these sources make logged-in users members of LOCAL_GROUP_NAME
+# (imzam/local_network.py). Hostnames (all A records), IP addresses, or CIDR networks.
+# The ZAM_LOCAL_* variables are the former names and still work.
+LOCAL_NETWORK_SOURCES = [
     source.strip()
-    for source in os.getenv("ZAM_LOCAL_SOURCES", "das.zam.haus").split(",")
+    for source in (os.getenv("LOCAL_NETWORK_SOURCES") or os.getenv("ZAM_LOCAL_SOURCES") or "das.zam.haus").split(",")
     if source.strip()
 ]
-ZAM_LOCAL_DNS_CACHE_SECONDS = int(os.getenv("ZAM_LOCAL_DNS_CACHE_SECONDS", "60"))
+LOCAL_NETWORK_DNS_CACHE_SECONDS = int(
+    os.getenv("LOCAL_NETWORK_DNS_CACHE_SECONDS") or os.getenv("ZAM_LOCAL_DNS_CACHE_SECONDS") or "60")
+# Shown next to members' names and in label ID accesses, e.g. "(ZAM)", "at ZAM".
+LOCAL_NETWORK_NAME = os.getenv("LOCAL_NETWORK_NAME", "ZAM")
+# The locally managed group of members (existing databases have "ZAM-local").
+LOCAL_GROUP_NAME = os.getenv("LOCAL_GROUP_NAME", "ZAM-local")
 
 
 # Overwrite default settings with local_settings.py configuration
@@ -277,6 +298,13 @@ if not os.getenv("IGNORE_LOCAL_SETTINGS", False):
         from .local_settings import *
     except ImportError:
         pass
+
+if OIDC_ENABLED is None:
+    OIDC_ENABLED = bool(OIDC_RP_CLIENT_SECRET)
+if not OIDC_ENABLED:
+    AUTHENTICATION_BACKENDS = tuple(b for b in AUTHENTICATION_BACKENDS if b != 'accounts.auth.CustomOidcAuthenticationBackend')
+    MIDDLEWARE = [m for m in MIDDLEWARE if m != 'mozilla_django_oidc.middleware.SessionRefresh']
+    LOGIN_URL = 'login'
 
 
 # ================================================================

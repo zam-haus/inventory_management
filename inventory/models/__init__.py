@@ -13,7 +13,7 @@ from .stock import (
     amount_kind, amount_without_zeros, format_amount, stock_change,
 )
 from .unique_item import UniqueItem, UniqueItemEvent, get_unique_item_upload_path
-from .zamid import ZamId, ZamIdImmutable
+from .label_id import LabelId, LabelIdAccess, LabelIdImmutable
 
 __all__ = [
     "BarcodeType", "Category", "Document", "Item", "ItemBarcode", "ItemFile", "ItemImage", "MeasurementUnit",
@@ -21,5 +21,5 @@ __all__ = [
     "Location", "LocationHistory", "LocationLabelTemplate", "LocationType", "get_location_overview_upload_path",
     "FEW", "MANY", "ItemLocation", "StockChange", "amount_kind", "amount_without_zeros", "format_amount", "stock_change",
     "UniqueItem", "UniqueItemEvent", "get_unique_item_upload_path",
-    "ZamId", "ZamIdImmutable",
+    "LabelId", "LabelIdAccess", "LabelIdImmutable",
 ]

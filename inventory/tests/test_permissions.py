@@ -65,7 +65,7 @@ class InventoryPermissionTests(TestCase):
         ):
             with self.subTest(url=url):
                 self.assertEqual(self.client.get(url).status_code, 200)
-        # The printable inventory is internal (ZAM-local).
+        # The printable inventory is internal (local group).
         self.assertEqual(self.client.get(reverse("print_inventory") + f"?locations={self.root.pk}").status_code, 302)
         response = self.client.get(self.root.get_absolute_url())
         self.assertNotContains(response, reverse("print_inventory"))
@@ -75,7 +75,7 @@ class InventoryPermissionTests(TestCase):
 
     def test_frontend_requires_permissions_instead_of_inspecting_session(self):
         session = self.client.session
-        session["is_zam_local"] = True
+        session["is_local_visit"] = True
         session.save()
         for url in (
             reverse("create_item"), reverse("update_item", args=[self.item.pk]),

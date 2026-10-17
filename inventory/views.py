@@ -28,9 +28,9 @@ from . import forms, models
 from .location_lookup import resolve_location_reference
 from .permissions import QUICK_ITEM_PERMISSIONS, UNIQUE_ITEM_CREATE_PERMISSIONS, ItemEditorPermissionMixin
 from .stock_change_views import mark_last_stock
-from .zamid import services
-from .zamid.lookup import annotate_zam_code
-from .zamid.search import ZamIdSearchMixin
+from .label_ids import services
+from .label_ids.lookup import annotate_label_code
+from .label_ids.search import LabelIdSearchMixin
 
 
 logger = logging.getLogger(__name__)
@@ -98,7 +98,7 @@ class PrintableInventoryView(PermissionRequiredMixin, View):
                 .select_related("location", "item", "item__measurement_unit")
                 .prefetch_related("item__itemimage_set")
                 .order_by("location__locatable_identifier", "item__name", "item_id"),
-                unique_items=annotate_zam_code(models.UniqueItem.active.filter(location_id__in=location_ids))
+                unique_items=annotate_label_code(models.UniqueItem.active.filter(location_id__in=location_ids))
                 .select_related("location", "item")
                 .order_by("location__locatable_identifier", "item__name", "pk"),
             )
@@ -118,7 +118,7 @@ class DetailLocationView(DetailView):
         context["quick_entries"] = [entry for entry in entries if entry.is_quick_item]
         context["entries"] = [entry for entry in entries if not entry.is_quick_item]
         context["can_manage_quick_items"] = self.request.user.has_perms(QUICK_ITEM_PERMISSIONS)
-        context["unique_items"] = annotate_zam_code(
+        context["unique_items"] = annotate_label_code(
             self.object.unique_items.select_related("item").prefetch_related("images", "item__itemimage_set")
         ).order_by("item__name", "pk")
         if self.request.user.has_perm("inventory.add_stockchange"):
@@ -273,7 +273,7 @@ class DetailItemView(DetailView):
         # The item page shows what applies to the item in general.
         context["files"] = self.object.itemfile_set.filter(unique_item__isnull=True)
         if self.object.tracks_unique_items:
-            context["unique_items"] = annotate_zam_code(
+            context["unique_items"] = annotate_label_code(
                 self.object.unique_items(manager="active").select_related("location", "responsible_team__group")
             ).order_by("location__locatable_identifier", "pk")
             context["disposed_count"] = self.object.unique_items.filter(disposed_at__isnull=False).count()
@@ -358,7 +358,7 @@ class CreateItemView(ItemEditorPermissionMixin, ItemKindMixin, extra_views.Creat
     def post(self, request, *args, **kwargs):
         try:
             return self.process(request)
-        except services.ZamIdError as error:
+        except services.LabelIdError as error:
             # Someone claimed the label in the meantime; nothing was saved.
             messages.error(request, str(error))
             return redirect(request.get_full_path())
@@ -385,7 +385,7 @@ class CreateItemView(ItemEditorPermissionMixin, ItemKindMixin, extra_views.Creat
         for formset in inlines:
             if formset.model is models.UniqueItem:
                 for unique_form in formset.forms:
-                    code = unique_form.cleaned_data.get("zam_code")
+                    code = unique_form.cleaned_data.get("label_code")
                     if code:
                         services.claim(code, unique_form.instance, self.request.user)
                     else:
@@ -437,7 +437,7 @@ class UpdateItemView(ItemEditorPermissionMixin, ItemKindMixin, extra_views.Updat
         return self.object.get_absolute_url()
 
 
-class SearchableItemListView(ZamIdSearchMixin, ListView):
+class SearchableItemListView(LabelIdSearchMixin, ListView):
     model = models.Item
     queryset = models.Item.active.all()
     paginate_by = 25
@@ -451,7 +451,7 @@ class SearchableItemListView(ZamIdSearchMixin, ListView):
                 "itemimage_set", queryset=models.ItemImage.objects.select_related("unique_item"),
             ), Prefetch(
                 "unique_items", to_attr="active_unique_items",
-                queryset=annotate_zam_code(models.UniqueItem.active.select_related("location"))
+                queryset=annotate_label_code(models.UniqueItem.active.select_related("location"))
                 .order_by("location__locatable_identifier", "pk"),
             ))
             query = self.request.GET.get('q')
@@ -474,7 +474,7 @@ class SearchableItemListView(ZamIdSearchMixin, ListView):
 
 
 class SearchableLocationListView(
-        ZamIdSearchMixin,
+        LabelIdSearchMixin,
         extra_views.SearchableListMixin,
         extra_views.SortableListMixin,
         ListView):

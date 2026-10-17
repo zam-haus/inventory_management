@@ -236,7 +236,7 @@ class LocationOverviewTests(TestCase):
         reader = get_user_model().objects.create_user(username="reader")
         self.client.force_login(reader)
         session = self.client.session
-        session["is_zam_local"] = True
+        session["is_local_visit"] = True
         session.save()
         self.assertEqual(self.client.post(self.url, self.data(summary="Unpermitted edit")).status_code, 403)
         self.location.refresh_from_db()
@@ -288,7 +288,7 @@ class LocationOverviewTests(TestCase):
         reader = get_user_model().objects.create_user(username="reader")
         self.client.force_login(reader)
         session = self.client.session
-        session["is_zam_local"] = True
+        session["is_local_visit"] = True
         session.save()
         self.assertEqual(self.client.get(self.history_url).status_code, 403)
         history = self.history_client().get(self.history_url)

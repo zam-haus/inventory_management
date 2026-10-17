@@ -9,8 +9,9 @@ items: photograph and count what is on a shelf first, annotate later.
 * **Items** are either bulk items, counted per location, or unique items:
   single objects such as machines or tools with their own label, owner and
   history.
-* **ZAM IDs** are short, permanent label IDs (`K7Q-4XD`) whose QR codes lead to
-  the item, location or unique item they are attached to.
+* **Label IDs** are short, permanent IDs on labels (`K7R-4XD`) whose QR codes lead
+  to the item, location or unique item they are attached to. Users see them as
+  *ZAMid*; another organization sets its own name with `LABEL_ID_NAME`.
 * **Stock changes** (sales, purchases, recounts) are logged with who, when and
   why.
 * Viewing is public; editing needs an account with the right permissions,
@@ -33,6 +34,14 @@ Implemented with Django. The full documentation is in [docs/](docs/README.md).
    ALLOWED_HOSTS = ['localhost', '127.0.0.1', '192.168.178.10', '10.233.1.123']
    SECRET_KEY = "REPLACE ME!!!!!"
 
+   # Django's own login; set True (and the OIDC_* settings) to test the SSO login
+   OIDC_ENABLED = False
+
+   # Label IDs: QR codes and the resolver point at this server
+   ALLOWED_HOSTS += ['i.localhost', 'id.localhost']
+   LABEL_ID_BASE_URL = 'http://i.localhost:8000/'
+   LABEL_ID_INVENTORY_BASE = 'http://localhost:8000'
+
    MQTT_PASSWORD_AUTH = dict(username="im.zam.haus-django", password='...')
 
    BASE_DIR = Path(__file__).resolve().parent.parent
@@ -49,11 +58,10 @@ Implemented with Django. The full documentation is in [docs/](docs/README.md).
 5. Create a superuser account: `python manage.py createsuperuser`
 6. Load the basic dataset: `python manage.py loaddata initial_inventory`
 7. Start the local server: `python manage.py runserver`
-8. Log in through the admin interface at `/admin`. This also logs you in to the
-   frontend; the frontend login link does not work locally, as it relies on a
-   working OIDC setup.
+8. Log in with the **Login** button (Django's own login while `OIDC_ENABLED = False`).
 
-ZAM IDs resolve locally at `localhost:8000/id/<id>`. The camera scanner needs
+Label IDs resolve locally at `localhost:8000/id/<id>` and, with the settings above,
+at `i.localhost:8000/<id>`, which is also what local QR codes and labels contain. The camera scanner needs
 HTTPS or `localhost`.
 
 ## Deployment
@@ -86,9 +94,9 @@ and nginx in front of it.
    docker compose up -d
    ```
 
-Migrations are applied automatically on every start. Settings for the ZAM ID
-resolver hosts and ZAM-local network detection are described in
-[ZAM IDs](docs/zam-ids.md) and [Permissions](docs/permissions.md);
+Migrations are applied automatically on every start. Settings for the label ID
+resolver hosts and local network detection are described in
+[Label IDs](docs/label-ids.md) and [Permissions](docs/permissions.md);
 [`.env.example`](.env.example) lists all variables.
 
 ## License

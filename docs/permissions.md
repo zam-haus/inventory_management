@@ -3,7 +3,7 @@
 Frontend lists, details, searches and autocomplete are public. The printable
 inventory (`/inventory/print/`, 🖨️ on location pages and on the location list,
 where it preselects the locations found by the search) is internal: it requires
-`inventory.print_inventory`, which migration `inventory.0023` grants to ZAM-local.
+`inventory.print_inventory`, which migration `inventory.0023` grants to the local group.
 Editing requires login and Django's `add`, `change` or `delete` permission for the
 relevant model. Assign permissions to groups in **Admin → Authentication and
 Authorization → Groups**, then assign users to those groups. Superusers retain
@@ -28,26 +28,31 @@ deleting it once empty, additionally requires `delete_location`. Permissions are
 again when confirming the plan. Changing the deleted flag in admin also
 requires the corresponding delete permission.
 
-Migration `accounts.0002_zam_local_group` creates the reserved **ZAM-local** group
-with add and change permissions for inventory models, but no delete permissions.
-Its permissions can subsequently be adjusted in admin. A logged-in user joins this
-group after detection on the ZAM network or when carrying an existing
-`is_zam_local` session flag; that flag is then consumed. Anonymous local visits can
-be remembered through the login redirect, but do not permit anonymous editing.
-Membership belongs to the user and persists across logins and network changes.
-SSO claims cannot assign this reserved group, and SSO updates never remove it.
-The `(ZAM)` indicator reads group membership rather than session state.
+Migration `accounts.0002_zam_local_group` creates the reserved **local group**
+(`LOCAL_GROUP_NAME`, by default `ZAM-local`) with add and change permissions for
+inventory models, but no delete permissions. Its permissions can subsequently be
+adjusted in admin. A logged-in user joins this group after detection on the local
+network (`imzam/local_network.py`) or when carrying a pending local visit in the
+session; that flag is then consumed. Anonymous local visits can be remembered through
+the login redirect, but do not permit anonymous editing. Membership belongs to the
+user and persists across logins and network changes. SSO claims cannot assign this
+reserved group, and SSO updates never remove it. The indicator next to the user name,
+`(LOCAL_NETWORK_NAME)` (by default `(ZAM)`), reads group membership rather than
+session state.
 
 Local detection matches the client IP against all DNS A records of `das.zam.haus`
-by default. Configure `ZAM_LOCAL_SOURCES` as a list in local settings, for example:
+by default. Configure `LOCAL_NETWORK_SOURCES` as a list in local settings, for example:
 
 ```python
-ZAM_LOCAL_SOURCES = ["das.zam.haus", "another.example.org", "192.0.2.5", "198.51.100.0/24", "2001:db8::/32"]
+LOCAL_NETWORK_SOURCES = ["das.zam.haus", "another.example.org", "192.0.2.5", "198.51.100.0/24", "2001:db8::/32"]
 ```
 
-Alternatively, set the `ZAM_LOCAL_SOURCES` environment variable to a comma-separated
-list. Literal addresses and CIDR ranges support IPv4 and IPv6; hostname lookups use
-IPv4 A records. An empty list disables new network-based grants. DNS results are
-cached per worker for `ZAM_LOCAL_DNS_CACHE_SECONDS` (default: 60 seconds; 0 disables
-caching). Failed lookups do not match clients or retain expired addresses; other
-configured sources still work. Existing group members need no DNS lookup.
+Alternatively, set the `LOCAL_NETWORK_SOURCES` environment variable to a comma-separated
+list (the former name `ZAM_LOCAL_SOURCES` still works). Literal addresses and CIDR
+ranges support IPv4 and IPv6; hostname lookups use IPv4 A records. An empty list
+disables new network-based grants. DNS results are cached per worker for
+`LOCAL_NETWORK_DNS_CACHE_SECONDS` (default: 60 seconds; 0 disables caching; formerly
+`ZAM_LOCAL_DNS_CACHE_SECONDS`). Failed lookups do not match clients or retain expired
+addresses; other configured sources still work. Every request is checked, also for
+existing members, because label ID accesses record whether they came from the local
+network.

@@ -1266,264 +1266,266 @@ msgstr "Du bearbeitest das aktuelle Foto. Beim Speichern ersetzen deine Änderun
 msgid "The current photo could not be loaded for editing. Try again or choose a new photo."
 msgstr "Das aktuelle Foto konnte nicht zum Bearbeiten geladen werden. Versuche es erneut oder wähle ein neues Foto."
 
-#: inventory/zamid/admin.py:19 inventory/zamid/admin.py:102 inventory/templates/inventory/zamid/info.html:23
+#: inventory/label_ids/admin.py:19 inventory/label_ids/admin.py:102 inventory/templates/inventory/label_id/info.html:23
 msgid "target"
 msgstr "Ziel"
 
-#: inventory/zamid/admin.py:23
+#: inventory/label_ids/admin.py:23
 msgid "none"
 msgstr "keins"
 
-#: inventory/zamid/admin.py:42
+#: inventory/label_ids/admin.py:42
 msgid "Only reserved IDs can be linked to a URL."
 msgstr "Nur reservierte IDs können mit einer URL verknüpft werden."
 
-#: inventory/zamid/admin.py:44 inventory/zamid/services.py:95
+#: inventory/label_ids/admin.py:44 inventory/label_ids/services.py:95
 msgid "Enter a valid http or https URL."
 msgstr "Gib eine gültige http- oder https-URL ein."
 
-#: inventory/zamid/admin.py:60
+#: inventory/label_ids/admin.py:60
 msgid "Label"
 msgstr "Etikett"
 
-#: inventory/zamid/admin.py:98 inventory/models/zamid.py:53
+#: inventory/label_ids/admin.py:98 inventory/models/label_id.py:53
 msgid "ID"
 msgstr "ID"
 
-#: inventory/zamid/admin.py:109
+#: inventory/label_ids/admin.py:109
 msgid " (deleted)"
 msgstr " (gelöscht)"
 
-#: inventory/zamid/admin.py:112
+#: inventory/label_ids/admin.py:112
 msgid "label"
 msgstr "Etikett"
 
-#: inventory/zamid/admin.py:119
+#: inventory/label_ids/admin.py:119
 msgid "link"
 msgstr "Link"
 
-#: inventory/zamid/admin.py:122
+#: inventory/label_ids/admin.py:122
 msgid "Claim this ID"
 msgstr "Diese ID zuordnen"
 
-#: inventory/zamid/admin.py:138
+#: inventory/label_ids/admin.py:138
 #, python-format
 msgid "Generated %(count)d IDs: %(codes)s"
 msgstr "%(count)d IDs erzeugt: %(codes)s"
 
-#: inventory/zamid/admin.py:146
-msgid "Generate ZAM IDs"
-msgstr "ZAM-IDs erzeugen"
+#: inventory/label_ids/admin.py:146
+#, python-format
+msgid "Generate %(name)s"
+msgstr "%(name)s erzeugen"
 
-#: inventory/zamid/admin.py:157
+#: inventory/label_ids/admin.py:157
 msgid "Retire selected IDs"
 msgstr "Ausgewählte IDs stilllegen"
 
-#: inventory/zamid/admin.py:164
+#: inventory/label_ids/admin.py:164
 #, python-format
 msgid "Retired %(count)d IDs."
 msgstr "%(count)d IDs stillgelegt."
 
-#: inventory/zamid/admin.py:166
-msgid "Retire ZAM IDs"
-msgstr "ZAM-IDs stilllegen"
+#: inventory/label_ids/admin.py:166
+#, python-format
+msgid "Retire %(name)s"
+msgstr "%(name)s stilllegen"
 
-#: inventory/zamid/admin.py:169
+#: inventory/label_ids/admin.py:169
 msgid "Download labels (ZIP)"
 msgstr "Etiketten herunterladen (ZIP)"
 
-#: inventory/zamid/admin.py:181
+#: inventory/label_ids/admin.py:181
 msgid "Download labels"
 msgstr "Etiketten herunterladen"
 
-#: inventory/zamid/admin.py
+#: inventory/label_ids/admin.py
 #, python-format
 msgid "%(code)s is not a valid ID."
 msgstr "%(code)s ist keine gültige ID."
 
-#: inventory/zamid/admin.py inventory/zamid/views.py:81
+#: inventory/label_ids/admin.py inventory/label_ids/views.py:81
 #, python-format
 msgid "The ID %(code)s now belongs to %(target)s."
 msgstr "Die ID %(code)s gehört jetzt zu %(target)s."
 
-#: inventory/models/zamid.py:79
-msgid "ZAM IDs"
-msgstr "ZAM-IDs"
+#: inventory/models/label_id.py:79
+msgid "label IDs"
+msgstr "Label-IDs"
 
-#: inventory/zamid/fields.py:10
+#: inventory/label_ids/fields.py:10
 msgid "Invalid ID."
 msgstr "Ungültige ID."
 
-#: inventory/zamid/fields.py:11
+#: inventory/label_ids/fields.py:11
 msgid "Check symbol does not match – typo?"
 msgstr "Prüfzeichen stimmt nicht – Tippfehler?"
 
-#: inventory/zamid/fields.py:51 inventory/models/zamid.py:78 inventory/templates/inventory/zamid/info.html:4
-#: inventory/templates/inventory/zamid/resolver.html:57
-msgid "ZAM ID"
-msgstr "ZAM-ID"
+#: inventory/label_ids/fields.py:51 inventory/models/label_id.py:78 inventory/templates/inventory/label_id/info.html:4
+#: inventory/templates/inventory/label_id/resolver.html:57
+msgid "label ID"
+msgstr "Label-ID"
 
-#: inventory/zamid/forms.py:19 inventory/templates/inventory/zamid/claim.html:18
+#: inventory/label_ids/forms.py:19 inventory/templates/inventory/label_id/claim.html:18
 msgid "Existing item"
 msgstr "Vorhandene Sache"
 
-#: inventory/zamid/forms.py:20
+#: inventory/label_ids/forms.py:20
 msgid "Search for an item…"
 msgstr "Sache suchen…"
 
-#: inventory/zamid/forms.py:26 inventory/templates/inventory/zamid/claim.html:27
+#: inventory/label_ids/forms.py:26 inventory/templates/inventory/label_id/claim.html:27
 msgid "Existing location"
 msgstr "Vorhandener Standort"
 
-#: inventory/zamid/forms.py:42
+#: inventory/label_ids/forms.py:42
 msgid "Printer"
 msgstr "Drucker"
 
-#: inventory/zamid/forms.py:44
+#: inventory/label_ids/forms.py:44
 msgid "Tape width"
 msgstr "Bandbreite"
 
-#: inventory/zamid/forms.py:51
+#: inventory/label_ids/forms.py:51
 msgid "This printer does not support this tape width."
 msgstr "Dieser Drucker unterstützt diese Bandbreite nicht."
 
-#: inventory/zamid/forms.py:56
+#: inventory/label_ids/forms.py:56
 msgid "Number of IDs"
 msgstr "Anzahl IDs"
 
-#: inventory/zamid/forms.py:57
+#: inventory/label_ids/forms.py:57
 msgid "Batch"
 msgstr "Charge"
 
-#: inventory/zamid/forms.py:58
+#: inventory/label_ids/forms.py:58
 msgid "Name of the label batch or print run."
 msgstr "Name der Etikettencharge oder des Druckauftrags."
 
-#: inventory/zamid/forms.py:62
+#: inventory/label_ids/forms.py:62
 msgid "Note"
 msgstr "Notiz"
 
-#: inventory/models/zamid.py:42
+#: inventory/models/label_id.py:42
 msgid "reserved"
 msgstr "reserviert"
 
-#: inventory/models/zamid.py:43
+#: inventory/models/label_id.py:43
 msgid "assigned"
 msgstr "vergeben"
 
-#: inventory/models/zamid.py:44
+#: inventory/models/label_id.py:44
 msgid "retired"
 msgstr "stillgelegt"
 
-#: inventory/models/zamid.py:54 inventory/templates/inventory/zamid/info.html:22
+#: inventory/models/label_id.py:54 inventory/templates/inventory/label_id/info.html:22
 msgid "status"
 msgstr "Status"
 
-#: inventory/models/zamid.py:60
+#: inventory/models/label_id.py:60
 msgid "URL"
 msgstr "URL"
 
-#: inventory/models/zamid.py:61 inventory/templates/inventory/zamid/info.html:30
+#: inventory/models/label_id.py:61 inventory/templates/inventory/label_id/info.html:30
 msgid "batch"
 msgstr "Charge"
 
-#: inventory/models/zamid.py:62
+#: inventory/models/label_id.py:62
 msgid "Label batch or print run."
 msgstr "Etikettencharge oder Druckauftrag."
 
-#: inventory/models/zamid.py:64 inventory/templates/inventory/zamid/info.html:31
+#: inventory/models/label_id.py:64 inventory/templates/inventory/label_id/info.html:31
 msgid "created at"
 msgstr "erstellt am"
 
-#: inventory/models/zamid.py:66
+#: inventory/models/label_id.py:66
 msgid "created by"
 msgstr "erstellt von"
 
-#: inventory/models/zamid.py:67 inventory/templates/inventory/zamid/info.html:32
+#: inventory/models/label_id.py:67 inventory/templates/inventory/label_id/info.html:32
 msgid "printed at"
 msgstr "gedruckt am"
 
-#: inventory/models/zamid.py:68 inventory/templates/inventory/zamid/info.html:33
+#: inventory/models/label_id.py:68 inventory/templates/inventory/label_id/info.html:33
 msgid "assigned at"
 msgstr "vergeben am"
 
-#: inventory/models/zamid.py:70
+#: inventory/models/label_id.py:70
 msgid "assigned by"
 msgstr "vergeben von"
 
-#: inventory/models/zamid.py:71 inventory/templates/inventory/zamid/info.html:34
+#: inventory/models/label_id.py:71 inventory/templates/inventory/label_id/info.html:34
 msgid "retired at"
 msgstr "stillgelegt am"
 
-#: inventory/models/zamid.py:73
+#: inventory/models/label_id.py:73
 msgid "retired by"
 msgstr "stillgelegt von"
 
-#: inventory/models/zamid.py:83
+#: inventory/models/label_id.py:83
 msgid "Can claim a ZAM ID for an item or location"
 msgstr "Kann eine ZAM-ID einer Sache oder einem Standort zuordnen"
 
-#: inventory/models/zamid.py:84
-msgid "Can generate ZAM IDs"
-msgstr "Kann ZAM-IDs erzeugen"
+#: inventory/models/label_id.py:84
+msgid "Can generate label IDs"
+msgstr "Kann Label-IDs erzeugen"
 
-#: inventory/models/zamid.py:85
-msgid "Can retire ZAM IDs"
-msgstr "Kann ZAM-IDs stilllegen"
+#: inventory/models/label_id.py:85
+msgid "Can retire label IDs"
+msgstr "Kann Label-IDs stilllegen"
 
-#: inventory/models/zamid.py:86
-msgid "Can link a ZAM ID to an arbitrary URL"
-msgstr "Kann eine ZAM-ID mit einer beliebigen URL verknüpfen"
+#: inventory/models/label_id.py:86
+msgid "Can link a label ID to an arbitrary URL"
+msgstr "Kann eine Label-ID mit einer beliebigen URL verknüpfen"
 
-#: inventory/zamid/services.py:33
+#: inventory/label_ids/services.py:33
 #, python-format
 msgid "Generate between 1 and %(max)d IDs at a time."
 msgstr "Es können 1 bis %(max)d IDs auf einmal erzeugt werden."
 
-#: inventory/zamid/services.py:49
+#: inventory/label_ids/services.py:49
 #, python-format
 msgid "The ID %(code)s does not exist."
 msgstr "Die ID %(code)s existiert nicht."
 
-#: inventory/zamid/services.py:54
+#: inventory/label_ids/services.py:54
 #, python-format
 msgid "The ID %(code)s is already in use."
 msgstr "Die ID %(code)s ist bereits vergeben."
 
-#: inventory/zamid/services.py:56 inventory/zamid/services.py:107
+#: inventory/label_ids/services.py:56 inventory/label_ids/services.py:107
 #, python-format
 msgid "The ID %(code)s has been retired."
 msgstr "Die ID %(code)s wurde stillgelegt."
 
-#: inventory/zamid/services.py:69
+#: inventory/label_ids/services.py:69
 msgid "This already has an ID. Retire it first."
 msgstr "Dies hat bereits eine ID. Lege sie zuerst still."
 
-#: inventory/zamid/services.py:77
+#: inventory/label_ids/services.py:77
 msgid "IDs cannot be claimed for this kind of object."
 msgstr "Für diese Art von Objekt können keine IDs vergeben werden."
 
-#: inventory/zamid/services.py:79
+#: inventory/label_ids/services.py:79
 msgid "Deleted objects cannot get an ID."
 msgstr "Gelöschte Objekte können keine ID bekommen."
 
-#: inventory/zamid/services.py:85
+#: inventory/label_ids/services.py:85
 #, python-format
 msgid "%(target)s already has the ID %(code)s. Retire it first."
 msgstr "%(target)s hat bereits die ID %(code)s. Lege sie zuerst still."
 
-#: inventory/templates/admin/inventory/zamid/action_form.html:13
+#: inventory/templates/admin/inventory/labelid/action_form.html:13
 #, python-format
 msgid "%(counter)s ID selected:"
 msgid_plural "%(counter)s IDs selected:"
 msgstr[0] "%(counter)s ID ausgewählt:"
 msgstr[1] "%(counter)s IDs ausgewählt:"
 
-#: inventory/templates/admin/inventory/zamid/change_list.html:5
+#: inventory/templates/admin/inventory/labelid/change_list.html:5
 msgid "Generate IDs"
 msgstr "IDs erzeugen"
 
-#: inventory/templates/admin/inventory/zamid/generate.html:14
+#: inventory/templates/admin/inventory/labelid/generate.html:14
 msgid ""
 "New IDs are reserved until a label is attached to an item, a location or a "
 "URL. They are never deleted."
@@ -1531,15 +1533,15 @@ msgstr ""
 "Neue IDs bleiben reserviert, bis ihr Etikett einer Sache, einem Standort "
 "oder einer URL zugeordnet wird. Sie werden nie gelöscht."
 
-#: inventory/templates/admin/inventory/zamid/generate.html:20
+#: inventory/templates/admin/inventory/labelid/generate.html:20
 msgid "Generate"
 msgstr "Erzeugen"
 
-#: inventory/templates/inventory/zamid/claim.html:9
+#: inventory/templates/inventory/label_id/claim.html:9
 msgid "New label"
 msgstr "Neues Etikett"
 
-#: inventory/templates/inventory/zamid/claim.html:12
+#: inventory/templates/inventory/label_id/claim.html:12
 msgid ""
 "This label is not attached to anything yet. Choose what it belongs to. This "
 "link is permanent and cannot be changed later."
@@ -1547,101 +1549,102 @@ msgstr ""
 "Dieses Etikett ist noch nichts zugeordnet. Wähle aus, wozu es gehört. Die "
 "Zuordnung ist dauerhaft und kann später nicht geändert werden."
 
-#: inventory/templates/inventory/zamid/claim.html:20
+#: inventory/templates/inventory/label_id/claim.html:20
 msgid "Attach to item"
 msgstr "Sache zuordnen"
 
-#: inventory/templates/inventory/zamid/claim.html:29
+#: inventory/templates/inventory/label_id/claim.html:29
 msgid "Attach to location"
 msgstr "Standort zuordnen"
 
-#: inventory/templates/inventory/zamid/claim.html:38
+#: inventory/templates/inventory/label_id/claim.html:38
 msgid "New item"
 msgstr "Neue Sache"
 
-#: inventory/templates/inventory/zamid/claim.html:40
+#: inventory/templates/inventory/label_id/claim.html:40
 msgid "Create item with this ID"
 msgstr "Sache mit dieser ID anlegen"
 
-#: inventory/templates/inventory/zamid/claim.html:44
+#: inventory/templates/inventory/label_id/claim.html:44
 msgid "Create a new location with this ID (admin)"
 msgstr "Neuen Standort mit dieser ID anlegen (Admin)"
 
-#: inventory/templates/inventory/zamid/info.html:16
+#: inventory/templates/inventory/label_id/info.html:16
 #, python-format
 msgid "Label for %(code)s"
 msgstr "Etikett für %(code)s"
 
-#: inventory/templates/inventory/zamid/info.html:28
+#: inventory/templates/inventory/label_id/info.html:28
 msgid "Claim"
 msgstr "Zuordnen"
 
-#: inventory/templates/inventory/zamid/info.html:37
+#: inventory/templates/inventory/label_id/info.html:37
 msgid "Labels"
 msgstr "Etiketten"
 
-#: inventory/templates/inventory/zamid/info.html:38
+#: inventory/templates/inventory/label_id/info.html:38
 msgid "Print in standard resolution, without scaling."
 msgstr "In Standardauflösung und ohne Skalierung drucken."
 
-#: inventory/templates/inventory/zamid/resolver.html:29
-msgid "Look up a ZAM ID"
-msgstr "ZAM-ID nachschlagen"
+#: inventory/templates/inventory/label_id/resolver.html:29
+#, python-format
+msgid "Look up a %(name)s"
+msgstr "%(name)s nachschlagen"
 
-#: inventory/templates/inventory/zamid/resolver.html:30
-msgid "Enter the six characters printed on the label, for example K7Q-4XD."
-msgstr "Gib die sechs Zeichen vom Etikett ein, zum Beispiel K7Q-4XD."
+#: inventory/templates/inventory/label_id/resolver.html:30
+msgid "Enter the six characters printed on the label, for example K7R-4XD."
+msgstr "Gib die sechs Zeichen vom Etikett ein, zum Beispiel K7R-4XD."
 
-#: inventory/templates/inventory/zamid/resolver.html:32
+#: inventory/templates/inventory/label_id/resolver.html:32
 msgid "Typo?"
 msgstr "Tippfehler?"
 
-#: inventory/templates/inventory/zamid/resolver.html:33
+#: inventory/templates/inventory/label_id/resolver.html:33
 #, python-format
 msgid "“%(q)s” is not a valid ID: the check symbol does not match."
 msgstr "„%(q)s“ ist keine gültige ID: Das Prüfzeichen stimmt nicht."
 
-#: inventory/templates/inventory/zamid/resolver.html:35
+#: inventory/templates/inventory/label_id/resolver.html:35
 msgid "Did you mean:"
 msgstr "Meintest du:"
 
-#: inventory/templates/inventory/zamid/resolver.html:39
+#: inventory/templates/inventory/label_id/resolver.html:39
 msgid "Invalid ID"
 msgstr "Ungültige ID"
 
-#: inventory/templates/inventory/zamid/resolver.html:40
+#: inventory/templates/inventory/label_id/resolver.html:40
 #, python-format
-msgid "“%(q)s” is not a ZAM ID. IDs have six characters, for example K7Q-4XD."
+msgid "“%(q)s” is not a %(name)s. IDs have six characters, for example K7R-4XD."
 msgstr ""
-"„%(q)s“ ist keine ZAM-ID. IDs haben sechs Zeichen, zum Beispiel K7Q-4XD."
+"„%(q)s“ ist keine %(name)s. IDs haben sechs Zeichen, zum Beispiel K7R-4XD."
 
-#: inventory/templates/inventory/zamid/resolver.html:42
+#: inventory/templates/inventory/label_id/resolver.html:42
 msgid "Unknown ID"
 msgstr "Unbekannte ID"
 
-#: inventory/templates/inventory/zamid/resolver.html:43
+#: inventory/templates/inventory/label_id/resolver.html:43
 #, python-format
 msgid "The ID <span class=\"code\">%(code)s</span> has not been issued."
 msgstr "Die ID <span class=\"code\">%(code)s</span> wurde nicht ausgegeben."
 
-#: inventory/templates/inventory/zamid/resolver.html:45
+#: inventory/templates/inventory/label_id/resolver.html:45
 msgid "Label no longer in use"
 msgstr "Etikett nicht mehr in Gebrauch"
 
-#: inventory/templates/inventory/zamid/resolver.html:46
+#: inventory/templates/inventory/label_id/resolver.html:46
 #, python-format
 msgid "The ID <span class=\"code\">%(code)s</span> has been retired."
 msgstr "Die ID <span class=\"code\">%(code)s</span> wurde stillgelegt."
 
-#: inventory/templates/inventory/zamid/resolver.html:47
+#: inventory/templates/inventory/label_id/resolver.html:47
 msgid "It last belonged to:"
 msgstr "Sie gehörte zuletzt zu:"
 
-#: inventory/templates/inventory/zamid/resolver.html:49
+#: inventory/templates/inventory/label_id/resolver.html:49
 msgid "No longer in the inventory"
 msgstr "Nicht mehr im Inventar"
 
-#: inventory/templates/inventory/zamid/resolver.html:50
+#: inventory/templates/inventory/label_id/resolver.html:50
 #, python-format
 msgid ""
 "What the ID <span class=\"code\">%(code)s</span> belongs to has been removed "
@@ -1650,11 +1653,11 @@ msgstr ""
 "Wozu die ID <span class=\"code\">%(code)s</span> gehört, wurde aus dem "
 "Inventar entfernt."
 
-#: inventory/templates/inventory/zamid/resolver.html:52
+#: inventory/templates/inventory/label_id/resolver.html:52
 msgid "Too many requests"
 msgstr "Zu viele Anfragen"
 
-#: inventory/templates/inventory/zamid/resolver.html:53
+#: inventory/templates/inventory/label_id/resolver.html:53
 msgid ""
 "Too many unknown IDs were looked up from your network. Please try again "
 "later."
@@ -1662,11 +1665,11 @@ msgstr ""
 "Aus deinem Netzwerk wurden zu viele unbekannte IDs abgefragt. Bitte versuche "
 "es später noch einmal."
 
-#: inventory/templates/inventory/zamid/resolver.html:59
+#: inventory/templates/inventory/label_id/resolver.html:59
 msgid "Look up"
 msgstr "Nachschlagen"
 
-#: inventory/models/zamid.py:173
+#: inventory/models/label_id.py:173
 #, python-format
 msgid "Belonged to: %(kind)s “%(name)s” (#%(pk)s), deleted on %(date)s."
 msgstr "Gehörte zu: %(kind)s „%(name)s“ (#%(pk)s), gelöscht am %(date)s."
@@ -1836,8 +1839,9 @@ msgid "A bulk item is counted per location, such as screws or filament."
 msgstr "Ein Mengenartikel wird pro Standort gezählt, etwa Schrauben oder Filament."
 
 #: forms.py:342
-msgid "Unique items are objects tracked one by one, each with its own ZAM ID, such as fire extinguishers or machines. This item describes them; enter the first one below and add more later."
-msgstr "Einzelobjekte sind Gegenstände, die einzeln erfasst werden, jeder mit eigener ZAM-ID, etwa Feuerlöscher oder Maschinen. Diese Sache beschreibt sie; erfasse unten das erste und füge weitere später hinzu."
+#, python-brace-format
+msgid "Unique items are objects tracked one by one, each with its own {name}, such as fire extinguishers or machines. This item describes them; enter the first one below and add more later."
+msgstr "Einzelobjekte sind Gegenstände, die einzeln erfasst werden, jeder mit eigener {name}, etwa Feuerlöscher oder Maschinen. Diese Sache beschreibt sie; erfasse unten das erste und füge weitere später hinzu."
 
 #: forms.py:387
 msgid "Belongs to"
@@ -1880,7 +1884,7 @@ msgstr "Namen von Sachen brauchen 1 bis %(max)d Zeichen."
 msgid "You do not have permission to create items."
 msgstr "Du darfst keine Sachen anlegen."
 
-#: forms.py:989 zamid/forms.py:47
+#: forms.py:989 label_ids/forms.py:47
 msgid "Search for an item with unique items…"
 msgstr "Sache mit Einzelobjekten suchen…"
 
@@ -2205,7 +2209,7 @@ msgstr "Grund der Entfernung"
 msgid "disposal note"
 msgstr "Notiz zur Entfernung"
 
-#: models/unique_item.py:85 models/unique_item.py:220 models/zamid.py:72
+#: models/unique_item.py:85 models/unique_item.py:220 models/label_id.py:72
 msgid "unique item"
 msgstr "Einzelobjekt"
 
@@ -2257,9 +2261,9 @@ msgstr "Einzelobjekt-Ereignis"
 msgid "unique item events"
 msgstr "Einzelobjekt-Ereignisse"
 
-#: models/zamid.py:96
-msgid "Can claim a ZAM ID for an item, location or unique item"
-msgstr "Kann eine ZAM-ID einer Sache, einem Standort oder einem Einzelobjekt zuordnen"
+#: models/label_id.py:96
+msgid "Can claim a label ID for an item, location or unique item"
+msgstr "Kann eine Label-ID einer Sache, einem Standort oder einem Einzelobjekt zuordnen"
 
 #: templates/inventory/file_entry.html:8 templates/inventory/media_modal.html:5
 #: templates/inventory/unique_item_photo.html:10
@@ -2341,8 +2345,9 @@ msgid "Add unique item"
 msgstr "Einzelobjekt hinzufügen"
 
 #: templates/inventory/item_detail.html:145
-msgid "Each unique item is a single object with its own ZAM ID."
-msgstr "Jedes Einzelobjekt ist ein einzelner Gegenstand mit eigener ZAM-ID."
+#, python-format
+msgid "Each unique item is a single object with its own %(name)s."
+msgstr "Jedes Einzelobjekt ist ein einzelner Gegenstand mit eigener %(name)s."
 
 #: templates/inventory/item_detail.html:145
 #, python-format
@@ -2407,8 +2412,9 @@ msgid "Add a unique item at this location"
 msgstr "Einzelobjekt an diesem Standort hinzufügen"
 
 #: templates/inventory/location_detail.html:170
-msgid "Single objects with their own ZAM ID, such as machines or fire extinguishers."
-msgstr "Einzelne Gegenstände mit eigener ZAM-ID, etwa Maschinen oder Feuerlöscher."
+#, python-format
+msgid "Single objects with their own %(name)s, such as machines or fire extinguishers."
+msgstr "Einzelne Gegenstände mit eigener %(name)s, etwa Maschinen oder Feuerlöscher."
 
 #: templates/inventory/location_detail.html:174
 #: templates/inventory/unique_item_detail.html:27
@@ -2531,8 +2537,9 @@ msgid "Removed from the inventory on %(date)s."
 msgstr "Am %(date)s aus dem Inventar entfernt."
 
 #: templates/inventory/unique_item_detail.html:54
-msgid "This unique item has no active ZAM ID."
-msgstr "Dieses Einzelobjekt hat keine aktive ZAM-ID."
+#, python-format
+msgid "This unique item has no active %(name)s."
+msgstr "Dieses Einzelobjekt hat keine aktive %(name)s."
 
 #: templates/inventory/unique_item_detail.html:55
 msgid "Scan a new label and attach it to this unique item."
@@ -2576,8 +2583,8 @@ msgstr "Es gehört zu diesem Einzelobjekt; das kannst du im Bearbeitungsformular
 
 #: templates/inventory/unique_item_dispose.html:7
 #, python-format
-msgid "The unique item currently is at %(location)s. Once removed, it no longer appears there; its page, history and ZAM ID remain, so an old label still leads here."
-msgstr "Das Einzelobjekt befindet sich zurzeit hier: %(location)s. Nach dem Entfernen erscheint es dort nicht mehr; Seite, Verlauf und ZAM-ID bleiben erhalten, sodass ein altes Etikett weiterhin hierher führt."
+msgid "The unique item currently is at %(location)s. Once removed, it no longer appears there; its page, history and %(name)s remain, so an old label still leads here."
+msgstr "Das Einzelobjekt befindet sich zurzeit hier: %(location)s. Nach dem Entfernen erscheint es dort nicht mehr; Seite, Verlauf und %(name)s bleiben erhalten, sodass ein altes Etikett weiterhin hierher führt."
 
 #: templates/inventory/unique_item_move_modal.html:12
 #, python-format
@@ -2608,27 +2615,27 @@ msgstr "Bereits gescannt: %(code)s"
 msgid "New location: %(location)s"
 msgstr "Neuer Standort: %(location)s"
 
-#: templates/inventory/zamid/claim.html:53 unique_item_views.py:77
+#: templates/inventory/label_id/claim.html:53 unique_item_views.py:77
 msgid "New unique item"
 msgstr "Neues Einzelobjekt"
 
-#: templates/inventory/zamid/claim.html:54
+#: templates/inventory/label_id/claim.html:54
 msgid "A single object that is tracked on its own, such as one fire extinguisher. You can add its details on the next page."
 msgstr "Ein einzelner Gegenstand, der für sich erfasst wird, etwa ein Feuerlöscher. Details kannst du auf der nächsten Seite ergänzen."
 
-#: templates/inventory/zamid/claim.html:56
+#: templates/inventory/label_id/claim.html:56
 msgid "Create unique item with this ID"
 msgstr "Einzelobjekt mit dieser ID anlegen"
 
-#: templates/inventory/zamid/claim.html:65
+#: templates/inventory/label_id/claim.html:65
 msgid "Replacement label for a unique item"
 msgstr "Ersatzetikett für ein Einzelobjekt"
 
-#: templates/inventory/zamid/claim.html:66
+#: templates/inventory/label_id/claim.html:66
 msgid "For unique items whose previous ID was retired."
 msgstr "Für Einzelobjekte, deren bisherige ID stillgelegt wurde."
 
-#: templates/inventory/zamid/claim.html:68
+#: templates/inventory/label_id/claim.html:68
 msgid "Attach to unique item"
 msgstr "Einzelobjekt zuordnen"
 
@@ -2651,15 +2658,15 @@ msgstr "Neue Sache „%(name)s“ anlegen"
 msgid "New item “%(name)s”"
 msgstr "Neue Sache „%(name)s“"
 
-#: zamid/forms.py:33
+#: label_ids/forms.py:33
 msgid "Unique item without an ID"
 msgstr "Einzelobjekt ohne ID"
 
-#: zamid/forms.py:34
+#: label_ids/forms.py:34
 msgid "Search for a unique item…"
 msgstr "Einzelobjekt suchen…"
 
-#: zamid/services.py:75
+#: label_ids/services.py:75
 msgid "Objects removed from the inventory cannot get an ID."
 msgstr "Aus dem Inventar entfernte Gegenstände können keine ID bekommen."
 
@@ -2745,8 +2752,9 @@ msgstr ""
 "Diese Seite lädt von selbst neu, sobald du wieder online bist."
 
 #: inventory/templates/inventory/index.html
-msgid "Name, identifier or ZAM ID"
-msgstr "Name, Kennung oder ZAM-ID"
+#, python-format
+msgid "Name, identifier or %(name)s"
+msgstr "Name, Kennung oder %(name)s"
 
 #: inventory/templates/inventory/index.html
 msgid "Search items"
@@ -2852,3 +2860,72 @@ msgstr "%(shown)s von %(total)s Einträgen werden angezeigt, nur lesbar."
 #: inventory/templates/admin/inventory/capped_tabular.html
 msgid "Open all in the list"
 msgstr "Alle in der Liste öffnen"
+
+#: inventory/models/label_id.py
+msgid "Can see who accessed a label ID"
+msgstr "Kann sehen, wer eine Label-ID aufgerufen hat"
+
+#: inventory/models/label_id.py
+msgid "label scan"
+msgstr "Etikett gescannt"
+
+#: inventory/models/label_id.py
+msgid "web form"
+msgstr "Webformular"
+
+#: inventory/models/label_id.py
+msgid "label ID access"
+msgstr "Label-ID-Aufruf"
+
+#: inventory/models/label_id.py
+msgid "label ID accesses"
+msgstr "Label-ID-Aufrufe"
+
+#: inventory/models/label_id.py
+msgid "accessed at"
+msgstr "aufgerufen am"
+
+#: inventory/models/label_id.py inventory/templates/inventory/label_id/accesses.html
+msgid "access method"
+msgstr "Zugriffsart"
+
+#: inventory/templates/inventory/label_id/info.html inventory/label_ids/admin.py
+msgid "Last accesses"
+msgstr "Letzte Aufrufe"
+
+#: inventory/label_ids/admin.py
+msgid "last accesses"
+msgstr "letzte Aufrufe"
+
+#: inventory/templates/inventory/label_id/accesses.html
+msgid "time"
+msgstr "Zeitpunkt"
+
+#: inventory/templates/inventory/label_id/accesses.html
+msgid "not logged in"
+msgstr "nicht angemeldet"
+
+#: inventory/templates/inventory/label_id/accesses.html
+msgid "Not scanned or entered in a web form yet."
+msgstr "Noch nicht gescannt oder in ein Webformular eingegeben."
+
+#: inventory/models/label_id.py inventory/templates/inventory/label_id/accesses.html
+#, python-format
+msgid "at %(name)s"
+msgstr "im %(name)s"
+
+#: inventory/models/label_id.py
+msgid "from the local network"
+msgstr "aus dem lokalen Netz"
+
+#: inventory/models/label_id.py
+msgid "From LOCAL_NETWORK_SOURCES, whatever the user's groups."
+msgstr "Aus LOCAL_NETWORK_SOURCES, unabhängig von den Gruppen des Benutzers."
+
+#: inventory/templates/inventory/label_id/accesses.html
+msgid "yes"
+msgstr "ja"
+
+#: inventory/templates/inventory/label_id/accesses.html
+msgid "no"
+msgstr "nein"

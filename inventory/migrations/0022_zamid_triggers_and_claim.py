@@ -1,6 +1,6 @@
 from django.db import migrations
 
-from inventory.zamid import triggers
+from inventory.label_ids import triggers
 
 # Target columns at this point in history. A migration adding a target
 # (e.g. asset_id) calls triggers.install() again with the extended list.
@@ -8,11 +8,11 @@ COLUMNS = ("item_id", "location_id", "url")
 
 
 def install_triggers(apps, schema_editor):
-    triggers.install(schema_editor, COLUMNS)
+    triggers.install(schema_editor, COLUMNS, triggers.LEGACY_TABLE)
 
 
 def uninstall_triggers(apps, schema_editor):
-    triggers.uninstall(schema_editor)
+    triggers.uninstall(schema_editor, triggers.LEGACY_TABLE)
 
 
 def grant_claim(apps, schema_editor):

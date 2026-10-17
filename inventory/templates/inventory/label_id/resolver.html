@@ -1,0 +1,66 @@
+{% load i18n %}<!doctype html>
+{% get_current_language as LANGUAGE_CODE %}
+<html lang="{{ LANGUAGE_CODE }}">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="robots" content="noindex">
+    <title>{% if code %}{{ code }} · {% endif %}{{ label_id_name }}</title>
+    <link rel="icon" href="/favicon.ico" sizes="48x48">
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+    <style>
+        :root { color-scheme: light dark; --fg: #1d1d1f; --bg: #fff; --muted: #6b6b70; --line: #d8d8dc; --accent: #0b5cad; }
+        @media (prefers-color-scheme: dark) { :root { --fg: #f2f2f4; --bg: #161618; --muted: #a0a0a8; --line: #3a3a40; --accent: #6aa8ff; } }
+        body { margin: 0; background: var(--bg); color: var(--fg); font: 16px/1.5 system-ui, sans-serif; }
+        main { max-width: 32rem; margin: 0 auto; padding: 3rem 1rem; }
+        h1 { font-size: 1.5rem; margin: 0 0 .5rem; }
+        .code { font-family: ui-monospace, "Roboto Mono", monospace; font-weight: 700; letter-spacing: .05em; }
+        p { margin: .5rem 0 1rem; }
+        .muted { color: var(--muted); }
+        a { color: var(--accent); }
+        form { display: flex; gap: .5rem; margin-top: 1.5rem; }
+        input { flex: 1; min-width: 0; font: inherit; font-family: ui-monospace, monospace; text-transform: uppercase;
+                padding: .5rem .75rem; border: 1px solid var(--line); border-radius: .375rem; background: transparent; color: inherit; }
+        button { font: inherit; padding: .5rem 1rem; border: 0; border-radius: .375rem; background: var(--accent); color: #fff; }
+        ul { padding-left: 1.25rem; }
+    </style>
+</head>
+<body>
+<main>
+    {% if state == "lookup" %}
+        <h1>{% blocktrans with name=label_id_name %}Look up a {{ name }}{% endblocktrans %}</h1>
+        <p class="muted">{% trans "Enter the six characters printed on the label, for example K7R-4XD." %}</p>
+    {% elif state == "checksum" %}
+        <h1>{% trans "Typo?" %}</h1>
+        <p>{% blocktrans with q=q %}“{{ q }}” is not a valid ID: the check symbol does not match.{% endblocktrans %}</p>
+        {% if suggestions %}
+            <p>{% trans "Did you mean:" %}</p>
+            <ul>{% for label, url in suggestions %}<li><a class="code" href="{{ url }}">{{ label }}</a></li>{% endfor %}</ul>
+        {% endif %}
+    {% elif state == "malformed" %}
+        <h1>{% trans "Invalid ID" %}</h1>
+        <p>{% blocktrans with q=q name=label_id_name %}“{{ q }}” is not a {{ name }}. IDs have six characters, for example K7R-4XD.{% endblocktrans %}</p>
+    {% elif state == "unknown" %}
+        <h1>{% trans "Unknown ID" %}</h1>
+        <p>{% blocktrans with code=code %}The ID <span class="code">{{ code }}</span> has not been issued.{% endblocktrans %}</p>
+    {% elif state == "retired" %}
+        <h1>{% trans "Label no longer in use" %}</h1>
+        <p>{% blocktrans with code=code %}The ID <span class="code">{{ code }}</span> has been retired.{% endblocktrans %}</p>
+        {% if target_url %}<p>{% trans "It last belonged to:" %} <a href="{{ target_url }}">{{ target_label }}</a></p>{% endif %}
+    {% elif state == "deleted" %}
+        <h1>{% trans "No longer in the inventory" %}</h1>
+        <p>{% blocktrans with code=code %}What the ID <span class="code">{{ code }}</span> belongs to has been removed from the inventory.{% endblocktrans %}</p>
+    {% elif state == "throttled" %}
+        <h1>{% trans "Too many requests" %}</h1>
+        <p>{% trans "Too many unknown IDs were looked up from your network. Please try again later." %}</p>
+    {% endif %}
+    {% if state != "throttled" %}
+        <form method="get" action="{% url 'label_id_lookup' %}" role="search">
+            <input name="q" value="{% if state == 'checksum' or state == 'malformed' %}{{ q }}{% endif %}" aria-label="{{ label_id_name }}"
+                   placeholder="K7R-4XD" autocomplete="off" autocapitalize="characters" spellcheck="false" {% if state == "lookup" %}autofocus{% endif %}>
+            <button type="submit">{% trans "Look up" %}</button>
+        </form>
+    {% endif %}
+</main>
+</body>
+</html>

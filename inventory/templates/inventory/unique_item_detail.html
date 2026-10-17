@@ -20,12 +20,12 @@
             <span aria-hidden="true">/</span>
             <a href="{{ object.item.get_absolute_url }}">{{ object.item }}</a>
             <span aria-hidden="true">/</span>
-            <a href="{{ object.get_absolute_url }}" aria-current="page">{% if zid %}{{ zid.display }}{% else %}#{{ object.pk }}{% endif %}</a>
+            <a href="{{ object.get_absolute_url }}" aria-current="page">{% if lid %}{{ lid.display }}{% else %}#{{ object.pk }}{% endif %}</a>
         </nav>
         <div class="item-heading">
             <div class="item-heading-text">
                 <p class="item-eyebrow">{% trans "Unique item" %}{% if object.item.category %} · {{ object.item.category }}{% endif %}</p>
-                <h1>{{ object.item }} {% if zid %}<span class="unique-item-code">{{ zid.display }}</span>{% else %}<span class="item-muted">#{{ object.pk }}</span>{% endif %}</h1>
+                <h1>{{ object.item }} {% if lid %}<span class="unique-item-code">{{ lid.display }}</span>{% else %}<span class="item-muted">#{{ object.pk }}</span>{% endif %}</h1>
             </div>
             {% if not object.is_disposed %}
             <div class="item-actions gap-2">
@@ -54,10 +54,10 @@
                 <strong>{% blocktrans with date=object.disposed_at|date:"SHORT_DATE_FORMAT" %}Removed from the inventory on {{ date }}.{% endblocktrans %}</strong>
                 {% trans "Reason" %}: {{ object.get_disposal_reason_display }}{% if object.disposal_note %} – {{ object.disposal_note }}{% endif %}
             </div>
-        {% elif not zid %}
+        {% elif not lid %}
             <div class="unique-item-notice alert alert-warning" role="status">
-                {% trans "This unique item has no active ZAM ID." %}
-                {% if perms.inventory.claim_zamid %}{% trans "Scan a new label and attach it to this unique item." %}{% endif %}
+                {% blocktrans with name=label_id_name %}This unique item has no active {{ name }}.{% endblocktrans %}
+                {% if perms.inventory.claim_labelid %}{% trans "Scan a new label and attach it to this unique item." %}{% endif %}
             </div>
         {% endif %}
 
@@ -142,19 +142,19 @@
             </div>
 
             <div class="item-main">
-                {% if zid %}
+                {% if lid %}
                 <section class="item-panel" aria-labelledby="unique-item-label-heading">
                     <div class="item-panel-heading">
                         <h2 id="unique-item-label-heading">{% trans "Label" %}</h2>
                     </div>
                     <div class="item-panel-body">
-                        {% url 'zamid_label' zid.code as label_url %}
+                        {% url 'label_id_label' lid.code as label_url %}
                         <div class="unique-item-label">
                             <a href="{{ label_url }}?printer={{ preview_printer }}&amp;tape={{ preview_tape }}">
                                 <img src="{{ label_url }}?printer={{ preview_printer }}&amp;tape={{ preview_tape }}"
-                                     alt="{% blocktrans with code=zid.display %}Label for {{ code }}{% endblocktrans %}">
+                                     alt="{% blocktrans with code=lid.display %}Label for {{ code }}{% endblocktrans %}">
                             </a>
-                            <span class="unique-item-code fs-4">{{ zid.display }}</span>
+                            <span class="unique-item-code fs-4">{{ lid.display }}</span>
                         </div>
                         <p class="item-muted mt-3 mb-1">{% trans "Download for printing (standard resolution, no scaling):" %}</p>
                         <ul class="unique-item-label-downloads">

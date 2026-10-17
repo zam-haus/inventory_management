@@ -1,0 +1,26 @@
+{% extends "admin/base_site.html" %}
+{% load i18n %}
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+    <a href="{% url 'admin:index' %}">{% trans 'Home' %}</a> ›
+    <a href="{% url 'admin:inventory_labelid_changelist' %}">{{ opts.verbose_name_plural|capfirst }}</a> ›
+    {{ title }}
+</div>
+{% endblock %}
+{% block content %}
+<form method="post">
+    {% csrf_token %}
+    <p>{% blocktrans count counter=queryset|length %}{{ counter }} ID selected:{% plural %}{{ counter }} IDs selected:{% endblocktrans %}
+        {% for lid in queryset %}<code>{{ lid.display }}</code>{% if not forloop.last %}, {% endif %}{% endfor %}</p>
+    {% for lid in queryset %}<input type="hidden" name="{{ action_checkbox_name }}" value="{{ lid.pk }}">{% endfor %}
+    <input type="hidden" name="action" value="{{ action }}">
+    <input type="hidden" name="apply" value="1">
+    <fieldset class="module aligned">
+        {% for field in form %}
+            <div class="form-row">{{ field.errors }}{{ field.label_tag }} {{ field }}</div>
+        {% endfor %}
+        {{ form.non_field_errors }}
+    </fieldset>
+    <div class="submit-row"><input type="submit" class="default" value="{{ title }}"></div>
+</form>
+{% endblock %}

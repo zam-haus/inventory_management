@@ -16,7 +16,7 @@ from django.core.files.storage import default_storage
 from django.db import migrations, models, transaction
 
 from inventory.models.item import get_document_upload_path
-from inventory.zamid import triggers
+from inventory.label_ids import triggers
 
 # Target columns of ZAM IDs from here on (see 0022_zamid_triggers_and_claim).
 COLUMNS = ("item_id", "location_id", "url", "unique_item_id")
@@ -71,15 +71,15 @@ def grant_to_local_group(apps, schema_editor):
 def install_triggers(apps, schema_editor):
     # The triggers name every target column, and SQLite drops them when the
     # constraint changes above rebuild the table.
-    triggers.install(schema_editor, COLUMNS)
+    triggers.install(schema_editor, COLUMNS, triggers.LEGACY_TABLE)
 
 
 def uninstall_triggers(apps, schema_editor):
-    triggers.uninstall(schema_editor)
+    triggers.uninstall(schema_editor, triggers.LEGACY_TABLE)
 
 
 def install_previous_triggers(apps, schema_editor):
-    triggers.install(schema_editor, ("item_id", "location_id", "url"))
+    triggers.install(schema_editor, ("item_id", "location_id", "url"), triggers.LEGACY_TABLE)
 
 
 class Migration(migrations.Migration):

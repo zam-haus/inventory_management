@@ -36,7 +36,7 @@ class QuickItemTests(TestCase):
         cls.location = Location.objects.create(type=kind, name="Workbench", short_name="WB")
         cls.other_location = Location.objects.create(type=kind, name="Cabinet", short_name="CAB")
         User = get_user_model()
-        # Mirrors the ZAM-local group: may create and change, but not delete.
+        # Mirrors the local group: may create and change, but not delete.
         cls.creator = User.objects.create_user(username="creator")
         cls.creator.user_permissions.add(*permissions(
             "add_item", "change_item", "add_itemlocation", "change_itemlocation",

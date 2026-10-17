@@ -9,7 +9,7 @@ from django.http import HttpRequest
 from django.template.defaultfilters import urlencode
 from mozilla_django_oidc.auth import OIDCAuthenticationBackend
 
-from accounts.groups import ZAM_LOCAL_GROUP_NAME
+from accounts.groups import local_group_name
 from accounts.models import User
 
 log = getLogger(__name__)
@@ -67,8 +67,9 @@ class CustomOidcAuthenticationBackend(OIDCAuthenticationBackend):
 
     def update_groups(self, user, claims, save_user=True):
         # The claim is authoritative for all groups except locally managed ones.
-        names = set(claims.get('groups', [])) - {ZAM_LOCAL_GROUP_NAME}
-        stale = user.groups.exclude(name=ZAM_LOCAL_GROUP_NAME).exclude(name__in=names)
+        local = local_group_name()
+        names = set(claims.get('groups', [])) - {local}
+        stale = user.groups.exclude(name=local).exclude(name__in=names)
         user.groups.remove(*stale)
         for name in names:
             group, _ = Group.objects.get_or_create(name=name)

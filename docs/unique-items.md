@@ -5,13 +5,13 @@ counted per location, or it is tracked as **unique items** (*Einzelobjekte*):
 single physical objects such as fire extinguishers, machines, IT hardware,
 anything with a power cord, or special and expensive tools. The item holds what
 its unique items share (description, photos, files, default usage level); each
-unique item has exactly one location and its own [ZAM ID](zam-ids.md). An item never has both
+unique item has exactly one location and its own [label ID](label-ids.md). An item never has both
 stock entries and unique items; its kind can only change while it has neither.
 
 * **Creating:** a new item tracked as unique items is created together with its
-  first unique item (location and ZAM ID), just as a bulk item needs its first
+  first unique item (location and label ID), just as a bulk item needs its first
   stock entry; the first unique item's page then shows the label to print.
-  A unique item always gets its ZAM ID when it is created, either
+  A unique item always gets its label ID when it is created, either
   a pre-printed label (scan it: the claim page offers *New unique item*, or enter
   it in the form) or a newly generated ID whose label is then shown on the unique
   item's page for printing. If the item does not exist yet, the item search
@@ -19,10 +19,10 @@ stock entries and unique items; its kind can only change while it has neither.
   both in the unique item form and on the claim page; the new item is only
   created when the unique item is saved.
   Creating requires `inventory.add_uniqueitem` and
-  `inventory.claim_zamid`; migration `inventory.0023` grants `add`/`change` on
-  unique items to ZAM-local (photos and files use the item permissions they
+  `inventory.claim_labelid`; migration `inventory.0023` grants `add`/`change` on
+  unique items to the local group (photos and files use the item permissions they
   already have). The admin generates an ID when a
-  unique item is added without `?zamid=`.
+  unique item is added without `?label_id=`.
 * **Details:** briefing requirement (*Einweisungspflicht*; empty uses the item's):
   green ✓ free to use, no briefing required; yellow ! use with care, ask if in
   doubt; red ✕ use only after a briefing. Lists show the coloured symbol with
@@ -64,10 +64,10 @@ stock entries and unique items; its kind can only change while it has neither.
   public, accounts and contact details internal, like on the unique item. An
   account that owns a unique item cannot be deleted (`PROTECT`); change the owner
   first, so the hand-over is recorded.
-* `manage.py zamid_check --missing` lists unique items whose ID was retired and
+* `manage.py label_id_check --missing` lists unique items whose ID was retired and
   that need a replacement label.
 * **Item search:** for items tracked as unique items, the locations column lists
-  each unique item's ZAM ID and location; searching for a location name or
+  each unique item's label ID and location; searching for a location name or
   identifier also finds them.
 * **URLs:** `/item/unique/<pk>` (with `/update` and `/dispose`) and
   `/item/unique/create?item=<pk>&location=<pk>`; new items take `?kind=bulk` or

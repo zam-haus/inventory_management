@@ -1,0 +1,48 @@
+{% extends 'base.html' %}
+{% load i18n static actions %}
+
+{% block title %}{{ label_id_name }} {{ lid.display }}{% endblock %}
+{% block bootstrap5_extra_head %}
+    {{ block.super }}
+    <style>.label-id-label-preview { height: 160px; max-width: 100%; object-fit: contain; outline: 1px solid var(--bs-border-color); }</style>
+{% endblock %}
+{% block admin_url %}{% url 'admin:inventory_labelid_change' lid.code %}{% endblock %}
+
+{% block content %}
+{% url 'label_id_label' lid.code as label_url %}
+<p>
+    <a href="{{ label_url }}?printer={{ preview_printer }}&amp;tape={{ preview_tape }}">
+        <img src="{{ label_url }}?printer={{ preview_printer }}&amp;tape={{ preview_tape }}" class="label-id-label-preview"
+             alt="{% blocktrans with code=lid.display %}Label for {{ code }}{% endblocktrans %}">
+    </a>
+</p>
+<div class="row g-4">
+    <div class="col-lg-8">
+        <dl class="row">
+            <dt class="col-sm-4">{% trans "status" %}</dt><dd class="col-sm-8">{{ lid.get_status_display }}</dd>
+            <dt class="col-sm-4">{% trans "target" %}</dt>
+            <dd class="col-sm-8">
+                {% if target_url %}<a href="{{ target_url }}">{% if lid.url %}{{ lid.url }}{% else %}{{ lid.target }}{% endif %}</a>
+                {% elif lid.target %}{{ lid.target }} ({% trans "deleted" %})
+                {% else %}–{% endif %}
+                {% if claimable %}{% if can_claim %}<a class="btn btn-sm btn-primary ms-2" href="{% url 'label_id_claim' lid.code %}">{% trans "Claim" %}</a>{% else %}<span class="ms-2">{% disabled_action _("Claim") classes="btn btn-sm btn-primary" %}</span>{% endif %}{% endif %}
+            </dd>
+            {% if lid.batch %}<dt class="col-sm-4">{% trans "batch" %}</dt><dd class="col-sm-8">{{ lid.batch }}</dd>{% endif %}
+            <dt class="col-sm-4">{% trans "created at" %}</dt><dd class="col-sm-8">{{ lid.created_at|date:"SHORT_DATETIME_FORMAT" }}</dd>
+            {% if lid.printed_at %}<dt class="col-sm-4">{% trans "printed at" %}</dt><dd class="col-sm-8">{{ lid.printed_at|date:"SHORT_DATETIME_FORMAT" }}</dd>{% endif %}
+            {% if lid.assigned_at %}<dt class="col-sm-4">{% trans "assigned at" %}</dt><dd class="col-sm-8">{{ lid.assigned_at|date:"SHORT_DATETIME_FORMAT" }}{% if user.is_staff and lid.assigned_by %} · {{ lid.assigned_by }}{% endif %}</dd>{% endif %}
+            {% if lid.retired_at %}<dt class="col-sm-4">{% trans "retired at" %}</dt><dd class="col-sm-8">{{ lid.retired_at|date:"SHORT_DATETIME_FORMAT" }}{% if user.is_staff and lid.retired_by %} · {{ lid.retired_by }}{% endif %}</dd>{% endif %}
+            {% if lid.note %}<dt class="col-sm-4">{% trans "note" %}</dt><dd class="col-sm-8">{{ lid.note|linebreaksbr }}</dd>{% endif %}
+        </dl>
+        <h2 class="h5">{% trans "Last accesses" %}</h2>
+        {% include "inventory/label_id/accesses.html" with show_user=can_see_access_user %}
+        <h2 class="h5">{% trans "Labels" %}</h2>
+        <p class="text-muted small">{% trans "Print in standard resolution, without scaling." %}</p>
+        <ul class="list-inline">
+            {% for printer, tape in label_profiles %}
+                <li class="list-inline-item"><a href="{% url 'label_id_label' lid.code %}?printer={{ printer }}&amp;tape={{ tape }}">PT-{{ printer }} {{ tape }} mm</a></li>
+            {% endfor %}
+        </ul>
+    </div>
+</div>
+{% endblock %}

@@ -1,7 +1,7 @@
 # Concepts
 
 * Items are either bulk items, counted per location, or tracked as unique items,
-  single objects with their own ZAM ID (see [Unique items](unique-items.md))
+  single objects with their own label ID (see [Unique items](unique-items.md))
 * Bulk items can be at multiple locations
 * Item images are the main source of truth during data collection
 * Stock changes are logged (see [Stock changes](stock-changes.md))

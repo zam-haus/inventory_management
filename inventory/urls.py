@@ -65,7 +65,7 @@ urlpatterns = [
     path("category/<int:pk>.json", views.category_json, name="category_json"),
     path("parent_location_autocomplete", views.ParentLocationAutocompleteView.as_view(), name="parent_location_autocomplete"),
 
-    path("id/", include("inventory.zamid.urls")),
+    path("id/", include("inventory.label_ids.urls")),
     path("robots.txt", TemplateView.as_view(template_name="inventory/robots.txt", content_type="text/plain")),
     path('location-autocomplete/', views.LocationAutocomplete.as_view(), name='location-autocomplete'),
 ]

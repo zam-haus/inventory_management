@@ -6,7 +6,7 @@ from django.core.exceptions import ValidationError
 from django.utils.translation import gettext as _
 
 from .models import ItemLocation, Location, UniqueItem
-from .zamid.lookup import annotate_zam_code
+from .label_ids.lookup import annotate_label_code
 
 
 class DissolutionPlan:
@@ -37,7 +37,7 @@ class DissolutionPlan:
         scope = {root.pk} | descendants if recursive else {root.pk}
         # Unique items only block deleting the root; they may stay in a location that is kept.
         blocking = UniqueItem.active.filter(location_id=root.pk) if delete_root else UniqueItem.active.none()
-        self.blocking_unique_items = annotate_zam_code(
+        self.blocking_unique_items = annotate_label_code(
             blocking.select_related("item", "location")
         ).order_by("item__name", "pk")
         selected_locations = descendants if recursive else set(children.get(root.pk, []))

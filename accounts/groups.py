@@ -1,12 +1,16 @@
 """Locally managed membership; never granted or removed by the identity provider."""
+from django.conf import settings
 
-ZAM_LOCAL_GROUP_NAME = "ZAM-local"
+
+def local_group_name():
+    """Members recognized on the local network (settings.LOCAL_GROUP_NAME, by default "ZAM-local")."""
+    return settings.LOCAL_GROUP_NAME
 
 
-def remember_zam_membership(user):
+def remember_local_membership(user):
     from django.contrib.auth.models import Group
 
-    group, _ = Group.objects.get_or_create(name=ZAM_LOCAL_GROUP_NAME)
+    group, _ = Group.objects.get_or_create(name=local_group_name())
     user.groups.add(group)
     # Permissions may already have been evaluated earlier in this request.
     for cache in ("_perm_cache", "_user_perm_cache", "_group_perm_cache"):
