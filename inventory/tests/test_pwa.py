@@ -11,6 +11,7 @@ class InstallableAppTests(TestCase):
         self.assertEqual(response["Content-Type"], "application/manifest+json")
         manifest = json.loads(response.content)
         self.assertEqual((manifest["name"], manifest["start_url"], manifest["display"]), ("ZAM-Inventar", "/", "standalone"))
+        self.assertEqual(manifest["orientation"], "portrait")
         self.assertEqual({icon["sizes"] for icon in manifest["icons"]}, {"192x192", "512x512"})
         self.assertIn("maskable", [icon.get("purpose") for icon in manifest["icons"]])
         for icon in manifest["icons"]:

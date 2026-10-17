@@ -34,6 +34,8 @@ def manifest(request):
         "start_url": reverse("index"),
         "scope": "/",
         "display": "standalone",
+        # Installed apps stay upright (Android; iOS ignores it, see docs/installable-app.md).
+        "orientation": "portrait",
         "background_color": "#ffffff",
         "theme_color": THEME_COLOR,
         "icons": [

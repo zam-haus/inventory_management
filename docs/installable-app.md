@@ -17,6 +17,10 @@ the browser's address bar.
   nobody sees outdated stock or another user's internal details. Form
   submissions and other requests are not touched. The cache name follows the
   offline page's content, so browsers update it when the page changes.
+* **Portrait only:** the manifest sets `"orientation": "portrait"`, so the
+  installed app does not rotate on Android. iOS ignores this for web apps and
+  offers no way to lock it; there the app still rotates. Installed apps pick up
+  manifest changes only after a while or after being reinstalled.
 * **Status bar on iOS:** iOS ignores `theme-color` for installed apps. The pages
   therefore draw under a translucent status bar (`apple-mobile-web-app-status-bar-style`
   `black-translucent`, `viewport-fit=cover` in `templates/app_head.html`), and
