@@ -6,3 +6,10 @@
     flex-direction: column;
     min-height: 0;
 }
+
+/* modals.js sets these to the part of the screen the on-screen keyboard leaves free, so the
+   footer of a scrollable modal stays above the keyboard. */
+.modal {
+    top: var(--visible-top, 0);
+    height: var(--visible-height, 100%);
+}

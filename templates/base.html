@@ -78,6 +78,7 @@
     {% include 'script_templates.html' %}
     <script src="{% static 'inventory/actions.js' %}"></script>
     <script src="{% static 'inventory/navbar.js' %}"></script>
+    <script src="{% static 'inventory/modals.js' %}"></script>
     {{ scan_hosts|json_script:"scan-hosts" }}
     {% include 'inventory/barcode_scanner_script.html' %}
     <script src="{% static 'inventory/link_scanner.js' %}"></script>
