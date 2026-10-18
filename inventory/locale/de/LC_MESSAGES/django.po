@@ -3103,3 +3103,15 @@ msgstr "Drucken"
 
 msgid "Dissolve"
 msgstr "Auflösen"
+
+msgid "Hold the QR code of a location label in front of the camera."
+msgstr "Halte den QR-Code eines Standort-Etiketts vor die Kamera."
+
+msgid "Scanned: {code}"
+msgstr "Gescannt: {code}"
+
+msgid "Already scanned: {code}"
+msgstr "Bereits gescannt: {code}"
+
+msgid "Selected: {location}"
+msgstr "Ausgewählt: {location}"

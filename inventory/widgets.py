@@ -1,6 +1,10 @@
 """Form widgets for the frontend."""
 from dal import autocomplete
+from django.urls import reverse
+from django.utils.html import format_html
 from django.utils.translation import gettext
+
+from .icons import icon
 
 
 class AutocompleteSelect(autocomplete.ModelSelect2):
@@ -22,6 +26,35 @@ class AutocompleteSelect(autocomplete.ModelSelect2):
         if "form-select" not in classes:
             attrs["class"] = " ".join([*classes, "form-select"])
         super().__init__(url, forward, *args, attrs=attrs, **kwargs)
+
+
+class LocationSelect(AutocompleteSelect):
+    """
+    Location autocomplete with a QR scan button on its right (location_scan.js): scanning a
+    location label or a label ID label selects that location. The search also finds a pasted
+    label URL or label ID (views.filter_locations). Use it for every location field outside
+    the admin; disabled fields get no button.
+    """
+
+    class Media:
+        js = ["inventory/location_scan.js"]
+
+    def render(self, name, value, attrs=None, renderer=None, **kwargs):
+        html = super().render(name, value, attrs, renderer, **kwargs)
+        if (attrs or {}).get("disabled") or self.attrs.get("disabled"):
+            return html
+        label = gettext("Scan location label")
+        return format_html(
+            '<div class="input-group location-scan-group">{}'
+            '<span class="disabled-action" tabindex="0" data-bs-toggle="tooltip" title="{}" aria-label="{}">'
+            '<button type="button" class="btn btn-secondary location-field-scan" data-location-scan disabled aria-label="{}"'
+            ' data-lookup-url="{}" data-title="{}" data-hint="{}" data-added="{}" data-duplicate="{}" data-found="{}">{}</button>'
+            '</span></div><div class="form-text" role="status" data-location-scan-status></div>',
+            html, gettext("This needs JavaScript."), label, label, reverse("location_lookup"), label,
+            gettext("Hold the QR code of a location label in front of the camera."),
+            gettext("Scanned: {code}"), gettext("Already scanned: {code}"), gettext("Selected: {location}"),
+            icon("qr-code-scan"),
+        )
 
 
 NEW_ITEM_PREFIX = "new:"

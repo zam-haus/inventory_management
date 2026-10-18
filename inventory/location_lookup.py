@@ -7,12 +7,36 @@ from django.urls import Resolver404, resolve
 from django.utils.translation import gettext_lazy as _
 
 from .keyboard_layouts import layout_corrections
-from .models import Location
+from .label_ids import core as label_id_core, parsing as label_id_parsing
+from .models import LabelId, Location
 
 
 def scan_prefixes():
     """Location labels start with DEFAULT_DOMAIN, old ones with an earlier domain (DOMAIN_ALIASES)."""
     return [url.rstrip("/") + "/" for url in (settings.DEFAULT_DOMAIN, *getattr(settings, "DOMAIN_ALIASES", ()))]
+
+
+def location_from_label_id(value):
+    """The location an assigned label ID (typed, or the URL in its QR code) belongs to, or None."""
+    try:
+        code = label_id_parsing.code_from_scan(value)
+    except label_id_core.InvalidLabelId:
+        return None
+    lid = LabelId.objects.select_related("location").filter(pk=code).first()
+    if lid is not None and lid.status == LabelId.Status.ASSIGNED and lid.location and not lid.location.is_deleted:
+        return lid.location
+    return None
+
+
+def location_from_reference(value):
+    """The location a scanned or pasted label ID or location label URL names, or None."""
+    location = location_from_label_id(value)
+    if location is None and "/" in value:
+        try:
+            location = resolve_location_reference(value)
+        except ValidationError:
+            pass
+    return location
 
 
 def resolve_location_reference(value):

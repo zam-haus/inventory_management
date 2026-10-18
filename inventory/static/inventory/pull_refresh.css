@@ -1,0 +1,16 @@
+/* Installed app: pulling down at the top reloads the page (pull_refresh.js), with this
+   indicator sliding out below the navbar (--app-navbar-height, actions.css; 0 without one). */
+.pull-refresh {
+    position: fixed; z-index: 1040; top: var(--app-navbar-height, 0px);
+    left: 50%; width: 2.5rem; height: 2.5rem; margin-left: -1.25rem; visibility: hidden;
+    border-radius: 50%; background: #fff; box-shadow: 0 2px 8px rgb(0 0 0 / .25); pointer-events: none;
+    transform: translateY(calc(var(--pull, 0px) - 2.5rem));
+}
+.pull-refresh.is-pulling, .pull-refresh.is-reloading { visibility: visible; }
+.pull-refresh::after {
+    content: ""; position: absolute; inset: .55rem; border: 3px solid #adb5bd; border-top-color: transparent;
+    border-radius: 50%; transform: rotate(var(--pull-turn, 0deg));
+}
+.pull-refresh.is-ready::after { border-color: #0d6efd; border-top-color: transparent; }
+.pull-refresh.is-reloading::after { animation: pull-refresh-spin .8s linear infinite; }
+@keyframes pull-refresh-spin { to { transform: rotate(1turn); } }

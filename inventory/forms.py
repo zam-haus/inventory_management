@@ -23,7 +23,7 @@ from .models import (
     USAGE_LEVEL_DESCRIPTIONS, BarcodeType, Item, ItemBarcode, ItemFile, ItemImage, ItemLocation, Location, StockChange,
     UniqueItem, UsageLevel, LabelId,
 )
-from .widgets import NEW_ITEM_PREFIX, AutocompleteSelect, ItemOrNewSelect
+from .widgets import NEW_ITEM_PREFIX, AutocompleteSelect, ItemOrNewSelect, LocationSelect
 from .label_ids import core as label_id_core, naming as label_id_naming, parsing as label_id_parsing
 from .label_ids.lookup import annotate_label_code
 
@@ -679,7 +679,7 @@ class ItemLocationForm(ModelForm):
         model = ItemLocation
         fields = ['location', 'amount']
         widgets = {
-            'location': AutocompleteSelect(url='location-autocomplete')
+            'location': LocationSelect(url='location-autocomplete')
         }
 
     def __init__(self, *args, **kwargs):
@@ -757,7 +757,7 @@ class DissolveLocationForm(Form):
             # Clearing a row's destination keeps that entry where it is.
             return ModelChoiceField(
                 label=_("Destination"), queryset=queryset, required=False,
-                widget=AutocompleteSelect(
+                widget=LocationSelect(
                     url="location-autocomplete",
                     attrs={"data-placeholder": _("Search for a location…"), "data-allow-clear": "true"},
                 ),
@@ -853,7 +853,7 @@ class LocationMoveForm(ModelForm):
         label=_("Destination"),
         help_text=_("Search by location name or identifier and select the new parent location."),
         queryset=Location.active.filter(type__no_sublocations = False),
-        widget=AutocompleteSelect(
+        widget=LocationSelect(
             url='parent_location_autocomplete',
             forward=['id'],
             attrs={
@@ -1012,7 +1012,7 @@ class UniqueItemForm(NewItemAlongsideMixin, ModelForm):
         widgets = {
             "item": ItemOrNewSelect(url="unique_kind_item_autocomplete",
                                     attrs={"data-placeholder": _("Search for an item with unique items…")}),
-            "location": AutocompleteSelect(url="location-autocomplete",
+            "location": LocationSelect(url="location-autocomplete",
                                            attrs={"data-placeholder": _("Search for a location…")}),
             "responsible_user": AutocompleteSelect(url="user_autocomplete", attrs={"data-allow-clear": 1}),
             "owner_user": AutocompleteSelect(url="user_autocomplete", attrs={"data-allow-clear": 1}),
@@ -1139,7 +1139,7 @@ class FirstUniqueItemForm(LabelIdChoiceForm, ModelForm):
     class Meta:
         model = UniqueItem
         fields = ["location"]
-        widgets = {"location": AutocompleteSelect(url="location-autocomplete",
+        widgets = {"location": LocationSelect(url="location-autocomplete",
                                                   attrs={"data-placeholder": _("Search for a location…")})}
 
     def __init__(self, *args, **kwargs):
@@ -1200,7 +1200,7 @@ class MoveUniqueItemForm(ModelForm):
     class Meta:
         model = UniqueItem
         fields = ["location"]
-        widgets = {"location": AutocompleteSelect(url="location-autocomplete",
+        widgets = {"location": LocationSelect(url="location-autocomplete",
                                                   attrs={"data-placeholder": _("Search for a location…")})}
 
     def __init__(self, *args, **kwargs):

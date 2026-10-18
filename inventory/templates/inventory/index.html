@@ -2,11 +2,6 @@
 
 {% load i18n static icons %}
 
-{% block bootstrap5_extra_head %}
-    {{ block.super }}
-    <link rel="stylesheet" href="{% static 'inventory/barcode_scanner.css' %}">
-{% endblock %}
-
 {% block title %}{% trans "ZAM inventory" %}{% endblock %}
 
 {% block content %}
@@ -20,19 +15,8 @@
         <div class="d-grid gap-2 d-sm-flex">
             <button type="submit" class="btn btn-info flex-sm-fill">{% trans "Search items" %}</button>
             <button type="submit" class="btn btn-info flex-sm-fill" formaction="{% url 'index_locations' %}">{% trans "Search locations" %}</button>
-            <span class="disabled-action flex-sm-fill" tabindex="0" data-bs-toggle="tooltip" title="{% trans 'This needs JavaScript.' %}"><button type="button" class="btn btn-info flex-sm-fill" data-scan-link disabled
-                    data-title="{% trans 'Scan QR code' %}"
-                    data-hint="{% trans 'Hold the QR code of a label in front of the camera to open it.' %}"
-                    data-opening="{% trans 'Opening {code}' %}"
-                    data-foreign="{% trans 'Not a link to this inventory: {code}' %}">{% icon "qr-code-scan" %} {% trans "Scan QR code" %}</button></span>
+            {% include 'inventory/scan_link_button.html' with classes="btn btn-info flex-sm-fill" wrapper_classes="flex-sm-fill" %}
         </div>
     </form>
 </div>
-{{ scan_hosts|json_script:"scan-hosts" }}
-{% endblock %}
-
-{% block bootstrap5_extra_script %}
-    {{ block.super }}
-    {% include 'inventory/barcode_scanner_script.html' %}
-    <script src="{% static 'inventory/home_scanner.js' %}"></script>
 {% endblock %}

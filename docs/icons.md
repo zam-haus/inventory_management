@@ -63,7 +63,8 @@ red for destructive actions and do not distinguish creating from changing.
 | Blue | `btn-info` | shows or finds | print, *Location details*, quick-item details, search, *Scan QR code* on the home page |
 | Grey | `btn-secondary` | neutral | cancel, back, actions menu, undo, scanning into a field, photo tools |
 
-The stock dialog colours its direction instead: red removes, green adds stock.
+The stock dialog colours its direction instead: red removes, green adds stock. The QR
+scanner beside the logo is a grey (neutral) button with a white icon, as tall as the logo.
 Usable buttons are **filled**; unavailable ones show **only the outline** (and say
 why, see [Permissions](permissions.md)). Templates give buttons the filled classes,
 also for `{% disabled_action %}`; `actions.css` draws any disabled filled button as

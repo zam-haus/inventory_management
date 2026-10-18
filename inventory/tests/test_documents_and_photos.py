@@ -486,11 +486,32 @@ class QuickActionTests(MediaMixin, UniqueItemFixture, TestCase):
 
     def test_location_lookup_for_scans(self):
         url = reverse("location_lookup")
-        self.assertEqual(self.client.get(url, {"q": "WS"}).json(), {"id": self.location.pk, "text": str(self.location)})
+        self.assertEqual(self.client.get(url, {"q": "WS"}).json(),
+                         {"id": self.location.pk, "text": str(self.location), "label": self.location.path_with_purpose})
         self.assertEqual(self.client.get(url, {"q": f"https://inv.zam.haus{self.shelf.get_absolute_url()}"}).json()["id"], self.shelf.pk)
         label = services.claim(make_id("ABCDE").code, self.shelf, None)
         self.assertEqual(self.client.get(url, {"q": f"HTTPS://I.ZAM.HAUS/{label.code}"}).json()["id"], self.shelf.pk)
         self.assertEqual(self.client.get(url, {"q": "nowhere"}).status_code, 404)
+
+    def test_location_search_finds_pasted_label_urls_and_ids(self):
+        # A scanner typing into the search field, or a pasted link, finds the location.
+        self.client.force_login(self.insider)
+        label = services.claim(make_id("ABCDE").code, self.shelf, None)
+        for url in ("location-autocomplete", "parent_location_autocomplete"):
+            for query in (f"https://inv.zam.haus{self.shelf.get_absolute_url()}", f"HTTPS://I.ZAM.HAUS/{label.code}", label.code):
+                with self.subTest(url=url, query=query):
+                    results = self.client.get(reverse(url), {"q": query}).json()["results"]
+                    self.assertEqual([result["id"] for result in results], [str(self.shelf.pk)])
+
+    def test_location_fields_offer_a_scan_button(self):
+        from ..forms import MoveUniqueItemForm, ItemLocationForm
+        html = str(MoveUniqueItemForm(instance=self.unique_item)["location"])
+        self.assertIn('class="input-group location-scan-group"', html)
+        self.assertIn(f'data-location-scan disabled aria-label="Scan location label" data-lookup-url="{reverse("location_lookup")}"', html)
+        self.assertIn("inventory/location_scan.js", str(MoveUniqueItemForm().media))
+        # A fixed location (adding stock at a given location) cannot be changed, so no button.
+        fixed = ItemLocationForm(initial={"location": self.location.pk})
+        self.assertNotIn("data-location-scan", str(fixed["location"]))
 
 
 @override_settings(**SETTINGS)

@@ -4,7 +4,6 @@
 {% block bootstrap5_extra_head %}
     {{ block.super }}
     <link rel="stylesheet" href="{% static 'inventory/location_detail.css' %}">
-    <link rel="stylesheet" href="{% static 'inventory/barcode_scanner.css' %}">
 {% endblock %}
 
 {% block title %}{% trans "Move locations here" %}: {{ object.unique_identifier }}{% endblock %}
@@ -62,6 +61,5 @@
 {% block bootstrap5_extra_script %}
     {{ block.super }}
     <script src="{% static 'inventory/location_detail.js' %}"></script>
-    {% include 'inventory/barcode_scanner_script.html' %}
     <script src="{% static 'inventory/locations_move_here.js' %}"></script>
 {% endblock %}

@@ -1,7 +1,7 @@
 import logging
 import mimetypes
 from pathlib import PurePath
-from urllib.parse import urlencode, urlsplit
+from urllib.parse import urlencode
 
 import extra_views
 from dal import autocomplete
@@ -15,7 +15,6 @@ from django.db import IntegrityError, transaction
 from django.forms import all_valid
 from django.db.models import Prefetch, Q
 from django.http import FileResponse, Http404, HttpResponseForbidden, JsonResponse
-from django.http.request import split_domain_port
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse, reverse_lazy
 from django.utils import timezone
@@ -31,17 +30,24 @@ from .stock_change_views import mark_last_stock
 from .label_ids import services
 from .label_ids.lookup import annotate_label_code
 from .label_ids.search import LabelIdSearchMixin
+from .location_lookup import location_from_reference
 
 
 logger = logging.getLogger(__name__)
 
 def index(request):
-    # The QR scanner only opens links to hosts this site serves (patterns as in ALLOWED_HOSTS),
-    # including earlier domains on old labels, which redirect to the main one.
-    aliases = {urlsplit(url).hostname for url in (*settings.DOMAIN_ALIASES, settings.LABEL_ID_BASE_URL, settings.LABEL_ID_RESOLVER_URL)}
-    scan_hosts = sorted({*settings.ALLOWED_HOSTS, *settings.LABEL_ID_RESOLVER_HOSTS, *(host for host in aliases if host),
-                         split_domain_port(request.get_host())[0]})
-    return render(request, "inventory/index.html", {"scan_hosts": scan_hosts})
+    return render(request, "inventory/index.html")
+
+def filter_locations(qs, query):
+    """Locations matching a search; a pasted or scanned label URL or label ID finds its location, too."""
+    if not query:
+        return qs
+    matches = (Q(name__icontains=query) | Q(unique_identifier__icontains=query) |
+               Q(purpose__icontains=query) | Q(physical_description__icontains=query))
+    if (referenced := location_from_reference(query.strip())) is not None:
+        matches |= Q(pk=referenced.pk)
+    return qs.filter(matches)
+
 
 class LocationAutocomplete(autocomplete.Select2QuerySetView):
     def get_result_label(self, result):
@@ -51,16 +57,7 @@ class LocationAutocomplete(autocomplete.Select2QuerySetView):
         qs = models.Location.active.all()
 
         # `self.q` is the search term from the user, provided by DAL.
-        if self.q:
-            query = self.q
-            qs = qs.filter(
-                Q(name__icontains=query) |
-                Q(unique_identifier__icontains=query) |
-                Q(purpose__icontains=query) |
-                Q(physical_description__icontains=query)
-            )
-
-        return qs
+        return filter_locations(qs, self.q)
 
 class PrintableInventoryView(PermissionRequiredMixin, View):
     """Internal: lists everything stored at the selected locations."""
@@ -507,13 +504,7 @@ class ParentLocationAutocompleteView(autocomplete.Select2QuerySetView):
         return result.path_with_purpose
 
     def get_queryset(self):
-        qs = models.Location.active.filter(type__no_sublocations = False)
-        if self.q:
-            qs = qs.filter(
-                Q(name__icontains=self.q) | Q(unique_identifier__icontains=self.q) |
-                Q(purpose__icontains=self.q) | Q(physical_description__icontains=self.q)
-            )
-        return qs
+        return filter_locations(models.Location.active.filter(type__no_sublocations=False), self.q)
 
     def get_results(self, context):
         try:

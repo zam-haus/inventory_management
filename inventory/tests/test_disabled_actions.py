@@ -56,7 +56,9 @@ class UnavailableActionsStayVisibleTests(TestCase):
         for url in (self.shelf.get_absolute_url(), self.item.get_absolute_url(), reverse("index_items"), reverse("index_locations")):
             with self.subTest(url=url):
                 response = self.client.get(url)
-                self.assertNotContains(response, "disabled-action")
+                # Only the navbar scanner waits for JavaScript (a technical reason everyone sees).
+                self.assertNotContains(response, 'role="button" aria-disabled="true"')  # {% disabled_action %}
+                self.assertContains(response, "disabled-action", count=1)
                 self.assertNotContains(response, "location-items-changeable")
         response = self.client.get(self.item.get_absolute_url())
         self.assertNotContains(response, "Dateien")
@@ -65,7 +67,7 @@ class UnavailableActionsStayVisibleTests(TestCase):
     def test_permitted_users_get_working_actions(self):
         self.client.force_login(get_user_model().objects.create_superuser(username="admin"))
         response = self.client.get(self.shelf.get_absolute_url())
-        self.assertNotContains(response, 'class="disabled-action"')
+        self.assertNotContains(response, 'role="button" aria-disabled="true"')  # {% disabled_action %}
         self.assertContains(response, reverse("location_dissolve", args=[self.shelf.pk]))
 
     def test_scan_button_waits_for_javascript(self):

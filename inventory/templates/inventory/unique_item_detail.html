@@ -7,7 +7,7 @@
     <link rel="stylesheet" href="{% static 'inventory/item_detail.css' %}">
     <link rel="stylesheet" href="{% static 'inventory/unique_item.css' %}">
     <link rel="stylesheet" href="{% static 'inventory/media_gallery.css' %}">
-    {% if move_form %}{{ move_form.media.css }}<link rel="stylesheet" href="{% static 'inventory/barcode_scanner.css' %}">{% endif %}
+    {% if move_form %}{{ move_form.media.css }}{% endif %}
 {% endblock %}
 
 {% block title %}{{ object }}{% endblock %}
@@ -204,7 +204,6 @@
     {% if move_form %}
         <script src="{% static 'static_jquery/js/jquery.min.js' %}"></script>
         {{ move_form.media.js }}
-        {% include 'inventory/barcode_scanner_script.html' %}
         <script src="{% static 'inventory/unique_item_move.js' %}"></script>
     {% endif %}
 {% endblock %}

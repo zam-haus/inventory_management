@@ -1,0 +1,6 @@
+{% load i18n icons %}{# Opens scanned links to this inventory (link_scanner.js); disabled until the script knows the camera works. `icon_only`: the navbar. #}
+<span class="disabled-action{% if wrapper_classes %} {{ wrapper_classes }}{% endif %}" tabindex="0" data-bs-toggle="tooltip" title="{% trans 'This needs JavaScript.' %}"{% if icon_only %} aria-label="{% trans 'Scan QR code' %}"{% endif %}><button type="button" class="{{ classes }}" data-scan-link disabled
+        {% if icon_only %}aria-label="{% trans 'Scan QR code' %}" {% endif %}data-title="{% trans 'Scan QR code' %}"
+        data-hint="{% trans 'Hold the QR code of a label in front of the camera to open it.' %}"
+        data-opening="{% trans 'Opening {code}' %}"
+        data-foreign="{% trans 'Not a link to this inventory: {code}' %}">{% icon "qr-code-scan" %}{% if not icon_only %} {% trans "Scan QR code" %}{% endif %}</button></span>

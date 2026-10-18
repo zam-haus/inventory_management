@@ -17,8 +17,8 @@ from django.views.decorators.cache import cache_control
 
 from .favicon import favicon_dir
 
-# Bootstrap's bg-dark, the colour of the navbar.
-THEME_COLOR = "#212529"
+# Bootstrap's bg-light, the colour of the navbar.
+THEME_COLOR = "#f8f9fa"
 
 
 @cache_control(public=True, max_age=24 * 3600)

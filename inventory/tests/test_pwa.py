@@ -17,7 +17,9 @@ class InstallableAppTests(TestCase):
         for icon in manifest["icons"]:
             with self.subTest(icon=icon["src"]):
                 self.assertTrue(icon["src"].startswith("/static/inventory/favicon/icon-"))
-                self.assertTrue(finders.find(icon["src"].removeprefix("/static/")))
+                path, _, version = icon["src"].removeprefix("/static/").partition("?v=")
+                self.assertTrue(finders.find(path))
+                self.assertTrue(version)  # browsers load a changed icon at once
 
     @override_settings(DEBUG=True)
     def test_dev_system_manifest(self):
@@ -26,7 +28,9 @@ class InstallableAppTests(TestCase):
         for icon in manifest["icons"]:
             with self.subTest(icon=icon["src"]):
                 self.assertTrue(icon["src"].startswith("/static/inventory/favicon/dev/icon-"))
-                self.assertTrue(finders.find(icon["src"].removeprefix("/static/")))
+                path, _, version = icon["src"].removeprefix("/static/").partition("?v=")
+                self.assertTrue(finders.find(path))
+                self.assertTrue(version)  # browsers load a changed icon at once
 
     def test_pages_link_manifest_and_service_worker(self):
         for url in (reverse("index_items"), reverse("admin:login")):
@@ -51,22 +55,18 @@ class InstallableAppTests(TestCase):
         self.assertNotContains(response, 'src="')
         self.assertNotContains(response, "stylesheet")
 
-    def test_ios_status_bar_is_dark_on_every_page(self):
-        # iOS ignores theme-color for installed apps; the page draws under a translucent status bar.
+    def test_every_page_offers_pull_to_refresh_in_the_installed_app(self):
         from django.contrib.auth import get_user_model
         self.client.force_login(get_user_model().objects.create_superuser("admin"))
-        cover = 'content="width=device-width, initial-scale=1, viewport-fit=cover"'
         for url in ("/", reverse("admin:index")):
             with self.subTest(url):
                 content = self.client.get(url).content.decode()
-                self.assertIn('<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">', content)
-                self.assertIn("inventory/safe_area.css", content)
-                # The last viewport tag wins, and it must allow drawing under the status bar.
-                self.assertIn(cover, content.rsplit('name="viewport"', 1)[1][:80])
-        offline = self.client.get(reverse("offline")).content.decode()
-        self.assertIn("viewport-fit=cover", offline)
-        self.assertIn("env(safe-area-inset-top", offline)
-        self.assertTrue(finders.find("inventory/safe_area.css"))
+                self.assertIn("inventory/pull_refresh.js", content)
+                self.assertIn("inventory/pull_refresh.css", content)
+                self.assertIn('<meta name="theme-color" content="#f8f9fa">', content)  # the light navbar
+                # No status bar workarounds: iOS 27 ignores them (docs/installable-app.md).
+                self.assertNotIn("apple-mobile-web-app-status-bar-style", content)
+                self.assertNotIn("viewport-fit=cover", content)
 
     def test_bootstrap_is_served_locally(self):
         response = self.client.get(reverse("index_items"))

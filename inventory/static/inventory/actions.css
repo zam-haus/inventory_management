@@ -35,5 +35,26 @@
 .action-menu-item > .bi { width: 1.15em; height: 1.15em; }
 .action-menu-reason { grid-column: 2; font-size: .8rem; }
 
+/* Navbar: logo, QR scanner, menu button, login/logout and the user menu share one height.
+   The scanner is a square grey button with a white icon. */
+/* Sticky navbar that slides away while scrolling down (navbar.js). */
+.app-navbar { transition: transform .2s ease-out; }
+.app-navbar.is-hidden { transform: translateY(-100%); }
+@media (prefers-reduced-motion: reduce) {
+    .app-navbar { transition: none; }
+}
+:root { --app-navbar-height: 57px; }  /* the item height, the navbar's padding and its bottom border */
+.app-navbar { --app-navbar-item: 40px; }
+/* Fixed heights (not min-height) and a block logo, so iOS Safari sizes them exactly alike. */
+.app-navbar .navbar-brand img { display: block; width: var(--app-navbar-item); height: var(--app-navbar-item); }
+.app-navbar .btn-sm { display: inline-flex; align-items: center; height: var(--app-navbar-item); padding-block: 0; }
+/* Narrow screens only (wider ones show the links instead of the menu button). The opened menu
+   goes below the whole first row, so logo, menu button and user menu stay where they were. */
+@media (max-width: 575.98px) {
+    .app-navbar .navbar-toggler { display: inline-flex; align-items: center; height: var(--app-navbar-item); padding-block: 0; }
+    .app-navbar .navbar-collapse { order: 1; }
+}
+.navbar-scan { justify-content: center; width: var(--app-navbar-item); padding: 0; font-size: 1.35rem; line-height: 1; }
+
 /* Inline Bootstrap Icons ({% icon %}, inventory/icons.py) sit on the text baseline like a glyph. */
 .bi { vertical-align: -.125em; flex-shrink: 0; }

@@ -56,9 +56,7 @@
 <script type="text/javascript" src="{% static 'inventory/photo_editor.js' %}"></script>
 <script type="text/javascript" src="{% static 'inventory/media_gallery.js' %}"></script>
 <script type="text/javascript" src="{% static 'inventory/unique_item_form.js' %}"></script>
-{% include 'inventory/barcode_scanner_script.html' %}
 <script type="text/javascript" src="{% static 'inventory/item_barcode_scanner.js' %}"></script>
-<link rel="stylesheet" type="text/css" href="{% static 'inventory/barcode_scanner.css' %}" />
 {% if kind != 'unique' or not form.instance.pk %}<script type="text/javascript" src="{% static 'inventory/show_measurement_unit_after_amount.js' %}"></script>{% endif %}
 {% if not form.instance.pk %}<script type="text/javascript" src="{% static 'inventory/item_kind_switch.js' %}"></script>{% endif %}
 <style type="text/css">

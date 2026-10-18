@@ -1,12 +1,12 @@
-// Home page: scanning a QR code opens its link if it points to a host this site
-// serves. The host patterns (#scan-hosts) follow Django's ALLOWED_HOSTS: "*" is
+// Scan buttons ([data-scan-link]: navbar, home page): scanning a QR code opens its link
+// if it points to a host this site serves. The host patterns (#scan-hosts) follow Django's ALLOWED_HOSTS: "*" is
 // any host, ".example.org" is example.org and its subdomains.
 (() => {
-    const button = document.querySelector('[data-scan-link]');
+    const buttons = document.querySelectorAll('[data-scan-link]');
     const hostList = document.getElementById('scan-hosts');
-    if (!button || !hostList || !window.createBarcodeScanner) return;
+    if (!buttons.length || !hostList || !window.createBarcodeScanner) return;
     const hosts = JSON.parse(hostList.textContent).map(host => host.toLowerCase());
-    const data = button.dataset;
+    const data = buttons[0].dataset;
 
     function servedUrl(text) {
         let url;
@@ -33,5 +33,5 @@
             return true;
         },
     });
-    window.setupScanButton(button, scanner);
+    buttons.forEach(button => window.setupScanButton(button, scanner));
 })();

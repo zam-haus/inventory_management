@@ -30,6 +30,11 @@ STATIC_URL = "static/"
 # Media files (e.g., uploads by users)
 MEDIA_ROOT = os.path.join(BASE_DIR, "data", "media")
 MEDIA_URL = "media/"
+# Static URLs carry ?v=<content hash>, so browsers load changed files at once (inventory/static_versions.py).
+STORAGES = {
+    "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+    "staticfiles": {"BACKEND": "inventory.static_versions.VersionedStaticFilesStorage"},
+}
 
 
 # Quick-start development settings - unsuitable for production
@@ -168,6 +173,7 @@ TEMPLATES = [
                 "accounts.context_processors.local_network",
                 "accounts.context_processors.login",
                 "inventory.label_ids.naming.context",
+                "inventory.link_scanner.scan_hosts",
             ],
         },
     },

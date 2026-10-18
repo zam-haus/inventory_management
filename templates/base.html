@@ -8,13 +8,19 @@
     {{ block.super }}
     <link rel="stylesheet" href="{% static 'inventory/actions.css' %}">
     <link rel="stylesheet" href="{% static 'inventory/modals.css' %}">
+    <link rel="stylesheet" href="{% static 'inventory/barcode_scanner.css' %}">
 {% endblock %}
 
 {% block bootstrap5_content %}
     {% block pre_container %}{% endblock %}
-    <nav class="navbar navbar-expand-sm navbar-dark bg-dark">
+    {# Sticks to the top, slides away while scrolling down and comes back on scrolling up (navbar.js). #}
+    <nav class="navbar navbar-expand-sm bg-light border-bottom sticky-top app-navbar">
       <div class="container-fluid">
-        <a class="navbar-brand py-0" href="{% url 'index' %}"><img src="{% static favicon_dir|add:'/favicon.svg' %}" alt="{% trans 'ZAM inventory' %}" width="32" height="32"></a>
+        {# The QR scanner stays beside the logo on narrow screens too (link_scanner.js). #}
+        <div class="d-flex align-items-center gap-2 me-sm-3">
+          <a class="navbar-brand py-0 me-0" href="{% url 'index' %}"><img src="{% static favicon_dir|add:'/favicon.svg' %}" alt="{% trans 'ZAM inventory' %}" width="40" height="40"></a>
+          {% include 'inventory/scan_link_button.html' with classes="btn btn-sm btn-secondary navbar-scan" icon_only=True %}
+        </div>
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNavAltMarkup" aria-controls="navbarNavAltMarkup" aria-expanded="false" aria-label="{% trans 'Toggle navigation' %}">
           <span class="navbar-toggler-icon"></span>
         </button>
@@ -34,20 +40,24 @@
           </ul>
         </div>
         <div class="d-flex">
-          <span class="navbar-text me-2">
-            {% if user.is_authenticated %}
-            {{ user.username }}
-            {% endif %}
-            {% if user.is_local_member %}
-            ({{ local_network_name }})
-            {% endif %}
-          </span>
           {% if user.is_authenticated %}
-          <form action="{% if oidc_enabled %}{% url 'oidc_logout' %}{% else %}{% url 'logout' %}{% endif %}" method="post" class="d-flex">
+          {# Narrow screens: Logout sits behind the username; wider ones show both. #}
+          <div class="dropdown d-sm-none">
+            <button class="btn btn-sm btn-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">{{ user.username }}{% if user.is_local_member %} ({{ local_network_name }}){% endif %}</button>
+            <div class="dropdown-menu dropdown-menu-end">
+              <form action="{% if oidc_enabled %}{% url 'oidc_logout' %}{% else %}{% url 'logout' %}{% endif %}" method="post">
+                {% csrf_token %}
+                <button class="dropdown-item" type="submit">{% trans 'Logout' %}</button>
+              </form>
+            </div>
+          </div>
+          <span class="navbar-text me-2 d-none d-sm-inline">{{ user.username }}{% if user.is_local_member %} ({{ local_network_name }}){% endif %}</span>
+          <form action="{% if oidc_enabled %}{% url 'oidc_logout' %}{% else %}{% url 'logout' %}{% endif %}" method="post" class="d-none d-sm-flex">
             {% csrf_token %}
             <button class="btn btn-sm btn-secondary" type="submit">{% trans 'Logout' %}</button>
           </form>
           {% else %}
+          {% if user.is_local_member %}<span class="navbar-text me-2">({{ local_network_name }})</span>{% endif %}
           <a class="btn btn-sm btn-secondary" href="{% if oidc_enabled %}{% url 'oidc_authentication_init' %}{% else %}{% url 'login' %}{% endif %}?next={{ request.get_full_path|urlencode }}">{% trans 'Login' %}</a>
           {% endif %}
         </div>
@@ -67,4 +77,8 @@
     {{ block.super }}
     {% include 'script_templates.html' %}
     <script src="{% static 'inventory/actions.js' %}"></script>
+    <script src="{% static 'inventory/navbar.js' %}"></script>
+    {{ scan_hosts|json_script:"scan-hosts" }}
+    {% include 'inventory/barcode_scanner_script.html' %}
+    <script src="{% static 'inventory/link_scanner.js' %}"></script>
 {% endblock %}

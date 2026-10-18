@@ -31,14 +31,15 @@ Implemented with Django. The full documentation is in [docs/](docs/README.md).
 
    DEBUG = True
    TEMPLATE_DEBUG = True
-   ALLOWED_HOSTS = ['localhost', '127.0.0.1', '192.168.178.10', '10.233.1.123']
+   # Any host reaches the dev server (LAN, i.localhost); none is redirected to DEFAULT_DOMAIN
+   ALLOWED_HOSTS = ['*']
+   CANONICAL_HOST_REDIRECT = False
    SECRET_KEY = "REPLACE ME!!!!!"
 
    # Django's own login; set True (and the OIDC_* settings) to test the SSO login
    OIDC_ENABLED = False
 
    # Label IDs: QR codes and the resolver point at this server
-   ALLOWED_HOSTS += ['i.localhost', 'id.localhost']
    LABEL_ID_BASE_URL = 'http://i.localhost:8000/'
    LABEL_ID_INVENTORY_BASE = 'http://localhost:8000'
 

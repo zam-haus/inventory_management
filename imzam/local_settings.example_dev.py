@@ -3,7 +3,10 @@
 from pathlib import Path
 
 DEBUG = True
-ALLOWED_HOSTS = ['127.0.0.1']
+# Any host name or address reaches the dev server (phones in the LAN, i.localhost for label IDs, …),
+# and none is redirected to the main domain (DEFAULT_DOMAIN).
+ALLOWED_HOSTS = ['*']
+CANONICAL_HOST_REDIRECT = False
 
 # If label printing is to be tested:
 #MQTT_PASSWORD_AUTH = dict(
@@ -19,7 +22,6 @@ OIDC_ENABLED = False
 
 # Label IDs locally: QR codes point at the local resolver (a larger QR version than in
 # production), and the resolver redirects back to this server.
-ALLOWED_HOSTS += ['i.localhost', 'id.localhost']
 LABEL_ID_BASE_URL = 'http://i.localhost:8000/'
 LABEL_ID_INVENTORY_BASE = 'http://localhost:8000'
 

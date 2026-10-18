@@ -29,3 +29,29 @@ class HomePageTests(TestCase):
     def test_scanner_always_accepts_the_current_host(self):
         response = self.client.get(reverse("index"), headers={"host": "localhost:8000"})
         self.assertEqual(response.context["scan_hosts"], ["localhost"])
+
+    def test_logout_hides_behind_the_username_on_narrow_screens(self):
+        from django.contrib.auth import get_user_model
+        self.client.force_login(get_user_model().objects.create_user("ada"))
+        content = self.client.get(reverse("index"), headers={"host": "inv.zam.haus"}).content.decode()
+        narrow = content.index('<div class="dropdown d-sm-none">')
+        self.assertIn('data-bs-toggle="dropdown" aria-expanded="false">ada</button>', content[narrow:])
+        self.assertIn('<button class="dropdown-item" type="submit">Logout</button>', content[narrow:])
+        self.assertIn('<span class="navbar-text me-2 d-none d-sm-inline">ada</span>', content)
+
+    def test_navbar_scanner_on_every_page(self):
+        for url in (reverse("index"), reverse("index_items"), reverse("index_locations")):
+            with self.subTest(url=url):
+                content = self.client.get(url, headers={"host": "inv.zam.haus"}).content.decode()
+                navbar = content[content.index("<nav"):content.index("</nav>")]
+                self.assertIn('class="btn btn-sm btn-secondary navbar-scan" data-scan-link disabled', navbar)
+                self.assertIn("data-scan-link disabled\n        aria-label=", navbar)
+                self.assertIn("</svg></button>", navbar)  # icon only
+                self.assertEqual(content.count("inventory/barcode_scanner.js"), 1)
+                self.assertEqual(content.count("inventory/link_scanner.js"), 1)
+                self.assertIn('<script id="scan-hosts" type="application/json">', content)
+
+    def test_navbar_slides_away_while_scrolling_down(self):
+        content = self.client.get(reverse("index"), headers={"host": "inv.zam.haus"}).content.decode()
+        self.assertIn('class="navbar navbar-expand-sm bg-light border-bottom sticky-top app-navbar"', content)
+        self.assertEqual(content.count("inventory/navbar.js"), 1)

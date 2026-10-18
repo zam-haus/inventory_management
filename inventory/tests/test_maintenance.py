@@ -10,6 +10,7 @@ from django.core.management import call_command
 from django.test import RequestFactory, SimpleTestCase, TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone, translation
+from django.templatetags.static import static
 
 from ..admin import LocationAdmin
 from ..models import Item, ItemImage, ItemLocation, Location, LocationType, MeasurementUnit
@@ -69,7 +70,9 @@ class MaintenanceRegressionTests(TestCase):
         self.assertEqual(Location.objects.filter(parent_location=None, physical_description="Storage").count(), 2)
 
     def test_pages_link_the_favicon(self):
-        icon = '<link rel="icon" href="/static/inventory/favicon/favicon.svg" type="image/svg+xml">'
+        svg = static("inventory/favicon/favicon.svg")  # with its version (?v=)
+        self.assertTrue(svg.startswith("/static/inventory/favicon/favicon.svg?v="))
+        icon = f'<link rel="icon" href="{svg}" type="image/svg+xml">'
         location = Location.objects.create(type=LocationType.objects.create(name="Room", unique=True), name="Root", short_name="R")
         for url in (reverse("index_locations"), reverse("index_items"), reverse("admin:index"),
                     reverse("print_inventory"), location.get_absolute_url()):
@@ -77,14 +80,14 @@ class MaintenanceRegressionTests(TestCase):
                 self.assertContains(self.client.get(url), icon, html=True)
 
     def test_navbar_shows_logo(self):
-        logo = '<img src="/static/inventory/favicon/favicon.svg" alt="ZAM inventory" width="32" height="32">'
+        logo = f'<img src="{static("inventory/favicon/favicon.svg")}" alt="ZAM inventory" width="40" height="40">'
         self.assertContains(self.client.get(reverse("index_items")), logo, html=True)
 
     @override_settings(DEBUG=True)
     def test_dev_system_uses_magenta_variant(self):
         response = self.client.get(reverse("index_items"))
-        self.assertContains(response, 'src="/static/inventory/favicon/dev/favicon.svg"')
-        self.assertContains(response, 'href="/static/inventory/favicon/dev/favicon.ico"')
+        self.assertContains(response, 'src="/static/inventory/favicon/dev/favicon.svg?v=')
+        self.assertContains(response, 'href="/static/inventory/favicon/dev/favicon.ico?v=')
         self.assertIn(b"#e94391", self.client.get("/favicon.svg").content)
 
     def test_admin_user_search_uses_existing_fields(self):

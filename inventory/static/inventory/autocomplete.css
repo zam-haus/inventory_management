@@ -59,3 +59,12 @@
 .select2-container--default.select2-container--disabled .select2-selection--single.form-select {
     background-color: var(--bs-secondary-bg);
 }
+
+/* Location fields with a QR scan button on the right (widgets.LocationSelect). Select2 draws its
+   box right after the <select>, inside the input group; the button stays square. */
+.location-scan-group { flex-wrap: nowrap; }
+.location-scan-group > .select2-container { flex: 1 1 auto; width: 1% !important; }
+.location-scan-group > .select2-container .select2-selection.form-select { border-top-right-radius: 0; border-bottom-right-radius: 0; }
+.location-scan-group > .disabled-action > .btn,
+.location-scan-group > .location-field-scan { border-top-left-radius: 0; border-bottom-left-radius: 0; }
+.location-field-scan { display: inline-flex; align-items: center; justify-content: center; min-width: 2.75rem; font-size: 1.15rem; }
