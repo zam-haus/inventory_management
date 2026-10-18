@@ -47,7 +47,8 @@ class LocationPurposeForm(ModelForm):
     class Meta:
         model = Location
         fields = ["purpose"]
-        widgets = {"purpose": TextInput(attrs={"class": "form-control", "maxlength": 50})}
+        # data-modal-focus: modals.js focuses it when the dialog opens.
+        widgets = {"purpose": TextInput(attrs={"class": "form-control", "maxlength": 50, "data-modal-focus": ""})}
 
 
 class LocationOverviewForm(ModelForm):

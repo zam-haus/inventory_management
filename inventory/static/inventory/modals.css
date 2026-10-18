@@ -13,3 +13,18 @@
     top: var(--visible-top, 0);
     height: var(--visible-height, 100%);
 }
+
+/* modals.js focuses it while a modal fades in, so that phones open the keyboard. 16px keeps iOS
+   from zooming in. */
+.modal-focus-stand-in {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    border: 0;
+    font-size: 16px;
+    opacity: 0;
+    pointer-events: none;
+}

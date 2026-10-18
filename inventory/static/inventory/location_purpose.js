@@ -17,7 +17,6 @@
         });
     });
     input.addEventListener('input', updateCounter);
-    editor.addEventListener('shown.bs.modal', () => { input.focus(); input.select(); });
     editor.addEventListener('hidden.bs.modal', () => {
         if (editor.dataset.open === 'true') return;  // keep what was entered after a failed save
         editor.querySelector('form').reset();

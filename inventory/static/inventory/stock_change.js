@@ -237,12 +237,12 @@
                 requestInput.value = requestIds.get(button.href);
                 load(button.dataset);
             }
+            // Remove or add is chosen first; then the amount. modals.js focuses it on opening.
+            const first = direction() ? amountInput : form.querySelector('[name=direction]');
+            form.querySelectorAll('[data-modal-focus]').forEach(field => field.removeAttribute('data-modal-focus'));
+            first.setAttribute('data-modal-focus', '');
             show();
         });
-    });
-    modal.addEventListener('shown.bs.modal', () => {
-        // Remove or add is chosen first; then the amount.
-        (direction() ? amountInput : form.querySelector('[name=direction]')).focus();
     });
     form.querySelectorAll('[name=direction]').forEach(input => input.addEventListener('change', () => amountInput.focus()));
 

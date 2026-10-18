@@ -37,3 +37,37 @@
     viewport.addEventListener('resize', update);
     viewport.addEventListener('scroll', update);
 })();
+
+// Phones open the keyboard only for a field that is focused during the tap itself, but a modal's
+// fields are still hidden then. So the field marked data-modal-focus gets a stand-in that takes
+// the focus at once and hands it, together with the keyboard, to the field once it is shown.
+(() => {
+    const TEXT = 'textarea, input:not([type=checkbox], [type=radio], [type=file], [type=range], [type=color], [type=button], [type=submit], [type=reset])';
+
+    document.addEventListener('show.bs.modal', event => {
+        const modal = event.target;
+        const field = modal.querySelector('[data-modal-focus]');
+        if (event.defaultPrevented || !field?.matches(TEXT)) return;
+        const standIn = document.createElement('input');
+        standIn.className = 'modal-focus-stand-in';
+        standIn.type = field.type === 'number' ? 'number' : 'text';  // the same kind of keyboard
+        if (field.inputMode) standIn.inputMode = field.inputMode;
+        standIn.tabIndex = -1;
+        standIn.setAttribute('aria-hidden', 'true');
+        document.body.append(standIn);
+        standIn.focus({preventScroll: true});
+        // Bootstrap focuses the dialog itself once it is shown, which would close the keyboard.
+        modal.focus = options => field.focus(options);
+        modal.addEventListener('shown.bs.modal', () => {
+            delete modal.focus;
+            standIn.remove();
+        }, {once: true});
+    });
+
+    document.addEventListener('shown.bs.modal', event => {
+        const field = event.target.querySelector('[data-modal-focus]');
+        if (!field) return;
+        field.focus();
+        if (field.matches(TEXT)) field.select();
+    });
+})();
