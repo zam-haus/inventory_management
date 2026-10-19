@@ -28,3 +28,8 @@
     opacity: 0;
     pointer-events: none;
 }
+
+/* Select2 opens its results at the end of <body>, below Bootstrap's modals (z-index 1055). */
+.modal-open .select2-dropdown {
+    z-index: 1056;
+}

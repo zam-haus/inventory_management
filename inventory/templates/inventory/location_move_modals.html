@@ -1,0 +1,57 @@
+{% load i18n django_bootstrap5 icons %}
+{# Move this location, or move other locations into it, in dialogs opened by the header actions (data-modal-open). #}
+{# They post to the move pages, which also show errors and serve as the fallback without JavaScript. #}
+{# The QR scanners open their own dialogs above these, which need the focus (data-bs-focus). #}
+{% if move_form %}
+<div class="modal fade" id="location-move-modal" tabindex="-1" aria-labelledby="location-move-modal-title" aria-hidden="true" data-bs-focus="false">
+    <div class="modal-dialog">
+        <form class="modal-content location-move-dialog" method="post" action="{% url 'location_move' pk=object.pk %}">
+            {% csrf_token %}
+            <div class="modal-header">
+                <h2 class="modal-title fs-5" id="location-move-modal-title">{% trans "Move location" %}</h2>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{% trans 'Cancel' %}"></button>
+            </div>
+            <div class="modal-body">
+                <p class="text-muted">{% trans "Current location path" %}: {{ object.descriptive_identifier }}</p>
+                {% bootstrap_form move_form %}
+                <p class="location-muted mb-0">{% trans "Stored items and child locations remain assigned to this location." %}{% if object.type.unique %} {% trans "Leave the destination empty to make this a top-level location." %}{% endif %}</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{% trans "Cancel" %}</button>
+                <button type="submit" class="btn btn-warning">{% trans "Move location" %}</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endif %}
+{% if move_here_form %}
+<div class="modal fade" id="locations-move-here-modal" tabindex="-1" aria-labelledby="locations-move-here-modal-title" aria-hidden="true" data-bs-focus="false">
+    <div class="modal-dialog modal-dialog-scrollable">
+        <div class="modal-content">
+            <form class="location-move-dialog" method="post" action="{% url 'locations_move_here' pk=object.pk %}">
+                {% csrf_token %}
+                <div class="modal-header">
+                    <h2 class="modal-title fs-5" id="locations-move-here-modal-title">{% trans "Move locations here" %}</h2>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{% trans 'Cancel' %}"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="text-muted">{% trans "Destination" %}: {{ object.descriptive_identifier }}</p>
+                    <div class="mb-3">
+                        <span class="disabled-action" tabindex="0" data-bs-toggle="tooltip" title="{% trans 'This needs JavaScript.' %}"><button type="button" class="btn btn-secondary location-scan-button" data-scan-locations disabled
+                                data-title="{% trans 'Scan location labels' %}"
+                                data-hint="{% trans 'Hold the QR code of a location label in front of the camera. Every scanned label is added to the list.' %}"
+                                data-added="{% blocktrans with code='{code}' %}Added: {{ code }}{% endblocktrans %}"
+                                data-duplicate="{% blocktrans with code='{code}' %}Already in the list: {{ code }}{% endblocktrans %}">{% icon "qr-code-scan" %} {% trans "Scan QR codes" %}</button></span>
+                    </div>
+                    {% bootstrap_form move_here_form %}
+                    <p class="location-muted mb-0">{% trans "Stored items and child locations remain assigned to each moved location. Duplicate entries are processed once." %}</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{% trans "Cancel" %}</button>
+                    <button type="submit" class="btn btn-warning">{% trans "Move locations here" %}</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endif %}

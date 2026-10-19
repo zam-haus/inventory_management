@@ -123,8 +123,10 @@
 .dissolve-bulk { display: flex; flex-wrap: wrap; gap: .75rem; align-items: center; }
 .dissolve-bulk > div { flex: 1 1 18rem; min-width: 0; }
 /* Long location paths wrap instead of being cut off; the box grows with them. */
-.location-move-form .select2-selection.form-select { min-height: 44px; }
-.location-move-form .select2-selection.form-select .select2-selection__rendered { white-space: normal; }
+.location-move-form .select2-selection.form-select,
+.location-move-dialog .select2-selection.form-select { min-height: 44px; }
+.location-move-form .select2-selection.form-select .select2-selection__rendered,
+.location-move-dialog .select2-selection.form-select .select2-selection__rendered { white-space: normal; }
 .location-header a:focus-visible,
 .location-actions button:focus-visible,
 .location-help:focus-visible,

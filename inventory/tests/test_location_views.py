@@ -51,6 +51,34 @@ class LocationsMoveHereTests(TestCase):
         self.box.refresh_from_db()
         self.assertEqual(self.box.parent_location_id, self.source.pk)
 
+    def test_detail_page_offers_both_moves_as_dialogs(self):
+        response = self.client.get(self.box.get_absolute_url())
+        move_url = reverse("location_move", kwargs={"pk": self.box.pk})
+        here_url = reverse("locations_move_here", kwargs={"pk": self.box.pk})
+        # The links stay the fallback without JavaScript.
+        self.assertContains(response, f'href="{move_url}" data-modal-open="location-move-modal"')
+        self.assertContains(response, f'href="{here_url}" data-modal-open="locations-move-here-modal"')
+        self.assertContains(response, f'action="{move_url}"')
+        self.assertContains(response, f'action="{here_url}"')
+        self.assertContains(response, f'name="id" value="{self.box.pk}"')
+        textarea = re.search(r"<textarea [^>]*>", response.content.decode()).group()
+        self.assertIn('data-modal-focus="without-keyboard"', textarea)
+        self.assertNotIn("autofocus", textarea)
+        # The page of its own keeps the autofocus.
+        self.assertContains(self.client.get(here_url), "autofocus")
+
+    def test_dialogs_only_where_the_move_is_possible(self):
+        fixed_type = LocationType.objects.create(name="Fixed", unique=True, no_sublocations=True)
+        fixed = Location.objects.create(type=fixed_type, name="Fixed", short_name="FIX")
+        response = self.client.get(fixed.get_absolute_url())
+        self.assertNotContains(response, 'id="location-move-modal"')
+        self.assertNotContains(response, 'id="locations-move-here-modal"')
+        self.client.force_login(get_user_model().objects.create_user(username="reader"))
+        response = self.client.get(self.box.get_absolute_url())
+        self.assertNotContains(response, "data-modal-open")
+        self.assertNotContains(response, 'id="location-move-modal"')
+        self.assertNotContains(response, 'id="locations-move-here-modal"')
+
     def test_identifiers_separators_deduplication_and_snapshot_resolution(self):
         values = f"{self.box.unique_identifier};{self.child.unique_identifier}\n{self.unique.locatable_identifier}\t{self.unique.unique_identifier} {self.box.pk}"
         response = self.post(values)

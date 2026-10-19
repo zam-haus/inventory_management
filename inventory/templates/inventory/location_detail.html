@@ -10,6 +10,7 @@
     <link rel="stylesheet" href="{% static 'inventory/location_quick_items.css' %}">
     <link rel="stylesheet" href="{% static 'inventory/unique_item.css' %}">
     <link rel="stylesheet" href="{% static 'inventory/stock_change.css' %}">
+    {% if move_form %}{{ move_form.media.css }}{% endif %}
 {% endblock %}
 
 {% block title %}{% trans "Location" %}: {{ object.unique_identifier }}{% endblock %}
@@ -40,7 +41,7 @@
                     {% blocktrans with location_type=object.type.name asvar move_unavailable %}Moving is disabled for location type “{{ location_type }}”.{% endblocktrans %}
                     {% icon "arrows-move" as move_icon %}{% disabled_action move_icon label=_("Move location") reason=move_unavailable classes="btn btn-warning location-print" %}
                 {% elif perms.inventory.change_location %}
-                    <a class="btn btn-warning location-print" href="{% url 'location_move' pk=object.id %}">{% icon "arrows-move" %} <span class="action-label">{% trans "Move location" %}</span></a>
+                    <a class="btn btn-warning location-print" href="{% url 'location_move' pk=object.id %}" data-modal-open="location-move-modal">{% icon "arrows-move" %} <span class="action-label">{% trans "Move location" %}</span></a>
                 {% else %}
                     {% icon "arrows-move" as move_icon %}{% disabled_action move_icon label=_("Move location") classes="btn btn-warning location-print" %}
                 {% endif %}
@@ -52,7 +53,7 @@
                 {% if object.type.no_sublocations %}
                     {% icon "box-arrow-in-down" as move_here_icon %}{% disabled_action move_here_icon label=_("Move here") name=_("Move locations into this location") reason=_("This location cannot contain sub-locations.") classes="btn btn-warning location-print" %}
                 {% elif perms.inventory.change_location %}
-                    <a class="btn btn-warning location-print" href="{% url 'locations_move_here' pk=object.pk %}" data-bs-toggle="tooltip" title="{% trans 'Move locations into this location' %}">{% icon "box-arrow-in-down" %} <span class="action-label">{% trans "Move here" %}</span></a>
+                    <a class="btn btn-warning location-print" href="{% url 'locations_move_here' pk=object.pk %}" data-modal-open="locations-move-here-modal" data-bs-toggle="tooltip" title="{% trans 'Move locations into this location' %}">{% icon "box-arrow-in-down" %} <span class="action-label">{% trans "Move here" %}</span></a>
                 {% else %}
                     {% icon "box-arrow-in-down" as move_here_icon %}{% disabled_action move_here_icon label=_("Move here") name=_("Move locations into this location") classes="btn btn-warning location-print" %}
                 {% endif %}
@@ -268,7 +269,7 @@
     </div>
     {% endwith %}
     {% include 'inventory/location_metadata.html' %}
-    {% if perms.inventory.change_location %}{% include 'inventory/location_overview_editor.html' %}{% include 'inventory/location_purpose_editor.html' %}{% endif %}
+    {% if perms.inventory.change_location %}{% include 'inventory/location_overview_editor.html' %}{% include 'inventory/location_purpose_editor.html' %}{% include 'inventory/location_move_modals.html' %}{% endif %}
     {% if stock_change_form %}{% include 'inventory/stock_change_dialog.html' %}{% endif %}
 {% endblock %}
 
@@ -280,4 +281,9 @@
     {% if perms.inventory.change_location %}<script src="{% static 'inventory/location_overview.js' %}"></script><script src="{% static 'inventory/location_purpose.js' %}"></script>{% endif %}
     {% if can_manage_quick_items %}<script src="{% static 'inventory/location_quick_items.js' %}"></script>{% endif %}
     {% if stock_change_form %}<script src="{% static 'inventory/stock_change.js' %}"></script>{% endif %}
+    {% if move_form %}
+        <script src="{% static 'static_jquery/js/jquery.min.js' %}"></script>
+        {{ move_form.media.js }}
+    {% endif %}
+    {% if move_here_form %}<script src="{% static 'inventory/locations_move_here.js' %}"></script>{% endif %}
 {% endblock %}

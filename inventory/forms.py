@@ -832,6 +832,15 @@ class LocationsMoveHereForm(Form):
         help_text=_("Enter unique identifiers, locatable identifiers, numeric IDs or /loc URLs. Separate entries with spaces, newlines, tabs or semicolons."),
     )
 
+    def __init__(self, *args, dialog=False, **kwargs):
+        super().__init__(*args, **kwargs)
+        if dialog:
+            # modals.js focuses the field on opening, for scanners that type. Phones keep their
+            # keyboard closed; there the camera scan above the field is the usual way.
+            attrs = self.fields["identifiers"].widget.attrs
+            del attrs["autofocus"]
+            attrs["data-modal-focus"] = "without-keyboard"
+
     def clean_identifiers(self):
         identifiers = []
         for chunk in self.cleaned_data["identifiers"].split():

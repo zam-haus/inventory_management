@@ -41,13 +41,14 @@
 // Phones open the keyboard only for a field that is focused during the tap itself, but a modal's
 // fields are still hidden then. So the field marked data-modal-focus gets a stand-in that takes
 // the focus at once and hands it, together with the keyboard, to the field once it is shown.
+// data-modal-focus="without-keyboard" focuses the field without opening the keyboard.
 (() => {
     const TEXT = 'textarea, input:not([type=checkbox], [type=radio], [type=file], [type=range], [type=color], [type=button], [type=submit], [type=reset])';
 
     document.addEventListener('show.bs.modal', event => {
         const modal = event.target;
         const field = modal.querySelector('[data-modal-focus]');
-        if (event.defaultPrevented || !field?.matches(TEXT)) return;
+        if (event.defaultPrevented || !field?.matches(TEXT) || field.dataset.modalFocus === 'without-keyboard') return;
         const standIn = document.createElement('input');
         standIn.className = 'modal-focus-stand-in';
         standIn.type = field.type === 'number' ? 'number' : 'text';  // the same kind of keyboard
@@ -71,3 +72,13 @@
         if (field.matches(TEXT)) field.select();
     });
 })();
+
+// [data-modal-open="<id>"] opens that modal instead of following its link, which stays the
+// fallback without JavaScript.
+document.addEventListener('click', event => {
+    const opener = event.target.closest('[data-modal-open]');
+    const modal = opener && document.getElementById(opener.dataset.modalOpen);
+    if (!modal || !window.bootstrap) return;
+    event.preventDefault();
+    window.bootstrap.Modal.getOrCreateInstance(modal).show(opener);
+});

@@ -134,6 +134,10 @@ class DetailLocationView(DetailView):
         if self.request.user.has_perm("inventory.change_location"):
             context.setdefault("overview_form", forms.LocationOverviewForm(instance=self.object))
             context.setdefault("purpose_form", forms.LocationPurposeForm(instance=self.object))
+            if self.object.type.moveable:
+                context["move_form"] = forms.LocationMoveForm(instance=self.object, initial={"id": self.object.pk})
+            if not self.object.type.no_sublocations:
+                context["move_here_form"] = forms.LocationsMoveHereForm(dialog=True)
         return context
 
     def get(self, request, *args, **kwargs):
