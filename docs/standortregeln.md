@@ -1,11 +1,9 @@
 # Standortregeln
 
 Wie im ZAM Häuser, Ebenen, Räume und Bereiche benannt und codiert werden. Die technische Seite
-(Modell, Datensatz, Befehle) steht in [Building structure](location-structure.md). Der aktuelle
-Stand aller Orte steht im Datensatz [`standortstruktur.json`](standortstruktur.json); daraus
-erzeugt `manage.py building_overview` die Übersicht nach Ebenen und Achsen.
-
-Diese Seite ersetzt *Lagerräume und Etagen.md* mit der alten Zählung N/W/S/T.
+(Modell, Kategorien, Nummernkreise) steht in [Building structure](location-structure.md). Der
+aktuelle Stand aller Orte steht im Inventar; `manage.py building_overview -o ebenen-und-achsen.html`
+erzeugt daraus die Übersicht nach Ebenen und Achsen.
 
 ## Grundsätze
 
@@ -21,7 +19,7 @@ Diese Seite ersetzt *Lagerräume und Etagen.md* mit der alten Zählung N/W/S/T.
    Inventarseiten lässt sich nur der Zweck ändern, denn er folgt der Nutzung. Foto, Ort und
    Löschen sind dort gesperrt. Was darin steht (Regale, Kisten, Bestand), lässt sich weiter
    verschieben, und neue Regale und Schränke werden dort angelegt.
-5. **Regale, Schränke und Kisten** gehören nicht zur Gebäudestruktur. Sie behalten ihre Codes
+5. **Regale, Schränke und Kisten** gehören nicht zur Gebäudestruktur. Sie haben eigene Codes
    (`R303`, `K034c`) und hängen in dem Raum oder Bereich, in dem sie stehen.
 
 ## Gebäudeteile, Lagermöbel und Behälter
@@ -44,8 +42,8 @@ den Behältern holt der Knopf daneben weitere hierher (wie **Hierher holen**).
 
 | Code | Haus |
 |---|---|
-| `WH` | Werkhaus (früher Nordhaus) |
-| `HH` | Haupthaus (früher West, Süd und Turm) |
+| `WH` | Werkhaus |
+| `HH` | Haupthaus |
 
 Ebenen zählen hausübergreifend: **0 ist die Ebene, die zur Hauptstraße ebenerdig liegt.** Gleiche
 Zahlen liegen ungefähr auf gleicher Höhe; die Böden weichen um bis zu 1,5 m ab. Der Code trägt
@@ -257,40 +255,14 @@ denn ihre Labels hängen schon. Das betrifft:
 * `SR1`–`SR3` und `BR` (Stangen- und Blechregale) in der Metallwerkstatt (`MW`),
   `SR4`–`SR6` im Stangenlager (`LAG2`).
 
-Das Hausmeisterregal `PräHausm` wird aufgelöst, sein Inhalt kommt in die Hausmeisterei
-(`SK.1`). Die Regale R003–R013 zieht die Umstellung von `WH+1` nach `GSL`.
-
 ## Brandlastfrei und außen
 
 **Brandlastfrei** heißt: Dort dürfen keine brennbaren Materialien lagern. Die Eigenschaft gilt
-für alles darin. Brandlastfrei sind alle Dachböden außer dem über Atrium Süd (`LAG6`), alles,
-was früher Turmhaus war, die Treppenhäuser 1 und 2, der Flur beim Seminarraum (`TR3+0`) und die
-Treppe der alten Wohnung (`TR7`).
+für alles darin. Brandlastfrei sind alle Dachböden außer dem über Atrium Süd (`LAG6`), die
+Lagerräume im Turm (`LAG3`, `LAG5`), die Treppenhäuser 1 und 2, der Flur beim Seminarraum
+(`TR3+0`) und die Treppe der alten Wohnung (`TR7`).
 
 **Außen** sind Hof, Innenhof, Dächer, Außentreppen und die Außenbereiche an den Straßen.
-
-## Umstellung
-
-Der Datensatz führt jeden alten Gebäudeknoten auf seinen Nachfolger zurück (`old`). So behalten
-36 alte Orte ihre Adresse, Historie, Fotos und ZAMid; Kisten und Regale ziehen mit. `mobil`
-bekommt den eigenen Typ *Mobil*. Fünf alte Orte werden endgültig gelöscht (`N1.1`, `S2.IWL`,
-`S2.LL`, `S2.VRL` und das Regal `PräHausm`); Kisten darin kommen vorerst auf `HH+1`, der Bestand
-von `PräHausm` in die Hausmeisterei. Danach werden die alten Typen *Haus+Etage* und
-*Raum/Bereich* gelöscht, zusammen mit älteren, schon gelöschten Orten dieser Typen.
-
-```sh
-python manage.py building_restructure docs/standortstruktur.json            # Probelauf
-python manage.py building_restructure docs/standortstruktur.json --apply --actor <username>
-python manage.py building_overview -o ebenen-und-achsen.html
-```
-
-Danach liegen Kisten, die bisher direkt auf alten Etagen standen, auf der neuen Ebene und sollten
-in ihre Räume und Bereiche verteilt werden. Gedruckte Labels funktionieren weiter, ihr Pfadtext
-ist aber veraltet.
-
-Für fehlende Gruppen legt die Umstellung lokale Gruppen an: *Werkstattgruppe Ausprobieren*,
-*Werkstattgruppe Bio*, *Werkstattgruppe Elektronik*, *Werkstattgruppe Küche* und *Hausmeisterei*.
-Heißen die Gruppen im SSO anders, vorher die Namen im Datensatz anpassen.
 
 ## Noch nicht umgesetzt
 

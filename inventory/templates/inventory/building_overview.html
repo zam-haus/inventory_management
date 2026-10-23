@@ -102,27 +102,26 @@ const badge = k => {
   return `<span class="b-" style="--bc:${t.c};--bt:${t.t}" title="${esc(t.n)}">${esc(k)}</span>`;
 };
 const badges = ts => ts && ts.length ? `<span class="badges">${ts.map(badge).join("")}</span>` : "";
-const old = o => o ? `<div class="no">${esc(L.old)} ${esc(o)}</div>` : "";
 
 function nodeHtml(n){
   const cls = ["node", n.k === "b" ? "b" : n.k === "o" ? "out" : "", n.bf ? "fire" : ""].join(" ");
   const kids = n.kids && n.kids.length ? `<ul class="kids">${n.kids.map(k =>
-    `<li><span class="kc${k.g ? " g" : ""}">${k.g ? "" : "."}${esc(k.c)}</span><span title="${esc(k.n)}">${esc(k.z || k.n)}</span>${k.d ? `<span class="nd">· ${esc(k.d)}</span>` : ""}${k.o ? `<span class="no">${esc(L.old)} ${esc(k.o)}</span>` : ""}${k.bf ? `<span class="bf">${esc(L.fire)}</span>` : ""}${badges(k.t)}</li>`).join("")}</ul>` : "";
+    `<li><span class="kc${k.g ? " g" : ""}">${k.g ? "" : "."}${esc(k.c)}</span><span title="${esc(k.n)}">${esc(k.z || k.n)}</span>${k.d ? `<span class="nd">· ${esc(k.d)}</span>` : ""}${k.bf ? `<span class="bf">${esc(L.fire)}</span>` : ""}${badges(k.t)}</li>`).join("")}</ul>` : "";
   return `<div class="${cls}">
     <div class="nh"><span class="nc">${esc(n.c)}</span><span class="nn">${esc(n.z || n.n)}</span>${badges(n.t)}</div>
     ${n.bf ? `<div class="bf">${esc(L.fire)}</div>` : ""}
     ${n.z ? `<div class="nz">${esc(L.name)} ${esc(n.n)}</div>` : ""}
     ${n.d ? `<div class="nd">${esc(n.d)}</div>` : ""}
-    ${old(n.o)}${kids}
+    ${kids}
   </div>`;
 }
 
 function cellHtml(ax, l, i){
   const nodes = D.nodes.filter(n => n.a === ax.n && n.l === l);
-  const mains = D.mains.filter(m => m.a === ax.n && m.l === l && (m.z || m.d || (m.t && m.t.length) || m.o));
+  const mains = D.mains.filter(m => m.a === ax.n && m.l === l && (m.z || m.d || (m.t && m.t.length)));
   const present = !ax.h || (D.houses[ax.h] && D.houses[ax.h].levels.includes(l));
   const cls = ["cell", i % 2 ? "alt" : "", ax.wide ? "wide" : "", present ? "" : "void"].join(" ");
-  const head = mains.map(m => `<div class="main"><span class="code">${esc(m.h)}${sign(l)}</span><span>${esc(L.main)}</span>${m.z ? `<span class="z">${esc(m.z)}</span>` : ""}${m.d ? `<span>${esc(m.d)}</span>` : ""}${badges(m.t)}${m.o ? `<span class="no">${esc(L.old)} ${esc(m.o)}</span>` : ""}</div>`).join("");
+  const head = mains.map(m => `<div class="main"><span class="code">${esc(m.h)}${sign(l)}</span><span>${esc(L.main)}</span>${m.z ? `<span class="z">${esc(m.z)}</span>` : ""}${m.d ? `<span>${esc(m.d)}</span>` : ""}${badges(m.t)}</div>`).join("");
   return `<div class="${cls}">${head}${nodes.length ? `<div class="nodes">${nodes.map(nodeHtml).join("")}</div>` : ""}</div>`;
 }
 

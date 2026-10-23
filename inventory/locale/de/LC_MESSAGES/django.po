@@ -3170,9 +3170,6 @@ msgstr "Außen"
 msgid "Free of fire load"
 msgstr "brandlastfrei"
 
-msgid "Planned: %s"
-msgstr "Geplant: %s"
-
 msgid "From the inventory"
 msgstr "Aus dem Inventar"
 
@@ -3190,9 +3187,6 @@ msgstr "Hauptfläche:"
 
 msgid "Name:"
 msgstr "Name:"
-
-msgid "was"
-msgstr "alt"
 
 msgid "within"
 msgstr "in"

@@ -1,214 +1,62 @@
-import copy
-import json
 import tempfile
 from io import StringIO
 from pathlib import Path
-from unittest import mock
 
 from django.contrib.auth.models import Group
-from django.core.management import CommandError, call_command
+from django.core.management import call_command
 from django.test import TestCase
 
 from accounts.models import Team
-from ..building_structure import validate_dataset
-from ..models import Item, ItemLocation, Location, LocationType, MeasurementUnit
-
-DATASET = {
-    "types": {
-        "level": {"name": "Haus+Ebene", "unique": True, "structure": "level"},
-        "room": {"name": "Raum", "unique": True, "structure": "room", "deletable_in_frontend": True,
-                 "description": "Raum mit Wänden und Tür"},
-        "subarea": {"name": "Teilbereich", "unique": False, "structure": "area"},
-        "mobile": {"name": "Mobil", "unique": True, "admin_only": True},
-        "shelf": {"name": "Regal", "unique": True, "area_numbering": True, "auto_name_prefix": "Regal",
-                  "auto_short_name_prefix": "R", "auto_short_name_padding_length": 3, "auto_sequence": "0123456789"},
-    },
-    "teams": [
-        {"code": "H", "group": "Werkstattgruppe Holz", "color": "#7d3a2d"},
-        {"code": "B", "group": "Werkstattgruppe Bio", "parent": "H"},
-    ],
-    "axes": [{"number": 1, "name": "West"}, {"number": 2, "name": "Ost"}],
-    "replaces_types": ["Haus+Etage", "Raum/Bereich"],
-    "retire_types": ["Raum/Bereich", "Haus+Etage"],
-    "locations": [
-        {"path": "WH-1", "type": "level", "name": "Werkhaus -1", "old": "N0", "purpose": "Holzwerkstatt",
-         "teams": ["H"], "axis": 1},
-        {"path": "WH+0", "type": "level", "name": "Werkhaus 0", "old": "N1"},
-        {"path": "WH-1.UMK", "type": "room", "name": "Umkleide", "axis": 1,
-         "number_ranges": [{"type": "shelf", "from": 300, "to": 302}]},
-        {"path": "WH+0.CHE", "type": "room", "name": "Chemieraum", "old": "N1.CL", "axis": 2,
-         "fire_load_free": True, "teams": ["B"]},
-        {"path": "WH+0.CHE.1", "type": "subarea", "name": "Abzug Chemieraum", "purpose": "Abzug"},
-        {"path": "WH+0.AUS1", "type": "room", "name": "Außenbereich", "axis": 2, "outdoor": True},
-        {"path": "mobil", "type": "mobile", "name": "Mobil", "old": "mobil"},
-    ],
-    "remove": [{"old": "N1.1", "permanent": True}, {"old": "N1.X", "move_to": "WH+0"}],
-}
+from ..models import Location, LocationAxis, LocationType
 
 
-class BuildingStructureTests(TestCase):
+class StructureTests(TestCase):
+    """Inherited details and the levels-and-axes overview of the building structure."""
+
     @classmethod
     def setUpTestData(cls):
-        floor = LocationType.objects.create(name="Haus+Etage", unique=True)
-        room = LocationType.objects.create(name="Raum/Bereich", unique=False)
-        box = LocationType.objects.create(name="Kiste", unique=True, moveable=True)
-        cls.n0 = Location.objects.create(type=floor, name="Nord UG", short_name="N0", physical_description="alt")
-        cls.n1 = Location.objects.create(type=floor, name="EG Nord", short_name="N1")
-        Location.objects.create(type=floor, name="Mobil", short_name="mobil")
-        Location.objects.create(type=room, name="Alt", short_name="Z", parent_location=cls.n1).delete()
-        cls.lab = Location.objects.create(type=room, name="Chemielabor", short_name="CL", parent_location=cls.n1)
-        Location.objects.create(type=room, name="Büro", short_name="1", parent_location=cls.n1)
-        cls.store = Location.objects.create(type=room, name="Lager", short_name="X", parent_location=cls.n1)
-        cls.box_hall = Location.objects.create(type=box, name="Kiste 1", short_name="K1", parent_location=cls.n0)
-        cls.box_lab = Location.objects.create(type=box, name="Kiste 2", short_name="K2", parent_location=cls.lab)
-        cls.box_store = Location.objects.create(type=box, name="Kiste 3", short_name="K3", parent_location=cls.store)
-        Team.objects.create(group=Group.objects.create(name="Werkstattgruppe Holz"))
-        unit = MeasurementUnit.objects.create(name="Stück", short="Stk")
-        cls.stock = ItemLocation.objects.create(item=Item.objects.create(name="Lampe", measurement_unit=unit),
-                                                location=cls.store, amount=3)
-
-    def run_command(self, data=DATASET, *args):
-        with tempfile.TemporaryDirectory() as tmp:
-            path = Path(tmp) / "structure.json"
-            path.write_text(json.dumps(data), encoding="utf-8")
-            out = StringIO()
-            call_command("building_restructure", str(path), *args, stdout=out)
-            return out.getvalue()
-
-    def test_validation_finds_order_duplicates_and_unknown_references(self):
-        data = copy.deepcopy(DATASET)
-        data["locations"].insert(0, {"path": "WH+0.ZZ", "type": "room", "name": "Zu früh"})
-        data["locations"].append({"path": "WH-1.CHE", "type": "room", "name": "Doppelt", "teams": ["Q"]})
-        data["types"]["room"]["moveable"] = "ja"
-        errors = "\n".join(validate_dataset(data))
-        self.assertIn("parent WH+0 must be listed before it", errors)
-        self.assertIn("code CHE is already used by WH+0.CHE", errors)
-        self.assertIn("unknown team Q", errors)
-        self.assertIn("type room: moveable must be true or false", errors)
-        data["locations"][1]["number_ranges"] = [{"type": "shelf", "from": 300, "to": 310}]
-        next(e for e in data["locations"] if e["path"] == "WH-1.UMK")["number_ranges"].append(
-            {"type": "shelf", "from": 400, "to": 410})
-        next(e for e in data["locations"] if e["path"] == "WH+0")["number_ranges"] = [
-            {"type": "shelf", "from": 405, "to": 420}]
-        next(e for e in data["locations"] if e["path"] == "WH-1.UMK")["number_ranges"].append(
-            {"type": "room", "from": 0, "to": 9})
-        errors = "\n".join(validate_dataset(data))
-        self.assertNotIn("number range 300–302 overlaps", errors)  # WH-1.UMK reserves within WH-1
-        self.assertIn("number range 400–410 overlaps WH+0", errors)
-        self.assertIn("number range 0–9 needs a type with area_numbering", errors)
-
-    def test_refuses_to_run_before_the_migrations(self):
-        with mock.patch("django.db.migrations.executor.MigrationExecutor.migration_plan", return_value=[("pending", False)]):
-            with self.assertRaisesMessage(CommandError, "run manage.py migrate first"):
-                self.run_command()
-        self.assertEqual(Location.objects.get(pk=self.lab.pk).locatable_identifier, "N1.CL")
-
-    def test_dry_run_changes_nothing(self):
-        output = self.run_command()
-        self.assertIn("Dry run (4 moved, 3 created, 0 already in place, 2 removed, 2 types retired, 0 containers moved in)", output)
-        self.assertIn("retire Raum/Bereich: type and its 3 deleted locations are deleted permanently", output)
-        self.assertIn("remove N1.1         Büro (permanently)", output)
-        self.assertIn("description 'alt' is replaced by ''", output)
-        self.assertEqual(Location.objects.get(pk=self.lab.pk).locatable_identifier, "N1.CL")
-        self.assertFalse(LocationType.objects.filter(name="Raum").exists())
-
-    def test_apply_moves_in_place_creates_and_removes(self):
-        self.run_command(DATASET, "--apply")
-        lab = Location.objects.get(pk=self.lab.pk)
-        self.assertEqual((lab.locatable_identifier, lab.unique_identifier, lab.type.name), ("WH+0.CHE", "CHE", "Raum"))
-        self.assertEqual((lab.type.deletable_in_frontend, lab.type.moveable, lab.type.structure), (True, False, "room"))
-        self.assertEqual(lab.type.description, "Raum mit Wänden und Tür")
-        self.assertEqual(Location.objects.get(pk=self.box_lab.pk).locatable_identifier, "WH+0.CHE.K2")
-        self.assertEqual(Location.objects.get(pk=self.n0.pk).purpose, "Holzwerkstatt")
-        part = Location.objects.get(locatable_identifier="WH+0.CHE.1")
-        self.assertEqual(part.unique_identifier, "CHE.1")
-        self.assertTrue(Location.objects.get(locatable_identifier="WH+0.AUS1").outdoor)
-        self.assertFalse(Location.objects.filter(locatable_identifier="WH+0.1").exists())
-        self.assertFalse(Location.objects.filter(pk=self.store.pk).exists())  # deleted with its retired type
-        self.assertEqual(Location.objects.get(pk=self.box_store.pk).parent_location_id, self.n1.pk)
-        self.assertEqual(ItemLocation.objects.get(pk=self.stock.pk).location_id, self.n1.pk)
-        holz, bio = Team.objects.get(code="H"), Team.objects.get(code="B")
-        self.assertEqual((holz.color, bio.parent), ("#7d3a2d", holz))
-        self.assertEqual(list(lab.responsible_teams.all()), [bio])
-
-        again = self.run_command(DATASET, "--apply")
-        self.assertIn("0 moved, 0 created, 7 already in place, 0 removed, 0 types retired, 0 containers moved in", again)
-        self.assertFalse(LocationType.objects.filter(name__in=["Haus+Etage", "Raum/Bereich"]).exists())
-        self.assertFalse(Location.objects.filter(short_name="Z").exists())
-        self.assertEqual(Location.objects.get(short_name="mobil").type.name, "Mobil")
-
-    def test_renamed_locations_are_found_by_their_former_path_and_containers_move_in(self):
-        self.run_command(DATASET, "--apply")
-        changing_room = Location.objects.get(locatable_identifier="WH-1.UMK")
-        data = copy.deepcopy(DATASET)
-        entry = next(e for e in data["locations"] if e["path"] == "WH-1.UMK")
-        entry["path"] = "WH-1.UMZ"
-        with self.assertRaisesMessage(CommandError, "WH-1.UMK (Umkleide) is not in the dataset"):
-            self.run_command(data)
-        entry["was"] = ["WH-1.UMK"]
-        data["moves"] = [{"codes": ["K1"], "to": "WH-1.UMZ"}]
-        output = self.run_command(data, "--apply")
-        self.assertIn("move   WH-1.UMK   → WH-1.UMZ", output)
-        self.assertIn("1 moved", output)
-        self.assertIn("1 containers moved in", output)
-        self.assertEqual(Location.objects.get(pk=changing_room.pk).locatable_identifier, "WH-1.UMZ")
-        self.assertEqual(Location.objects.get(pk=self.box_hall.pk).locatable_identifier, "WH-1.UMZ.K1")
-        self.assertIn("done   K1", self.run_command(data))
-
-    def test_axes_missing_from_the_dataset_are_deleted(self):
-        from ..models import LocationAxis
-        self.run_command(DATASET, "--apply")
-        data = copy.deepcopy(DATASET)
-        data["axes"] = [{"number": 1, "name": "West"}]
-        for entry in data["locations"]:
-            if entry.get("axis") == 2:
-                entry["axis"] = 1
-        self.run_command(data, "--apply")
-        self.assertEqual(list(LocationAxis.objects.values_list("number", flat=True)), [1])
-        self.assertEqual(Location.objects.get(pk=self.lab.pk).axis.number, 1)
-
-    def test_every_replaced_location_needs_a_successor(self):
-        data = copy.deepcopy(DATASET)
-        data["remove"] = data["remove"][1:]
-        with self.assertRaisesMessage(CommandError, "N1.1 (Büro) is neither moved, removed nor kept"):
-            self.run_command(data, "--apply")
-        self.assertEqual(Location.objects.get(pk=self.lab.pk).locatable_identifier, "N1.CL")
-
-    def test_removing_a_location_with_contents_needs_a_target(self):
-        data = copy.deepcopy(DATASET)
-        del data["remove"][1]["move_to"]
-        with self.assertRaisesMessage(CommandError, "remove N1.X: it still holds 1 locations and 1 stock entries and has no move_to"):
-            self.run_command(data)
+        level = LocationType.objects.create(name="Haus+Ebene", unique=True, structure="level", category="space")
+        room = LocationType.objects.create(name="Raum", unique=True, structure="room", category="space")
+        part = LocationType.objects.create(name="Teilbereich", structure="area", category="space")
+        box = LocationType.objects.create(name="Kiste", unique=True, moveable=True, category="container")
+        west, east = LocationAxis.objects.create(number=1, name="West"), LocationAxis.objects.create(number=2, name="Ost")
+        wood = Team.objects.create(group=Group.objects.create(name="Werkstattgruppe Holz"), code="H", color="#7d3a2d")
+        bio = Team.objects.create(group=Group.objects.create(name="Werkstattgruppe Bio"), code="B", parent=wood)
+        hall = Location.objects.create(type=level, name="Werkhaus -1", short_name="WH-1", purpose="Holzwerkstatt",
+                                       axis=west)
+        hall.responsible_teams.add(wood)
+        Location.objects.create(type=level, name="Werkhaus 0", short_name="WH+0")
+        cls.changing_room = Location.objects.create(type=room, name="Umkleide", short_name="UMK", parent_location=hall,
+                                                    axis=west)
+        lab = Location.objects.create(type=room, name="Chemieraum", short_name="CHE", parent_location=hall, axis=east,
+                                      fire_load_free=True)
+        lab.responsible_teams.add(bio)
+        cls.hood = Location.objects.create(type=part, name="Abzug Chemieraum", short_name="1", parent_location=lab,
+                                           purpose="Abzug")
+        cls.box_hall = Location.objects.create(type=box, name="Kiste 1", short_name="K1", parent_location=hall)
+        cls.box_lab = Location.objects.create(type=box, name="Kiste 2", short_name="K2", parent_location=lab)
 
     def test_inherited_details_stop_at_coded_rooms(self):
-        self.run_command(DATASET, "--apply")
-        box_hall = Location.objects.get(pk=self.box_hall.pk)
-        self.assertEqual([t.code for t in box_hall.effective_responsible_teams], ["H"])
-        self.assertEqual(box_hall.purpose_context, "Holzwerkstatt")
-        self.assertEqual(box_hall.effective_axis.name, "West")
-        changing_room = Location.objects.get(locatable_identifier="WH-1.UMK")
-        self.assertEqual(list(changing_room.effective_responsible_teams), [])
-        self.assertEqual(changing_room.purpose_context, "")
-        part = Location.objects.get(locatable_identifier="WH+0.CHE.1")
-        self.assertTrue(part.is_fire_load_free)
-        self.assertEqual(part.effective_axis.name, "Ost")
-        self.assertEqual([t.code for t in part.effective_responsible_teams], ["B"])
-        self.assertEqual(part.purpose_context, "Abzug")
-        self.assertTrue(Location.objects.get(pk=self.box_lab.pk).is_fire_load_free)
+        self.assertEqual([t.code for t in self.box_hall.effective_responsible_teams], ["H"])
+        self.assertEqual(self.box_hall.purpose_context, "Holzwerkstatt")
+        self.assertEqual(self.box_hall.effective_axis.name, "West")
+        self.assertEqual(list(self.changing_room.effective_responsible_teams), [])
+        self.assertEqual(self.changing_room.purpose_context, "")
+        self.assertTrue(self.hood.is_fire_load_free)
+        self.assertEqual(self.hood.effective_axis.name, "Ost")
+        self.assertEqual([t.code for t in self.hood.effective_responsible_teams], ["B"])
+        self.assertEqual(self.hood.purpose_context, "Abzug")
+        self.assertTrue(self.box_lab.is_fire_load_free)
 
-    def test_overview_from_database_and_dataset(self):
-        self.run_command(DATASET, "--apply")
+    def test_overview_from_the_database(self):
         with tempfile.TemporaryDirectory() as tmp:
             target = Path(tmp) / "overview.html"
             call_command("building_overview", "-o", str(target), stdout=StringIO())
             html = target.read_text(encoding="utf-8")
-            self.assertIn('"c": "CHE"', html)
-            self.assertIn('"c": "1"', html)
-            self.assertNotIn("K2", html)  # boxes and shelves are left out
-            source = Path(tmp) / "structure.json"
-            source.write_text(json.dumps(DATASET), encoding="utf-8")
-            call_command("building_overview", "--dataset", str(source), "-o", str(target), stdout=StringIO())
-            self.assertIn('"o": "N1.CL"', target.read_text(encoding="utf-8"))
+        self.assertIn('"c": "CHE"', html)
+        self.assertIn('"c": "1"', html)
+        self.assertIn('"name": "Werkhaus"', html)  # the house, without the level number
+        self.assertNotIn("K2", html)  # boxes and shelves are left out
 
 
 class TeamBadgeTests(TestCase):

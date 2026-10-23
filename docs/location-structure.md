@@ -2,9 +2,8 @@
 
 Locations of the fixed building structure (levels, rooms, areas) carry a few details that
 furniture and containers do not: an axis, a fire-load flag, an outdoor flag and responsible
-teams. A dataset describes the whole structure; one command moves the database to it, another
-draws the levels-and-axes overview. The rules ZAM applies to codes and names are in
-[Standortregeln](standortregeln.md) (German).
+teams. A command draws the levels-and-axes overview. The rules ZAM applies to codes and names
+are in [Standortregeln](standortregeln.md) (German).
 
 ## Model
 
@@ -17,7 +16,7 @@ draws the levels-and-axes overview. The rules ZAM applies to codes and names are
   trolleys, and their compartments) or *container* (moves with its contents: boxes, cartons,
   pallets); empty for anything else (*Mobil*). Validation fills a missing category from the type
   (building structure → space, number ranges per area → storage unit) and rejects a contradicting
-  one. Migration `inventory.0037` makes moveable types containers; the dataset sets the others.
+  one. Migration `inventory.0037` made moveable types containers.
   The location page lists
   sub-locations in one panel per category (`LocationType.group_by_category`), below the
   full-width “At this location” panel with the items on the left; a page whose sub-locations
@@ -92,80 +91,14 @@ another room, area or level with its own code: a shelf in the wood workshop's ha
 Axis and fire load are inherited without that stop. Nothing in the inventory pages uses these
 properties yet; the admin shows and filters the new fields.
 
-## Dataset
-
-JSON, for example [`standortstruktur.json`](standortstruktur.json):
-
-```json
-{
-  "types": {"level": {"name": "Haus+Ebene", "description": "Eine Ebene eines Hauses …",
-                      "structure": "level", "unique": true, "moveable": false,
-                      "no_sublocations": false, "deletable_in_frontend": false,
-                      "label_template": "70x32 static"}},
-  "teams": [{"code": "H", "group": "Werkstattgruppe Holz", "color": "#7d3a2d"},
-            {"code": "B", "group": "Werkstattgruppe Bio", "parent": "A"}],
-  "axes": [{"number": 1, "name": "Treppenhaus 1"}],
-  "replaces_types": ["Haus+Etage", "Raum/Bereich"],
-  "retire_types": ["Haus+Etage", "Raum/Bereich"],
-  "locations": [
-    {"path": "WH-1", "type": "level", "name": "Werkhaus -1", "old": "N0",
-     "purpose": "Holzwerkstatt", "description": "Halle", "teams": ["H"], "axis": 2},
-    {"path": "WH-1.HBB.1", "type": "subarea", "name": "Holzbaubühne unten", "purpose": "CNC-Fräse"}
-  ],
-  "remove": [{"old": "S2.IWL", "reason": "aufgelöst", "move_to": "HH+1", "permanent": true}]
-}
-```
-
-* `path` is the full `locatable_identifier`; its last part is the code. Parents come first.
-* `was` lists former paths from earlier versions of the dataset: a location found there is renamed
-  and moved like an `old` one, so a dataset can evolve after it has been applied. Every active
-  location of a structure type of the dataset must appear in it (by path, `old` or `was`) or be
-  removed, otherwise nothing happens.
-* `moves` puts containers into the structure by code: `{"codes": ["R003", …], "to": "WH+1.GSL"}`.
-* `old` names an existing location (by its current `locatable_identifier`). It is renamed,
-  retyped and moved in place, so its pk, URLs, history, photo, label IDs and contents stay.
-  Entries without `old` are created.
-* `name`, `purpose`, `description`, `axis`, `fire_load_free`, `outdoor` and `teams` are
-  authoritative: a missing key clears the field. The dry run lists every non-empty purpose or
-  description that would be replaced.
-* Types are created or updated by name. Their flags `unique`, `moveable`, `no_sublocations`,
-  `deletable_in_frontend`, `admin_only` and `area_numbering` are authoritative (missing means false), as are `structure` and
-  `description`;
-  `label_template` names the default label template.
-* Axes and teams are created or updated by number and code; axes missing from the dataset are
-  deleted. Teams are created
-  together with their group when it does not exist yet.
-* `number_ranges` on a location: a list of `{"type": "shelf", "from": 300, "to": 399}`, each for
-  one dataset type with `area_numbering`; authoritative like the other fields. A range may lie within
-  a range of a location above it.
-* Types may name a `sublocation_type` (a dataset type key) and set `auto_name_prefix`, `auto_short_name_prefix`,
-  `auto_short_name_padding_length` and `auto_sequence`; without them the type keeps its values.
-* `remove` lists old locations without successor, by `old` and, once its parent has moved, by
-  `path`. Sub-locations and stock entries inside move to `move_to` the way *Move contents* does on
-  the location page; unique items must have been moved before. With `permanent` the location is
-  then deleted for good (history included) instead of staying in the trash.
-* Every active location of a type in `replaces_types` must be moved, removed or listed in `keep`,
-  otherwise nothing happens.
-* `retire_types` names old location types to delete at the end. Deleted locations that still use
-  them are deleted permanently with their deleted contents; an active one stops the run.
-
-## Commands
+## Overview
 
 ```sh
-python manage.py building_restructure docs/standortstruktur.json            # plan only
-python manage.py building_restructure docs/standortstruktur.json --apply --actor admin
-python manage.py building_overview -o overview.html                        # from the database
-python manage.py building_overview --dataset docs/standortstruktur.json -o plan.html
+python manage.py building_overview -o overview.html
 ```
 
-`building_restructure` prints one line per location (`move`, `create`, `update`, `remove`) and
-writes nothing without `--apply`. With `--apply` it runs in one transaction; any error leaves
-the database unchanged. Running it again reports everything as already in place.
-`--actor` attributes the purpose changes in the location history.
+writes a standalone HTML page from the database: levels across, axes down, each level, room and
+area with code, purpose (or name), description, team badges and the fire-load mark. Containers are
+left out.
 
-`building_overview` writes a standalone HTML page: levels across, axes down, each level, room
-and area with code, purpose (or name), description, team badges and the fire-load mark.
-Containers are left out. With `--dataset` it shows the planned state, including the old
-identifiers.
-
-Code: `inventory/building_structure.py`; tests: `inventory/tests/test_building_structure.py`.
+Code: `inventory/structure_overview.py`; tests: `inventory/tests/test_building_structure.py`.
