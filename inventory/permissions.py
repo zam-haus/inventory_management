@@ -26,6 +26,25 @@ CONTENT_MOVE_PERMISSIONS = (
 )
 
 
+def location_purpose_denied(user, location):
+    """Why `user` may not change the purpose of `location` on the inventory pages, or None."""
+    if not user.has_perm("inventory.change_location"):
+        return _("You do not have permission to change this location.")
+    return None
+
+
+def location_edit_denied(user, location):
+    """
+    Why `user` may not change anything else of `location` (such as its overview photo) on the inventory
+    pages, or None. Of locations of admin-only types, only the purpose is changed there.
+    """
+    denied = location_purpose_denied(user, location)
+    if denied is None and location.type.admin_only:
+        return _("Locations of type “%(type)s” can only be changed in the admin, except for their purpose.") % {
+            "type": location.type}
+    return denied
+
+
 def location_deletion_denied(user, location):
     """
     Why `user` may not delete `location` on the inventory pages, or None. Location types that
@@ -33,7 +52,7 @@ def location_deletion_denied(user, location):
     """
     if not user.has_perm("inventory.delete_location"):
         return _("You do not have permission to delete this location.")
-    if not location.type.deletable_in_frontend:
+    if location.type.admin_only or not location.type.deletable_in_frontend:
         return _("Locations of type “%(type)s” can only be deleted in the admin.") % {"type": location.type}
     return None
 

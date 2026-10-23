@@ -14,7 +14,7 @@ class FormData(HTMLParser):
 
     def __init__(self):
         super().__init__()
-        self.data, self.select, self.textarea = {}, None, None
+        self.data, self.select, self.multiple, self.textarea = {}, None, False, None
 
     def handle_starttag(self, tag, attrs):
         attrs = dict(attrs)
@@ -26,10 +26,15 @@ class FormData(HTMLParser):
             elif attrs.get("type") not in ("submit", "file"):
                 self.data[name] = attrs.get("value", "")
         elif tag == "select" and name and "__prefix__" not in name:
-            self.select = name
-            self.data.setdefault(name, "")
+            # A multiple select without a selected option is not submitted at all.
+            self.select, self.multiple = name, "multiple" in attrs
+            if not self.multiple:
+                self.data.setdefault(name, "")
         elif tag == "option" and self.select and "selected" in attrs:
-            self.data[self.select] = attrs.get("value", "")
+            if self.multiple:
+                self.data.setdefault(self.select, []).append(attrs.get("value", ""))
+            else:
+                self.data[self.select] = attrs.get("value", "")
         elif tag == "textarea" and name and "__prefix__" not in name:
             self.textarea = name
             self.data[name] = ""

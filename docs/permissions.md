@@ -38,6 +38,21 @@ delete options stay visible but disabled, saying why
 (`inventory.permissions.location_deletion_denied`); the location details list the
 property with the other location type properties.
 
+Location types marked **admin only** (`LocationType.admin_only`, used for the building
+structure, see [Building structure](location-structure.md)) go further: their locations are
+created, changed and deleted only in the admin, which requires staff status. On the inventory
+pages only their purpose can be changed (`change_location`); the overview photo button stays
+visible but locked, saying why (`inventory.permissions.location_edit_denied`), and its endpoint
+answers 403. Such a type
+can be neither moveable nor deletable outside the admin. What these locations contain (shelves,
+boxes, stock) can still be moved as before.
+
+Locations of types with *number ranges per area* (shelves, cabinets) are created on the location
+page of the room or area they stand in, which requires `add_location`. Only the free numbers of
+the number range that applies there are offered. The first one of a type in an area reserves the
+numbers for it, so `add_location` also lets members reserve numbers that way; changing ranges
+otherwise is for admins. See [Building structure](location-structure.md).
+
 Migration `accounts.0002_zam_local_group` creates the reserved **local group**
 (`LOCAL_GROUP_NAME`, by default `ZAM-local`) with add and change permissions for
 inventory models, but no delete permissions. Its permissions can subsequently be

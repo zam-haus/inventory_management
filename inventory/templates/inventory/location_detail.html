@@ -33,7 +33,7 @@
                     <span class="location-identifier">{{ object.unique_identifier }} <button type="button" class="location-help location-help-icon" data-bs-toggle="tooltip" aria-label="{% trans 'Unique identifier for this storage location, used on labels and to find the location in the inventory.' %}" title="{% trans 'Unique identifier for this storage location, used on labels and to find the location in the inventory.' %}">{% icon "info-circle" %}</button></span>
                     <span class="location-title-name">{{ object.name }}{% if object.purpose %}<span class="location-title-purpose">: {{ object.purpose }}</span>{% endif %}
                         {# Right after the last word, so it wraps with the text. #}
-                        {% if perms.inventory.change_location %}<a href="#location-purpose-editor" class="btn btn-sm btn-warning location-edit-purpose" data-purpose-open data-bs-toggle="tooltip" title="{% trans 'Edit purpose' %}">{% icon "pencil" %} <span class="action-label">{% trans "Purpose" %}</span></a>{% else %}{% icon "pencil" as edit_icon %}{% disabled_action edit_icon label=_("Purpose") name=_("Edit purpose") classes="btn btn-sm btn-warning location-edit-purpose" %}{% endif %}</span>
+                        {% if not purpose_denied %}<a href="#location-purpose-editor" class="btn btn-sm btn-warning location-edit-purpose" data-purpose-open data-bs-toggle="tooltip" title="{% trans 'Edit purpose' %}">{% icon "pencil" %} <span class="action-label">{% trans "Purpose" %}</span></a>{% else %}{% icon "pencil" as edit_icon %}{% disabled_action edit_icon label=_("Purpose") name=_("Edit purpose") reason=purpose_denied classes="btn btn-sm btn-warning location-edit-purpose" %}{% endif %}</span>
                 </h1>
             </div>
             <div class="location-actions" data-action-group>
@@ -57,6 +57,16 @@
                 {% else %}
                     {% icon "box-arrow-in-down" as move_here_icon %}{% disabled_action move_here_icon label=_("Move here") name=_("Move locations into this location") classes="btn btn-warning location-print" %}
                 {% endif %}
+                {% if numbering_types %}{% with numbering_label=numbering_types|join:" / " %}{% if perms.inventory.add_location %}
+                    <a class="btn btn-success location-print" href="{% url 'numbered_location_create' pk=object.pk %}" data-bs-toggle="tooltip" title="{% trans 'Add a location with a number from the number range here' %}">{% icon "plus-lg" %} <span class="action-label">{{ numbering_label }}</span></a>
+                {% else %}
+                    {% icon "plus-lg" as add_icon %}{% disabled_action add_icon label=numbering_label name=_("Add a location with a number from the number range here") classes="btn btn-success location-print" %}
+                {% endif %}{% endwith %}{% endif %}
+                {% if object.type.sublocation_type and not object.type.no_sublocations %}{% if perms.inventory.add_location %}
+                    <a class="btn btn-success location-print" href="{% url 'sublocation_add' pk=object.pk %}" data-bs-toggle="tooltip" title="{% blocktrans with type=object.type.sublocation_type.name %}Add {{ type }} with the next free letters{% endblocktrans %}">{% icon "plus-lg" %} <span class="action-label">{{ object.type.sublocation_type.name }}</span></a>
+                {% else %}
+                    {% icon "plus-lg" as add_icon %}{% blocktrans with type=object.type.sublocation_type.name asvar sub_title %}Add {{ type }} with the next free letters{% endblocktrans %}{% disabled_action add_icon label=object.type.sublocation_type.name name=sub_title classes="btn btn-success location-print" %}
+                {% endif %}{% endif %}
                 {% if perms.inventory.change_itemlocation or perms.inventory.change_location or perms.inventory.delete_itemlocation %}
                     <a class="btn btn-warning location-print" href="{% url 'location_dissolve' pk=object.pk %}?delete=0">{% icon "box-arrow-up" %} <span class="action-label">{% trans "Move contents" %}</span></a>
                 {% else %}
@@ -90,42 +100,43 @@
 {% block content %}
     {% with children=object.children.all %}
     <div class="location-detail" data-lightbox-gallery-label="{% trans 'Photos' %}" data-lightbox-close-label="{% trans 'Close photo' %}" data-lightbox-previous-label="{% trans 'Previous photo' %}" data-lightbox-next-label="{% trans 'Next photo' %}" data-lightbox-error-message="{% trans 'Image could not be loaded.' %}" data-lightbox-retry-label="{% trans 'Try again' %}" data-lightbox-loading-label="{% trans 'Loading photo…' %}">
+        {# Spans both columns: below it items on the left, sub-locations on the right. #}
+        <section class="location-panel location-stored" aria-labelledby="location-stored-heading">
+            <div class="location-panel-heading">
+                <div class="location-panel-title-row">
+                    <h2 id="location-stored-heading" class="fs-4">{% trans "At this location …" %}</h2>
+                    {% if not object.overview_photo %}{% include 'inventory/location_photo_button.html' with labelled=True %}{% endif %}
+                </div>
+                <nav class="location-contents" aria-label="{% trans 'Contents' %}">
+                    <ul>
+                        <li><a href="#location-items"><span class="location-contents-count" data-items-count>{{ items_count }}</span> {% trans "Items" %}</a></li>
+                        <li><a href="#location-unique-items"><span class="location-contents-count">{{ unique_items|length }}</span> {% trans "Unique items" %}</a></li>
+                        {% if child_groups %}{% for group in child_groups %}<li><a href="#{{ group.anchor }}"><span class="location-contents-count">{{ group.children|length }}</span> {{ group.title }}</a></li>{% endfor %}
+                        {% elif not object.type.no_sublocations or children %}<li><a href="#location-children"><span class="location-contents-count">{{ children|length }}</span> {% trans "Sub-Locations" %}</a></li>{% endif %}
+                    </ul>
+                </nav>
+            </div>
+            {% if object.overview_photo %}
+            <section class="location-photo-panel" aria-labelledby="location-overview-heading">
+                <div class="location-panel-heading location-panel-title-row">
+                    <h3 id="location-overview-heading" class="fs-5">{% trans "Overview photo" %}</h3>
+                    {% include 'inventory/location_photo_button.html' %}
+                </div>
+                <div class="location-overview-body">
+                    <a class="location-overview-photo" href="{{ object.overview_photo.url }}" target="_blank" rel="noopener">
+                        {# Shown at most 24rem high; the link and lightbox open the full photo. #}
+                        {% thumbnail object.overview_photo "1600x768" upscale=False as im %}
+                            <img src="{{ im.url }}" width="{{ im.width }}" height="{{ im.height }}" alt="{% blocktrans with location=object.display_name %}Overview photo of {{ location }}{% endblocktrans %}" loading="lazy">
+                        {% empty %}
+                            <img src="{{ object.overview_photo.url }}" alt="{% blocktrans with location=object.display_name %}Overview photo of {{ location }}{% endblocktrans %}" loading="lazy">
+                        {% endthumbnail %}
+                    </a>
+                </div>
+            </section>
+            {% endif %}
+        </section>
         <div class="location-layout{% if object.type.no_sublocations and not children %} location-layout-single{% endif %}">
             <div class="location-main">
-                <section class="location-panel location-stored" aria-labelledby="location-stored-heading">
-                    <div class="location-panel-heading">
-                        <div class="location-panel-title-row">
-                            <h2 id="location-stored-heading" class="fs-4">{% trans "At this location …" %}</h2>
-                            {% if not object.overview_photo %}{% include 'inventory/location_photo_button.html' with labelled=True %}{% endif %}
-                        </div>
-                        <nav class="location-contents" aria-label="{% trans 'Contents' %}">
-                            <ul>
-                                <li><a href="#location-items"><span class="location-contents-count" data-items-count>{{ items_count }}</span> {% trans "Items" %}</a></li>
-                                <li><a href="#location-unique-items"><span class="location-contents-count">{{ unique_items|length }}</span> {% trans "Unique items" %}</a></li>
-                                {% if not object.type.no_sublocations or children %}<li><a href="#location-children"><span class="location-contents-count">{{ children|length }}</span> {% trans "Sub-Locations" %}</a></li>{% endif %}
-                            </ul>
-                        </nav>
-                    </div>
-                    {% if object.overview_photo %}
-                    <section class="location-photo-panel" aria-labelledby="location-overview-heading">
-                        <div class="location-panel-heading location-panel-title-row">
-                            <h3 id="location-overview-heading" class="fs-5">{% trans "Overview photo" %}</h3>
-                            {% include 'inventory/location_photo_button.html' %}
-                        </div>
-                        <div class="location-overview-body">
-                            <a class="location-overview-photo" href="{{ object.overview_photo.url }}" target="_blank" rel="noopener">
-                                {# Shown at most 24rem high; the link and lightbox open the full photo. #}
-                                {% thumbnail object.overview_photo "1600x768" upscale=False as im %}
-                                    <img src="{{ im.url }}" width="{{ im.width }}" height="{{ im.height }}" alt="{% blocktrans with location=object.display_name %}Overview photo of {{ location }}{% endblocktrans %}" loading="lazy">
-                                {% empty %}
-                                    <img src="{{ object.overview_photo.url }}" alt="{% blocktrans with location=object.display_name %}Overview photo of {{ location }}{% endblocktrans %}" loading="lazy">
-                                {% endthumbnail %}
-                            </a>
-                        </div>
-                    </section>
-                    {% endif %}
-                </section>
-
                 <section class="location-panel location-stored-items" id="location-items" aria-labelledby="location-items-heading">
                     {% if entries|length > 10 %}<input type="checkbox" class="list-collapse-state visually-hidden" id="location-items-expanded">{% endif %}
                     <div class="location-panel-heading">
@@ -241,35 +252,25 @@
                 </section>
             </div>
 
-            {# Types without sub-locations need no panel, unless older data still has some. #}
-            {% if not object.type.no_sublocations or children %}
-            <section class="location-panel location-children" id="location-children" aria-labelledby="location-children-heading">
-                {% if children|length > 10 %}<input type="checkbox" class="list-collapse-state visually-hidden" id="location-children-expanded">{% endif %}
-                <div class="location-panel-heading">
-                    <div class="location-panel-title-row">
-                        <h2 id="location-children-heading" class="fs-4">{% if children|length > 10 %}<label class="list-collapse-toggle" for="location-children-expanded">{% endif %}<span class="list-collapse-title">{% trans "Sub-Locations" %} <span class="location-count">{{ children|length }}</span></span>{% if children|length > 10 %}</label>{% endif %}</h2>
-                    </div>
-                </div>
-                <ul class="location-child-list list-collapse-list">
-                    {% for child in children %}
-                        <li>
-                            <a href="{{ child.get_absolute_url }}">
-                                <span><span class="location-child-name fs-6">{{ child.display_name }}</span><span class="location-child-identifier">{{ child.unique_identifier }}</span></span>
-                                <span class="location-child-arrow" aria-hidden="true">{% icon "chevron-right" %}</span>
-                            </a>
-                        </li>
-                    {% empty %}
-                        <li class="location-empty location-muted">{% trans "No sub-locations." %}</li>
-                    {% endfor %}
-                </ul>
-                {% if children|length > 10 %}<label class="list-collapse-more" for="location-children-expanded">{% blocktrans with counter=children|length %}Show all {{ counter }}{% endblocktrans %}</label>{% endif %}
-            </section>
+            {% comment %}Types without sub-locations need no panel, unless older data still has some. Sub-locations of
+               several categories (spaces, storage units, containers) get one panel each.{% endcomment %}
+            {% if child_groups %}
+            <div class="location-children-groups">
+                {% for group in child_groups %}
+                    {% include "inventory/location_children_panel.html" with anchor=group.anchor title=group.title children=group.children category=group.category %}
+                {% endfor %}
+            </div>
+            {% elif not object.type.no_sublocations or children %}
+                {% trans "Sub-Locations" as children_title %}
+                {% include "inventory/location_children_panel.html" with anchor="location-children" title=children_title %}
             {% endif %}
         </div>
     </div>
     {% endwith %}
     {% include 'inventory/location_metadata.html' %}
-    {% if perms.inventory.change_location %}{% include 'inventory/location_overview_editor.html' %}{% include 'inventory/location_purpose_editor.html' %}{% include 'inventory/location_move_modals.html' %}{% endif %}
+    {% if not edit_denied %}{% include 'inventory/location_overview_editor.html' %}{% endif %}
+    {% if not purpose_denied %}{% include 'inventory/location_purpose_editor.html' %}{% endif %}
+    {% if perms.inventory.change_location %}{% include 'inventory/location_move_modals.html' %}{% endif %}
     {% if stock_change_form %}{% include 'inventory/stock_change_dialog.html' %}{% endif %}
 {% endblock %}
 

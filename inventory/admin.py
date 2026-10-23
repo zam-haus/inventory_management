@@ -26,8 +26,18 @@ from .label_ids.admin import ClaimOnAddMixin  # also registers LabelIdAdmin
 from .label_ids.lookup import annotate_label_code
 
 
-admin.site.register(models.LocationType)
 admin.site.register(models.MeasurementUnit)
+
+
+@admin.register(models.LocationType)
+class LocationTypeAdmin(admin.ModelAdmin):
+    list_display = ("name", "category", "structure", "unique", "moveable", "area_numbering", "description")
+    list_filter = ("category", "structure", "unique")
+
+
+@admin.register(models.LocationAxis)
+class LocationAxisAdmin(admin.ModelAdmin):
+    list_display = ("number", "name")
 admin.site.register(models.BarcodeType)
 
 
@@ -131,13 +141,60 @@ class LocationInline(CappedInlineMixin, SoftDeleteAdminMixin, admin.TabularInlin
         CharField: {"widget": forms.TextInput(attrs={"size": 20})},
     }
 
+class LocationNumberRangeFormSet(forms.BaseInlineFormSet):
+    """Ranges of one location type must not overlap, neither with each other here nor elsewhere, except
+    for reservations within a range of a location above."""
+
+    def get_form_kwargs(self, index):
+        return {**super().get_form_kwargs(index), "location": self.instance}
+
+    def clean(self):
+        super().clean()
+        kept = [form for form in self.forms
+                if form.cleaned_data and not form.cleaned_data.get("DELETE") and form.cleaned_data.get("type")]
+        own = [form.instance.pk for form in self.forms if form.instance.pk]
+        for i, form in enumerate(kept):
+            first, last, kind = form.cleaned_data["first"], form.cleaned_data["last"], form.cleaned_data["type"]
+            error = models.LocationNumberRange.overlap_error(first, last, kind, self.instance, exclude=own)
+            if error:
+                form.add_error(None, error)
+            for other in kept[i + 1:]:
+                if (other.cleaned_data["first"] <= last and other.cleaned_data["last"] >= first
+                        and other.cleaned_data["type"] == kind):
+                    form.add_error(None, _("Overlaps another range of the same location type."))
+
+
+class LocationNumberRangeForm(forms.ModelForm):
+    """A new range starts as the suggestion for the first area-numbered type (LocationNumberRange.suggest)."""
+
+    def __init__(self, *args, location=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.instance.pk is None and not self.is_bound:
+            kind = models.LocationType.objects.filter(area_numbering=True).order_by("name").first()
+            suggestion = models.LocationNumberRange.suggest(kind, location)
+            if kind:
+                self.initial.setdefault("type", kind.pk)
+            if suggestion:
+                self.initial.setdefault("first", suggestion[0])
+                self.initial.setdefault("last", suggestion[1])
+
+
+class LocationNumberRangeInline(admin.TabularInline):
+    model = models.LocationNumberRange
+    form = LocationNumberRangeForm
+    formset = LocationNumberRangeFormSet
+    extra = 0
+
+
 class LocationAdmin(ClaimOnAddMixin, SoftDeleteAdminMixin, admin.ModelAdmin):
     list_display = ("locatable_identifier", "name", "descriptive_identifier", "deleted_status")
     ordering = ("locatable_identifier",)
     readonly_fields = ("label_image_tag",)
     search_fields = ('locatable_identifier', 'name', 'purpose', 'physical_description')
+    list_filter = (DeletedObjectFilter, "type__structure", "axis", "fire_load_free", "outdoor", "responsible_teams")
+    autocomplete_fields = ("responsible_teams",)
     actions = ["send_to_printer_action", "send_to_printer_twice_action"]
-    inlines = [LocationInline]
+    inlines = [LocationInline, LocationNumberRangeInline]
     form = AdminLocationForm
 
     def save_model(self, request, obj, form, change):
@@ -272,6 +329,13 @@ class MassAddLocationsForm(forms.Form):
     sub_count = forms.IntegerField(label=_("Sub-location count"), required=False)
     sub_print = forms.BooleanField(label=_("Print sub-location labels"), required=False)
 
+    def clean(self):
+        cleaned = super().clean()
+        kind, start = cleaned.get("location_type"), cleaned.get("sequence_start")
+        if kind and start and not kind.is_valid_start(start):
+            self.add_error("sequence_start", _("Use only characters of the sequence of “%(type)s”.") % {"type": kind})
+        return cleaned
+
     def clean_sub_type(self):
         sub_type = self.cleaned_data["sub_type"]
         if sub_type and sub_type.unique and self.cleaned_data["sub_count"]:
@@ -302,10 +366,9 @@ class MassAddLocationsAdminView(PermissionRequiredMixin, FormView):
         loc_type = data["location_type"]
         sub_type = data["sub_type"]
 
-        # create locations
-        for name, short_name in loc_type.generate_names(
-            data["count"], start=data["sequence_start"]
-        ):
+        # create locations; codes of unique types that are taken (e.g. older codes of another sequence) are skipped
+        generate = loc_type.free_names if loc_type.unique else loc_type.generate_names
+        for name, short_name in generate(data["count"], start=data["sequence_start"]):
             location = models.Location.objects.create(
                 name=name,
                 short_name=short_name,
@@ -320,7 +383,7 @@ class MassAddLocationsAdminView(PermissionRequiredMixin, FormView):
 
             # create sub-locations
             if sub_type is not None:
-                for name, short_name in sub_type.generate_names(data["sub_count"]):
+                for name, short_name in sub_type.free_sublocation_names(location, data["sub_count"]):
                     child = models.Location.objects.create(
                         name=name,
                         short_name=short_name,

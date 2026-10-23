@@ -1,0 +1,50 @@
+{% extends 'base.html' %}
+{% load django_bootstrap5 i18n static icons %}
+
+{% block bootstrap5_extra_head %}
+    {{ block.super }}
+    <link rel="stylesheet" href="{% static 'inventory/location_detail.css' %}">
+{% endblock %}
+
+{% block title %}{% blocktrans with type=sub.name %}Purposes of {{ type }}{% endblocktrans %}: {{ object.unique_identifier }}{% endblock %}
+
+{% block page_header %}
+    <header class="location-header">
+        <nav aria-label="{% trans 'Location navigation' %}" class="location-breadcrumb">
+            <a href="{% url 'index_locations' %}">{% trans "Locations" %}</a>
+            <span aria-hidden="true">/</span>
+            <a href="{{ object.get_absolute_url }}">{{ object.name }}</a>
+        </nav>
+        <div class="location-heading">
+            <div class="location-heading-text">
+                <p class="location-eyebrow">{% blocktrans with type=sub.name %}Purposes of {{ type }}{% endblocktrans %} · {{ object.type.name }}</p>
+                <h1>{{ object.name }}</h1>
+                <span class="location-identifier">{{ object.unique_identifier }}</span>
+            </div>
+        </div>
+    </header>
+{% endblock %}
+
+{% block content %}
+    <div class="location-detail location-move">
+        <section class="location-panel" aria-labelledby="purposes-heading">
+            <div class="location-panel-heading">
+                <h2 id="purposes-heading">{% blocktrans with type=sub.name %}Purposes of {{ type }}{% endblocktrans %}</h2>
+                <p class="location-muted">{% trans "Optional: what each one is for. Leave it empty if there is nothing to say yet." %}</p>
+            </div>
+            <div class="sublocation-purposes">
+            {% include "inventory/numbered_location_order.html" with kind=object.type code=object.short_name parts_only=True %}
+            <form method="post" novalidate class="location-move-form location-narrow-form">
+                {% csrf_token %}
+                <p class="location-muted">{% trans "Listed as they sit: the top one first, a at the bottom." %}</p>
+                <input type="hidden" name="codes" value="{{ codes }}">
+                {% bootstrap_form form %}
+                <div class="location-actions mt-3">
+                    <button class="btn btn-warning" type="submit">{% icon "pencil" %} {% trans "Save purposes" %}</button>
+                    <a class="btn btn-secondary" href="{{ object.get_absolute_url }}">{% trans "Skip" %}</a>
+                </div>
+            </form>
+            </div>
+        </section>
+    </div>
+{% endblock %}

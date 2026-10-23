@@ -3115,3 +3115,336 @@ msgstr "Bereits gescannt: {code}"
 
 msgid "Selected: {location}"
 msgstr "Ausgewählt: {location}"
+
+msgid "Building and level"
+msgstr "Haus und Ebene"
+
+msgid "Room"
+msgstr "Raum"
+
+msgid "Area"
+msgstr "Bereich"
+
+msgid "building structure"
+msgstr "Gebäudestruktur"
+
+msgid "Set for the fixed building structure: building and level, room or area. Empty for furniture and containers such as shelves and boxes."
+msgstr "Für die feste Gebäudestruktur: Haus und Ebene, Raum oder Bereich. Leer für Möbel und Behälter wie Regale und Kisten."
+
+msgid "axis"
+msgstr "Achse"
+
+msgid "axes"
+msgstr "Achsen"
+
+msgid "number"
+msgstr "Nummer"
+
+msgid "Order from left to right."
+msgstr "Reihenfolge von links nach rechts."
+
+msgid "Set on locations directly below a level; their parts inherit it."
+msgstr "Für Standorte direkt unter einer Ebene; ihre Teile erben sie."
+
+msgid "free of fire load"
+msgstr "brandlastfrei"
+
+msgid "No combustible materials may be stored here. Applies to everything inside."
+msgstr "Hier dürfen keine brennbaren Materialien lagern. Gilt für alles darin."
+
+msgid "outdoors"
+msgstr "außen"
+
+msgid "responsible teams"
+msgstr "zuständige Teams"
+
+msgid "Levels run across, axes down: what stands in one axis lies roughly above each other. Codes describe the place only; purpose and responsibility are details of the location."
+msgstr "Waagrecht liegen die Ebenen, senkrecht die Achsen: Was in einer Achse steht, liegt ungefähr übereinander. Codes beschreiben nur den Ort; Zweck und Zuständigkeit sind Merkmale des Standorts."
+
+msgid "Legend"
+msgstr "Legende"
+
+msgid "Outdoors"
+msgstr "Außen"
+
+msgid "Free of fire load"
+msgstr "brandlastfrei"
+
+msgid "Planned: %s"
+msgstr "Geplant: %s"
+
+msgid "From the inventory"
+msgstr "Aus dem Inventar"
+
+msgid "Level"
+msgstr "Ebene"
+
+msgid "Axis"
+msgstr "Achse"
+
+msgid "No axis"
+msgstr "ohne Achse"
+
+msgid "Main area:"
+msgstr "Hauptfläche:"
+
+msgid "Name:"
+msgstr "Name:"
+
+msgid "was"
+msgstr "alt"
+
+msgid "within"
+msgstr "in"
+
+msgid "codes"
+msgstr "Codes"
+
+msgid "numbered parts"
+msgstr "nummerierte Teile"
+
+msgid "Levels and axes"
+msgstr "Ebenen und Achsen"
+
+msgid "admin only"
+msgstr "nur im Admin"
+
+msgid "Locations of this type are created, changed and deleted only in the admin, which requires staff status. On the inventory pages only their purpose can be changed; photo, place and deletion are locked, what they contain can still be moved."
+msgstr "Standorte dieses Typs werden nur im Admin angelegt, bearbeitet und gelöscht; dafür sind Staff-Rechte nötig. Auf den Inventarseiten lässt sich nur ihr Zweck ändern; Foto, Ort und Löschen sind gesperrt, ihr Inhalt lässt sich weiter verschieben."
+
+msgid "Locations of an admin-only type can be neither moved nor deleted on the inventory pages."
+msgstr "Standorte eines Admin-Typs können auf den Inventarseiten weder verschoben noch gelöscht werden."
+
+msgid "You do not have permission to change this location."
+msgstr "Du hast keine Berechtigung, diesen Standort zu bearbeiten."
+
+msgid "Locations of type “%(type)s” can only be changed in the admin, except for their purpose."
+msgstr "Standorte vom Typ „%(type)s“ lassen sich außer dem Zweck nur im Admin-Bereich bearbeiten."
+
+msgid "Changing"
+msgstr "Bearbeiten"
+
+msgid "Locations of this type are created, changed and deleted only in the admin; here only their purpose can be changed."
+msgstr "Standorte dieses Typs werden nur im Admin angelegt, bearbeitet und gelöscht; hier lässt sich nur ihr Zweck ändern."
+
+msgid "Purpose and overview photo can be changed here."
+msgstr "Zweck und Übersichtsfoto lassen sich hier bearbeiten."
+
+
+
+
+msgid "number range"
+msgstr "Nummernkreis"
+
+msgid "number ranges"
+msgstr "Nummernkreise"
+
+msgid "The range must not end before it starts."
+msgstr "Der Kreis darf nicht vor seinem Anfang enden."
+
+msgid "Overlaps the range %(range)s of %(location)s."
+msgstr "Überschneidet sich mit dem Kreis %(range)s von %(location)s."
+
+msgid "Number"
+msgstr "Nummer"
+
+
+msgid "%(name)s created."
+msgstr "%(name)s angelegt."
+
+
+
+
+
+
+
+
+msgid "number ranges per area"
+msgstr "Nummernkreise pro Bereich"
+
+msgid "New locations of this type get a free number from the number range of the room or area they are created in, on its page. Only for types with building-wide codes that are not moved, with a short name prefix and the numeric sequence."
+msgstr "Neue Standorte dieses Typs bekommen eine freie Nummer aus dem Nummernkreis des Raums oder Bereichs und werden auf dessen Seite angelegt. Nur für Typen mit hausweit eindeutigem Code, die nicht bewegt werden, mit Kürzel-Präfix und numerischer Folge."
+
+msgid "Number ranges per area need building-wide codes, a type that is not moved, a short name prefix and the numeric sequence."
+msgstr "Nummernkreise pro Bereich brauchen hausweit eindeutige Codes, einen Typ, der nicht bewegt wird, ein Kürzel-Präfix und die numerische Folge."
+
+msgid "Numeric (0-9)"
+msgstr "Ziffern (0–9)"
+
+msgid "Letters lowercase (a-z)"
+msgstr "Kleinbuchstaben (a–z)"
+
+msgid "Letters uppercase (A-Z)"
+msgstr "Großbuchstaben (A–Z)"
+
+msgid "Overlaps another range of the same location type."
+msgstr "Überschneidet sich mit einem anderen Kreis desselben Standorttyps."
+
+msgid "Use only characters of the sequence of “%(type)s”."
+msgstr "Verwende nur Zeichen aus der Folge von „%(type)s“."
+
+msgid "Add numbered location"
+msgstr "Nummerierten Standort anlegen"
+
+msgid "%(type)s: numbered from %(ranges)s (%(name)s)."
+msgstr "%(type)s: nummeriert aus %(ranges)s (%(name)s)."
+
+
+
+
+msgid "Add a location with a number from the number range here"
+msgstr "Standort mit einer Nummer aus dem Nummernkreis hier anlegen"
+
+
+
+msgid "There is no room for %(count)s more numbers here. Ask the inventory admins."
+msgstr "Hier ist kein Platz für %(count)s weitere Nummern. Bitte die Inventar-Admins um Hilfe."
+
+
+msgid "%(type)s: no numbers reserved here yet."
+msgstr "%(type)s: hier sind noch keine Nummern reserviert."
+
+msgid "type of sub-locations"
+msgstr "Typ der Unterstandorte"
+
+msgid "Creating a location of this type on the inventory pages asks how many of these to add inside it, e.g. compartments of a shelf."
+msgstr "Beim Anlegen eines Standorts dieses Typs auf den Inventarseiten wird gefragt, wie viele davon gleich darin angelegt werden, z. B. Fächer eines Regals."
+
+msgid "Reserved number"
+msgstr "Reservierte Nummer"
+
+msgid "Wished-for number"
+msgstr "Wunschnummer"
+
+msgid "New number, assigned automatically"
+msgstr "Neue Nummer, automatisch vergeben"
+
+msgid "How many are to be expected here in total, this one included?"
+msgstr "Mit wie vielen ist hier insgesamt zu rechnen, diesen eingeschlossen?"
+
+msgid "For a wished-for or new number: that many consecutive numbers are reserved for this area. With 1, only this number is used."
+msgstr "Bei Wunsch- oder neuer Nummer: So viele Folgenummern werden für diesen Bereich reserviert. Bei 1 wird nur diese eine Nummer vergeben."
+
+msgid "Number of %(type)s inside"
+msgstr "Anzahl %(type)s darin"
+
+msgid "Choose one of the reserved numbers."
+msgstr "Wähle eine der reservierten Nummern."
+
+msgid "Enter the number you want."
+msgstr "Gib die gewünschte Nummer ein."
+
+msgid "%(number)s is already used or reserved."
+msgstr "%(number)s ist schon vergeben oder reserviert."
+
+msgid "Only %(count)s numbers from %(number)s on are free."
+msgstr "Ab %(number)s sind nur %(count)s Nummern frei."
+
+msgid "Say how many are to be expected here."
+msgstr "Gib an, mit wie vielen hier zu rechnen ist."
+
+msgid "The number was taken in the meantime. Choose another one."
+msgstr "Die Nummer wurde inzwischen vergeben. Wähle eine andere."
+
+msgid "Numbers %(range)s are reserved for %(type)s at %(place)s."
+msgstr "Nummern %(range)s sind für %(type)s in %(place)s reserviert."
+
+msgid "%(count)s %(type)s added."
+msgstr "%(count)s × %(type)s angelegt."
+
+msgid "What is added?"
+msgstr "Was wird angelegt?"
+
+msgid "Add %(type)s: choose the number"
+msgstr "%(type)s anlegen: Nummer wählen"
+
+msgid "Neighbouring ones should have consecutive numbers, the lower number on the left and the higher on the right where possible."
+msgstr "Nebeneinander stehende sollten aufeinanderfolgende Nummern haben, möglichst links die kleinere und rechts die größere."
+
+msgid "Add %(type)s"
+msgstr "%(type)s anlegen"
+
+msgid "left lower, right higher"
+msgstr "links kleiner, rechts größer"
+
+msgid "Side by side"
+msgstr "Nebeneinander"
+
+msgid "from the bottom up"
+msgstr "von unten nach oben"
+
+msgid "Neighbours get consecutive numbers, the lower one on the left; a new one is added at the end of the row."
+msgstr "Nachbarn bekommen aufeinanderfolgende Nummern, links die kleinere; ein neues kommt ans Ende der Reihe."
+
+msgid "%(sub)s: lettered from the bottom up, starting with a."
+msgstr "%(sub)s: von unten nach oben benannt, beginnend mit a."
+
+msgid "How many %(type)s to add?"
+msgstr "Wie viele %(type)s hinzufügen?"
+
+msgid "%(count)s %(type)s added: %(codes)s."
+msgstr "%(count)s × %(type)s hinzugefügt: %(codes)s."
+
+msgid "Add %(type)s with the next free letters"
+msgstr "%(type)s mit den nächsten freien Buchstaben hinzufügen"
+
+
+msgid "Already here:"
+msgstr "Schon vorhanden:"
+
+msgid "New ones get the next free letters; after z come aa, ab …"
+msgstr "Neue bekommen die nächsten freien Buchstaben; nach z kommen aa, ab …"
+
+msgid "Purposes of %(type)s"
+msgstr "Zwecke: %(type)s"
+
+msgid "Optional: what each one is for. Leave it empty if there is nothing to say yet."
+msgstr "Optional: wofür jedes gedacht ist. Leer lassen, wenn es noch nichts zu sagen gibt."
+
+msgid "Save purposes"
+msgstr "Zwecke speichern"
+
+msgid "Skip"
+msgstr "Überspringen"
+
+msgid "Listed as they sit: the top one first, a at the bottom."
+msgstr "So angeordnet, wie sie sitzen: das oberste zuerst, a ganz unten."
+
+msgid "Purposes saved."
+msgstr "Zwecke gespeichert."
+
+msgid "Space"
+msgstr "Gebäudeteil"
+
+msgid "Storage unit"
+msgstr "Lagermöbel"
+
+msgid "Container"
+msgstr "Behälter"
+
+msgid "Spaces"
+msgstr "Gebäudeteile"
+
+msgid "Storage units"
+msgstr "Lagermöbel"
+
+msgid "Containers"
+msgstr "Behälter"
+
+msgid "Other sub-locations"
+msgstr "Weitere Unterstandorte"
+
+msgid "location category"
+msgstr "Standortkategorie"
+
+msgid "Space: levels, rooms and areas. Storage unit: furniture for storing things such as shelves, cabinets, workbenches with drawers and tool trolleys, with their compartments. Container: moves with its contents, such as boxes, cartons and pallets. Empty for anything else, e.g. on loan."
+msgstr "Gebäudeteil: Ebenen, Räume und Bereiche. Lagermöbel: Möbel zum Aufbewahren wie Regale, Schränke, Werkbänke mit Schubladen und Werkzeugwagen, samt ihren Fächern. Behälter: wandert mit seinem Inhalt, wie Kisten, Kartons und Paletten. Leer für alles andere, z. B. verliehen."
+
+msgid "Types of the building structure are spaces."
+msgstr "Typen der Gebäudestruktur sind Gebäudeteile."
+
+msgid "Number ranges per area are for storage units only."
+msgstr "Nummernkreise pro Bereich gibt es nur für Lagermöbel."
+
+msgid "Add %(numbering_label)s"
+msgstr "%(numbering_label)s anlegen"

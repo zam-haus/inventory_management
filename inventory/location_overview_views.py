@@ -1,14 +1,16 @@
 from django.contrib import messages
 from django.contrib.auth.mixins import PermissionRequiredMixin
+from django.core.exceptions import PermissionDenied
 from django.db import transaction
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect
-from django.utils.translation import gettext_lazy as _lazy
+from django.utils.translation import gettext_lazy as _
 from django.views import View
 from django.views.generic import ListView
 
 from .forms import LocationOverviewForm, LocationPurposeForm
 from .models import Location
+from .permissions import location_edit_denied, location_purpose_denied
 from .views import DetailLocationView
 
 
@@ -17,11 +19,15 @@ class LocationEditView(PermissionRequiredMixin, View):
     permission_required = "inventory.change_location"
     http_method_names = ["post", "options"]
     form_class = fields = success_message = context_name = None
+    # Why a user may not save this part; the purpose of admin-only locations stays editable.
+    denied = staticmethod(location_edit_denied)
 
     def post(self, request, pk):
         wants_json = "application/json" in request.headers.get("Accept", "")
         with transaction.atomic():
             location = get_object_or_404(Location.active.select_for_update(), pk=pk)
+            if self.denied(request.user, location):
+                raise PermissionDenied
             form = self.form_class(request.POST, request.FILES, instance=location)
             if form.is_valid():
                 location = form.save(commit=False)
@@ -46,14 +52,15 @@ class LocationEditView(PermissionRequiredMixin, View):
 class LocationOverviewUpdateView(LocationEditView):
     form_class = LocationOverviewForm
     fields = ["overview_photo"]
-    success_message = _lazy("Overview photo saved.")
+    success_message = _("Overview photo saved.")
     context_name = "overview"
 
 
 class LocationPurposeUpdateView(LocationEditView):
     form_class = LocationPurposeForm
     fields = ["purpose"]
-    success_message = _lazy("Purpose saved.")
+    denied = staticmethod(location_purpose_denied)
+    success_message = _("Purpose saved.")
     context_name = "purpose"
 
 

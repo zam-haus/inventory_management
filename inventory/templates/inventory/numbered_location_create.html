@@ -1,0 +1,78 @@
+{% extends 'base.html' %}
+{% load django_bootstrap5 i18n static icons %}
+
+{% block bootstrap5_extra_head %}
+    {{ block.super }}
+    <link rel="stylesheet" href="{% static 'inventory/location_detail.css' %}">
+{% endblock %}
+
+{% block title %}{% trans "Add numbered location" %}: {{ object.unique_identifier }}{% endblock %}
+
+{% block page_header %}
+    <header class="location-header">
+        <nav aria-label="{% trans 'Location navigation' %}" class="location-breadcrumb">
+            <a href="{% url 'index_locations' %}">{% trans "Locations" %}</a>
+            <span aria-hidden="true">/</span>
+            <a href="{{ object.get_absolute_url }}">{{ object.name }}</a>
+        </nav>
+        <div class="location-heading">
+            <div class="location-heading-text">
+                <p class="location-eyebrow">{% trans "Add numbered location" %} · {{ object.type.name }}</p>
+                <h1>{{ object.name }}</h1>
+                <span class="location-identifier">{{ object.unique_identifier }}</span>
+            </div>
+            <div class="location-actions">
+                <a class="btn btn-secondary" href="{{ object.get_absolute_url }}">{% trans "Cancel" %}</a>
+            </div>
+        </div>
+    </header>
+{% endblock %}
+
+{% block content %}
+    <div class="location-detail location-move">
+        {% if kinds %}
+            <section class="location-panel" aria-labelledby="kind-heading">
+                <div class="location-panel-heading">
+                    <h2 id="kind-heading">{% trans "What is added?" %}</h2>
+                </div>
+                <div class="location-actions location-move-form">
+                    {% for kind in kinds %}
+                        <a class="btn btn-success" href="{{ url }}?type={{ kind.pk }}">{% icon "plus-lg" %} {{ kind.name }}</a>
+                    {% endfor %}
+                </div>
+            </section>
+        {% else %}
+            <section class="location-panel" aria-labelledby="numbered-heading">
+                <div class="location-panel-heading">
+                    <h2 id="numbered-heading">{% blocktrans with type=kind.name %}Add {{ type }}: choose the number{% endblocktrans %}</h2>
+                    <p class="location-muted mb-1">{% trans "Neighbouring ones should have consecutive numbers, the lower number on the left and the higher on the right where possible." %}</p>
+                    {% include "inventory/numbered_location_order.html" %}
+                    {% if source %}
+                        <p class="location-muted">{% blocktrans with type=kind.name ranges=ranges name=source.name %}{{ type }}: numbered from {{ ranges }} ({{ name }}).{% endblocktrans %}</p>
+                    {% else %}
+                        <p class="location-muted">{% blocktrans with type=kind.name %}{{ type }}: no numbers reserved here yet.{% endblocktrans %}</p>
+                    {% endif %}
+                </div>
+                <form method="post" novalidate class="location-move-form location-narrow-form" data-numbering-form>
+                    {% csrf_token %}
+                    <input type="hidden" name="type" value="{{ kind.pk }}">
+                    {% bootstrap_form_errors form type="non_fields" %}
+                    {% bootstrap_field form.mode %}
+                    {% if "reserved" in form.fields %}{% bootstrap_field form.reserved %}{% endif %}
+                    {% bootstrap_field form.wish addon_before=kind.auto_short_name_prefix %}
+                    {% bootstrap_field form.expected %}
+                    {% if "sublocations" in form.fields %}{% bootstrap_field form.sublocations %}{% endif %}
+                    {% bootstrap_field form.purpose %}
+                    <div class="location-actions mt-3">
+                        <button class="btn btn-success" type="submit">{% icon "plus-lg" %} {% blocktrans with type=kind.name %}Add {{ type }}{% endblocktrans %}</button>
+                    </div>
+                </form>
+            </section>
+        {% endif %}
+    </div>
+{% endblock %}
+
+{% block bootstrap5_extra_script %}
+    {{ block.super }}
+    <script src="{% static 'inventory/numbered_location.js' %}"></script>
+{% endblock %}

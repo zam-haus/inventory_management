@@ -5,6 +5,8 @@ covered in the [project README](../README.md).
 
 * [Concepts](concepts.md): bulk items vs. unique items, locations, initial data collection
 * [Location purpose and photo](locations.md): purpose shown with the name, overview photo and change history
+* [Building structure](location-structure.md): levels, rooms and areas, axes, fire load, responsible teams; restructure dataset and overview commands
+* [Standortregeln](standortregeln.md) (deutsch): wie das ZAM Häuser, Ebenen, Räume und Bereiche codiert und benennt
 * [Quick-items](quick-items.md): items known only by name, edited in the location list
 * [Stock changes](stock-changes.md): the stock change (cart) dialog and the stock change log
 * [Unique items](unique-items.md): single objects (*Einzelobjekte*) with their own label ID, owner and history

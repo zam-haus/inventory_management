@@ -24,6 +24,7 @@ class LocationType(models.Model):
         verbose_name_plural = _("location types")
 
     name = models.CharField(_("name"), max_length=64, unique=True)
+    description = models.TextField(_("description"), blank=True)
     # set if this Locations can not have sublocations (you can not put a box in a box)
     no_sublocations = models.BooleanField(_("no sublocations flag"), default=False)
     # allow this type to be moved from frontend
@@ -36,6 +37,20 @@ class LocationType(models.Model):
         help_text=_("Users with the delete permission may delete locations of this type on the inventory pages, "
                     "e.g. shelves or drawers. Otherwise they can only be deleted in the admin."),
     )
+    # Fixed building structure: created, changed and deleted by staff in the admin only (docs/permissions.md).
+    admin_only = models.BooleanField(
+        _("admin only"), default=False,
+        help_text=_("Locations of this type are created, changed and deleted only in the admin, which requires "
+                    "staff status. On the inventory pages only their purpose can be changed; photo, place and "
+                    "deletion are locked, what they contain can still be moved."),
+    )
+    # Fixed types with building-wide codes (shelves, cabinets) can be numbered per room or area.
+    area_numbering = models.BooleanField(
+        _("number ranges per area"), default=False,
+        help_text=_("New locations of this type get a free number from the number range of the room or area "
+                    "they are created in, on its page. Only for types with building-wide codes that are not "
+                    "moved, with a short name prefix and the numeric sequence."),
+    )
     # for automatic generation of unique names and short_names:
     auto_name_prefix = models.CharField(
         _("name prefix"), max_length=16, default="", blank=True
@@ -46,19 +61,24 @@ class LocationType(models.Model):
     auto_short_name_padding_length = models.IntegerField(
         _("short name pedding"), default=0
     )
+    # Offered with a count when a location of this type is created on the inventory pages (shelves: compartments).
+    sublocation_type = models.ForeignKey(
+        "self", on_delete=models.SET_NULL, null=True, blank=True, related_name="+",
+        verbose_name=_("type of sub-locations"),
+        help_text=_("Creating a location of this type on the inventory pages asks how many of these to add "
+                    "inside it, e.g. compartments of a shelf."),
+    )
+
+    # Numbers are digits only or letters only; older codes from other sequences stay as they are.
+    class Sequence(models.TextChoices):
+        NUMERIC = "0123456789", _("Numeric (0-9)")
+        LOWERCASE = "abcdefghijklmnopqrstuvwxyz", _("Letters lowercase (a-z)")
+        UPPERCASE = "ABCDEFGHIJKLMNOPQRSTUVWXYZ", _("Letters uppercase (A-Z)")
+
     auto_sequence = models.CharField(
         _("sequence"),
         max_length=128,
-        choices=[
-            ("0123456789", "Numeric (0-9)"),
-            ("abcdefghijklmnopqrstuvwxyz", "Letters lowercase (a-z)"),
-            ("ABCDEFGHIJKLMNOPQRSTUVWXYZ", "Letters lowercase (a-z)"),
-            (
-                "0123456789abcdefghijklmnopqrstuvwxyz",
-                "Alphanumeric lowercase (0-9, a-z)",
-            ),
-            ("0123456789abcdef", "Hexadecimal lowercase (0-9, a-f)"),
-        ],
+        choices=Sequence.choices,
         null=True,
         blank=True,
     )
@@ -70,6 +90,124 @@ class LocationType(models.Model):
         on_delete=models.SET_NULL,
         verbose_name=_("default label template"),
     )
+
+    # Fixed building structure (docs/location-structure.md). With the unique flag a location of
+    # this type has its own building-wide code; without it, it is a numbered part of its parent.
+    class Structure(models.TextChoices):
+        LEVEL = "level", _("Building and level")
+        ROOM = "room", _("Room")
+        AREA = "area", _("Area")
+
+    structure = models.CharField(
+        _("building structure"), max_length=8, blank=True, choices=Structure.choices,
+        help_text=_("Set for the fixed building structure: building and level, room or area. "
+                    "Empty for furniture and containers such as shelves and boxes."),
+    )
+
+    # What a location of this type is (docs/location-structure.md): part of the building, a piece of
+    # furniture made for storing things (with its compartments), or a container that moves with its contents.
+    class Category(models.TextChoices):
+        SPACE = "space", _("Space")
+        STORAGE_UNIT = "storage_unit", _("Storage unit")
+        CONTAINER = "container", _("Container")
+
+    CATEGORY_PLURALS = {
+        Category.SPACE: _("Spaces"),
+        Category.STORAGE_UNIT: _("Storage units"),
+        Category.CONTAINER: _("Containers"),
+    }
+
+    category = models.CharField(
+        _("location category"), max_length=16, blank=True, choices=Category.choices,
+        help_text=_("Space: levels, rooms and areas. Storage unit: furniture for storing things such as shelves, "
+                    "cabinets, workbenches with drawers and tool trolleys, with their compartments. Container: "
+                    "moves with its contents, such as boxes, cartons and pallets. Empty for anything else, e.g. "
+                    "on loan."),
+    )
+
+    @classmethod
+    def group_by_category(cls, locations):
+        """Locations grouped by their type's category, spaces first; those without one come last.
+
+        Returns (category, title, locations) triples; the category is "" for the last group."""
+        groups = {}
+        for location in locations:
+            groups.setdefault(location.type.category, []).append(location)
+        order = [*cls.Category.values, ""]
+        return [(category, cls.CATEGORY_PLURALS.get(category, _("Other sub-locations")), groups[category])
+                for category in order if category in groups]
+
+    def clean(self):
+        # A missing category follows from what the type is; a contradicting one is an error.
+        if not self.category and self.structure:
+            self.category = self.Category.SPACE
+        elif not self.category and self.area_numbering:
+            self.category = self.Category.STORAGE_UNIT
+        if self.structure and self.category != self.Category.SPACE:
+            raise ValidationError({"category": _("Types of the building structure are spaces.")})
+        if self.area_numbering and self.category != self.Category.STORAGE_UNIT:
+            raise ValidationError({"category": _("Number ranges per area are for storage units only.")})
+        if self.admin_only and (self.moveable or self.deletable_in_frontend):
+            raise ValidationError({"admin_only": _(
+                "Locations of an admin-only type can be neither moved nor deleted on the inventory pages.")})
+        if self.area_numbering and (not self.unique or self.moveable or not self.auto_short_name_prefix
+                                    or self.auto_sequence != self.Sequence.NUMERIC):
+            raise ValidationError({"area_numbering": _(
+                "Number ranges per area need building-wide codes, a type that is not moved, a short name "
+                "prefix and the numeric sequence.")})
+
+    def numbered_names(self, number):
+        """Name and short name for one number, e.g. ("Regal 301", "R301")."""
+        return self.generate_names(1, start=str(number))[0]
+
+    MAX_SUBLOCATIONS = 100
+
+    def sublocation_codes(self):
+        """Codes for sub-locations in order. Letters run on like spreadsheet columns: a … z, aa, ab … az, ba …"""
+        sequence, number = self.auto_sequence, 0
+        while True:
+            number += 1
+            if sequence in (self.Sequence.LOWERCASE, self.Sequence.UPPERCASE):
+                code, rest = "", number
+                while rest:
+                    rest, digit = divmod(rest - 1, len(sequence))
+                    code = sequence[digit] + code
+                yield code
+            else:
+                yield self.generate_names(1, start=self.int2str(number - 1))[0][1]
+
+    def free_sublocation_names(self, parent, count):
+        """`count` names for new sub-locations of this type in `parent`, skipping codes its children have
+        (a shelf with a–d gets e, f, …)."""
+        if not self.auto_sequence:
+            return []
+        taken = set(parent.children.values_list("short_name", flat=True)) if parent.pk else set()
+        names = []
+        for code in self.sublocation_codes():
+            if len(names) == count:
+                break
+            if code not in taken:
+                names.append((f"{self.auto_name_prefix} {code}".strip(), code))
+        return names
+
+    def is_valid_start(self, start):
+        return bool(self.auto_sequence) and bool(start) and all(char in self.auto_sequence for char in start)
+
+    def free_names(self, count, start):
+        """Like generate_names, but skips short names that are taken (by any location of a unique type)."""
+        names, number = [], self.str2int(start)
+        while len(names) < count:
+            batch = self.generate_names(count - len(names), start=self.int2str(number))
+            taken = set(Location.objects.filter(type__unique=True, short_name__in=[short for _name, short in batch])
+                        .values_list("short_name", flat=True))
+            names += [(name, short) for name, short in batch if short not in taken]
+            number += len(batch)
+        return names
+
+    @property
+    def is_coded_structure(self):
+        """A level, room or area with its own building-wide code; inherited details stop here."""
+        return bool(self.structure) and self.unique
 
     def int2str(self, i):
         seq = self.auto_sequence
@@ -188,6 +326,141 @@ class LocationLabelTemplate(models.Model):
         return self.name
 
 
+class LocationAxis(models.Model):
+    """A vertical axis of the site: locations in one axis lie roughly above each other."""
+
+    class Meta:
+        verbose_name = _("axis")
+        verbose_name_plural = _("axes")
+        ordering = ("number",)
+
+    number = models.PositiveSmallIntegerField(_("number"), unique=True, help_text=_("Order from left to right."))
+    name = models.CharField(_("name"), max_length=64)
+
+    def __str__(self):
+        return f"{self.number} {self.name}"
+
+
+class LocationNumberRange(models.Model):
+    """Numbers reserved for locations of one type in a room or area, e.g. its shelves (docs/standortregeln.md)."""
+
+    class Meta:
+        verbose_name = _("number range")
+        verbose_name_plural = _("number ranges")
+        ordering = ("first",)
+
+    location = models.ForeignKey("Location", on_delete=models.CASCADE, related_name="number_ranges",
+                                 verbose_name=_("location"))
+    type = models.ForeignKey(
+        LocationType, on_delete=models.CASCADE, related_name="number_ranges", verbose_name=_("location type"),
+        limit_choices_to={"area_numbering": True},
+    )
+    first = models.PositiveIntegerField(_("from"))
+    last = models.PositiveIntegerField(_("to"))
+
+    def clean(self):
+        if self.first is not None and self.last is not None and self.first > self.last:
+            raise ValidationError({"last": _("The range must not end before it starts.")})
+
+    NEW_SIZE = 20
+
+    @classmethod
+    def _taken_numbers(cls, kind):
+        """Numbers used by codes of this type, also outside of any range (e.g. R998)."""
+        prefix, numbers = kind.auto_short_name_prefix, []
+        for short in Location.objects.filter(type=kind, short_name__startswith=prefix).values_list("short_name", flat=True):
+            if short[len(prefix):].isdigit():
+                numbers.append(int(short[len(prefix):]))
+        return numbers
+
+    @classmethod
+    def suggest(cls, kind, location=None, size=NEW_SIZE):
+        """A free range of `size` numbers for `kind` at `location`: in the middle of the largest free gap,
+        rounded to tens, so that it and the range before it can grow. Below a location with a range for
+        this type, the gap is taken from that range (a reservation within it)."""
+        if kind is None:
+            return None
+        upper = 10 ** (kind.auto_short_name_padding_length or 3) - 1
+        ancestors = [node for node in location._self_and_ancestors() if node.pk and node.pk != location.pk] if location else []
+        holder = next((node for node in ancestors if node.number_ranges.filter(type=kind).exists()), None)
+        bounds = [(r.first, r.last) for r in holder.number_ranges.filter(type=kind)] if holder else [(0, upper)]
+        containers = {node.pk for node in ancestors}
+        taken = [(r.first, r.last) for r in cls.objects.filter(type=kind).exclude(location_id__in=containers)]
+        taken += [(number, number) for number in cls._taken_numbers(kind)]
+        gaps = []
+        for low, high in bounds:
+            start = low
+            for first, last in sorted(taken):
+                if last < start or first > high:
+                    continue
+                if first > start:
+                    gaps.append((start, first - 1))
+                start = max(start, last + 1)
+            if start <= high:
+                gaps.append((start, high))
+        gaps = [gap for gap in gaps if gap[1] - gap[0] + 1 >= size]
+        if not gaps:
+            return None
+        first, last = max(gaps, key=lambda gap: gap[1] - gap[0])
+        middle = first + (last - first + 1 - size) // 2
+        rounded = middle - middle % 10
+        start = rounded if rounded >= first else middle
+        return start, start + size - 1
+
+    MAX_RESERVATION = 200
+
+    @classmethod
+    def unavailable(cls, kind, first, last):
+        """Numbers between first and last that a range of `kind` covers or a code of `kind` uses."""
+        covered = set()
+        for number_range in cls.objects.filter(type=kind, first__lte=last, last__gte=first):
+            covered.update(range(max(first, number_range.first), min(last, number_range.last) + 1))
+        covered.update(number for number in cls._taken_numbers(kind) if first <= number <= last)
+        return covered
+
+    @classmethod
+    def reserve(cls, location, kind, count):
+        """Reserve `count` consecutive numbers for `kind` where it is created at `location`: right behind the range
+        that applies there if those numbers are free, else as a new range (LocationNumberRange.suggest) at the
+        location of that range, or at `location` itself while none applies. Returns the range."""
+        source = location.number_range_source(kind)
+        target = source or location
+        if source is not None:
+            last = source.number_ranges.filter(type=kind).order_by("-last").first()
+            first, end = last.last + 1, last.last + count
+            taken = set(cls._taken_numbers(kind))
+            upper = 10 ** (kind.auto_short_name_padding_length or 3) - 1
+            if end <= upper and not taken & set(range(first, end + 1)) and \
+                    cls.overlap_error(first, end, kind, source, exclude=[last.pk]) is None:
+                last.last = end
+                last.save()
+                return last
+        suggestion = cls.suggest(kind, target, size=count)
+        if suggestion is None:
+            raise ValidationError(_("There is no room for %(count)s more numbers here. Ask the inventory admins.")
+                                  % {"count": count})
+        return cls.objects.create(location=target, type=kind, first=suggestion[0], last=suggestion[1])
+
+    @classmethod
+    def overlap_error(cls, first, last, kind, location, exclude=()):
+        """Ranges of one location type must not overlap, unless one lies wholly within a range of a location
+        above it: a reservation for a part of that location. Ranges of different types may overlap."""
+        above = {node.pk for node in location._self_and_ancestors() if node.pk and node.pk != location.pk}
+        others = cls.objects.exclude(pk__in=exclude).filter(first__lte=last, last__gte=first, type=kind)
+        for other in others.select_related("location"):
+            if other.location_id in above and other.first <= first and last <= other.last:
+                continue
+            if location.pk and other.first >= first and other.last <= last and other.location_id != location.pk and \
+                    location.pk in {node.pk for node in other.location._self_and_ancestors()}:
+                continue
+            return ValidationError(_("Overlaps the range %(range)s of %(location)s.") % {
+                "range": other, "location": other.location.locatable_identifier})
+        return None
+
+    def __str__(self):
+        return f"{self.first}–{self.last}"
+
+
 def get_location_overview_upload_path(instance, filename):
     # Every replacement gets its own path so earlier history snapshots stay valid.
     return f"locations/{instance.pk}/overview/{uuid4().hex}{Path(filename).suffix.lower()}"
@@ -251,6 +524,20 @@ class Location(SoftDeleteModel, ComputedFieldsModel):
         null=True,
         blank=True,
         verbose_name=_("parent location"),
+    )
+
+    # Building structure details (docs/location-structure.md); see the effective_* properties for inheritance.
+    axis = models.ForeignKey(
+        LocationAxis, on_delete=models.SET_NULL, null=True, blank=True, related_name="locations",
+        verbose_name=_("axis"), help_text=_("Set on locations directly below a level; their parts inherit it."),
+    )
+    fire_load_free = models.BooleanField(
+        _("free of fire load"), default=False,
+        help_text=_("No combustible materials may be stored here. Applies to everything inside."),
+    )
+    outdoor = models.BooleanField(_("outdoors"), default=False)
+    responsible_teams = models.ManyToManyField(
+        "accounts.Team", blank=True, related_name="locations", verbose_name=_("responsible teams"),
     )
 
     def save(self, *args, actor=None, **kwargs):
@@ -337,6 +624,86 @@ class Location(SoftDeleteModel, ComputedFieldsModel):
             seen.add(parent.pk)
             parent = parent.parent_location
         return chain[::-1]
+
+    def _self_and_ancestors(self):
+        node, seen = self, set()
+        while node is not None and node.pk not in seen:
+            yield node
+            seen.add(node.pk)
+            node = node.parent_location
+
+    def _inherited_from(self, has_value):
+        """The nearest location from here upwards for which has_value is true.
+
+        Containers and numbered parts take the value of the location they are in, but a room,
+        area or level with its own code never inherits: the search ends there.
+        """
+        for node in self._self_and_ancestors():
+            if node.pk and has_value(node):
+                return node
+            if node.type.is_coded_structure:
+                return None
+        return None
+
+    @property
+    def effective_axis(self):
+        return next((node.axis for node in self._self_and_ancestors() if node.axis_id), None)
+
+    @property
+    def is_fire_load_free(self):
+        return any(node.fire_load_free for node in self._self_and_ancestors())
+
+    @property
+    def effective_responsible_teams(self):
+        from accounts.models import Team
+        source = self._inherited_from(lambda node: node.responsible_teams.exists())
+        return source.responsible_teams.all() if source else Team.objects.none()
+
+    def number_range_source(self, location_type):
+        """The nearest location from here upwards with a number range for `location_type`. A range applies to
+        everything below its location, except the parts that locations below reserve for themselves."""
+        return next((node for node in self._self_and_ancestors()
+                     if node.pk and node.number_ranges.filter(type=location_type).exists()), None)
+
+    def numbering_types(self):
+        """Area-numbered location types that can be created here (levels, rooms and areas only), each with the
+        location whose range applies, or None while no range applies yet (the first one reserves it)."""
+        if not self.type.structure:
+            return []
+        return [(kind, self.number_range_source(kind))
+                for kind in LocationType.objects.filter(area_numbering=True).order_by("name")]
+
+    def _descendant_pks(self):
+        pks, pending = set(), [self.pk]
+        while pending:
+            children = Location.active.filter(parent_location_id__in=pending).values_list("pk", flat=True)
+            pending = [pk for pk in children if pk not in pks]
+            pks.update(pending)
+        return pks
+
+    def free_numbers(self, location_type):
+        """Numbers of the applicable ranges that no location of a unique type uses yet, with their names."""
+        source = self.number_range_source(location_type)
+        if source is None or not location_type.area_numbering:
+            return []
+        # Parts that locations below the source reserve for themselves are not offered elsewhere.
+        reserved = [(r.first, r.last) for r in LocationNumberRange.objects.filter(
+            type=location_type, location_id__in=source._descendant_pks())]
+        candidates = {}
+        for number_range in source.number_ranges.filter(type=location_type):
+            for number in range(number_range.first, number_range.last + 1):
+                if not any(first <= number <= last for first, last in reserved):
+                    candidates[number] = location_type.numbered_names(number)
+        # Short names of unique types are unique across all such locations, deleted ones included.
+        taken = set(Location.objects.filter(type__unique=True, short_name__in=[short for _name, short in candidates.values()])
+                    .values_list("short_name", flat=True))
+        return [(number, name, short) for number, (name, short) in sorted(candidates.items()) if short not in taken]
+
+    @property
+    def purpose_context(self):
+        """The purpose to communicate with this location: its own or the one it inherits."""
+        source = self._inherited_from(lambda node: bool(node.purpose))
+        return source.purpose if source else ""
 
     @property
     def name_with_short_name(self):

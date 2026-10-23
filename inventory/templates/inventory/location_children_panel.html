@@ -1,0 +1,44 @@
+{% load i18n icons actions %}{% comment %}Sub-locations of the location page: all of them, or those of one category (anchor, title,
+children, category). Storage units and containers have a shortcut to the header's "add" and "move here" buttons, which stay.{% endcomment %}
+<section class="location-panel location-children" id="{{ anchor }}" aria-labelledby="{{ anchor }}-heading">
+    {% if children|length > 10 %}<input type="checkbox" class="list-collapse-state visually-hidden" id="{{ anchor }}-expanded">{% endif %}
+    <div class="location-panel-heading">
+        <div class="location-panel-title-row">
+            <h2 id="{{ anchor }}-heading" class="fs-4">{% if children|length > 10 %}<label class="list-collapse-toggle" for="{{ anchor }}-expanded">{% endif %}<span class="list-collapse-title">{{ title }} <span class="location-count">{{ children|length }}</span></span>{% if children|length > 10 %}</label>{% endif %}</h2>
+            {% if category == "storage_unit" %}
+                {% if numbering_types %}{% with numbering_label=numbering_types|join:" / " %}{% blocktrans asvar add_title %}Add {{ numbering_label }}{% endblocktrans %}
+                    {% if perms.inventory.add_location %}
+                        <a class="btn btn-success location-add-item" href="{% url 'numbered_location_create' pk=object.pk %}" data-bs-toggle="tooltip" title="{{ add_title }}" aria-label="{{ add_title }}">{% icon "plus-lg" %}</a>
+                    {% else %}
+                        {% icon "plus-lg" as add_icon %}{% disabled_action add_icon name=add_title classes="btn btn-success location-add-item" %}
+                    {% endif %}
+                {% endwith %}{% elif object.type.sublocation_type and not object.type.no_sublocations %}{% blocktrans with type=object.type.sublocation_type.name asvar add_title %}Add {{ type }} with the next free letters{% endblocktrans %}
+                    {% if perms.inventory.add_location %}
+                        <a class="btn btn-success location-add-item" href="{% url 'sublocation_add' pk=object.pk %}" data-bs-toggle="tooltip" title="{{ add_title }}" aria-label="{{ add_title }}">{% icon "plus-lg" %}</a>
+                    {% else %}
+                        {% icon "plus-lg" as add_icon %}{% disabled_action add_icon name=add_title classes="btn btn-success location-add-item" %}
+                    {% endif %}
+                {% endif %}
+            {% elif category == "container" and not object.type.no_sublocations %}
+                {% if perms.inventory.change_location %}
+                    <a class="btn btn-warning location-add-item" href="{% url 'locations_move_here' pk=object.pk %}" data-modal-open="locations-move-here-modal" data-bs-toggle="tooltip" title="{% trans 'Move locations into this location' %}" aria-label="{% trans 'Move locations into this location' %}">{% icon "box-arrow-in-down" %}</a>
+                {% else %}
+                    {% icon "box-arrow-in-down" as move_here_icon %}{% disabled_action move_here_icon name=_("Move locations into this location") classes="btn btn-warning location-add-item" %}
+                {% endif %}
+            {% endif %}
+        </div>
+    </div>
+    <ul class="location-child-list list-collapse-list">
+        {% for child in children %}
+            <li>
+                <a href="{{ child.get_absolute_url }}">
+                    <span><span class="location-child-name fs-6">{{ child.display_name }}</span><span class="location-child-identifier">{{ child.unique_identifier }}</span></span>
+                    <span class="location-child-arrow" aria-hidden="true">{% icon "chevron-right" %}</span>
+                </a>
+            </li>
+        {% empty %}
+            <li class="location-empty location-muted">{% trans "No sub-locations." %}</li>
+        {% endfor %}
+    </ul>
+    {% if children|length > 10 %}<label class="list-collapse-more" for="{{ anchor }}-expanded">{% blocktrans with counter=children|length %}Show all {{ counter }}{% endblocktrans %}</label>{% endif %}
+</section>

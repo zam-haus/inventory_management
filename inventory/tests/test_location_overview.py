@@ -521,6 +521,7 @@ class LocationOverviewTests(TestCase):
             "physical_description": self.location.physical_description,
             "children-TOTAL_FORMS": "1", "children-INITIAL_FORMS": "1",
             "children-MIN_NUM_FORMS": "0", "children-MAX_NUM_FORMS": "1000",
+            "number_ranges-TOTAL_FORMS": "0", "number_ranges-INITIAL_FORMS": "0",
             "children-0-id": child.pk, "children-0-parent_location": self.location.pk,
             "children-0-type": child.type_id, "children-0-name": child.name,
             "children-0-short_name": child.short_name, "children-0-purpose": "Updated child",

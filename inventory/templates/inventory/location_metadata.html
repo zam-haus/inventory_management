@@ -46,6 +46,10 @@
                             <dd>{% if object.type.no_sublocations %}{% trans "This location cannot contain sub-locations." %}{% else %}{% trans "This location can contain sub-locations." %}{% endif %}</dd>
                         </div>
                         <div>
+                            <dt>{% trans "Changing" %}</dt>
+                            <dd>{% if object.type.admin_only %}{% trans "Locations of this type are created, changed and deleted only in the admin; here only their purpose can be changed." %}{% else %}{% trans "Purpose and overview photo can be changed here." %}{% endif %}</dd>
+                        </div>
+                        <div>
                             <dt>{% trans "Deleting" %}</dt>
                             <dd>{% if object.type.deletable_in_frontend %}{% trans "Everyone with the delete permission may delete locations of this type here." %}{% else %}{% trans "Locations of this type can only be deleted in the admin." %}{% endif %}</dd>
                         </div>

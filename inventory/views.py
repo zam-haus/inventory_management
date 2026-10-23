@@ -25,7 +25,10 @@ from django.views.generic import DetailView, ListView, UpdateView
 
 from . import forms, models
 from .location_lookup import resolve_location_reference
-from .permissions import QUICK_ITEM_PERMISSIONS, UNIQUE_ITEM_CREATE_PERMISSIONS, ItemEditorPermissionMixin, location_deletion_denied
+from .permissions import (
+    QUICK_ITEM_PERMISSIONS, UNIQUE_ITEM_CREATE_PERMISSIONS, ItemEditorPermissionMixin, location_deletion_denied,
+    location_edit_denied, location_purpose_denied,
+)
 from .stock_change_views import mark_last_stock
 from .label_ids import services
 from .label_ids.lookup import annotate_label_code
@@ -111,7 +114,7 @@ class PrintableInventoryView(PermissionRequiredMixin, View):
 class DetailLocationView(DetailView):
     model = models.Location
     queryset = models.Location.active.prefetch_related(
-        Prefetch("children", queryset=models.Location.active.all()),
+        Prefetch("children", queryset=models.Location.active.select_related("type")),
         Prefetch("itemlocation_set", queryset=models.ItemLocation.objects.filter(item__is_deleted=False).select_related("item__measurement_unit").prefetch_related("item__itemimage_set")),
     )
 
@@ -122,6 +125,24 @@ class DetailLocationView(DetailView):
         context["entries"] = [entry for entry in entries if not entry.is_quick_item]
         context["can_manage_quick_items"] = self.request.user.has_perms(QUICK_ITEM_PERMISSIONS)
         context["dissolve_denied"] = location_deletion_denied(self.request.user, self.object)
+        context["edit_denied"] = location_edit_denied(self.request.user, self.object)
+        context["purpose_denied"] = location_purpose_denied(self.request.user, self.object)
+        if not self.object.type.no_sublocations:
+            context["numbering_types"] = [kind.name for kind, _source in self.object.numbering_types()]
+        # One panel per category of sub-locations; without any category a single one, as before.
+        # Where storage units are numbered, their panel (with its + shortcut) shows even while empty,
+        # but only to logged-in users, who see the shortcut at least disabled.
+        Category = models.LocationType.Category
+        groups = models.LocationType.group_by_category(self.object.children.all())
+        if (context.get("numbering_types") and self.request.user.is_authenticated
+                and Category.STORAGE_UNIT not in [category for category, _title, _children in groups]):
+            groups.insert(sum(category == Category.SPACE for category, _title, _children in groups),
+                          (Category.STORAGE_UNIT, models.LocationType.CATEGORY_PLURALS[Category.STORAGE_UNIT], []))
+        context["child_groups"] = [
+            {"category": category, "anchor": f"location-children-{(category or 'other').replace('_', '-')}",
+             "title": title, "children": children}
+            for category, title, children in groups
+        ] if any(category for category, _title, _children in groups) else None
         context["can_add_quick_photos"] = self.request.user.has_perms((*QUICK_ITEM_PERMISSIONS, "inventory.add_itemimage"))
         # Quick-items are listed with the items and counted with them.
         context["items_count"] = len(entries)
@@ -131,9 +152,11 @@ class DetailLocationView(DetailView):
         if self.request.user.has_perm("inventory.add_stockchange"):
             mark_last_stock(context["entries"])
             context["stock_change_form"] = forms.StockChangeForm()
-        if self.request.user.has_perm("inventory.change_location"):
+        if not context["edit_denied"]:
             context.setdefault("overview_form", forms.LocationOverviewForm(instance=self.object))
+        if not context["purpose_denied"]:
             context.setdefault("purpose_form", forms.LocationPurposeForm(instance=self.object))
+        if self.request.user.has_perm("inventory.change_location"):
             if self.object.type.moveable:
                 context["move_form"] = forms.LocationMoveForm(instance=self.object, initial={"id": self.object.pk})
             if not self.object.type.no_sublocations:

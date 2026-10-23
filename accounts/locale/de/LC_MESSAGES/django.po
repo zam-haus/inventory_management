@@ -65,3 +65,26 @@ msgstr "Team"
 #: accounts/models.py:50
 msgid "teams"
 msgstr "Teams"
+
+msgid "code"
+msgstr "Kürzel"
+
+
+
+msgid "colour"
+msgstr "Farbe"
+
+msgid "Enter a colour like #7d3a2d."
+msgstr "Gib eine Farbe wie #7d3a2d an."
+
+msgid "Badge colour as #rrggbb. Without one, the badge uses the parent team's colour."
+msgstr "Badge-Farbe als #rrggbb. Ohne Angabe gilt die Farbe des übergeordneten Teams."
+
+msgid "parent team"
+msgstr "übergeordnetes Team"
+
+msgid "No spaces allowed."
+msgstr "Keine Leerzeichen erlaubt."
+
+msgid "Short code shown as a badge, e.g. H for the wood workshop or ⌂ for the caretakers."
+msgstr "Kurzes Kürzel für das Badge, z. B. H für die Holzwerkstatt oder ⌂ für die Hausmeisterei."

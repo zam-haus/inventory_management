@@ -31,6 +31,6 @@ admin.site.register(User, UserAdmin)
 
 @admin.register(Team)
 class TeamAdmin(admin.ModelAdmin):
-    list_display = ("__str__", "description")
-    search_fields = ("group__name", "description")
-    autocomplete_fields = ("group",)
+    list_display = ("__str__", "code", "color", "parent", "description")
+    search_fields = ("group__name", "code", "description")
+    autocomplete_fields = ("group", "parent")

@@ -185,6 +185,7 @@ class LocationSoftDeletionTests(TestCase):
             "type": location.type_id, "parent_location": location.parent_location_id or "",
             "children-TOTAL_FORMS": "0", "children-INITIAL_FORMS": "0",
             "children-MIN_NUM_FORMS": "0", "children-MAX_NUM_FORMS": "1000",
+            "number_ranges-TOTAL_FORMS": "0", "number_ranges-INITIAL_FORMS": "0",
             "_save": "Save",
         }
 
