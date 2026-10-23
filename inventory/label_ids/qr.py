@@ -10,6 +10,12 @@ def url_prefix() -> str:
     return getattr(settings, "LABEL_ID_BASE_URL", "https://i.zam.haus/").rstrip("/").upper() + "/"
 
 
+def location_content(unique_identifier: str) -> str:
+    """What a location label's QR code holds: the resolver URL with the location's code, uppercase so it
+    stays in the alphanumeric mode (HTTPS://I.ZAM.HAUS/WH-1.R303.A); the resolver finds codes in any case."""
+    return url_prefix() + unique_identifier.upper()
+
+
 def make(code: str) -> segno.QRCode:
     qr = segno.make(url_prefix() + code, error="l", micro=False, boost_error=False)
     if qr.mode != "alphanumeric":

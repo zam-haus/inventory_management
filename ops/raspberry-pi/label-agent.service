@@ -1,0 +1,22 @@
+[Unit]
+Description=Label print agent of the inventory (docs/label-printing.md)
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=simple
+# Code and configuration live on the SD card's boot partition (label-agent/): to update, copy new
+# files there (ops/raspberry-pi/prepare-boot.sh) and restart. As root ("+"): copy them into /opt.
+ExecStartPre=+/bin/sh /opt/label-agent/update.sh
+WorkingDirectory=/opt/label-agent
+ExecStart=/usr/bin/python3 -m label_printing.agent
+Environment=PYTHONUNBUFFERED=1 PYTHONDONTWRITEBYTECODE=1
+# An unprivileged user of its own; group lp may use /dev/usb/lp*. Its ID and tokens: /var/lib/label-agent.
+DynamicUser=yes
+SupplementaryGroups=lp
+StateDirectory=label-agent
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

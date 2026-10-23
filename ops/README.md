@@ -14,6 +14,8 @@ installed, or `COMPOSE="..."`).
 | `db` | PostgreSQL | `data/db/` (never copy it while running; back up with `ops/backup.sh`) |
 | `python` | Django app (gunicorn); collects static files and applies migrations on every start (`web-entrypoint.sh`) | `data/media/`, `data/static/`, `exports/` |
 | `web` | nginx on port 80, serves `data/static/` and `data/media/`, proxies the rest (`nginx.conf`) | |
+| `redis` | broker for Celery: hands label print jobs to the worker | |
+| `worker` | Celery worker printing on network label printers, one job at a time; needs to reach them on port 9100 ([label printing](../docs/label-printing.md)) | |
 
 The app's code is built into its image (`Dockerfile`), with the configuration from `.env`.
 Changing files in the checkout therefore has no effect until the image is rebuilt:
@@ -59,7 +61,6 @@ write their own messages into database dumps; the backup detects this and stops)
      domain means HTTPS)
    * `SECRET_KEY`: a long random string (`openssl rand -base64 48`)
    * `POSTGRES_PASSWORD`: a random string
-   * `MQTT_PASSWORD`: only needed for label printing
    * `OIDC_RP_CLIENT_ID` and `OIDC_RP_CLIENT_SECRET`: for login via SSO
    * optionally `GUNICORN_WORKERS` (default 3) and `GUNICORN_TIMEOUT` (seconds, default 120)
 
@@ -86,8 +87,8 @@ ops/update.sh
    (commit or stash them first).
 2. Backs up (`backups/<date>-pre-update`); skip with `--no-backup`.
 3. `git pull --ff-only`, and shows the new commits.
-4. Pulls the PostgreSQL and nginx images (`postgres:18`, `nginx:stable`: bugfixes only) and
-   rebuilds the app image with the new code, a fresh Python base image and the current
+4. Pulls the PostgreSQL, nginx and Redis images (`postgres:18`, `nginx:stable`, `redis:7`: bugfixes only) and
+   rebuilds the app and worker images with the new code, a fresh Python base image and the current
    `requirements.txt`.
 5. Recreates all containers. The app applies new migrations; the script waits until
    `/healthz` answers and stops with the app's log otherwise. Meanwhile the load balancer

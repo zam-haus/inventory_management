@@ -1,8 +1,11 @@
 """Export of the inventory for development databases, safe to publish.
 
-Only reviewed fields leave the database: every exported model lists each of its fields as
-kept or replaced, and models not listed at all must be in EXCLUDED_MODELS. A field added
-later stops the export until it is reviewed here (see docs/data-export.md).
+Every model is either exported (EXPORTED_MODELS) or excluded (EXCLUDED_MODELS); a new model
+stops the export until it is listed. Of an exported model, every field is kept except those
+listed under "replace". A field that looks personal (a reference to a user account, or a name
+with owner, contact, actor, note, email, phone, user, … in it; see looks_personal) stops the
+export until it is replaced or, if visitors see it on the website anyway, listed under
+"public" (see docs/data-export.md).
 
 Kept is what the website shows to anonymous visitors anyway, plus non-personal internals.
 User accounts are not exported; references to them are cleared, recorded names and
@@ -18,6 +21,7 @@ import time
 from pathlib import Path
 
 from django.apps import apps
+from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core import serializers
 from django.core.serializers.json import DjangoJSONEncoder
@@ -37,6 +41,11 @@ EXCLUDED_MODELS = {
     "auth.permission": "created by migrate",
     "contenttypes.contenttype": "created by migrate",
     "thumbnail.kvstore": "thumbnail cache, rebuilt on demand",
+    "label_printing.printer": "addresses in the local network; each installation sets up its own printers",
+    "label_printing.labelmedium": "belongs to the printers",
+    "label_printing.printagent": "access tokens of the print agents",
+    "label_printing.printjob": "who printed what when",
+    "label_printing.labelstock": "label catalog, filled by migrations; local entries are configuration",
 }
 
 
@@ -59,53 +68,33 @@ def current_permissions(row):
             and apps.all_models[key[1]].get(key[2]) is not None]
 
 
-# Per model: the fields exported unchanged, the replaced ones (function of the original row),
-# and optionally a queryset filter for the exported rows.
+# Per model: the replaced fields (function of the original row), the fields that look personal but
+# are public ("public"), and optionally a queryset filter for the exported rows. Other fields are kept.
 EXPORTED_MODELS = {
-    "auth.group": {"keep": "name", "replace": {"permissions": current_permissions}},
-    "accounts.team": {"keep": "group description code color parent"},
-    "inventory.category": {"keep": "name description parent_category full_name"},
-    "inventory.barcodetype": {"keep": "name"},
-    "inventory.measurementunit": {"keep": "name short description"},
-    "inventory.locationlabeltemplate": {"keep": "name zpl_template label_width label_height"},
-    "inventory.locationtype": {
-        "keep": "name description no_sublocations moveable unique deletable_in_frontend admin_only area_numbering "
-                "auto_name_prefix auto_short_name_prefix auto_short_name_padding_length sublocation_type "
-                "auto_sequence default_label_template structure category",
-    },
-    "inventory.locationaxis": {"keep": "number name"},
-    "inventory.location": {
-        "keep": "is_deleted type name short_name physical_description purpose overview_photo label_template "
-                "parent_location axis fire_load_free outdoor unique_identifier locatable_identifier "
-                "descriptive_identifier responsible_teams",
-    },
-    "inventory.locationnumberrange": {"keep": "location type first last"},
+    "auth.group": {"replace": {"permissions": current_permissions}},
+    "accounts.team": {},
+    "inventory.category": {},
+    "inventory.barcodetype": {},
+    "inventory.measurementunit": {},
+    "inventory.locationlabeltemplate": {},
+    "inventory.locationtype": {},
+    "inventory.locationaxis": {},
+    "inventory.location": {},
+    "inventory.locationnumberrange": {},
     # Codes are public like the locations' own; the note is free text from the admin.
-    "inventory.locationformercode": {"keep": "code location created_at", "replace": {"note": emptied}},
-    "inventory.locationhistory": {
-        "keep": "location created_at event_type before after",
-        "replace": {"actor": cleared, "actor_name": redacted_if("actor", "actor_name")},
-    },
-    "inventory.item": {
-        "keep": "is_deleted kind name description category measurement_unit sale_price for_sale "
-                "last_purchase_date procurement_source usage_level",
-        "replace": {"last_purchase_price": cleared},  # internal
-    },
-    "inventory.itemlocation": {"keep": "item location amount _order"},
-    "inventory.itembarcode": {"keep": "data type item"},
-    "inventory.itemimage": {"keep": "image description is_primary item unique_item ocr_text ocr_timestamp"},
+    "inventory.locationformercode": {"replace": {"note": emptied}},
+    "inventory.locationhistory": {"replace": {"actor": cleared, "actor_name": redacted_if("actor", "actor_name")}},
+    "inventory.item": {"replace": {"last_purchase_price": cleared}},  # internal
+    "inventory.itemlocation": {},
+    "inventory.itembarcode": {},
+    "inventory.itemimage": {},
     "inventory.itemfile": {
-        "keep": "file description internal item unique_item",
+        "replace": {},
         "filter": {"internal": False},  # internal documents: invoices, anything with personal data
     },
-    "inventory.stockchange": {
-        "keep": "created_at direction reason source item item_name location location_name amount_before "
-                "amount_after entry_removed amount is_estimate unit unit_price sale_value request_id",
-        "replace": {"actor": cleared, "note": emptied},
-    },
+    "inventory.stockchange": {"replace": {"actor": cleared, "note": emptied}},
     "inventory.uniqueitem": {
-        "keep": "item location notes warranty_until purchase_date procurement_source usage_level "
-                "responsible_team disposed_at disposal_reason disposal_note",
+        "public": "notes disposal_note",  # shown on the unique item's page
         "replace": {
             "purchase_price": cleared,  # internal
             "responsible_user": cleared,
@@ -115,7 +104,6 @@ EXPORTED_MODELS = {
         },
     },
     "inventory.uniqueitemevent": {
-        "keep": "created_at type unique_item from_location from_location_name to_location to_location_name reason",
         "replace": {
             "actor": cleared,
             "note": emptied,
@@ -128,10 +116,13 @@ EXPORTED_MODELS = {
         },
     },
     "inventory.labelid": {
-        "keep": "status item location unique_item url batch created_at printed_at assigned_at retired_at",
         "replace": {"note": emptied, "created_by": cleared, "assigned_by": cleared, "retired_by": cleared},
     },
 }
+
+# Parts of field names that suggest personal data (or secrets); such fields need a decision above.
+PERSONAL_WORDS = ("owner", "contact", "actor", "note", "email", "mail", "phone", "user", "person", "address",
+                  "password", "token", "secret")
 
 
 class UnreviewedData(Exception):
@@ -144,8 +135,19 @@ def serialized_fields(model):
         f.name for f in model._meta.local_many_to_many if f.serialize}
 
 
+def looks_personal(model, name):
+    """A reference to a user account, or a name that suggests personal data (PERSONAL_WORDS)."""
+    field = model._meta.get_field(name)
+    if field.is_relation and field.related_model is not None and \
+            field.related_model._meta.label_lower == settings.AUTH_USER_MODEL.lower():
+        return True
+    name = name.lower()
+    return name.endswith("_by") or any(word in name for word in PERSONAL_WORDS)
+
+
 def check_review():
-    """Raise UnreviewedData unless every model and field is classified above."""
+    """Raise UnreviewedData unless every model is listed above and every field that looks personal is
+    replaced or marked public."""
     problems = []
     for model in apps.get_models():
         label = model._meta.label_lower
@@ -155,10 +157,12 @@ def check_review():
         if spec is None:
             problems.append(f"model {label} is neither exported nor excluded")
             continue
-        reviewed = set(spec["keep"].split()) | set(spec.get("replace", {}))
-        for name in sorted(serialized_fields(model) - reviewed):
-            problems.append(f"field {label}.{name} is not reviewed")
-        for name in sorted(reviewed - serialized_fields(model)):
+        fields = serialized_fields(model)
+        reviewed = set(spec.get("public", "").split()) | set(spec.get("replace", {}))
+        for name in sorted(fields - reviewed):
+            if looks_personal(model, name):
+                problems.append(f"field {label}.{name} looks personal: replace it, or mark it public")
+        for name in sorted(reviewed - fields):
             problems.append(f"field {label}.{name} no longer exists")
     if problems:
         raise UnreviewedData(problems)
@@ -177,13 +181,11 @@ def export_rows():
     rows = []
     for model in exported_models():
         spec = EXPORTED_MODELS[model._meta.label_lower]
-        keep, replace = set(spec["keep"].split()), spec.get("replace", {})
+        replace = spec.get("replace", {})
         queryset = model._base_manager.filter(**spec.get("filter", {})).order_by("pk")
         for row in serializers.serialize("python", queryset, use_natural_foreign_keys=True,
                                          use_natural_primary_keys=True):
             original = row["fields"]
-            if set(original) - keep - set(replace):
-                raise UnreviewedData([f"{row['model']}: unreviewed {sorted(set(original) - keep - set(replace))}"])
             row["fields"] = {name: replace[name](original) if name in replace else value
                              for name, value in original.items()}
             rows.append(row)

@@ -4,7 +4,7 @@ crispy-bootstrap5
 django-bootstrap5
 django-extra-views
 django-computedfields
-paho-mqtt
+celery[redis]
 Pillow
 whitenoise
 gunicorn
@@ -18,3 +18,5 @@ django-static-jquery
 segno
 markdown
 nh3
+ptouch==1.1.0
+pyusb

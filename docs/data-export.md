@@ -49,10 +49,12 @@ that is not personal, such as stock changes without their notes or location type
 | Purchase prices (internal) | cleared |
 | Internal documents | left out, with their files |
 | Label scans, admin log, sessions, thumbnail cache | left out |
+| Printers, label media, print agents, print jobs | left out (network addresses, tokens, who printed what) |
 | Items, locations, photos, public documents, descriptions, unique item notes | kept (public on the website) |
 
 The rules are in [`inventory/public_export.py`](../inventory/public_export.py): every model is
-listed as exported or excluded, and every exported field as kept or replaced.
+listed as exported or excluded; of exported models, the fields to replace are listed, and all
+others are kept (see [New models and fields](#new-models-and-fields)).
 
 ## Before publishing
 
@@ -67,13 +69,25 @@ listed as exported or excluded, and every exported field as kept or replaced.
 
 ## New models and fields
 
-A model or field that is not listed in `inventory/public_export.py` stops the export:
+A new model stops the export until it is listed in `inventory/public_export.py`, either in
+`EXPORTED_MODELS` or, with the reason, in `EXCLUDED_MODELS`:
 
 ```
 CommandError: Export stopped, inventory/public_export.py needs a review:
-  field inventory.item.supplier_contact is not reviewed
+  model inventory.supplier is neither exported nor excluded
 ```
 
-Add it to `keep` if visitors who are not logged in may see it, or to `replace` (`cleared`,
-`emptied`, `redacted_if(...)`) otherwise; a whole model goes into `EXCLUDED_MODELS`.
-`inventory/tests/test_public_export.py` fails as well until then.
+Of an exported model, every field is exported unless it is listed under `replace` (`cleared`,
+`emptied`, `redacted_if(...)`). New fields are therefore public by default. Fields that look
+personal stop the export until someone decides: a reference to a user account, or a name with
+`owner`, `contact`, `actor`, `note`, `email`, `mail`, `phone`, `user`, `person`, `address`,
+`password`, `token` or `secret` in it, or ending in `_by` (`looks_personal`, `PERSONAL_WORDS`):
+
+```
+  field inventory.item.supplier_contact looks personal: replace it, or mark it public
+```
+
+Replace it, or list it under `public` if visitors who are not logged in see it on the website
+anyway. Other new fields with personal or internal data (e.g. a price only staff see) are not
+caught: put them under `replace` when adding them. `inventory/tests/test_public_export.py`
+fails as well until a stopping model or field is decided.

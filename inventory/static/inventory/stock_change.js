@@ -236,6 +236,12 @@
                 if (!requestIds.has(button.href)) requestIds.set(button.href, newRequestId());
                 requestInput.value = requestIds.get(button.href);
                 load(button.dataset);
+                // "Take out" buttons open the dialog for removing.
+                const preset = form.querySelector(`[name=direction][value="${button.dataset.direction}"]`);
+                if (preset) {
+                    preset.checked = true;
+                    preset.dispatchEvent(new Event('change'));
+                }
             }
             // Remove or add is chosen first; then the amount. modals.js focuses it on opening.
             const first = direction() ? amountInput : form.querySelector('[name=direction]');

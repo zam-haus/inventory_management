@@ -15,8 +15,8 @@ from django.urls import reverse
 from django.utils import timezone
 from django.utils.html import format_html
 from django.utils.translation import gettext, gettext_lazy as _
-from paho.mqtt import client as mqttc
 
+from ..label_ids import qr as label_id_qr
 from ..soft_delete import SoftDeleteModel
 
 
@@ -315,8 +315,9 @@ class LocationLabelTemplate(models.Model):
     zpl_template = models.TextField(
         _("ZPL template"),
         help_text=_(
-            "ZPL2 string, where $url, $unique_identifier, $locatable_identifier and "
-            "$descriptive_identifier will be replaced."
+            "ZPL2 string, where $label_url (the code via the label host, for QR codes), $url (the "
+            "location's page), $unique_identifier, $locatable_identifier and $descriptive_identifier will be "
+            "replaced."
         ),
     )
     label_width = models.IntegerField(_("Label width (mm)"))
@@ -335,6 +336,7 @@ class LocationLabelTemplate(models.Model):
                         "unique_identifier": location.unique_identifier,
                     },
                 ),
+                label_url=label_id_qr.location_content(location.unique_identifier),
                 unique_identifier=location.unique_identifier,
                 locatable_identifier=location.locatable_identifier,
                 descriptive_identifier=location.descriptive_identifier,
@@ -343,7 +345,7 @@ class LocationLabelTemplate(models.Model):
 
     def get_lablary_url(self, location=None):
         return (
-            "http://api.labelary.com/v1/printers/8dpmm/labels/"
+            "https://api.labelary.com/v1/printers/8dpmm/labels/"
             + "{:.1f}".format((self.label_width or 0) / 25.4)
             + "x{:.1f}".format((self.label_height or 0) / 25.4)
             + "/0/"
@@ -353,23 +355,6 @@ class LocationLabelTemplate(models.Model):
     def image_tag(self, location=None):
         return format_html('<img width="100%" src="{}" />', self.get_lablary_url(location))
     image_tag.short_description = "Rendered label"
-
-
-    def send_to_printer(self, location=None):
-        # TODO implement ZPL based replication of labels
-        # TODO implement compression
-        c = mqttc.Client(**settings.MQTT_CLIENT_KWARGS)
-        if settings.MQTT_SERVER_SSL:
-            c.tls_set()
-        if settings.MQTT_PASSWORD_AUTH:
-            c.username_pw_set(**settings.MQTT_PASSWORD_AUTH)
-        c.connect(**settings.MQTT_SERVER_KWARGS)
-        msg = c.publish(
-            settings.MQTT_PRINTER_TOPIC, payload=self.generate_label_zpl(location)
-        )
-        # Messages to forbidden topics wil be silently ignored! Nothing we can do about it.
-        msg.wait_for_publish()
-        c.disconnect()
 
     def __str__(self):
         return self.name
@@ -939,12 +924,6 @@ class Location(SoftDeleteModel, ComputedFieldsModel):
             return self.type.default_label_template.get_lablary_url(self)
         else:
             return None
-
-    def send_to_printer(self):
-        if self.label_template:
-            self.label_template.send_to_printer(self)
-        elif self.type.default_label_template:
-            self.type.default_label_template.send_to_printer(self)
 
     def get_absolute_url(self):
         return reverse(

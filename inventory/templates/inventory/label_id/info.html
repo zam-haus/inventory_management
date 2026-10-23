@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% load i18n static actions %}
+{% load i18n static actions label_printing %}
 
 {% block title %}{{ label_id_name }} {{ lid.display }}{% endblock %}
 {% block bootstrap5_extra_head %}
@@ -37,6 +37,7 @@
         <h2 class="h5">{% trans "Last accesses" %}</h2>
         {% include "inventory/label_id/accesses.html" with show_user=can_see_access_user %}
         <h2 class="h5">{% trans "Labels" %}</h2>
+        <p>{% label_print_button lid "labelid" %}</p>
         <p class="text-muted small">{% trans "Print in standard resolution, without scaling." %}</p>
         <ul class="list-inline">
             {% for printer, tape in label_profiles %}
@@ -45,4 +46,5 @@
         </ul>
     </div>
 </div>
+{% label_print_dialog lid "labelid" %}
 {% endblock %}

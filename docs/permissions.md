@@ -4,6 +4,8 @@ Frontend lists, details, searches and autocomplete are public. The printable
 inventory (`/inventory/print/`, the printer button on location pages and, only after a search, on
 the location list, where it preselects the locations found) is internal: it requires
 `inventory.print_inventory`, which migration `inventory.0023` grants to the local group.
+Printing labels from location and item pages requires `label_printing.print_label`, which
+migration `label_printing.0002` grants to the local group (see [Label printing](label-printing.md)).
 Editing requires login and Django's `add`, `change` or `delete` permission for the
 relevant model. Assign permissions to groups in **Admin → Authentication and
 Authorization → Groups**, then assign users to those groups. Superusers retain

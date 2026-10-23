@@ -14,7 +14,7 @@ from django.test import TestCase, TransactionTestCase, override_settings
 
 from .. import public_export
 from ..label_ids.testing import SETTINGS, InventoryFixture, make_id
-from ..models import (Item, ItemFile, Location, LocationHistory, StockChange, UniqueItem, UniqueItemEvent)
+from ..models import (Item, ItemFile, LabelId, Location, LocationHistory, StockChange, UniqueItem, UniqueItemEvent)
 
 
 class ExportFixture(InventoryFixture):
@@ -72,10 +72,24 @@ class PublicExportTests(ExportFixture, TestCase):
     def test_every_model_and_field_is_reviewed(self):
         public_export.check_review()
 
-    def test_unreviewed_field_stops_the_export(self):
-        exported = dict(public_export.EXPORTED_MODELS, **{"inventory.item": {"keep": "name"}})
+    def test_personal_looking_field_stops_the_export(self):
+        spec = public_export.EXPORTED_MODELS["inventory.stockchange"]
+        exported = dict(public_export.EXPORTED_MODELS, **{"inventory.stockchange": {"replace": {"note": spec["replace"]["note"]}}})
         with mock.patch.object(public_export, "EXPORTED_MODELS", exported), \
-                self.assertRaisesMessage(CommandError, "field inventory.item.description is not reviewed"):
+                self.assertRaisesMessage(CommandError, "field inventory.stockchange.actor looks personal"):
+            self.export(str(self.out / "export"))
+
+    def test_other_fields_are_kept_without_listing_them(self):
+        self.assertEqual(public_export.EXPORTED_MODELS["inventory.location"], {})
+        self.assertFalse(public_export.looks_personal(Item, "description"))
+        self.assertFalse(public_export.looks_personal(Item, "last_purchase_price"))  # internal, so replaced anyway
+        for model, name in ((StockChange, "actor"), (UniqueItem, "owner_contact"), (LabelId, "created_by")):
+            self.assertTrue(public_export.looks_personal(model, name), name)
+
+    def test_new_model_stops_the_export(self):
+        exported = {label: spec for label, spec in public_export.EXPORTED_MODELS.items() if label != "inventory.item"}
+        with mock.patch.object(public_export, "EXPORTED_MODELS", exported), \
+                self.assertRaisesMessage(CommandError, "model inventory.item is neither exported nor excluded"):
             self.export(str(self.out / "export"))
 
     def test_no_personal_data(self):

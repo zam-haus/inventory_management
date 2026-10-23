@@ -12,8 +12,30 @@ from .models import LabelId, Location, LocationFormerCode
 
 
 def scan_prefixes():
-    """Location labels start with DEFAULT_URL, old ones with an earlier domain (DOMAIN_ALIASES)."""
-    return [url.rstrip("/") + "/" for url in (settings.DEFAULT_URL, *getattr(settings, "DOMAIN_ALIASES", ()))]
+    """Location labels start with the label host (LABEL_ID_BASE_URL, with the code), older ones with
+    DEFAULT_URL or an earlier domain (DOMAIN_ALIASES)."""
+    urls = (settings.LABEL_ID_BASE_URL, settings.DEFAULT_URL, *getattr(settings, "DOMAIN_ALIASES", ()))
+    return [url.rstrip("/") + "/" for url in urls]
+
+
+def locations_by_code(code):
+    """Active locations with this code or former code, ignoring case (label QR codes are uppercase)."""
+    found = list(Location.active.filter(unique_identifier__iexact=code))
+    if not found:
+        former = LocationFormerCode.objects.filter(code__iexact=code, location__is_deleted=False)
+        found = list({entry.location for entry in former.select_related("location") if entry.location})
+    return found
+
+
+def location_by_code(code):
+    """The one location with this code (see locations_by_code); raises Location.DoesNotExist or
+    Location.MultipleObjectsReturned."""
+    found = locations_by_code(code)
+    if len(found) > 1:
+        raise Location.MultipleObjectsReturned
+    if not found:
+        raise Location.DoesNotExist
+    return found[0]
 
 
 def location_from_label_id(value):
@@ -64,6 +86,9 @@ def _resolve(value):
     """Resolve identifiers or a detail URL, whose primary key wins over its slug."""
     try:
         if "/" in value:
+            code = label_id_parsing.strip_url(value)
+            if code != value.strip() and code and "/" not in code:
+                return location_by_code(code)  # a location label: HTTPS://I.ZAM.HAUS/WH-1.R303.A
             url = urlsplit(value)
             if url.scheme and url.scheme not in ("http", "https"):
                 raise ValueError
@@ -83,6 +108,8 @@ def _resolve(value):
         former = LocationFormerCode.objects.filter(code=value, location__is_deleted=False).select_related("location").first()
         if former is not None and former.location is not None:
             return former.location
+        if not value.isdecimal() and locations_by_code(value):
+            return location_by_code(value)
         if value.isdecimal():
             pk = Location._meta.pk.clean(value, None)
             return Location.active.get(pk=pk)

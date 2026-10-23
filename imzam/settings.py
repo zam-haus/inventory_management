@@ -108,6 +108,7 @@ INSTALLED_APPS = [
     "extra_views",
     "computedfields",
     "accounts",
+    "label_printing.apps.LabelPrintingConfig",
     "sorl.thumbnail",
     "django_static_jquery",
 ]
@@ -287,23 +288,28 @@ LANGUAGES = [
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 # ================================================================
-# MQTT Configuration
+# Label printing (docs/label-printing.md)
 # ================================================================
 
-# https://www.eclipse.org/paho/index.php?page=clients/python/docs/index.php#connect-reconnect-disconnect
-MQTT_CLIENT_KWARGS = dict(
-    client_id=os.getenv("MQTT_CLIENT_ID", "imzam"),
-    transport=os.getenv("MQTT_TRANSPORT", "websockets"))
-MQTT_SERVER_KWARGS = dict(
-    host=os.getenv("MQTT_SERVER_HOSTNAME", "mqtt.zam.haus"),
-    port=int(os.getenv("MQTT_SERVER_PORT", "443")),
-    keepalive=120)
-MQTT_SERVER_SSL=parse_bool(os.getenv("MQTT_SERVER_SSL", "true"))
-MQTT_PASSWORD_AUTH = dict(
-    username=os.getenv("MQTT_USERNAME", "im.zam.haus-django"),
-    password=os.getenv("MQTT_PASSWORD", ""))
-# this topic is write-restricted on mqtt.zam.haus
-MQTT_PRINTER_TOPIC = "im-label-print-queue/"
+# Celery broker (e.g. redis://redis:6379/0). Without one, print jobs for network printers run
+# right away in the request (development); see below.
+CELERY_BROKER_URL = os.getenv("CELERY_BROKER_URL", "")
+CELERY_TASK_DEFAULT_QUEUE = "default"
+CELERY_TASK_ROUTES = {"label_printing.tasks.*": {"queue": "label_printing"}}
+CELERY_WORKER_HIJACK_ROOT_LOGGER = False
+# A job not picked up within this many seconds is not printed any more (the user has moved on).
+PRINT_JOB_MAX_AGE = int(os.getenv("PRINT_JOB_MAX_AGE", "120"))
+# A job being printed for longer than this without a result counts as failed.
+PRINT_JOB_LEASE = int(os.getenv("PRINT_JOB_LEASE", "180"))
+# A print agent that has not asked for jobs for this long is offline.
+PRINT_AGENT_OFFLINE_AFTER = int(os.getenv("PRINT_AGENT_OFFLINE_AFTER", "30"))
+PRINT_MAX_COPIES = int(os.getenv("PRINT_MAX_COPIES", "20"))
+# Previews of ZPL templates in the print dialog are rendered by labelary.com (the server sends the label's
+# ZPL there, not the browsers). Empty: no previews of ZPL templates.
+PRINT_LABELARY_URL = os.getenv("PRINT_LABELARY_URL", "https://api.labelary.com")
+# Print agents register themselves; at most this many may wait for activation, each with this many printers.
+PRINT_AGENT_MAX_PENDING = int(os.getenv("PRINT_AGENT_MAX_PENDING", "20"))
+PRINT_AGENT_MAX_PRINTERS = int(os.getenv("PRINT_AGENT_MAX_PRINTERS", "20"))
 
 # Local network: requests from these sources make logged-in users members of LOCAL_GROUP_NAME
 # (imzam/local_network.py). Hostnames (all A records), IP addresses, or CIDR networks.
@@ -327,6 +333,13 @@ if not os.getenv("IGNORE_LOCAL_SETTINGS", False):
         from .local_settings import *
     except ImportError:
         pass
+
+# No broker: Celery runs tasks at once, in the calling process (unless local_settings decides).
+if "CELERY_TASK_ALWAYS_EAGER" not in globals():
+    CELERY_TASK_ALWAYS_EAGER = not CELERY_BROKER_URL
+CELERY_TASK_EAGER_PROPAGATES = True
+if not CELERY_BROKER_URL:
+    CELERY_BROKER_URL = "memory://localhost/"  # in-process, never used by eager tasks
 
 if OIDC_ENABLED is None:
     OIDC_ENABLED = bool(OIDC_RP_CLIENT_SECRET)

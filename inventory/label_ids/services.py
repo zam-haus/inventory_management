@@ -8,7 +8,7 @@ from django.db import IntegrityError, transaction
 from django.utils import timezone
 from django.utils.translation import gettext as _
 
-from ..models import LabelId
+from ..models import LabelId, Location, LocationFormerCode
 from . import core
 from .targets import CLAIMABLE_FIELDS
 
@@ -22,15 +22,24 @@ class LabelIdError(Exception):
 target_field_for = LabelId.target_field_for
 
 
+def is_location_code(code):
+    """A code, current or former and in any case, of a location (deleted ones included)."""
+    return (Location.objects.filter(unique_identifier__iexact=code).exists()
+            or LocationFormerCode.objects.filter(code__iexact=code).exists())
+
+
 def generate_batch(count, batch="", user=None):
     if not 1 <= count <= MAX_BATCH:
         raise LabelIdError(_("Generate between 1 and %(max)d IDs at a time.") % {"max": MAX_BATCH})
     created = []
     with transaction.atomic():
         while len(created) < count:
+            code = core.generate()
+            if is_location_code(code):
+                continue  # the resolver would lead to the location: draw again
             try:
                 with transaction.atomic():
-                    created.append(LabelId.objects.create(code=core.generate(), batch=batch, created_by=user))
+                    created.append(LabelId.objects.create(code=code, batch=batch, created_by=user))
             except IntegrityError:
                 continue  # collision with an existing code: draw again
     return created

@@ -8,13 +8,8 @@ DEBUG = True
 ALLOWED_HOSTS = ['*']
 CANONICAL_HOST_REDIRECT = False
 
-# If label printing is to be tested:
-#MQTT_PASSWORD_AUTH = dict(
-#    username="im.zam.haus-django",
-#    password='ASK SOME WHO KNOWS (only needed for label printing)')
-# Alternativly use
-#MQTT_PRINTER_TOPIC='public/'
-# to publish in an unrestricted topic.
+# Label printing: without CELERY_BROKER_URL jobs for network printers print right away in the
+# request. Fake printers to print on: python -m label_printing.simulator (docs/label-printing.md).
 
 # Log in with Django's own accounts (python manage.py createsuperuser). To test the SSO
 # login locally, configure the OIDC_* settings and set OIDC_ENABLED = True.

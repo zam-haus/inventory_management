@@ -13,28 +13,48 @@ from django.utils import timezone, translation
 from django.templatetags.static import static
 
 from ..admin import LocationAdmin
-from ..models import Item, ItemImage, ItemLocation, Location, LocationType, MeasurementUnit
+from label_printing.models import LabelMedium, Printer, PrintJob
+from ..models import Item, ItemImage, ItemLocation, Location, LocationLabelTemplate, LocationType, MeasurementUnit
 
 
-class LabelPrintingTests(SimpleTestCase):
-    def test_print_actions_preserve_copy_counts_and_failure_messages(self):
+@override_settings(LANGUAGE_CODE="en", LABEL_ID_BASE_URL="https://i.zam.haus/", CELERY_TASK_ALWAYS_EAGER=True)
+class LabelPrintingTests(TestCase):
+    """The admin's print actions queue jobs on the default printer (label_printing)."""
+
+    @classmethod
+    def setUpTestData(cls):
+        template = LocationLabelTemplate.objects.create(name="Box", zpl_template="^XA^FD$unique_identifier^FS^XZ",
+                                                        label_width=57, label_height=32)
+        kind = LocationType.objects.create(name="Room", unique=True, default_label_template=template)
+        cls.locations = [Location.objects.create(name=f"Room {n}", short_name=f"R{n}", type=kind) for n in (1, 2)]
+        cls.printer = Printer.objects.create(name="Zebra", slug="zebra", language="zpl", host="192.0.2.1",
+                                             is_default=True)
+        cls.medium = LabelMedium.objects.create(printer=cls.printer, name="57 × 32", width_mm=57, height_mm=32)
+        cls.medium.zpl_templates.add(template)
+
+    def run_action(self, action):
+        request = RequestFactory().post("/")
+        request.session = {}
+        request._messages = FallbackStorage(request)
+        request.user = get_user_model().objects.create_superuser(username=f"admin-{action.__name__}")
+        with translation.override("en"), patch("label_printing.tasks.process_job.delay"):
+            action(request, Location.objects.filter(pk__in=[location.pk for location in self.locations]))
+        return [str(message) for message in get_messages(request)]
+
+    def test_print_actions_queue_jobs_with_their_copies(self):
         model_admin = LocationAdmin(Location, admin.site)
         for copies, action in ((1, model_admin.send_to_printer_action), (2, model_admin.send_to_printer_twice_action)):
             with self.subTest(copies=copies):
-                request = RequestFactory().post("/")
-                request.session = {}
-                request._messages = FallbackStorage(request)
-                good, bad = Mock(), Mock()
-                bad.send_to_printer.side_effect = RuntimeError("Printer unavailable")
-                with translation.override("en"):
-                    action(request, [good, bad])
-                    messages = [str(message) for message in get_messages(request)]
-                self.assertEqual(good.send_to_printer.call_count, copies)
-                self.assertEqual(bad.send_to_printer.call_count, 1)
-                self.assertEqual(messages, [
-                    f"Sent {copies} label{'s' if copies > 1 else ''} to printer.",
-                    "Failed sending 1 label to printer: Printer unavailable",
-                ])
+                self.assertEqual(self.run_action(action), [f"Sent {2 * copies} labels to printer."])
+                job = PrintJob.objects.latest("pk")
+                self.assertEqual((job.copies, job.pages, job.printer), (copies, 2 * copies, self.printer))
+                self.assertEqual(bytes(job.payload).decode(), "^XA^FDR1^FS^XZ" * copies + "^XA^FDR2^FS^XZ" * copies)
+
+    def test_without_default_printer(self):
+        Printer.objects.update(is_default=False)
+        self.assertEqual(self.run_action(LocationAdmin(Location, admin.site).send_to_printer_action), [
+            "Failed sending label to printer: No default printer is set up (admin: Label printing → Printers).",
+        ])
 
 
 @override_settings(

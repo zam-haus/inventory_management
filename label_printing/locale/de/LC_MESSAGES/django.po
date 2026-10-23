@@ -1,0 +1,1048 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-10-24 00:06+0200\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+#: admin.py:19 models.py:69
+msgid "Brother P-touch"
+msgstr "Brother P-touch"
+
+#: admin.py:20
+msgid "Zebra"
+msgstr "Zebra"
+
+#: admin.py:23
+msgid "size"
+msgstr "Größe"
+
+#: admin.py:29
+msgid "colours"
+msgstr "Farben"
+
+#: admin.py:33 models.py:218
+msgid "printing method"
+msgstr "Druckverfahren"
+
+#: admin.py:57
+msgid "Connection"
+msgstr "Verbindung"
+
+#: admin.py:58
+msgid "Status"
+msgstr "Status"
+
+#: admin.py:59
+msgid "Reported by the print agent"
+msgstr "Vom Druckagenten gemeldet"
+
+#: admin.py:64 models.py:80
+msgid "reported details"
+msgstr "gemeldete Angaben"
+
+#: admin.py:69
+msgid "Activate (printers found by an agent)"
+msgstr "Freischalten (von einem Agenten gefundene Drucker)"
+
+#: admin.py:81
+#, python-format
+msgid "Its print agent %(agent)s is not active yet."
+msgstr "Sein Druckagent %(agent)s ist noch nicht freigeschaltet."
+
+#: admin.py:83
+msgid "Add the labels loaded in it."
+msgstr "Trage die eingelegten Etiketten ein."
+
+#: admin.py:84
+#, python-format
+msgid "%(printer)s is active."
+msgstr "%(printer)s ist freigeschaltet."
+
+#: admin.py:86 models.py:403
+msgid "status"
+msgstr "Status"
+
+#: admin.py:91
+msgid "Print a test label"
+msgstr "Testetikett drucken"
+
+#: admin.py:93
+msgid "test label"
+msgstr "Testetikett"
+
+#: admin.py:95
+msgid "Print a calibration label (lines numbered by row)"
+msgstr "Kalibrieretikett drucken (Linien mit Zeilennummern)"
+
+#: admin.py:97
+msgid "calibration label"
+msgstr "Kalibrieretikett"
+
+#: admin.py:109
+#, python-format
+msgid "%(printer)s: %(what)s %(status)s"
+msgstr "%(printer)s: %(what)s – %(status)s"
+
+#: admin.py:112
+msgid "Check the printer status"
+msgstr "Druckerstatus abfragen"
+
+#: admin.py:132
+msgid "Activate"
+msgstr "Freischalten"
+
+#: admin.py:135
+#, python-format
+msgid "%(count)d print agents active. Activate their printers, too."
+msgstr "%(count)d Druckagenten freigeschaltet. Schalte auch ihre Drucker frei."
+
+#: admin.py:137
+msgid "online"
+msgstr "online"
+
+#: admin.py:141 models.py:64
+msgid "printers"
+msgstr "Drucker"
+
+#: admin.py:153
+#, python-brace-format
+msgid ""
+"Token of {agent}, shown only now: <code>{token}</code>. Put it into the "
+"agent's token file."
+msgstr ""
+"Token von {agent}, wird nur jetzt angezeigt: <code>{token}</code>. In die "
+"Token-Datei des Agenten eintragen."
+
+#: admin.py:156
+msgid "Give a new token (the old one stops working)"
+msgstr "Neuen Token erzeugen (der alte gilt dann nicht mehr)"
+
+#: admin.py:161
+#, python-format
+msgid ""
+"%(agent)s registered itself and keeps its own token; delete it to let it "
+"register again."
+msgstr ""
+"%(agent)s hat sich selbst angemeldet und behält seinen Token; lösche ihn, "
+"damit er sich neu anmeldet."
+
+#: admin.py:171
+msgid "labels out of date"
+msgstr "Etiketten veraltet"
+
+#: admin.py:176 admin.py:200
+msgid "out of date"
+msgstr "veraltet"
+
+#: admin.py:196 models.py:404
+msgid "result"
+msgstr "Ergebnis"
+
+#: admin.py:206
+msgid "Print these labels again, as they are now"
+msgstr "Diese Etiketten neu drucken, wie sie jetzt sind"
+
+#: admin.py:214
+#, python-format
+msgid "Job %(old)s printed again as job %(new)s."
+msgstr "Auftrag %(old)s als Auftrag %(new)s neu gedruckt."
+
+#: apps.py:8
+msgid "Label printing"
+msgstr "Etikettendruck"
+
+#: dialog.py:94 templates/label_printing/print_page.html:25
+msgid "No printer is set up for these labels yet."
+msgstr "Für diese Etiketten ist noch kein Drucker eingerichtet."
+
+#: dialog.py:96
+#, python-format
+msgid "No printer can print right now: %(reason)s"
+msgstr "Gerade kann kein Drucker drucken: %(reason)s"
+
+#: dialog.py:101 templates/label_printing/print_fields.html:8
+msgid "Printer"
+msgstr "Drucker"
+
+#: dialog.py:102 templates/label_printing/print_fields.html:16
+msgid "Labels"
+msgstr "Etiketten"
+
+#: dialog.py:103 templates/label_printing/print_fields.html:24
+msgid "Layout"
+msgstr "Layout"
+
+#: dialog.py:104 dialog.py:160 templates/label_printing/print_fields.html:53
+msgid "Copies"
+msgstr "Anzahl"
+
+#: dialog.py:105 templates/label_printing/print_fields.html:46
+msgid "Print quality"
+msgstr "Druckqualität"
+
+#: dialog.py:106
+msgid "Location"
+msgstr "Standort"
+
+#: dialog.py:107
+msgid "Also the sub-locations"
+msgstr "Auch die Unterorte"
+
+#: dialog.py:125 dialog.py:170
+#, python-format
+msgid "At most %(max)d copies."
+msgstr "Höchstens %(max)d Stück."
+
+#: dialog.py:132
+msgid "Choose labels of this printer."
+msgstr "Wähle Etiketten dieses Druckers."
+
+#: dialog.py:135
+msgid "This layout does not fit the chosen labels."
+msgstr "Dieses Layout passt nicht zu den gewählten Etiketten."
+
+#: dialog.py:159
+msgid "Printer and labels"
+msgstr "Drucker und Etiketten"
+
+#: layouts/item.py:13
+msgid "Name, price and QR code"
+msgstr "Name, Preis und QR-Code"
+
+#: layouts/location.py:21
+msgid "QR code, code and path"
+msgstr "QR-Code, Kennung und Ort"
+
+#: layouts/test_label.py:18
+msgid "Test label"
+msgstr "Testetikett"
+
+#: layouts/test_label.py:22
+msgid "Test print"
+msgstr "Testdruck"
+
+#: layouts/test_label.py:40
+msgid "Calibration label"
+msgstr "Kalibrieretikett"
+
+#: messages.py:6
+msgid "No tape is loaded."
+msgstr "Es ist kein Band eingelegt."
+
+#: messages.py:7
+msgid "The tape is used up."
+msgstr "Das Band ist aufgebraucht."
+
+#: messages.py:8
+msgid "The cutter is jammed."
+msgstr "Das Schneidmesser klemmt."
+
+#: messages.py:9
+msgid "The batteries are weak."
+msgstr "Die Akkus sind schwach."
+
+#: messages.py:10
+msgid "The wrong power adapter is connected."
+msgstr "Das falsche Netzteil ist angeschlossen."
+
+#: messages.py:11
+msgid "The loaded tape does not fit this job."
+msgstr "Das eingelegte Band passt nicht zu diesem Auftrag."
+
+#: messages.py:12
+msgid "The printer reports a communication error."
+msgstr "Der Drucker meldet einen Übertragungsfehler."
+
+#: messages.py:13
+msgid "The cover is open."
+msgstr "Die Abdeckung ist offen."
+
+#: messages.py:14
+msgid "The printer is overheated; wait a moment."
+msgstr "Der Drucker ist überhitzt; bitte kurz warten."
+
+#: messages.py:15
+#, python-format
+msgid "%(loaded_mm)s mm tape is loaded, but %(expected_mm)s mm was chosen."
+msgstr "Eingelegt ist %(loaded_mm)s-mm-Band, gewählt wurde %(expected_mm)s mm."
+
+#: messages.py:17
+msgid "The printer is out of labels."
+msgstr "Im Drucker sind keine Etiketten mehr."
+
+#: messages.py:18
+msgid "The printer is paused; press its pause button."
+msgstr "Der Drucker ist pausiert; drücke seine Pause-Taste."
+
+#: messages.py:19
+msgid "The print head is open."
+msgstr "Der Druckkopf ist offen."
+
+#: messages.py:20
+msgid "The ribbon is used up."
+msgstr "Das Farbband ist aufgebraucht."
+
+#: messages.py:21
+msgid "The print head is too hot or too cold."
+msgstr "Der Druckkopf ist zu heiß oder zu kalt."
+
+#: messages.py:23
+msgid "The printer's memory is full."
+msgstr "Der Speicher des Druckers ist voll."
+
+#: messages.py:24
+msgid "The printer reports a system error."
+msgstr "Der Drucker meldet einen Systemfehler."
+
+#: messages.py:25
+msgid "The printer reports an error."
+msgstr "Der Drucker meldet einen Fehler."
+
+#: messages.py:26
+msgid "The printer cannot be reached."
+msgstr "Der Drucker ist nicht erreichbar."
+
+#: messages.py:27
+msgid "The printer does not answer."
+msgstr "Der Drucker antwortet nicht."
+
+#: messages.py:28
+msgid "Sending to the printer failed."
+msgstr "Senden an den Drucker ist fehlgeschlagen."
+
+#: messages.py:29
+msgid "The connection to the printer broke off."
+msgstr "Die Verbindung zum Drucker ist abgebrochen."
+
+#: messages.py:30
+msgid "The printer took the job but did not confirm it was printed."
+msgstr ""
+"Der Drucker hat den Auftrag angenommen, aber nicht bestätigt, dass er "
+"gedruckt wurde."
+
+#: messages.py:32
+msgid "Nobody picked up the job in time, so it was not printed."
+msgstr "Der Auftrag wurde nicht rechtzeitig abgeholt und daher nicht gedruckt."
+
+#: messages.py:33
+msgid "The print worker or agent did not report back."
+msgstr "Der Druckdienst oder Druckagent hat sich nicht zurückgemeldet."
+
+#: messages.py:34
+msgid "The print agent of this printer is offline."
+msgstr "Der Druckagent dieses Druckers ist offline."
+
+#: messages.py:35
+msgid "The printer is switched off in the admin."
+msgstr "Der Drucker ist im Admin deaktiviert."
+
+#: messages.py:45
+#, python-format
+msgid "Printer error: %(code)s"
+msgstr "Druckerfehler: %(code)s"
+
+#: models.py:24 models.py:92 models.py:407
+msgid "print agent"
+msgstr "Druckagent"
+
+#: models.py:25
+msgid "print agents"
+msgstr "Druckagenten"
+
+#: models.py:27 models.py:75 models.py:208 models.py:280
+msgid "name"
+msgstr "Name"
+
+#: models.py:28
+msgid "agent ID"
+msgstr "Agenten-ID"
+
+#: models.py:29
+msgid "Reported by an agent that registered itself."
+msgstr "Von einem Agenten gemeldet, der sich selbst angemeldet hat."
+
+#: models.py:30 models.py:99
+msgid "active"
+msgstr "aktiv"
+
+#: models.py:31
+msgid ""
+"Only active agents get jobs; agents that register themselves start inactive."
+msgstr ""
+"Nur freigeschaltete Agenten bekommen Aufträge; Agenten, die sich selbst "
+"anmelden, sind zunächst nicht freigeschaltet."
+
+#: models.py:33
+msgid "host name"
+msgstr "Rechnername"
+
+#: models.py:34
+msgid "address"
+msgstr "Adresse"
+
+#: models.py:35
+msgid "registered at"
+msgstr "angemeldet am"
+
+#: models.py:36
+msgid "last seen"
+msgstr "zuletzt gesehen"
+
+#: models.py:37
+msgid "version"
+msgstr "Version"
+
+#: models.py:63 models.py:276 models.py:389
+msgid "printer"
+msgstr "Drucker"
+
+#: models.py:68
+msgid "Zebra (ZPL)"
+msgstr "Zebra (ZPL)"
+
+#: models.py:72
+msgid "Network (TCP, port 9100)"
+msgstr "Netzwerk (TCP, Port 9100)"
+
+#: models.py:73
+msgid "Print agent (USB)"
+msgstr "Druckagent (USB)"
+
+#: models.py:76
+msgid "short name"
+msgstr "Kürzel"
+
+#: models.py:77
+msgid "Names the printer, e.g. for a print agent's static printers."
+msgstr ""
+"Benennt den Drucker, z. B. für fest eingetragene Drucker eines Druckagenten."
+
+#: models.py:78
+msgid "printer ID"
+msgstr "Drucker-ID"
+
+#: models.py:79
+msgid ""
+"Reported by the print agent the printer is connected to (USB IDs and serial "
+"number)."
+msgstr ""
+"Vom Druckagenten gemeldet, an dem der Drucker hängt (USB-IDs und "
+"Seriennummer)."
+
+#: models.py:81
+msgid "discovered at"
+msgstr "gefunden am"
+
+#: models.py:82 models.py:206
+msgid "printer language"
+msgstr "Druckersprache"
+
+#: models.py:84
+msgid "model"
+msgstr "Modell"
+
+#: models.py:85
+msgid ""
+"Brother: E550W, P750W, P900, P900W or P950NW. Zebra: for information only."
+msgstr ""
+"Brother: E550W, P750W, P900, P900W oder P950NW. Zebra: nur zur Information."
+
+#: models.py:87
+msgid "resolution (dpi)"
+msgstr "Auflösung (dpi)"
+
+#: models.py:88
+msgid "Zebra: 203, 300 or 600. Brother: set by the model."
+msgstr "Zebra: 203, 300 oder 600. Brother: ergibt sich aus dem Modell."
+
+#: models.py:89
+msgid "connection"
+msgstr "Verbindung"
+
+#: models.py:90
+msgid "host"
+msgstr "Host"
+
+#: models.py:90
+msgid "Network printers: name or IP address."
+msgstr "Netzwerkdrucker: Name oder IP-Adresse."
+
+#: models.py:91
+msgid "port"
+msgstr "Port"
+
+#: models.py:95
+msgid "reports its status"
+msgstr "meldet seinen Status"
+
+#: models.py:96
+msgid ""
+"Check paper, tape and errors before printing and wait until the printer "
+"reports the labels printed. Turn off only for printers that cannot answer."
+msgstr ""
+"Vor dem Druck Etiketten, Band und Fehler prüfen und warten, bis der Drucker "
+"die Etiketten als gedruckt meldet. Nur für Drucker abschalten, die nicht "
+"antworten können."
+
+#: models.py:100
+msgid "default printer"
+msgstr "Standarddrucker"
+
+#: models.py:101
+msgid "Used by the print actions in the admin."
+msgstr "Für die Druckaktionen im Admin."
+
+#: models.py:102
+msgid "last status"
+msgstr "letzter Status"
+
+#: models.py:103
+msgid "last status at"
+msgstr "letzter Status um"
+
+#: models.py:112
+#, python-format
+msgid "Choose one of %(models)s."
+msgstr "Wähle eines von %(models)s."
+
+#: models.py:116
+msgid "Network printers need a host."
+msgstr "Netzwerkdrucker brauchen einen Host."
+
+#: models.py:118
+msgid "Choose the print agent the printer is connected to."
+msgstr "Wähle den Druckagenten, an dem der Drucker hängt."
+
+#: models.py:157
+msgid "Ready."
+msgstr "Bereit."
+
+#: models.py:163
+#, python-format
+msgid "%(width)s mm tape"
+msgstr "%(width)s-mm-Band"
+
+#: models.py:165 models.py:232
+#, python-format
+msgid "%(print)s on %(background)s"
+msgstr "%(print)s auf %(background)s"
+
+#: models.py:167 models.py:173
+#, python-format
+msgid "Loaded: %(media)s."
+msgstr "Eingelegt: %(media)s."
+
+#: models.py:170
+#, python-format
+msgid "labels %(length)s mm long"
+msgstr "Etiketten %(length)s mm lang"
+
+#: models.py:181
+msgid "draft (fast)"
+msgstr "Entwurf (schnell)"
+
+#: models.py:182
+msgid "standard"
+msgstr "Standard"
+
+#: models.py:183
+msgid "high quality (slower)"
+msgstr "Hohe Qualität (langsamer)"
+
+#: models.py:191 models.py:192 models.py:277
+msgid "label stock"
+msgstr "Materialvorlage"
+
+#: models.py:198
+msgid "direct thermal"
+msgstr "Thermodirekt"
+
+#: models.py:199
+msgid "thermal transfer"
+msgstr "Thermotransfer"
+
+#: models.py:202
+msgid "wax ribbon"
+msgstr "Wachsband"
+
+#: models.py:203
+msgid "wax/resin ribbon"
+msgstr "Wachs-Harz-Band"
+
+#: models.py:204
+msgid "resin ribbon"
+msgstr "Harzband"
+
+#: models.py:207
+msgid "article number"
+msgstr "Artikelnummer"
+
+#: models.py:209
+msgid "description"
+msgstr "Beschreibung"
+
+#: models.py:211 models.py:287
+msgid "tape width"
+msgstr "Bandbreite"
+
+#: models.py:212
+msgid "background colour"
+msgstr "Hintergrundfarbe"
+
+#: models.py:213
+msgid "print colour"
+msgstr "Druckfarbe"
+
+#: models.py:214
+msgid "length (m)"
+msgstr "Länge (m)"
+
+#: models.py:216 models.py:281
+msgid "width (mm)"
+msgstr "Breite (mm)"
+
+#: models.py:217
+msgid "height (mm)"
+msgstr "Höhe (mm)"
+
+#: models.py:219
+msgid "Zebra: direct thermal labels need no ribbon. Empty: not known."
+msgstr ""
+"Zebra: Thermodirekt-Etiketten brauchen kein Farbband. Leer: nicht bekannt."
+
+#: models.py:220
+msgid "ribbon"
+msgstr "Farbband"
+
+#: models.py:221
+msgid "Thermal transfer: the ribbon the material needs."
+msgstr "Thermotransfer: das Farbband, das das Material braucht."
+
+#: models.py:222
+msgid "material"
+msgstr "Material"
+
+#: models.py:223
+msgid "e.g. paper, polypropylene, polyester"
+msgstr "z. B. Papier, Polypropylen, Polyester"
+
+#: models.py:225 models.py:298
+msgid "ZPL templates"
+msgstr "ZPL-Vorlagen"
+
+#: models.py:226
+msgid ""
+"Zebra: location label templates for these labels; media of this stock offer "
+"them."
+msgstr ""
+"Zebra: Standortetikettvorlagen für diese Etiketten; Materialien aus dieser "
+"Vorlage bieten sie an."
+
+#: models.py:228
+msgid "product page"
+msgstr "Produktseite"
+
+#: models.py:252 models.py:338
+msgid "Choose the tape width."
+msgstr "Wähle die Bandbreite."
+
+#: models.py:255 models.py:333
+msgid "Zebra labels need a width."
+msgstr "Zebra-Etiketten brauchen eine Breite."
+
+#: models.py:257 models.py:335
+msgid "Zebra labels need a height."
+msgstr "Zebra-Etiketten brauchen eine Höhe."
+
+#: models.py:259
+msgid "Thermal transfer labels need a ribbon: choose which."
+msgstr "Thermotransfer-Etiketten brauchen ein Farbband: wähle welches."
+
+#: models.py:261
+msgid "Only thermal transfer labels take a ribbon."
+msgstr "Nur Thermotransfer-Etiketten brauchen ein Farbband."
+
+#: models.py:270 models.py:390
+msgid "label medium"
+msgstr "Etikettenmaterial"
+
+#: models.py:271
+msgid "label media"
+msgstr "Etikettenmaterialien"
+
+#: models.py:279
+msgid "Fills in name, size and tape; colours and material come from it."
+msgstr "Füllt Name, Größe und Band aus; Farben und Material kommen daher."
+
+#: models.py:282
+msgid "Zebra: the label width."
+msgstr "Zebra: die Etikettenbreite."
+
+#: models.py:284
+msgid "height / length (mm)"
+msgstr "Höhe / Länge (mm)"
+
+#: models.py:285
+msgid ""
+"Zebra: the label height. Brother: a fixed label length; empty for as long as "
+"the content."
+msgstr ""
+"Zebra: die Etikettenhöhe. Brother: eine feste Etikettenlänge; leer für so "
+"lang wie der Inhalt."
+
+#: models.py:288
+msgid "Brother only."
+msgstr "Nur Brother."
+
+#: models.py:289
+msgid "offset x (dots)"
+msgstr "Versatz x (Punkte)"
+
+#: models.py:289
+msgid "Zebra: label home (^LH)."
+msgstr "Zebra: Ursprung des Etiketts (^LH)."
+
+#: models.py:291
+msgid "offset y (dots)"
+msgstr "Versatz y (Punkte)"
+
+#: models.py:292
+msgid ""
+"Zebra: label home (^LH). Brother: moves the print across the tape, positive "
+"= down, if the top or bottom is cut off (print the calibration label to "
+"measure)."
+msgstr ""
+"Zebra: Ursprung des Etiketts (^LH). Brother: verschiebt den Druck quer zum "
+"Band, positiv = nach unten, falls oben oder unten etwas abgeschnitten wird "
+"(zum Messen das Kalibrieretikett drucken)."
+
+#: models.py:295
+msgid "darkness"
+msgstr "Schwärzung"
+
+#: models.py:296
+msgid "Zebra: -30 to 30 (^MD); empty for the printer's setting."
+msgstr "Zebra: -30 bis 30 (^MD); leer für die Einstellung des Druckers."
+
+#: models.py:299
+msgid "Zebra: location label templates offered for this medium."
+msgstr ""
+"Zebra: Standortetikettvorlagen, die für dieses Material angeboten werden."
+
+#: models.py:302 models.py:401
+msgid "print quality"
+msgstr "Druckqualität"
+
+#: models.py:303
+msgid ""
+"Preselected in the print dialog. Brother: draft printing or high resolution; "
+"Zebra: print speed."
+msgstr ""
+"Im Druckdialog vorausgewählt. Brother: Entwurfsdruck oder hohe Auflösung; "
+"Zebra: Druckgeschwindigkeit."
+
+#: models.py:306
+msgid "default medium"
+msgstr "Standardmaterial"
+
+#: models.py:328
+msgid "These labels are for another kind of printer."
+msgstr "Diese Etiketten sind für eine andere Druckerart."
+
+#: models.py:330
+msgid "Name the medium or choose a label stock."
+msgstr "Gib einen Namen an oder wähle eine Materialvorlage."
+
+#: models.py:341
+msgid "The printer does not take this tape."
+msgstr "Dieses Band passt nicht in den Drucker."
+
+#: models.py:343
+msgid "Between -30 and 30."
+msgstr "Zwischen -30 und 30."
+
+#: models.py:371
+msgid "print job"
+msgstr "Druckauftrag"
+
+#: models.py:372
+msgid "print jobs"
+msgstr "Druckaufträge"
+
+#: models.py:374
+msgid "Can print labels"
+msgstr "Kann Etiketten drucken"
+
+#: models.py:378
+msgid "waiting"
+msgstr "wartet"
+
+#: models.py:379
+msgid "printing"
+msgstr "druckt"
+
+#: models.py:380
+msgid "printed"
+msgstr "gedruckt"
+
+#: models.py:381
+msgid "sent, not confirmed"
+msgstr "gesendet, nicht bestätigt"
+
+#: models.py:382
+msgid "failed"
+msgstr "fehlgeschlagen"
+
+#: models.py:383
+msgid "expired"
+msgstr "verfallen"
+
+#: models.py:387
+msgid "user"
+msgstr "Benutzer"
+
+#: models.py:392
+msgid "layout"
+msgstr "Layout"
+
+#: models.py:393
+msgid "subject type"
+msgstr "Art"
+
+#: models.py:394
+msgid "subject ID"
+msgstr "ID"
+
+#: models.py:395
+msgid "subject"
+msgstr "Gegenstand"
+
+#: models.py:396
+msgid "code in the QR code"
+msgstr "Kennung im QR-Code"
+
+#: models.py:398
+msgid "printed content"
+msgstr "gedruckter Inhalt"
+
+#: models.py:399
+msgid "copies"
+msgstr "Anzahl"
+
+#: models.py:400
+msgid "labels"
+msgstr "Etiketten"
+
+#: models.py:406
+msgid "printer status"
+msgstr "Druckerstatus"
+
+#: models.py:409
+msgid "processed by"
+msgstr "verarbeitet von"
+
+#: models.py:411
+msgid "created at"
+msgstr "erstellt am"
+
+#: models.py:412
+msgid "picked up at"
+msgstr "abgeholt um"
+
+#: models.py:413
+msgid "finished at"
+msgstr "fertig um"
+
+#: services.py:44
+msgid "This layout only prints on Zebra printers."
+msgstr "Dieses Layout druckt nur auf Zebra-Druckern."
+
+#: services.py:55
+#, python-format
+msgid "The content does not fit on %(medium)s; choose a larger label."
+msgstr "Der Inhalt passt nicht auf %(medium)s; wähle ein größeres Etikett."
+
+#: services.py:69
+msgid "Choose a label medium of this printer."
+msgstr "Wähle ein Etikettenmaterial dieses Druckers."
+
+#: services.py:73
+#, python-format
+msgid "Print between 1 and %(max)d copies."
+msgstr "Drucke zwischen 1 und %(max)d Stück."
+
+#: services.py:75
+msgid "Nothing to print."
+msgstr "Nichts zu drucken."
+
+#: services.py:79
+msgid "Unknown layout."
+msgstr "Unbekanntes Layout."
+
+#: services.py:81
+msgid "This layout does not fit the chosen printer and medium."
+msgstr "Dieses Layout passt nicht zu Drucker und Etiketten."
+
+#: services.py:84
+msgid "Unknown print quality."
+msgstr "Unbekannte Druckqualität."
+
+#: services.py:200
+msgid "No default printer is set up (admin: Label printing → Printers)."
+msgstr ""
+"Es ist kein Standarddrucker eingerichtet (Admin: Etikettendruck → Drucker)."
+
+#: services.py:203
+#, python-format
+msgid "The printer %(printer)s has no label medium."
+msgstr "Der Drucker %(printer)s hat kein Etikettenmaterial."
+
+#: services.py:215
+#, python-format
+msgid "No location label fits %(medium)s."
+msgstr "Kein Standortetikett passt auf %(medium)s."
+
+#: services.py:240
+#, python-format
+msgid "%(old)s is now %(new)s"
+msgstr "%(old)s heißt jetzt %(new)s"
+
+#: services.py:243
+#, python-format
+msgid "%(name)s: price now %(price)s"
+msgstr "%(name)s: Preis jetzt %(price)s"
+
+#: services.py:244
+msgid "none"
+msgstr "keiner"
+
+#: services.py:246
+#, python-format
+msgid "%(old)s is now called %(new)s"
+msgstr "%(old)s heißt jetzt %(new)s"
+
+#: services.py:274
+#, python-format
+msgid "Nothing of job %(job)s can be printed again."
+msgstr "Von Auftrag %(job)s lässt sich nichts neu drucken."
+
+#: services.py:286
+#, python-format
+msgid "No label ID label fits %(medium)s."
+msgstr "Kein ID-Etikett passt auf %(medium)s."
+
+#: templates/label_printing/form_attrs.html:2
+msgid "Waiting for the printer…"
+msgstr "Warte auf den Drucker …"
+
+#: templates/label_printing/form_attrs.html:3
+msgid "Printing…"
+msgstr "Wird gedruckt …"
+
+#: templates/label_printing/form_attrs.html:4
+msgid "Printed."
+msgstr "Gedruckt."
+
+#: templates/label_printing/form_attrs.html:5
+msgid "Sent to the printer; it did not confirm the print."
+msgstr "An den Drucker gesendet; er hat den Druck nicht bestätigt."
+
+#: templates/label_printing/form_attrs.html:6
+msgid ""
+"Still waiting for the printer. The job log in the admin shows whether it was "
+"printed."
+msgstr ""
+"Der Drucker hat sich noch nicht gemeldet. Ob gedruckt wurde, zeigen die "
+"Druckaufträge im Admin."
+
+#: templates/label_printing/form_attrs.html:7
+msgid "Sending failed. Check your connection and try again."
+msgstr "Senden fehlgeschlagen. Prüfe die Verbindung und versuche es erneut."
+
+#: templates/label_printing/form_attrs.html:8
+msgid "The labels could not be printed."
+msgstr "Die Etiketten konnten nicht gedruckt werden."
+
+#: templates/label_printing/form_attrs.html:9
+msgid "No preview for ZPL templates."
+msgstr "Keine Vorschau für ZPL-Vorlagen."
+
+#: templates/label_printing/form_attrs.html:10
+msgid "Preview rendered by labelary.com."
+msgstr "Vorschau von labelary.com gerendert."
+
+#: templates/label_printing/form_attrs.html:11
+msgid "No preview right now."
+msgstr "Gerade keine Vorschau verfügbar."
+
+#: templates/label_printing/form_attrs.html:12
+msgid "The QR code gets its own ID when printed."
+msgstr "Der QR-Code bekommt beim Drucken eine eigene ID."
+
+#: templates/label_printing/form_attrs.html:13
+#, python-format
+msgid "%(width)s mm tape loaded"
+msgstr "%(width)s-mm-Band eingelegt"
+
+#: templates/label_printing/form_attrs.html:14
+#: templates/label_printing/print_dialog.html:17
+#: templates/label_printing/print_page.html:20
+msgid "Print"
+msgstr "Drucken"
+
+#: templates/label_printing/form_attrs.html:15
+msgid "Print again"
+msgstr "Nochmal drucken"
+
+#: templates/label_printing/print_button.html:1
+#: templates/label_printing/print_dialog.html:9
+#: templates/label_printing/print_page.html:9
+#: templates/label_printing/print_page.html:12
+msgid "Print labels"
+msgstr "Etiketten drucken"
+
+#: templates/label_printing/print_button.html:1
+msgid "Label"
+msgstr "Etikett"
+
+#: templates/label_printing/print_dialog.html:10
+#: templates/label_printing/print_dialog.html:16
+msgid "Close"
+msgstr "Schließen"
+
+#: templates/label_printing/print_fields.html:32
+msgid "Location on the label"
+msgstr "Standort auf dem Etikett"
+
+#: templates/label_printing/print_fields.html:35
+msgid "None (the QR code opens the item)"
+msgstr "Keiner (der QR-Code öffnet die Sache)"
+
+#: templates/label_printing/print_fields.html:42
+#, python-format
+msgid "Also its sub-location (%(count)s)"
+msgid_plural "Also its sub-locations (%(count)s)"
+msgstr[0] "Auch sein Unterort (%(count)s)"
+msgstr[1] "Auch seine Unterorte (%(count)s)"
+
+#: templates/label_printing/print_fields.html:59
+msgid "Preview of the label"
+msgstr "Vorschau des Etiketts"
+
+#: templates/label_printing/print_page.html:19
+msgid "Back"
+msgstr "Zurück"

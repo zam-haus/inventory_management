@@ -150,11 +150,13 @@ msgstr "ZPL Vorlage"
 
 #: inventory/models.py:255
 msgid ""
-"ZPL2 string, where $url, $unique_identifier, $locatable_identifier and "
+"ZPL2 string, where $label_url (the code via the label host, for QR codes), "
+"$url (the location's page), $unique_identifier, $locatable_identifier and "
 "$descriptive_identifier will be replaced."
 msgstr ""
-"ZPL2 code. $url, $unique_identifier, $locatable_identfier und "
-"$descriptive_identifier werden automatisch ersetzt."
+"ZPL2-Code. $label_url (die Kennung über den Etiketten-Host, für QR-Codes), "
+"$url (die Seite des Standorts), $unique_identifier, $locatable_identifier "
+"und $descriptive_identifier werden automatisch ersetzt."
 
 #: inventory/models.py:259
 msgid "Label width (mm)"
@@ -3514,3 +3516,25 @@ msgstr "Beschreibung speichern"
 
 msgid "Physical description saved."
 msgstr "Physische Beschreibung gespeichert."
+
+#: inventory/templates/inventory/stock_take_panel.html
+msgid "Take out"
+msgstr "Entnehmen"
+
+#: inventory/templates/inventory/stock_take_panel.html
+#, python-format
+msgid "Take out at %(location)s"
+msgstr "Entnehmen aus %(location)s"
+
+#: inventory/templates/inventory/label_id/resolver.html
+msgid "Several locations"
+msgstr "Mehrere Standorte"
+
+#: inventory/templates/inventory/label_id/resolver.html
+#, python-format
+msgid "“%(q)s” is the code of several locations:"
+msgstr "„%(q)s“ ist die Kennung mehrerer Standorte:"
+
+#: inventory/label_ids/admin.py
+msgid "Print labels"
+msgstr "Etiketten drucken"

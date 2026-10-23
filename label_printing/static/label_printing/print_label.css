@@ -1,0 +1,10 @@
+/* The print dialog (label_printing/print_dialog.html) */
+.label-print-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 1rem 1.5rem; align-items: start; }
+.label-print-copies { max-width: 8rem; }
+.label-print-preview { margin: 0; padding: .75rem; border: 1px solid #dee2e6; border-radius: .5rem; background: #f7f9fb; text-align: center; }
+.label-print-preview img { display: block; max-width: 100%; max-height: 14rem; margin: 0 auto; background: #fff; box-shadow: 0 0 0 1px #ced4da; image-rendering: pixelated; }
+.label-print-preview figcaption { margin-top: .5rem; }
+.label-print-status { margin: 1rem 0 0; }
+.label-print-subject { font-family: monospace; }
+.label-print-page { max-width: 56rem; }
+@media (max-width: 767.98px) { .label-print-grid { grid-template-columns: minmax(0, 1fr); } }

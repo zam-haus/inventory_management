@@ -18,6 +18,10 @@ setting (and the hosts below).
   * Reserved IDs open the claim page.
   * Retired IDs, and IDs whose target was deleted, show an explanation (HTTP 410).
   * Typos list existing IDs that are likely meant.
+  * Location codes come first: location labels hold `HTTPS://I.ZAM.HAUS/<code>` (uppercase
+    for the QR code's alphanumeric mode). Codes and former codes are found in any case and
+    redirect to the location; codes of several locations that differ only in case offer a
+    choice. New IDs are never drawn equal to a location code (`services.is_location_code`).
   * More than 30 misses from one client within 10 minutes are answered with 429.
 * **Last accesses:** the last label scans and web form entries (lookup form,
   inventory search box) of each ID, five by default (`LABEL_ID_ACCESS_KEEP`), are
@@ -61,7 +65,9 @@ setting (and the hosts below).
   IDs (the unique item's page shows it) and requires `inventory.view_labelid` otherwise.
   For batches, use the admin action *Download labels (ZIP)*, or run
   `manage.py label_id_labels --batch NAME --printer E550W --tape 12`. Print the PNGs
-  in **standard** resolution, without scaling. Fonts (OFL) are in
+  in **standard** resolution, without scaling. Printing them directly on a printer of the
+  inventory: the **Label** button on the unique item's and the ID's page, the admin action
+  *Print labels*, or `label_id_labels --batch NAME --print PRINTER` ([label printing](label-printing.md)). Fonts (OFL) are in
   `inventory/label_ids/labels/fonts/`.
 * **Other commands:** `label_id_check <input>…`, `label_id_check --missing` and
   `label_id_retire <code>`.

@@ -43,8 +43,6 @@ Implemented with Django. The full documentation is in [docs/](docs/README.md).
    LABEL_ID_BASE_URL = 'http://i.localhost:8000/'
    LABEL_ID_INVENTORY_BASE = 'http://localhost:8000'
 
-   MQTT_PASSWORD_AUTH = dict(username="im.zam.haus-django", password='...')
-
    BASE_DIR = Path(__file__).resolve().parent.parent
    DATABASES = {
        "default": {

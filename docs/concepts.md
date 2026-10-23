@@ -8,7 +8,8 @@
 * Item descriptions and notes of unique items support Markdown (links, lists, emphasis);
   raw HTML is removed
 * Locations are hierarchically structured (tree)
-* Label printing relies on Zebra ZPL compatible printers
+* Labels are printed on Zebra (ZPL) and Brother P-touch printers, on the network or by USB
+  through a print agent (see [Label printing](label-printing.md))
 
 ## Initial data collection
 

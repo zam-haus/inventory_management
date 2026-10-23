@@ -4,7 +4,8 @@ and inventar.zam.haus/id/<id> all run these views and answer identically; only
 redirects into the inventory are absolute on the resolver hosts.
 
 Kept free of inventory code so it can be split out later: targets only need
-get_absolute_url() and, optionally, is_deleted.
+get_absolute_url() and, optionally, is_deleted. The one exception: a location's code comes
+first (location labels hold HTTPS://I.ZAM.HAUS/<code>).
 """
 from contextlib import contextmanager
 from urllib.parse import urlencode
@@ -15,6 +16,7 @@ from django.shortcuts import render
 from django.urls import get_urlconf, reverse, set_urlconf
 from django.views.decorators.http import require_safe
 
+from ..location_lookup import locations_by_code
 from ..models import LabelId, LabelIdAccess
 from . import access, core, parsing, throttle
 from .targets import RELATED_TARGETS
@@ -63,10 +65,25 @@ def _page(request, state, status, **context):
     return render(request, "inventory/label_id/resolver.html", {"state": state, **context}, status=status)
 
 
+def _location(request, raw):
+    """For a location's code (or former code, in any case): its page, or a choice if several match."""
+    found = locations_by_code(parsing.strip_url(raw))
+    if len(found) == 1:
+        return HttpResponseRedirect(inventory_url(request, found[0].get_absolute_url))
+    if found:
+        locations = [(location.unique_identifier, str(location), inventory_url(request, location.get_absolute_url))
+                     for location in sorted(found, key=lambda location: location.unique_identifier)]
+        return _page(request, "locations", 200, q=raw, locations=locations)
+    return None
+
+
 def _resolve(request, raw, *, from_lookup=False):
     """`raw` from the URL path, or from the lookup form if `from_lookup`."""
     if throttle.blocked(request):
         return _page(request, "throttled", 429)
+    # Location codes first; label IDs that equal one are never issued (services.generate_batch).
+    if response := _location(request, raw):
+        return response
     try:
         code = parsing.code_from_scan(raw)
     except core.InvalidLabelId as e:

@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% load i18n static thumbnail mytemplatetags actions icons %}
+{% load i18n static thumbnail mytemplatetags actions icons label_printing %}
 
 {% block bootstrap5_extra_head %}
     {{ block.super }}
@@ -36,6 +36,7 @@
                 {% icon "arrows-move" as move_icon %}{% disabled_action move_icon label=_("Move") classes="btn btn-warning" %}
                 {% icon "pencil" as edit_icon %}{% disabled_action edit_icon label=_("Edit") classes="btn btn-warning" %}
                 {% endif %}
+                {% if lid %}{% label_print_button lid "labelid" %}{% endif %}
                 {% if perms.inventory.dispose_uniqueitem %}
                 <a class="btn btn-danger item-icon-action" href="{% url 'dispose_unique_item' object.pk %}">{% icon "archive" %} <span class="action-label">{% trans "Remove from inventory" %}</span></a>
                 {% else %}
@@ -192,6 +193,7 @@
         {% include 'inventory/quick_add_modals.html' with level=_("It belongs to this unique item; you can change that in the edit form.") %}
         {% if move_form %}{% include 'inventory/unique_item_move_modal.html' %}{% endif %}
     {% endif %}
+    {% if lid and not object.is_disposed %}{% label_print_dialog lid "labelid" %}{% endif %}
 {% endblock %}
 
 {% block bootstrap5_extra_script %}

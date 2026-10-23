@@ -4,6 +4,7 @@ from django.test import SimpleTestCase, TestCase
 from django.urls import reverse
 from django.utils import translation
 
+from label_printing.models import LabelMedium, Printer
 from ..models import Item, ItemLocation, Location, LocationType, MeasurementUnit
 
 
@@ -34,6 +35,9 @@ class UnavailableActionsStayVisibleTests(TestCase):
         cls.shelf = Location.objects.create(type=room, name="Shelf", short_name="SH")
         cls.item = Item.objects.create(name="Resistor")
         ItemLocation.objects.create(item=cls.item, location=cls.shelf, amount=10)
+        # A printer for location labels, so printing them is available to whoever may print.
+        printer = Printer.objects.create(name="Zebra", slug="zebra", language="zpl", host="192.0.2.1")
+        LabelMedium.objects.create(printer=printer, name="57 × 32", width_mm=57, height_mm=32)
 
     def assertDisabled(self, response, name):
         self.assertContains(response, f'aria-disabled="true" aria-label="{name}"')
@@ -41,9 +45,10 @@ class UnavailableActionsStayVisibleTests(TestCase):
     def test_users_without_permission_see_disabled_actions(self):
         self.client.force_login(get_user_model().objects.create_user(username="reader"))
         for url, names in (
-            (self.shelf.get_absolute_url(), ["Verschieben", "Inventarliste drucken", "Standort auflösen",
+            (self.shelf.get_absolute_url(), ["Verschieben", "Inventarliste drucken", "Etiketten drucken", "Standort auflösen",
                                              "Bestand von Resistor an SH entnehmen oder hinzufügen"]),
-            (self.item.get_absolute_url(), ["Sache bearbeiten", "Foto hinzufügen", "Datei hinzufügen"]),
+            (self.item.get_absolute_url(), ["Sache bearbeiten", "Foto hinzufügen", "Datei hinzufügen",
+                                            "Etiketten drucken", "Entnehmen aus SH"]),
             (reverse("index_items"), ["Neue Sache anlegen"]),
         ):
             with self.subTest(url=url):

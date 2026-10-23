@@ -323,6 +323,15 @@ class DetailItemView(DetailView):
         if self.request.user.has_perm("inventory.add_stockchange"):
             mark_last_stock(context["entries"])
             context["stock_change_form"] = forms.StockChangeForm()
+        # Item labels lead here with ?loc=<location>: that location comes first and is marked.
+        take = [entry for entry in context["entries"] if not entry.is_quick_item]
+        location = self.request.GET.get("loc", "")
+        current = next((entry for entry in take if str(entry.location_id) == location), None)
+        if current is not None:
+            take.remove(current)
+            take.insert(0, current)
+            context["take_location"] = current.location
+        context["take_entries"] = take
         return context
 
 

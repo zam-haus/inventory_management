@@ -50,6 +50,10 @@
     {% elif state == "deleted" %}
         <h1>{% trans "No longer in the inventory" %}</h1>
         <p>{% blocktrans with code=code %}What the ID <span class="code">{{ code }}</span> belongs to has been removed from the inventory.{% endblocktrans %}</p>
+    {% elif state == "locations" %}
+        <h1>{% trans "Several locations" %}</h1>
+        <p>{% blocktrans with q=q %}“{{ q }}” is the code of several locations:{% endblocktrans %}</p>
+        <ul>{% for code, label, url in locations %}<li><a href="{{ url }}"><span class="code">{{ code }}</span> {{ label }}</a></li>{% endfor %}</ul>
     {% elif state == "throttled" %}
         <h1>{% trans "Too many requests" %}</h1>
         <p>{% trans "Too many unknown IDs were looked up from your network. Please try again later." %}</p>

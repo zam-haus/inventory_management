@@ -44,19 +44,25 @@ def filename(code, printer, tape):
     return f"{code}_{printer}_{tape}mm.png"
 
 
-def render(code, printer, tape):
-    """1-bit PNG for one label, pixel-exact for the printer; print in standard resolution."""
+def image(code, printer, tape):
+    """The label as a 1-bit image, pixel-exact for the printer (as tall as the tape's print area);
+    print in standard resolution."""
     if (printer, tape) not in PROFILES:
         raise ValueError(f"no label profile for {printer} with {tape} mm tape")
     # idlabel reads URL prefix and logo text from module constants; use the settings instead.
     previous = idlabel.URL_PREFIX, idlabel.LOGO_TEXT
     idlabel.URL_PREFIX, idlabel.LOGO_TEXT = qr.url_prefix(), naming.name()
     try:
-        img, info = idlabel.compose(code, printer, tape)
+        return idlabel.compose(code, printer, tape)[0]
     finally:
         idlabel.URL_PREFIX, idlabel.LOGO_TEXT = previous
+
+
+def render(code, printer, tape):
+    """1-bit PNG for one label (see image)."""
+    dpi = PROFILES[(printer, tape)][0] if (printer, tape) in PROFILES else 0
     out = io.BytesIO()
-    img.save(out, format="PNG", dpi=(info["dpi"], info["dpi"]))
+    image(code, printer, tape).save(out, format="PNG", dpi=(dpi, dpi))
     return out.getvalue()
 
 

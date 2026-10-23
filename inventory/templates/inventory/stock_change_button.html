@@ -1,7 +1,3 @@
-{% load i18n l10n actions icons %}{% with item=entry.item location=entry.location.unique_identifier %}{% if not stock_change_form %}{% blocktrans asvar name %}Remove or add stock of {{ item }} at {{ location }}{% endblocktrans %}{% icon "cart" as cart_icon %}{% disabled_action cart_icon name=name classes="btn btn-warning stock-change-button" %}{% else %}<a class="btn btn-warning stock-change-button" href="{% url 'stock_change' entry.pk %}?next={{ request.get_full_path|urlencode }}"
-   data-stock-change data-item="{{ item }}" data-location="{{ location }}"
-   data-amount="{% if entry.amount != None %}{{ entry.amount|unlocalize }}{% endif %}" data-kind="{{ entry.amount_kind }}" data-amount-text="{{ entry.amount_text }}"
-   data-unit="{{ item.measurement_unit.short }}" data-price="{% if item.sale_price != None %}{{ item.sale_price|unlocalize }}{% endif %}"
-   data-last-stock="{{ entry.is_last_stock|yesno:'true,false' }}"
+{% load i18n l10n actions icons %}{% with item=entry.item location=entry.location.unique_identifier %}{% if not stock_change_form %}{% blocktrans asvar name %}Remove or add stock of {{ item }} at {{ location }}{% endblocktrans %}{% icon "cart" as cart_icon %}{% disabled_action cart_icon name=name classes="btn btn-warning stock-change-button" %}{% else %}<a class="btn btn-warning stock-change-button" {% include 'inventory/stock_change_attrs.html' %}
    data-bs-toggle="tooltip" title="{% trans 'Remove or add stock' %}"
    aria-label="{% blocktrans %}Remove or add stock of {{ item }} at {{ location }}{% endblocktrans %}">{% icon "cart" %}</a>{% endif %}{% endwith %}

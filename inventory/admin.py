@@ -7,13 +7,14 @@ from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.db.models import CharField, FileField, TextField
 from django.forms.models import _get_foreign_key
-from django.shortcuts import redirect
+from django.shortcuts import get_object_or_404, redirect
 from django.urls import path, reverse
 from django.utils.decorators import method_decorator
 from django.utils.html import format_html
 from django.utils.http import urlencode
 from django.utils.translation import gettext_lazy as _, ngettext
 from django.views.generic import FormView
+from label_printing import services as label_printing
 
 from . import models
 from .icons import icon
@@ -258,13 +259,7 @@ class LocationAdmin(ClaimOnAddMixin, SoftDeleteAdminMixin, admin.ModelAdmin):
 
     @method_decorator(staff_member_required)
     def send_to_printer_view(self, request, object_id=None):
-        try:
-            models.Location.objects.get(pk=object_id).send_to_printer()
-            messages.add_message(request, messages.INFO, _("Sent label to printer."))
-        except Exception as e:
-            messages.add_message(
-                request, messages.ERROR, _("Failed sending label to printer: %(error)s") % {"error": e}
-            )
+        print_location_labels(request, [get_object_or_404(models.Location, pk=object_id)])
         return redirect(
             reverse(
                 "admin:%s_%s_change"
@@ -275,30 +270,23 @@ class LocationAdmin(ClaimOnAddMixin, SoftDeleteAdminMixin, admin.ModelAdmin):
 
     @admin.action(description=_("Print location labels"))
     def send_to_printer_action(self, request, queryset):
-        self._print_labels(request, queryset, copies=1)
+        print_location_labels(request, queryset, copies=1)
 
     @admin.action(description=_("Print location labels twice (2x)"))
     def send_to_printer_twice_action(self, request, queryset):
-        self._print_labels(request, queryset, copies=2)
+        print_location_labels(request, queryset, copies=2)
 
-    def _print_labels(self, request, queryset, copies):
-        successes, failures = 0, []
-        for location in queryset:
-            try:
-                for _ in range(copies):
-                    location.send_to_printer()
-                successes += copies
-            except Exception as error:
-                failures.append(str(error))
-        if successes:
-            messages.info(request, ngettext("Sent %(count)d label to printer.", "Sent %(count)d labels to printer.",
-                                            successes) % {"count": successes})
-        for error in set(failures):
-            messages.error(
-                request, ngettext("Failed sending %(count)d label to printer: %(error)s",
-                                  "Failed sending %(count)d labels to printer: %(error)s",
-                                  failures.count(error)) % {"count": failures.count(error), "error": error},
-            )
+
+def print_location_labels(request, locations, copies=1):
+    """Queue labels on the default printer (label_printing) and say how it went."""
+    try:
+        jobs = label_printing.print_locations(list(locations), copies=copies, user=request.user)
+    except label_printing.PrintError as error:
+        messages.error(request, _("Failed sending label to printer: %(error)s") % {"error": error})
+        return
+    count = sum(job.pages for job in jobs)
+    messages.info(request, ngettext("Sent %(count)d label to printer.", "Sent %(count)d labels to printer.",
+                                    count) % {"count": count})
 
 
 admin.site.register(models.Location, LocationAdmin)
@@ -384,6 +372,7 @@ class MassAddLocationsAdminView(PermissionRequiredMixin, FormView):
         sub_type = data["sub_type"]
 
         # create locations; codes of unique types that are taken (e.g. older codes of another sequence) are skipped
+        to_print, children_to_print = [], []
         generate = loc_type.free_names if loc_type.unique else loc_type.generate_names
         for name, short_name in generate(data["count"], start=data["sequence_start"]):
             location = models.Location.objects.create(
@@ -395,8 +384,7 @@ class MassAddLocationsAdminView(PermissionRequiredMixin, FormView):
                 physical_description=data["physical_description"] or "",
             )
             if data["print"]:
-                for _ in range(data["print_multiple"] or 1):
-                    location.send_to_printer()
+                to_print.append(location)
 
             # create sub-locations
             if sub_type is not None:
@@ -409,8 +397,13 @@ class MassAddLocationsAdminView(PermissionRequiredMixin, FormView):
                         label_template=data["sub_label_template"],
                     )
                     if data["sub_print"]:
-                        child.send_to_printer()
+                        children_to_print.append(child)
 
+        # Printed once the locations are saved (the jobs start after the commit).
+        if to_print:
+            print_location_labels(self.request, to_print, copies=data["print_multiple"] or 1)
+        if children_to_print:
+            print_location_labels(self.request, children_to_print)
         return super().form_valid(form)
 
 

@@ -1,0 +1,9 @@
+{
+ "servers": [
+  "https://inventar.zam.haus"
+ ],
+ "poll_interval": 2,
+ "status_interval": 30,
+ "scan_interval": 10,
+ "static_printers": []
+}

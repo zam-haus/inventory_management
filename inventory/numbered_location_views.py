@@ -251,7 +251,7 @@ class ContainerCreateView(PermissionRequiredMixin, FormView):
             form.add_error(None, _("The number was taken in the meantime. Try again."))
             return self.form_invalid(form)
         messages.success(self.request, _("%(name)s (%(code)s) created.") % {"name": location.name, "code": short})
-        return redirect(location)
+        return redirect(with_print_dialog(self.request, location))
 
 
 class SublocationAddForm(forms.Form):
@@ -346,11 +346,17 @@ class SublocationPurposeView(PermissionRequiredMixin, FormView):
                     changed += 1
         if changed:
             messages.success(self.request, _("Purposes saved."))
-        return redirect(self.parent)
+        return redirect(with_print_dialog(self.request, self.parent))
 
 
 def purposes_url_or(request, location, codes):
     """Where to go after adding compartments: their purposes, if the user may set them, else the location."""
     if codes and request.user.has_perm("inventory.change_location"):
         return redirect(reverse("sublocation_purposes", args=[location.pk]) + "?codes=" + ",".join(codes))
-    return redirect(location)
+    return redirect(with_print_dialog(request, location))
+
+
+def with_print_dialog(request, location):
+    """A new location's page, opening the label print dialog for whoever may print (label_printing)."""
+    url = location.get_absolute_url()
+    return url + "?print=1" if request.user.has_perm("label_printing.print_label") else url

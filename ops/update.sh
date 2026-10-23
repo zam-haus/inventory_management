@@ -32,8 +32,8 @@ git pull --ff-only
 git log --oneline "$before..HEAD"
 
 info "Pulling images and building the app image"
-compose pull db web
-compose build --pull python
+compose pull db web redis
+compose build --pull python worker
 
 info "Recreating the containers"
 compose down

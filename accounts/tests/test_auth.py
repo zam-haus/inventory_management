@@ -44,6 +44,8 @@ class LocalMembershipTests(TestCase):
         expected.add(("inventory", "print_inventory"))
         # ZAM IDs: only claiming (inventory/migrations/0022_zamid_triggers_and_claim)
         expected.add(("inventory", "claim_labelid"))
+        # Label printing: printing only (label_printing/migrations/0002_grant_print_label)
+        expected.add(("label_printing", "print_label"))
         self.assertEqual(actual, expected)
         self.assertTrue(actual)
 

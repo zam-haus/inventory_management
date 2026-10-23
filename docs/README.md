@@ -13,7 +13,8 @@ How the ZAM inventory works, feature by feature. Setup is covered in the
 * [Label IDs](label-ids.md): permanent IDs on labels (shown as *ZAMid*), resolver, lifecycle and label PNGs
 * [Camera scanning](camera-scanning.md): QR and barcode scanning in the browser
 * [Permissions](permissions.md): model permissions, the local group and network detection
-* [Label printing](label-printing.md): MQTT print server for location labels
+* [Label printing](label-printing.md): printers, label media, the print queue, print agent and simulator;
+  a Raspberry Pi as print agent: [ops/raspberry-pi/](../ops/raspberry-pi/README.md)
 * [Installable app](installable-app.md): manifest, offline page and its service worker
 * [Logo and icons](branding/README.md): source design and how the served icons are derived
 * [Icons and action buttons](icons.md): Bootstrap Icons instead of emojis, the agreed meaning of each icon, filled vs. outlined actions and the actions menu

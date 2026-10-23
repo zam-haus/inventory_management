@@ -1,0 +1,3 @@
+{% load i18n icons actions %}{% trans "Print labels" as name %}{% trans "Label" as label %}{% icon "tag" as tag_icon %}
+{% if allowed and not reason %}<a class="{{ classes }}" href="{% url 'print_labels' subject_type object.pk %}" data-modal-open="label-print-modal" data-bs-toggle="tooltip" title="{{ name }}" aria-label="{{ name }}">{{ tag_icon }} <span class="action-label">{{ label }}</span></a>
+{% else %}{% disabled_action tag_icon label=label name=name reason=reason classes=classes %}{% endif %}

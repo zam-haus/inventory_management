@@ -1,0 +1,14 @@
+{% load i18n icons actions %}{# Taking stock out, prominent on the item page: one button per location, the one from the label (?loc=) first. #}
+{% if take_entries %}
+<section class="item-take" aria-labelledby="item-take-heading">
+    <h2 id="item-take-heading" class="visually-hidden">{% trans "Take out" %}</h2>
+    {% for entry in take_entries %}{% with item=entry.item location=entry.location.unique_identifier %}
+        {% if stock_change_form %}
+            <a class="btn {% if forloop.first and take_location %}btn-danger{% elif take_location %}btn-outline-danger{% else %}btn-danger{% endif %} item-take-button" {% include 'inventory/stock_change_attrs.html' %}
+               data-direction="decrease">{% icon "cart" %} <span>{% if take_entries|length == 1 %}{% trans "Take out" %}{% else %}{% blocktrans %}Take out at {{ location }}{% endblocktrans %}{% endif %}</span> <span class="item-take-amount">{{ entry.amount_text }}</span></a>
+        {% else %}
+            {% icon "cart" as cart_icon %}{% blocktrans asvar take_label %}Take out at {{ location }}{% endblocktrans %}{% disabled_action cart_icon label=take_label classes="btn btn-danger item-take-button" %}
+        {% endif %}
+    {% endwith %}{% endfor %}
+</section>
+{% endif %}
