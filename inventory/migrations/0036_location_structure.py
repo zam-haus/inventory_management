@@ -3,24 +3,10 @@
 Location types get a category (space, storage unit, container), the building structure they
 belong to, a description, the admin-only lock, number ranges per area and a type of
 sub-locations. Locations get an axis, fire-load-free and outdoor flags and responsible teams;
-number ranges belong to a room or area and one location type.
-
-Data: moveable types are containers from now on. Sequences are digits or letters only: types with
-a mixed sequence (hexadecimal boxes, alphanumeric pallets) count in digits; existing codes stay as
-they are and creating new locations skips codes that are taken.
+number ranges belong to a room or area and one location type. The data follows in 0037.
 """
 import django.db.models.deletion
 from django.db import migrations, models
-
-NUMERIC = "0123456789"
-KEPT_SEQUENCES = {NUMERIC, "abcdefghijklmnopqrstuvwxyz", "ABCDEFGHIJKLMNOPQRSTUVWXYZ"}
-
-
-def forward(apps, schema_editor):
-    LocationType = apps.get_model("inventory", "LocationType")
-    LocationType.objects.filter(moveable=True).update(category="container")
-    LocationType.objects.exclude(auto_sequence__isnull=True).exclude(auto_sequence="").exclude(
-        auto_sequence__in=KEPT_SEQUENCES).update(auto_sequence=NUMERIC)
 
 
 class Migration(migrations.Migration):
@@ -217,5 +203,4 @@ class Migration(migrations.Migration):
                 "ordering": ("first",),
             },
         ),
-        migrations.RunPython(forward, migrations.RunPython.noop),
     ]

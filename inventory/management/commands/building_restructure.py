@@ -1,5 +1,7 @@
 from django.contrib.auth import get_user_model
 from django.core.management.base import BaseCommand, CommandError
+from django.db import connection
+from django.db.migrations.executor import MigrationExecutor
 
 from inventory.building_structure import DatasetError, apply_plan, load_dataset, make_plan
 
@@ -14,6 +16,9 @@ class Command(BaseCommand):
         parser.add_argument("--actor", help="username recorded in the location history")
 
     def handle(self, *args, dataset, apply, actor, **options):
+        executor = MigrationExecutor(connection)
+        if executor.migration_plan(executor.loader.graph.leaf_nodes()):
+            raise CommandError("The database lacks migrations; run manage.py migrate first.")
         try:
             data = load_dataset(dataset)
         except (OSError, ValueError, DatasetError) as error:

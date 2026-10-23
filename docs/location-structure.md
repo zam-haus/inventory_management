@@ -17,7 +17,7 @@ draws the levels-and-axes overview. The rules ZAM applies to codes and names are
   trolleys, and their compartments) or *container* (moves with its contents: boxes, cartons,
   pallets); empty for anything else (*Mobil*). Validation fills a missing category from the type
   (building structure → space, number ranges per area → storage unit) and rejects a contradicting
-  one. Migration `inventory.0036` makes moveable types containers; the dataset sets the others.
+  one. Migration `inventory.0037` makes moveable types containers; the dataset sets the others.
   The location page lists
   sub-locations in one panel per category (`LocationType.group_by_category`), below the
   full-width “At this location” panel with the items on the left; a page whose sub-locations
@@ -71,7 +71,7 @@ draws the levels-and-axes overview. The rules ZAM applies to codes and names are
   (`?codes=a,b`) to give their purposes, listed top down as they sit (`a` at the bottom) next to
   the drawing; skipping it leaves them empty.
 * **Sequences** (`LocationType.auto_sequence`) are digits only or letters only. Migration
-  `inventory.0036` moved types with a mixed sequence (hexadecimal boxes, alphanumeric pallets) to
+  `inventory.0037` moved types with a mixed sequence (hexadecimal boxes, alphanumeric pallets) to
   digits; their existing codes stay. Creating several locations in the admin skips codes that are
   taken (`LocationType.free_names`) and accepts only start values from the type's sequence.
 * **Team** got a *code* (shown as a badge, never resolved as an ID; unique when set; any

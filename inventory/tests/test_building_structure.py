@@ -3,6 +3,7 @@ import json
 import tempfile
 from io import StringIO
 from pathlib import Path
+from unittest import mock
 
 from django.contrib.auth.models import Group
 from django.core.management import CommandError, call_command
@@ -95,6 +96,12 @@ class BuildingStructureTests(TestCase):
         self.assertNotIn("number range 300–302 overlaps", errors)  # WH-1.UMK reserves within WH-1
         self.assertIn("number range 400–410 overlaps WH+0", errors)
         self.assertIn("number range 0–9 needs a type with area_numbering", errors)
+
+    def test_refuses_to_run_before_the_migrations(self):
+        with mock.patch("django.db.migrations.executor.MigrationExecutor.migration_plan", return_value=[("pending", False)]):
+            with self.assertRaisesMessage(CommandError, "run manage.py migrate first"):
+                self.run_command()
+        self.assertEqual(Location.objects.get(pk=self.lab.pk).locatable_identifier, "N1.CL")
 
     def test_dry_run_changes_nothing(self):
         output = self.run_command()
