@@ -743,7 +743,7 @@
    "name": "Hof",
    "axis": 4,
    "outdoor": true,
-   "old": "Hof",
+   "old": "H0",
    "description": "an der Westlichen Stadtmauerstraße"
   },
   {
@@ -1122,6 +1122,7 @@
   },
   {
    "path": "HH+1.ATR1.FW",
+   "old": "S2.FW",
    "type": "area",
    "name": "Atrium 1 Südseite",
    "purpose": "Farbwerkstatt",
