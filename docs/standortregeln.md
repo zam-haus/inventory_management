@@ -15,12 +15,15 @@ verlinkt auf der Standortliste) zeigt ihn als Übersicht.
 3. **Die Hauptfläche ist der Elternknoten selbst.** Was in der Halle steht, steht auf `WH-1`;
    der Vorraum des WC-Bereichs ist `WC8`. Eigene Knoten gibt es nur für das, was davon abweicht.
 4. **Gebäudeknoten sind fest:** Haus+Ebene, Raum, Bereich, Teilraum und Teilbereich werden nur
-   im Admin angelegt, bearbeitet und gelöscht; dafür sind Staff-Rechte nötig. Auf den
-   Inventarseiten lässt sich nur der Zweck ändern, denn er folgt der Nutzung. Foto, Ort und
-   Löschen sind dort gesperrt. Was darin steht (Regale, Kisten, Bestand), lässt sich weiter
+   im Admin angelegt, bearbeitet und gelöscht, auch Zweck und Beschreibung; dafür sind
+   Staff-Rechte nötig. Auf den Inventarseiten sind Zweck, Beschreibung, Foto, Ort und Löschen
+   gesperrt. Was darin steht (Regale, Kisten, Bestand), lässt sich weiter
    verschieben, und neue Regale und Schränke werden dort angelegt.
 5. **Regale, Schränke und Kisten** gehören nicht zur Gebäudestruktur. Sie haben eigene Codes
-   (`R303`, `K034c`) und hängen in dem Raum oder Bereich, in dem sie stehen.
+   (`R303`, `K034c`) und hängen in dem Raum oder Bereich, in dem sie stehen; Regale und Schränke
+   auch auf einer Palette dort.
+6. **Kennungen sind fest.** Einmal vergebene Codes bleiben beim Ort, damit Labels und Links mit
+   dem Code dauerhaft gelten (siehe [Kennungen bleiben](#kennungen-bleiben)).
 
 ## Gebäudeteile, Lagermöbel und Behälter
 
@@ -182,7 +185,8 @@ bekommen dann nur er und seine Teile. Beispiel: `WH+1` hat 100–199, `DRU` rese
 Neue Regale in `TEX` oder direkt auf `WH+1` bekommen dann 100–149, in `DRU` 150–199.
 
 Ein Fach wird mit seinem Regal genannt: `R303.a`. Der volle Pfad nennt den Raum davor
-(`WH-1.R303.a`).
+(`WH-1.R303.a`). Auch sein Name nennt das Regal oder den Schrank: **„Regal 303 Fach a“**,
+„Schrank 300 Fach b“. Fächer mit eigenem Namen („Ebene A“) behalten ihn.
 
 ### Vergebene Nummernkreise
 
@@ -206,14 +210,16 @@ einer wachsen muss. Als belegt zählen auch Nummern, die außerhalb eines Kreise
 (z. B. `R998`). Im Admin lassen sich Kreise auch direkt anlegen; dort ist eine neue Zeile mit
 20 Nummern nach derselben Regel vorbelegt.
 
-Nummernkreise pro Bereich gibt es nur für Typen, die fest stehen und einen hausweit eindeutigen
-Code haben. Kisten, Kartons und Paletten wandern durchs Haus und werden hausweit fortlaufend
+Nummernkreise pro Bereich gibt es nur für Lagermöbel mit hausweit eindeutigem Code (Regale,
+Schränke). Kisten, Kartons und Paletten wandern durchs Haus und werden hausweit fortlaufend
 nummeriert.
 
 ### Neue Regale und Schränke anlegen
 
 Neue Regale und Schränke werden auf der Seite des Raums oder Bereichs angelegt, in dem sie stehen,
-mit dem grünen Knopf **Regal / Schrank**. Zuerst wird gefragt, was angelegt wird, dann die Nummer:
+oder auf der Seite der Palette, auf der sie stehen, mit dem grünen Knopf **Regal / Schrank**. Auf
+einer Palette gilt der Kreis des Raums oder Bereichs, in dem sie steht; Nummern werden immer für
+den Raum oder Bereich reserviert, nie für die Palette. Zuerst wird gefragt, was angelegt wird, dann die Nummer:
 
 * **Reservierte Nummer:** eine freie Nummer aus dem Kreis, der hier gilt; die nächste ist
   vorausgewählt.
@@ -228,7 +234,7 @@ das Kürzel (`R`, `S`) schon vor dem Feld, einzugeben ist nur die Zahl.
 **Reihenfolge:** Nebeneinander stehende Regale bekommen aufeinanderfolgende Nummern, links die
 kleinere; ein neues kommt ans Ende der Reihe. **Fächer und Schübe** werden von unten nach oben
 benannt, beginnend mit `a`. Die Anlegeseite zeigt das als Bild und legt auf Wunsch gleich die
-gewünschte Zahl Fächer mit an (`R301.a`, `R301.b` …). Weitere Fächer kommen später über den
+gewünschte Zahl Fächer mit an (`R301.a` „Regal 301 Fach a“, `R301.b` …). Weitere Fächer kommen später über den
 Knopf **Fach/Schub** auf der Seite des Regals oder Schranks dazu; sie bekommen die nächsten
 freien Buchstaben, also die oberen Fächer. Nach `z` geht es mit `aa`, `ab` … weiter.
 Wer Standorte ändern darf, kommt danach auf eine Seite, auf der sich die Zwecke der neuen
@@ -238,13 +244,43 @@ stehen dort so, wie die Fächer sitzen: das oberste oben, `a` ganz unten, danebe
 Regale und Schränke haben je eigene Kreise; der erste Schrank in einem Bereich reserviert seine
 Nummern unabhängig von den Regalen.
 
+### Umziehen und Paletten
+
+Regale und Schränke lassen sich verschieben (**Verschieben** auf ihrer Seite, **Hierher holen** am
+Ziel), aber nur in eine Ebene, einen Raum, einen Bereich oder auf eine Palette, nicht in ein Fach
+oder ein anderes Regal und nie ganz ohne Ort. Eine Palette nimmt ihr Regal beim Verschieben mit. Ein Regal behält beim
+Umzug seine Nummer, auch wenn sie nicht zum Kreis des neuen Orts passt.
+
+## Kennungen bleiben
+
+Codes werden auf den Inventarseiten nie geändert; das Kürzel lässt sich nur im Admin ändern.
+Ändert sich dort ein Code (anderes Kürzel, oder ein Teil wie `R301.a`, dessen Regal umbenannt
+wird), bleibt der alte als **frühere Kennung** am Ort: Er führt in Suche, Scan und **Hierher
+holen** weiter dorthin und wird nie an einen anderen Ort vergeben, auch nicht als freie Nummer
+oder freier Fachbuchstabe. Wird ein Ort endgültig gelöscht, bleibt sein Code ohne Ort gesperrt.
+Die Standortdetails zeigen frühere Kennungen. Im Admin lassen sich Einträge entfernen (der Code
+ist dann wieder frei) oder von Hand hinzufügen, z. B. für alte Labels.
+
+### Kisten, Kartons und Paletten anlegen
+
+Kisten, Kartons und Paletten werden auf der Seite des Orts angelegt, an dem sie stehen (Raum,
+Bereich, Regal, Fach oder Palette, aber nicht in einer Kiste oder einem Karton), mit dem grünen
+Knopf **Karton / Kiste / Palette** oder dem **+** beim Kasten „Behälter“. Eine Nummer wählt man
+nicht: Jeder Typ zählt hausweit aufsteigend weiter, nach der höchsten vergebenen Nummer (die
+nächste steht bei der Auswahl dabei, z. B. „Kiste · K0525“). Frühere Kennungen zählen als vergeben.
+
+Beim Anlegen von Regalen, Schränken, Kisten, Kartons und Paletten wird neben dem Zweck auch die
+**physische Beschreibung** abgefragt (Farbe, Material, Größe, Zahl der Böden …). Später lässt sie
+sich wie der Zweck auf der Standortseite ändern (Knopf **Beschreibung**); bei Gebäudeteilen ändern
+beides nur Admins.
+
 ### Nur Ziffern oder nur Buchstaben
 
 Nummern bestehen nur aus Ziffern (Regale, Schränke, Kisten, Kartons, Paletten) oder nur aus
 Buchstaben (Fächer). Kisten waren bisher hexadezimal nummeriert (`K034c`), Paletten
 alphanumerisch. Ihre vorhandenen Codes bleiben, neue werden dezimal vergeben; belegte Codes
-überspringt das Anlegen. Neue Kisten beginnen daher am besten bei `K0525`, oberhalb aller alten
-Codes.
+überspringt das Anlegen. Neue Kisten zählen nach der höchsten rein dezimalen Nummer weiter, also
+ab `K0525`, oberhalb aller alten Codes.
 
 ### Bestehende Abweichungen
 
@@ -267,7 +303,7 @@ Lagerräume im Turm (`LAG3`, `LAG5`), die Treppenhäuser 1 und 2, der Flur beim 
 ## Noch nicht umgesetzt
 
 * Standortcodes über `i.zam.haus` auflösen, vor den ZAMids, und ZAMids sperren, die einer
-  Standortkennung entsprechen.
+  Standortkennung entsprechen; frühere Kennungen gehören dazu.
 * Ort mit Code und Zweck statt mit Name anzeigen; Labels mit Code und Zweck.
 * Warnung beim Einlagern an brandlastfreien Orten.
 * Personen als Zuständige mit eigener Sichtbarkeit.

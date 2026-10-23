@@ -20,11 +20,20 @@ children, category). Storage units and containers have a shortcut to the header'
                     {% endif %}
                 {% endif %}
             {% elif category == "container" and not object.type.no_sublocations %}
+                <div class="location-panel-actions">
+                {% if container_types %}
+                    {% if perms.inventory.add_location %}
+                        <a class="btn btn-success location-add-item" href="{% url 'container_create' pk=object.pk %}" data-bs-toggle="tooltip" title="{% trans 'Add a box, carton or pallet with the next number' %}" aria-label="{% trans 'Add a box, carton or pallet with the next number' %}">{% icon "plus-lg" %}</a>
+                    {% else %}
+                        {% icon "plus-lg" as add_icon %}{% disabled_action add_icon name=_("Add a box, carton or pallet with the next number") classes="btn btn-success location-add-item" %}
+                    {% endif %}
+                {% endif %}
                 {% if perms.inventory.change_location %}
                     <a class="btn btn-warning location-add-item" href="{% url 'locations_move_here' pk=object.pk %}" data-modal-open="locations-move-here-modal" data-bs-toggle="tooltip" title="{% trans 'Move locations into this location' %}" aria-label="{% trans 'Move locations into this location' %}">{% icon "box-arrow-in-down" %}</a>
                 {% else %}
                     {% icon "box-arrow-in-down" as move_here_icon %}{% disabled_action move_here_icon name=_("Move locations into this location") classes="btn btn-warning location-add-item" %}
                 {% endif %}
+                </div>
             {% endif %}
         </div>
     </div>

@@ -1,0 +1,181 @@
+from django.contrib.auth import get_user_model
+from django.contrib.auth.models import Permission
+from django.core.exceptions import ValidationError
+from django.test import TestCase, override_settings
+from django.urls import reverse
+
+from ..location_lookup import resolve_location_reference
+from ..models import Location, LocationFormerCode, LocationNumberRange, LocationType
+
+
+class CodeTypesMixin:
+    @classmethod
+    def setUpTestData(cls):
+        cls.room_type = LocationType.objects.create(name="Raum", unique=True, structure="room", category="space",
+                                                    admin_only=True)
+        cls.compartment = LocationType.objects.create(name="Fach/Schub", auto_name_prefix="Fach",
+                                                      auto_sequence="abcdefghijklmnopqrstuvwxyz",
+                                                      category="storage_unit", deletable_in_frontend=True)
+        naming = {"unique": True, "area_numbering": True, "moveable": True, "category": "storage_unit",
+                  "auto_short_name_padding_length": 3, "auto_sequence": "0123456789", "sublocation_type": cls.compartment}
+        cls.shelf_type = LocationType.objects.create(name="Regal", auto_name_prefix="Regal", auto_short_name_prefix="R",
+                                                     **naming)
+        cls.cabinet_type = LocationType.objects.create(name="Schrank", auto_name_prefix="Schrank",
+                                                       auto_short_name_prefix="S", **naming)
+        cls.room = Location.objects.create(type=cls.room_type, name="Halle", short_name="HAL")
+        cls.shelf = Location.objects.create(type=cls.shelf_type, name="Regal 301", short_name="R301",
+                                            parent_location=cls.room)
+        for name, code in cls.compartment.free_sublocation_names(cls.shelf, 2):
+            Location.objects.create(type=cls.compartment, name=name, short_name=code, parent_location=cls.shelf)
+        LocationNumberRange.objects.create(location=cls.room, type=cls.shelf_type, first=300, last=309)
+        cls.member = get_user_model().objects.create_user(username="member")
+        cls.member.user_permissions.add(*Permission.objects.filter(
+            content_type__app_label="inventory", codename__in=["add_location", "change_location"]))
+
+    def rename(self, location, short_name):
+        location.short_name = short_name
+        location.full_clean(exclude=["unique_identifier", "locatable_identifier", "descriptive_identifier"])
+        location.save()
+
+
+class FormerCodeTests(CodeTypesMixin, TestCase):
+    """Codes are meant to stay: a changed one stays blocked as a former code and still finds its location."""
+
+    def test_a_new_short_name_keeps_the_old_codes_of_the_location_and_its_compartments(self):
+        self.rename(self.shelf, "R399")
+        former = dict(LocationFormerCode.objects.values_list("code", "location_id"))
+        compartment_a = self.shelf.children.get(short_name="a")
+        self.assertEqual(former["R301"], self.shelf.pk)
+        self.assertEqual(former["R301.a"], compartment_a.pk)
+        self.assertIn("R301.b", former)
+        self.assertEqual(Location.objects.get(pk=compartment_a.pk).unique_identifier, "R399.a")
+
+    def test_moving_a_shelf_keeps_its_code(self):
+        other = Location.objects.create(type=self.room_type, name="Lager", short_name="LAG")
+        self.shelf.parent_location = other
+        self.shelf.save()
+        self.assertFalse(LocationFormerCode.objects.exists())
+
+    def test_former_codes_find_their_location(self):
+        self.rename(self.shelf, "R399")
+        self.assertEqual(resolve_location_reference("R301"), self.shelf)
+        self.assertEqual(resolve_location_reference("R301.a"), self.shelf.children.get(short_name="a"))
+        response = self.client.get(reverse("index_locations"), {"q": "R301"})
+        self.assertContains(response, self.shelf.get_absolute_url())
+        response = self.client.get(reverse("location-autocomplete"), {"q": "R301"})
+        self.assertContains(response, f'"id": "{self.shelf.pk}"')
+        page = self.client.get(self.shelf.get_absolute_url()).content.decode()
+        self.assertIn("R301", page[page.index('id="location-metadata"'):])
+
+    def test_blocked_codes_are_not_given_again(self):
+        self.rename(self.shelf, "R399")
+        # Neither as a reserved number, nor by mass add, nor as a new short name.
+        self.assertNotIn("R301", [short for _n, _name, short in self.room.free_numbers(self.shelf_type)])
+        self.assertNotIn("R301", [short for _name, short in self.shelf_type.free_names(3, "300")])
+        self.assertIn(301, LocationNumberRange.unavailable(self.shelf_type, 301, 301))
+        new = Location(type=self.shelf_type, name="Regal 301", short_name="R301", parent_location=self.room)
+        with self.assertRaisesMessage(ValidationError, "R301"):
+            new.full_clean(exclude=["unique_identifier", "locatable_identifier", "descriptive_identifier"])
+        other = Location.objects.create(type=self.shelf_type, name="Regal 302", short_name="R302",
+                                        parent_location=self.room)
+        with self.assertRaises(ValidationError):
+            self.rename(other, "R301")
+
+    def test_compartment_letters_of_a_former_code_are_skipped(self):
+        compartment_b = self.shelf.children.get(short_name="b")
+        compartment_b.parent_location = Location.objects.create(type=self.shelf_type, name="Regal 302",
+                                                                short_name="R302", parent_location=self.room)
+        compartment_b.save()  # its code R301.b is kept blocked
+        self.assertEqual([code for _name, code in self.compartment.free_sublocation_names(self.shelf, 1)], ["c"])
+
+    def test_renaming_back_uses_the_former_code_again(self):
+        self.rename(self.shelf, "R399")
+        self.rename(self.shelf, "R301")
+        self.assertEqual(set(LocationFormerCode.objects.values_list("code", flat=True)), {"R399", "R399.a", "R399.b"})
+
+    def test_deleting_for_good_keeps_the_code_blocked(self):
+        box_type = LocationType.objects.create(name="Kiste", unique=True, moveable=True, category="container",
+                                               no_sublocations=True, auto_name_prefix="Kiste",
+                                               auto_short_name_prefix="K", auto_short_name_padding_length=4,
+                                               auto_sequence="0123456789")
+        box = Location.objects.create(type=box_type, name="Kiste 1", short_name="K0001", parent_location=self.room)
+        box.delete()
+        self.assertFalse(LocationFormerCode.objects.exists())  # soft deletion keeps the location and its code
+        Location.objects.get(pk=box.pk).delete()
+        self.assertTrue(LocationFormerCode.objects.filter(code="K0001", location=None).exists())
+        self.assertEqual(box_type.free_names(1, "1"), [("Kiste 2", "K0002")])
+
+    def test_a_current_code_cannot_be_added_as_former_code(self):
+        with self.assertRaises(ValidationError):
+            LocationFormerCode(code="R301").full_clean()
+        LocationFormerCode(code="R300", note="old label").full_clean()
+
+    def test_frontend_never_changes_a_short_name(self):
+        self.client.force_login(self.member)
+        posts = [
+            (reverse("location_purpose_update", args=[self.shelf.pk]), {"purpose": "Leim", "short_name": "X1"}),
+            (reverse("location_overview_update", args=[self.shelf.pk]), {"short_name": "X1"}),
+            (reverse("location_move", args=[self.shelf.pk]), {"parent_location": self.room.pk, "short_name": "X1"}),
+        ]
+        for url, data in posts:
+            with self.subTest(url=url):
+                self.client.post(url, data)
+        self.assertEqual(Location.objects.get(pk=self.shelf.pk).short_name, "R301")
+        self.assertFalse(LocationFormerCode.objects.exists())
+
+
+@override_settings(LANGUAGE_CODE="en")
+class FormerCodeAdminTests(CodeTypesMixin, TestCase):
+    def setUp(self):
+        self.client.force_login(get_user_model().objects.create_superuser(username="admin"))
+
+    def test_location_page_lists_and_removes_former_codes(self):
+        self.rename(self.shelf, "R399")
+        page = self.client.get(reverse("admin:inventory_location_change", args=[self.shelf.pk]))
+        self.assertContains(page, 'name="former_codes-0-code"')
+        self.assertContains(page, "blocked as a former code")
+        entry = LocationFormerCode.objects.get(code="R301")
+        response = self.client.post(reverse("admin:inventory_locationformercode_delete", args=[entry.pk]), {"post": "yes"})
+        self.assertEqual(response.status_code, 302)
+        self.assertIn("R301", [short for _n, _name, short in self.room.free_numbers(self.shelf_type)])
+
+    def test_list_of_former_codes_filters_those_without_location(self):
+        LocationFormerCode.objects.create(code="R305", note="old label")
+        response = self.client.get(reverse("admin:inventory_locationformercode_changelist"),
+                                   {"location__isempty": "1"})
+        self.assertContains(response, "R305")
+
+
+class CompartmentNameTests(CodeTypesMixin, TestCase):
+    """Compartments and drawers carry their shelf's or cabinet's name: "Regal 301 Fach c"."""
+
+    def test_new_compartments_are_named_after_their_shelf_or_cabinet(self):
+        self.assertEqual(list(self.shelf.children.order_by("short_name").values_list("name", flat=True)),
+                         ["Regal 301 Fach a", "Regal 301 Fach b"])
+        cabinet = Location.objects.create(type=self.cabinet_type, name="Schrank 300", short_name="S300",
+                                          parent_location=self.room)
+        self.assertEqual(self.compartment.free_sublocation_names(cabinet, 1), [("Schrank 300 Fach a", "a")])
+
+    def test_a_long_name_falls_back_to_the_plain_one(self):
+        self.assertEqual(self.compartment.sublocation_name("x" * 125, "c"), "Fach c")
+
+    def test_renaming_the_shelf_renames_compartments_with_their_default_name(self):
+        custom = self.shelf.children.get(short_name="b")
+        custom.name = "Ebene B"
+        custom.save()
+        self.shelf.name = "Regal 301 Leim"
+        self.shelf.save()
+        self.assertEqual(self.shelf.children.get(short_name="a").name, "Regal 301 Leim Fach a")
+        self.assertEqual(self.shelf.children.get(short_name="a").descriptive_identifier,
+                         "Halle [HAL] Regal 301 Leim [R301] Regal 301 Leim Fach a [a]")
+        self.assertEqual(self.shelf.children.get(short_name="b").name, "Ebene B")
+
+    def test_mass_add_in_the_admin_names_compartments_the_same_way(self):
+        self.client.force_login(get_user_model().objects.create_superuser(username="admin"))
+        self.client.post(reverse("admin:inventory_location_massadd"), {
+            "parent_location": self.room.pk, "location_type": self.cabinet_type.pk, "sequence_start": "310",
+            "count": 1, "sub_type": self.compartment.pk, "sub_count": 2,
+        })
+        cabinet = Location.objects.get(short_name="S310")
+        self.assertEqual(sorted(cabinet.children.values_list("name", flat=True)),
+                         ["Schrank 310 Fach a", "Schrank 310 Fach b"])

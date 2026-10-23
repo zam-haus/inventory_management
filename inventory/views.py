@@ -47,10 +47,11 @@ def filter_locations(qs, query):
     if not query:
         return qs
     matches = (Q(name__icontains=query) | Q(unique_identifier__icontains=query) |
-               Q(purpose__icontains=query) | Q(physical_description__icontains=query))
+               Q(purpose__icontains=query) | Q(physical_description__icontains=query) |
+               Q(former_codes__code__icontains=query))
     if (referenced := location_from_reference(query.strip())) is not None:
         matches |= Q(pk=referenced.pk)
-    return qs.filter(matches)
+    return qs.filter(matches).distinct()
 
 
 class LocationAutocomplete(autocomplete.Select2QuerySetView):
@@ -130,15 +131,18 @@ class DetailLocationView(DetailView):
         context["purpose_denied"] = location_purpose_denied(self.request.user, self.object)
         if not self.object.type.no_sublocations:
             context["numbering_types"] = [kind.name for kind, _source in self.object.numbering_types()]
+            context["container_types"] = [kind.name for kind in self.object.container_types()]
         # One panel per category of sub-locations; without any category a single one, as before.
-        # Where storage units are numbered, their panel (with its + shortcut) shows even while empty,
-        # but only to logged-in users, who see the shortcut at least disabled.
+        # Where storage units or containers can be added, their panel (with its + shortcut) shows even
+        # while empty, but only to logged-in users, who see the shortcut at least disabled.
         Category = models.LocationType.Category
         groups = models.LocationType.group_by_category(self.object.children.all())
-        if (context.get("numbering_types") and self.request.user.is_authenticated
-                and Category.STORAGE_UNIT not in [category for category, _title, _children in groups]):
-            groups.insert(sum(category == Category.SPACE for category, _title, _children in groups),
-                          (Category.STORAGE_UNIT, models.LocationType.CATEGORY_PLURALS[Category.STORAGE_UNIT], []))
+        if self.request.user.is_authenticated:
+            for category, addable, before in ((Category.STORAGE_UNIT, "numbering_types", {Category.SPACE}),
+                                              (Category.CONTAINER, "container_types", {Category.SPACE, Category.STORAGE_UNIT})):
+                if context.get(addable) and category not in [group[0] for group in groups]:
+                    groups.insert(sum(group[0] in before for group in groups),
+                                  (category, models.LocationType.CATEGORY_PLURALS[category], []))
         context["child_groups"] = [
             {"category": category, "anchor": f"location-children-{(category or 'other').replace('_', '-')}",
              "title": title, "children": children}
@@ -155,6 +159,7 @@ class DetailLocationView(DetailView):
             context["stock_change_form"] = forms.StockChangeForm()
         if not context["edit_denied"]:
             context.setdefault("overview_form", forms.LocationOverviewForm(instance=self.object))
+            context.setdefault("description_form", forms.LocationDescriptionForm(instance=self.object))
         if not context["purpose_denied"]:
             context.setdefault("purpose_form", forms.LocationPurposeForm(instance=self.object))
         if self.request.user.has_perm("inventory.change_location"):
@@ -516,7 +521,7 @@ class SearchableLocationListView(
         ListView):
     search_fields = [
         "locatable_identifier", "name", "descriptive_identifier",
-        "purpose", "physical_description",
+        "purpose", "physical_description", "former_codes__code",
     ]
     search_date_fields = []
     sort_fields = ["unique_identifier"]
@@ -540,7 +545,15 @@ class ParentLocationAutocompleteView(autocomplete.Select2QuerySetView):
         return result.path_with_purpose
 
     def get_queryset(self):
-        return filter_locations(models.Location.active.filter(type__no_sublocations=False), self.q)
+        queryset = models.Location.active.filter(type__no_sublocations=False)
+        try:
+            moved = models.Location.objects.select_related("type").get(pk=int(self.forwarded.get("id")))
+        except (TypeError, ValueError, models.Location.DoesNotExist):
+            moved = None
+        # Shelves and cabinets go into a level, room or area, or onto a pallet (Location.clean).
+        if moved is not None and moved.type.area_numbering:
+            queryset = queryset.filter(models.LocationType.holding_storage_units())
+        return filter_locations(queryset, self.q)
 
     def get_results(self, context):
         try:

@@ -4,6 +4,8 @@ First the type is chosen, then the number: a free number reserved for this area 
 wished-for number that nobody uses or reserves, or a new number assigned automatically. A wished-for or new
 number reserves as many following numbers as are to be expected here (LocationNumberRange). The location's
 sub-locations, such as a shelf's compartments, can be created along with it.
+
+Containers (boxes, cartons, pallets) simply get the next number of their type (ContainerCreateView).
 """
 from django import forms
 from django.contrib import messages
@@ -17,7 +19,7 @@ from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 from django.views.generic import FormView
 
-from .models import Location, LocationNumberRange
+from .models import Location, LocationNumberRange, LocationType
 
 COMPUTED = ["unique_identifier", "locatable_identifier", "descriptive_identifier"]
 RESERVED, WISH, AUTO = "reserved", "wish", "auto"
@@ -35,6 +37,9 @@ class NumberedLocationForm(forms.Form):
     )
     sublocations = forms.IntegerField(required=False, min_value=0, initial=0)
     purpose = forms.CharField(label=_("Purpose"), max_length=50, required=False)
+    physical_description = forms.CharField(
+        label=_("Physical description"), required=False, widget=forms.Textarea(attrs={"rows": 3}),
+        help_text=_("What it looks like and how it is built, e.g. colour, material, size or number of shelves."))
 
     def __init__(self, *args, parent, kind, **kwargs):
         super().__init__(*args, **kwargs)
@@ -95,9 +100,10 @@ class NumberedLocationCreateView(PermissionRequiredMixin, FormView):
         return super().dispatch(request, *args, **kwargs)
 
     def kinds(self):
-        if self.parent.type.no_sublocations or not self.parent.type.structure:
+        kinds = [kind for kind, _source in self.parent.numbering_types()]
+        if self.parent.type.no_sublocations or not kinds:
             raise PermissionDenied
-        return [kind for kind, _source in self.parent.numbering_types()]
+        return kinds
 
     @property
     def kind(self):
@@ -127,6 +133,8 @@ class NumberedLocationCreateView(PermissionRequiredMixin, FormView):
 
     def form_valid(self, form):
         kind, data, reservation = self.kind, form.cleaned_data, None
+        # Numbers are reserved for the room or area, also for shelves created on a pallet there.
+        area = self.parent.numbering_area()
         try:
             with transaction.atomic():
                 if data["mode"] == RESERVED:
@@ -135,14 +143,14 @@ class NumberedLocationCreateView(PermissionRequiredMixin, FormView):
                     number = data["wish"]
                     if (data.get("expected") or 1) > 1:
                         reservation = LocationNumberRange.objects.create(
-                            location=self.parent, type=kind, first=number, last=number + data["expected"] - 1)
+                            location=area, type=kind, first=number, last=number + data["expected"] - 1)
                 else:
-                    reservation = self.reserve_new(kind, data["expected"], bool(form.free))
+                    reservation = self.reserve_new(area, kind, data["expected"], bool(form.free))
                     number = next(n for n, _name, _short in self.parent.free_numbers(kind)
                                   if reservation.first <= n <= reservation.last)
                 name, short = kind.numbered_names(number)
                 location = Location(type=kind, name=name, short_name=short, parent_location=self.parent,
-                                    purpose=data["purpose"])
+                                    purpose=data["purpose"], physical_description=data["physical_description"])
                 location.full_clean(exclude=COMPUTED + ["overview_photo"])
                 location.save(actor=self.request.user)
                 parts = self.create_sublocations(location, data.get("sublocations") or 0)
@@ -159,15 +167,15 @@ class NumberedLocationCreateView(PermissionRequiredMixin, FormView):
         messages.success(self.request, text)
         return purposes_url_or(self.request, location, parts)
 
-    def reserve_new(self, kind, count, keep_reserved):
-        """A new range of `count` numbers; behind a used-up range if possible, otherwise in a free gap."""
+    def reserve_new(self, area, kind, count, keep_reserved):
+        """A new range of `count` numbers for `area`; behind a used-up range if possible, otherwise in a free gap."""
         if not keep_reserved:
-            return LocationNumberRange.reserve(self.parent, kind, count)
-        suggestion = LocationNumberRange.suggest(kind, self.parent, size=count)
+            return LocationNumberRange.reserve(area, kind, count)
+        suggestion = LocationNumberRange.suggest(kind, area, size=count)
         if suggestion is None:
             raise ValidationError(_("There is no room for %(count)s more numbers here. Ask the inventory admins.")
                                   % {"count": count})
-        return LocationNumberRange.objects.create(location=self.parent, type=kind, first=suggestion[0],
+        return LocationNumberRange.objects.create(location=area, type=kind, first=suggestion[0],
                                                   last=suggestion[1])
 
     def create_sublocations(self, location, count):
@@ -179,6 +187,71 @@ class NumberedLocationCreateView(PermissionRequiredMixin, FormView):
         for name, short in names:
             Location.objects.create(type=sub, name=name, short_name=short, parent_location=location)
         return [short for _name, short in names]
+
+
+class ContainerCreateForm(forms.Form):
+    type = forms.ModelChoiceField(label=_("What is added?"), queryset=LocationType.objects.none(),
+                                  widget=forms.RadioSelect, empty_label=None)
+    purpose = NumberedLocationForm.base_fields["purpose"]
+    physical_description = NumberedLocationForm.base_fields["physical_description"]
+
+    def __init__(self, *args, parent, **kwargs):
+        super().__init__(*args, **kwargs)
+        kinds = parent.container_types()
+        field = self.fields["type"]
+        field.queryset = LocationType.objects.filter(pk__in=[kind.pk for kind in kinds]).order_by("name")
+        # Each choice shows the number it gets now; saving takes the next free one again.
+        nexts = {kind.pk: kind.next_free_number() for kind in kinds}
+        field.label_from_instance = lambda kind: f"{kind.name} · {nexts[kind.pk][2]}"
+        if len(kinds) == 1:
+            field.initial = kinds[0].pk
+
+
+class ContainerCreateView(PermissionRequiredMixin, FormView):
+    """Boxes, cartons and pallets: no number to choose, they get the next one of their type."""
+    permission_required = "inventory.add_location"
+    template_name = "inventory/container_create.html"
+    form_class = ContainerCreateForm
+
+    def dispatch(self, request, *args, **kwargs):
+        self.parent = get_object_or_404(Location.active.select_related("type"), pk=kwargs["pk"])
+        if not self.parent.container_types():
+            raise PermissionDenied
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_initial(self):
+        initial = super().get_initial()
+        if self.request.GET.get("type"):
+            initial["type"] = self.request.GET["type"]
+        return initial
+
+    def get_form_kwargs(self):
+        return {**super().get_form_kwargs(), "parent": self.parent}
+
+    def get_context_data(self, **kwargs):
+        return super().get_context_data(object=self.parent, **kwargs)
+
+    def form_valid(self, form):
+        kind, data = form.cleaned_data["type"], form.cleaned_data
+        for _attempt in range(3):
+            try:
+                with transaction.atomic():
+                    _number, name, short = kind.next_free_number()
+                    location = Location(type=kind, name=name, short_name=short, parent_location=self.parent,
+                                        purpose=data["purpose"], physical_description=data["physical_description"])
+                    location.full_clean(exclude=COMPUTED + ["overview_photo"])
+                    location.save(actor=self.request.user)
+                break
+            except IntegrityError:
+                continue  # someone took the number in the meantime: take the next one
+            except ValidationError as error:
+                form.add_error(None, " ".join(error.messages))
+                return self.form_invalid(form)
+        else:
+            form.add_error(None, _("The number was taken in the meantime. Try again."))
+            return self.form_invalid(form)
+        messages.success(self.request, _("%(name)s (%(code)s) created.") % {"name": location.name, "code": short})
+        return redirect(location)
 
 
 class SublocationAddForm(forms.Form):

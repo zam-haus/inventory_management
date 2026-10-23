@@ -70,6 +70,30 @@
                                 </section>
                             {% endif %}
 
+                            {% if event.before.physical_description != event.after.physical_description %}
+                                <section class="location-history-change" aria-labelledby="history-description-{{ event.pk }}">
+                                    <h3 id="history-description-{{ event.pk }}">{% trans "Physical description" %}</h3>
+                                    <div class="location-history-comparison">
+                                        <div>
+                                            <h4>{% trans "Before" %}</h4>
+                                            {% if event.before.physical_description %}
+                                                <p>{{ event.before.physical_description|linebreaksbr }}</p>
+                                            {% else %}
+                                                <p class="location-muted">{% trans "Not set" %}</p>
+                                            {% endif %}
+                                        </div>
+                                        <div>
+                                            <h4>{% trans "After" %}</h4>
+                                            {% if event.after.physical_description %}
+                                                <p>{{ event.after.physical_description|linebreaksbr }}</p>
+                                            {% else %}
+                                                <p class="location-muted">{% trans "Not set" %}</p>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </section>
+                            {% endif %}
+
                             {% if event.before.overview_photo != event.after.overview_photo %}
                                 <section class="location-history-change" aria-labelledby="history-photo-{{ event.pk }}">
                                     <h3 id="history-photo-{{ event.pk }}">{% trans "Overview photo" %}</h3>

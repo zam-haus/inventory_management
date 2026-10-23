@@ -61,7 +61,7 @@ class LocationsMoveHereTests(TestCase):
         self.assertContains(response, f'action="{move_url}"')
         self.assertContains(response, f'action="{here_url}"')
         self.assertContains(response, f'name="id" value="{self.box.pk}"')
-        textarea = re.search(r"<textarea [^>]*>", response.content.decode()).group()
+        textarea = re.search(r'<textarea name="identifiers"[^>]*>', response.content.decode()).group()
         self.assertIn('data-modal-focus="without-keyboard"', textarea)
         self.assertNotIn("autofocus", textarea)
         # The page of its own keeps the autofocus.

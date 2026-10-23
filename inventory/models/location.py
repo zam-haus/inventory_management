@@ -9,10 +9,12 @@ from django.conf import settings
 from django.core import validators
 from django.core.exceptions import ValidationError
 from django.db import models, router, transaction
+from django.db.models.signals import pre_delete
+from django.dispatch import receiver
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.html import format_html
-from django.utils.translation import gettext_lazy as _
+from django.utils.translation import gettext, gettext_lazy as _
 from paho.mqtt import client as mqttc
 
 from ..soft_delete import SoftDeleteModel
@@ -28,7 +30,11 @@ class LocationType(models.Model):
     # set if this Locations can not have sublocations (you can not put a box in a box)
     no_sublocations = models.BooleanField(_("no sublocations flag"), default=False)
     # allow this type to be moved from frontend
-    moveable = models.BooleanField(_("moveable flag"), default=False)
+    moveable = models.BooleanField(
+        _("moveable flag"), default=False,
+        help_text=_("Locations of this type can be moved on the inventory pages, e.g. boxes, or shelves and cabinets "
+                    "(also onto a pallet)."),
+    )
     # set if Location.short is to be globally unique
     unique = models.BooleanField(_("unique flag"), default=False)
     # Outside the admin, locations of this type can only be deleted if set (permissions.can_delete_location).
@@ -41,15 +47,15 @@ class LocationType(models.Model):
     admin_only = models.BooleanField(
         _("admin only"), default=False,
         help_text=_("Locations of this type are created, changed and deleted only in the admin, which requires "
-                    "staff status. On the inventory pages only their purpose can be changed; photo, place and "
-                    "deletion are locked, what they contain can still be moved."),
+                    "staff status. On the inventory pages purpose, description, photo, place and deletion are "
+                    "locked; what they contain can still be moved."),
     )
-    # Fixed types with building-wide codes (shelves, cabinets) can be numbered per room or area.
+    # Types with building-wide codes (shelves, cabinets) can be numbered per room or area.
     area_numbering = models.BooleanField(
         _("number ranges per area"), default=False,
         help_text=_("New locations of this type get a free number from the number range of the room or area "
-                    "they are created in, on its page. Only for types with building-wide codes that are not "
-                    "moved, with a short name prefix and the numeric sequence."),
+                    "they are created in (also on a pallet there), on its page. They keep it when moved. Only for "
+                    "types with building-wide codes, a short name prefix and the numeric sequence."),
     )
     # for automatic generation of unique names and short_names:
     auto_name_prefix = models.CharField(
@@ -150,15 +156,32 @@ class LocationType(models.Model):
         if self.admin_only and (self.moveable or self.deletable_in_frontend):
             raise ValidationError({"admin_only": _(
                 "Locations of an admin-only type can be neither moved nor deleted on the inventory pages.")})
-        if self.area_numbering and (not self.unique or self.moveable or not self.auto_short_name_prefix
+        # Shelves may move (e.g. on a pallet) and keep their number; containers are told apart by their category.
+        if self.area_numbering and (not self.unique or not self.auto_short_name_prefix
                                     or self.auto_sequence != self.Sequence.NUMERIC):
             raise ValidationError({"area_numbering": _(
-                "Number ranges per area need building-wide codes, a type that is not moved, a short name "
-                "prefix and the numeric sequence.")})
+                "Number ranges per area need building-wide codes, a short name prefix and the numeric sequence.")})
 
     def numbered_names(self, number):
         """Name and short name for one number, e.g. ("Regal 301", "R301")."""
         return self.generate_names(1, start=str(number))[0]
+
+    @classmethod
+    def numbered_containers(cls):
+        """Container types created on the inventory pages with the next number (boxes, cartons, pallets): building-wide
+        codes, a short name prefix and the numeric sequence."""
+        return cls.objects.filter(category=cls.Category.CONTAINER, unique=True, admin_only=False,
+                                  auto_sequence=cls.Sequence.NUMERIC).exclude(auto_short_name_prefix="").order_by("name")
+
+    def next_free_number(self):
+        """(number, name, short name) after the highest number of this type, counting former codes and skipping
+        codes that are taken, e.g. (525, "Kiste 525", "K0525"). Old codes of other sequences (K034c) do not count."""
+        number = max(LocationNumberRange._taken_numbers(self), default=0) + 1
+        while True:
+            name, short = self.numbered_names(number)
+            if not taken_location_codes([short]):
+                return number, name, short
+            number += 1
 
     MAX_SUBLOCATIONS = 100
 
@@ -176,33 +199,59 @@ class LocationType(models.Model):
             else:
                 yield self.generate_names(1, start=self.int2str(number - 1))[0][1]
 
+    def sublocation_name(self, parent_name, code):
+        """The default name of a sub-location of this type: its shelf's or cabinet's name first, "Regal 301 Fach c".
+        Too long for the name field, it is only "Fach c"."""
+        name = " ".join(part for part in (parent_name, self.auto_name_prefix, code) if part)
+        if len(name) > Location._meta.get_field("name").max_length:
+            return f"{self.auto_name_prefix} {code}".strip()
+        return name
+
     def free_sublocation_names(self, parent, count):
-        """`count` names for new sub-locations of this type in `parent`, skipping codes its children have
+        """`count` names for new sub-locations of this type in `parent`, skipping codes its children have or had
         (a shelf with a–d gets e, f, …)."""
         if not self.auto_sequence:
             return []
-        taken = set(parent.children.values_list("short_name", flat=True)) if parent.pk else set()
+        taken = set()
+        if parent.pk:
+            taken = set(parent.children.values_list("short_name", flat=True))
+            prefix = parent.unique_identifier + "."
+            taken.update(code[len(prefix):] for code in LocationFormerCode.objects.filter(code__startswith=prefix)
+                         .values_list("code", flat=True) if "." not in code[len(prefix):])
         names = []
         for code in self.sublocation_codes():
             if len(names) == count:
                 break
             if code not in taken:
-                names.append((f"{self.auto_name_prefix} {code}".strip(), code))
+                names.append((self.sublocation_name(parent.name, code), code))
         return names
 
     def is_valid_start(self, start):
         return bool(self.auto_sequence) and bool(start) and all(char in self.auto_sequence for char in start)
 
     def free_names(self, count, start):
-        """Like generate_names, but skips short names that are taken (by any location of a unique type)."""
+        """Like generate_names, but skips short names that are taken (by any location of a unique type) or were
+        used before (LocationFormerCode)."""
         names, number = [], self.str2int(start)
         while len(names) < count:
             batch = self.generate_names(count - len(names), start=self.int2str(number))
-            taken = set(Location.objects.filter(type__unique=True, short_name__in=[short for _name, short in batch])
-                        .values_list("short_name", flat=True))
+            taken = taken_location_codes(short for _name, short in batch)
             names += [(name, short) for name, short in batch if short not in taken]
             number += len(batch)
         return names
+
+    @property
+    def holds_storage_units(self):
+        """Shelves and cabinets stand in spaces (the building structure), or on containers that take
+        sub-locations (pallets)."""
+        return bool(self.structure) or self.category == self.Category.SPACE or (
+            self.category == self.Category.CONTAINER and not self.no_sublocations)
+
+    @classmethod
+    def holding_storage_units(cls):
+        """Filter for locations whose type holds_storage_units."""
+        return (~models.Q(type__structure="") | models.Q(type__category=cls.Category.SPACE)
+                | models.Q(type__category=cls.Category.CONTAINER, type__no_sublocations=False))
 
     @property
     def is_coded_structure(self):
@@ -366,9 +415,11 @@ class LocationNumberRange(models.Model):
 
     @classmethod
     def _taken_numbers(cls, kind):
-        """Numbers used by codes of this type, also outside of any range (e.g. R998)."""
+        """Numbers used by codes of this type, also outside of any range (e.g. R998), or used before."""
         prefix, numbers = kind.auto_short_name_prefix, []
-        for short in Location.objects.filter(type=kind, short_name__startswith=prefix).values_list("short_name", flat=True):
+        shorts = [*Location.objects.filter(type=kind, short_name__startswith=prefix).values_list("short_name", flat=True),
+                  *LocationFormerCode.objects.filter(code__startswith=prefix).values_list("code", flat=True)]
+        for short in shorts:
             if short[len(prefix):].isdigit():
                 numbers.append(int(short[len(prefix):]))
         return numbers
@@ -461,6 +512,13 @@ class LocationNumberRange(models.Model):
         return f"{self.first}–{self.last}"
 
 
+def taken_location_codes(codes):
+    """Those of `codes` that are the unique identifier of a location (deleted ones included) or a former code."""
+    codes = list(codes)
+    return (set(Location.objects.filter(unique_identifier__in=codes).values_list("unique_identifier", flat=True))
+            | set(LocationFormerCode.objects.filter(code__in=codes).values_list("code", flat=True)))
+
+
 def get_location_overview_upload_path(instance, filename):
     # Every replacement gets its own path so earlier history snapshots stay valid.
     return f"locations/{instance.pk}/overview/{uuid4().hex}{Path(filename).suffix.lower()}"
@@ -542,13 +600,30 @@ class Location(SoftDeleteModel, ComputedFieldsModel):
 
     def save(self, *args, actor=None, **kwargs):
         using = kwargs.get("using") or router.db_for_write(type(self), instance=self)
-        fields = ("purpose", "overview_photo")
+        fields = ("purpose", "overview_photo", "physical_description")
         actor = actor or getattr(self, "_history_actor", None)
+        update_fields = kwargs.get("update_fields")
+
+        def saves(*names):
+            return update_fields is None or any(name in update_fields for name in names)
+
         with transaction.atomic(using=using):
-            previous = None
+            stored = None
             if self.pk:
-                previous = type(self).objects.using(using).select_for_update().filter(pk=self.pk).values(*fields).first()
+                stored = type(self).objects.using(using).select_for_update().filter(pk=self.pk).values(
+                    *fields, "name", "short_name", "parent_location_id").first()
+            # A new short name or parent gives this location (and parts that include its code) new codes;
+            # the old ones stay blocked as former codes.
+            codes_before = None
+            if stored and saves("short_name", "parent_location") and \
+                    (stored["short_name"], stored["parent_location_id"]) != (self.short_name, self.parent_location_id):
+                codes_before = self._subtree_codes(using)
             result = super().save(*args, **kwargs)
+            if codes_before is not None:
+                self._keep_former_codes(codes_before, using)
+            if stored and saves("name") and stored["name"] != self.name:
+                self._rename_default_sublocations(stored["name"], using)
+            previous = {field: stored[field] for field in fields} if stored else None
             current = type(self).objects.using(using).values(*fields).get(pk=self.pk)
             # Capture edits from every model save; authored creation also records
             # an initial overview. Unattributed imports keep their existing data.
@@ -561,6 +636,64 @@ class Location(SoftDeleteModel, ComputedFieldsModel):
                     before=previous, after=current,
                 )
             return result
+
+    def _subtree_codes(self, using):
+        """Unique identifiers of this location and everything below it (deleted ones included), by pk."""
+        codes = dict(type(self).objects.using(using).filter(pk=self.pk).values_list("pk", "unique_identifier"))
+        pending = [self.pk]
+        while pending:
+            rows = list(type(self).objects.using(using).filter(parent_location_id__in=pending)
+                        .exclude(pk__in=codes).values_list("pk", "unique_identifier"))
+            codes.update(rows)
+            pending = [pk for pk, _code in rows]
+        return codes
+
+    def _keep_former_codes(self, codes_before, using):
+        after = dict(type(self).objects.using(using).filter(pk__in=codes_before).values_list("pk", "unique_identifier"))
+        former = LocationFormerCode.objects.using(using)
+        for pk, code in codes_before.items():
+            if after.get(pk) != code:
+                former.get_or_create(code=code, defaults={"location_id": pk})
+        # A location that gets one of its former codes back uses it again.
+        for entry in former.filter(code__in=after.values(), location_id__in=after):
+            if after[entry.location_id] == entry.code:
+                entry.delete()
+
+    def _rename_default_sublocations(self, old_name, using):
+        """Parts that still have their default name ("Regal 301 Fach c") follow a new name of this location."""
+        sub = self.type.sublocation_type
+        if sub is None:
+            return
+        for part in type(self).objects.using(using).filter(parent_location=self, type=sub):
+            if part.name == sub.sublocation_name(old_name, part.short_name):
+                part.name = sub.sublocation_name(self.name, part.short_name)
+                part.save(using=using)
+
+    def prospective_unique_identifier(self):
+        """The unique identifier from the current short name and parent, before saving updates the stored one."""
+        if self.type.unique:
+            return self.short_name
+        return self.parent_location.unique_identifier + "." + self.short_name
+
+    def _validate_former_codes(self):
+        """Codes that were used before stay with their location: nobody else gets them (LocationFormerCode)."""
+        if not self.type.unique and self.parent_location is None:
+            return  # reported below
+        codes = {self.pk: self.prospective_unique_identifier()}
+        stored = Location.objects.filter(pk=self.pk).values("short_name", "parent_location_id").first() if self.pk else None
+        if stored and (stored["short_name"], stored["parent_location_id"]) != (self.short_name, self.parent_location_id):
+            # Parts without a code of their own (compartments: R301.a) get new codes, too.
+            pending = [(self.pk, codes[self.pk])]
+            while pending:
+                pk, code = pending.pop()
+                for child in Location.objects.filter(parent_location_id=pk, type__unique=False).exclude(pk__in=codes):
+                    codes[child.pk] = f"{code}.{child.short_name}"
+                    pending.append((child.pk, codes[child.pk]))
+        owners = {code: pk for pk, code in codes.items()}
+        for entry in LocationFormerCode.objects.filter(code__in=owners):
+            if entry.location_id is None or entry.location_id != owners[entry.code]:
+                raise ValidationError({"short_name": _("The code %(code)s was used before and stays blocked.") % {
+                    "code": entry.code}})
 
     def clean(self):
         if self.is_deleted and self.pk and (
@@ -615,6 +748,15 @@ class Location(SoftDeleteModel, ComputedFieldsModel):
                 {"parent_location": _("Non-unique locations must have a parent location.")}
             )
 
+        # Shelves and cabinets stand in the building or on a pallet, not in a compartment or another shelf,
+        # and never without a place.
+        if self.type.area_numbering and (self.parent_location is None
+                                         or not self.parent_location.type.holds_storage_units):
+            raise ValidationError({"parent_location": _(
+                "Locations of type “%(type)s” stand in a level, room or area, or on a pallet.") % {"type": self.type}})
+
+        self._validate_former_codes()
+
     @property
     def ancestors(self):
         """Parent locations from the top-level one down to the direct parent."""
@@ -665,10 +807,21 @@ class Location(SoftDeleteModel, ComputedFieldsModel):
         return next((node for node in self._self_and_ancestors()
                      if node.pk and node.number_ranges.filter(type=location_type).exists()), None)
 
+    def container_types(self):
+        """Container types that can be added here with the next number (LocationType.numbered_containers)."""
+        if self.type.no_sublocations:
+            return []
+        return list(LocationType.numbered_containers())
+
+    def numbering_area(self):
+        """The level, room or area whose number ranges apply here: this location, or the one a pallet stands in."""
+        return next((node for node in self._self_and_ancestors() if node.type.structure), None)
+
     def numbering_types(self):
-        """Area-numbered location types that can be created here (levels, rooms and areas only), each with the
-        location whose range applies, or None while no range applies yet (the first one reserves it)."""
-        if not self.type.structure:
+        """Area-numbered location types that can be created here (levels, rooms and areas, and pallets in them),
+        each with the location whose range applies, or None while no range applies yet (the first one reserves
+        it in the numbering area)."""
+        if not self.type.holds_storage_units or self.numbering_area() is None:
             return []
         return [(kind, self.number_range_source(kind))
                 for kind in LocationType.objects.filter(area_numbering=True).order_by("name")]
@@ -694,9 +847,8 @@ class Location(SoftDeleteModel, ComputedFieldsModel):
             for number in range(number_range.first, number_range.last + 1):
                 if not any(first <= number <= last for first, last in reserved):
                     candidates[number] = location_type.numbered_names(number)
-        # Short names of unique types are unique across all such locations, deleted ones included.
-        taken = set(Location.objects.filter(type__unique=True, short_name__in=[short for _name, short in candidates.values()])
-                    .values_list("short_name", flat=True))
+        # Short names of unique types are unique across all such locations, deleted ones and former codes included.
+        taken = taken_location_codes(short for _name, short in candidates.values())
         return [(number, name, short) for number, (name, short) in sorted(candidates.items()) if short not in taken]
 
     @property
@@ -736,9 +888,7 @@ class Location(SoftDeleteModel, ComputedFieldsModel):
         depends=[("self", ["short_name"]), ("parent_location", ["unique_identifier"])],
     )
     def unique_identifier(self):
-        if self.type.unique:
-            return self.short_name
-        return self.parent_location.unique_identifier + "." + self.short_name
+        return self.prospective_unique_identifier()
 
     @computed(
         models.CharField(_("locatable identifier"), max_length=512, unique=True),
@@ -807,6 +957,38 @@ class Location(SoftDeleteModel, ComputedFieldsModel):
             "admin:inventory_location_change",
             args=(self.pk,),
         )
+
+
+class LocationFormerCode(models.Model):
+    """A unique identifier a location had before (or one of a location deleted for good). It stays blocked so
+    that codes on labels and in links never name another location, and it still finds its location."""
+
+    class Meta:
+        verbose_name = _("former code")
+        verbose_name_plural = _("former codes")
+        ordering = ("code",)
+
+    code = models.CharField(_("code"), max_length=64, unique=True)
+    location = models.ForeignKey(
+        Location, on_delete=models.SET_NULL, null=True, blank=True, related_name="former_codes",
+        verbose_name=_("location"), help_text=_("Empty for codes of locations that were deleted for good."),
+    )
+    created_at = models.DateTimeField(_("date"), default=timezone.now)
+    note = models.CharField(_("note"), max_length=200, blank=True)
+
+    def clean(self):
+        if self.code and Location.objects.filter(unique_identifier=self.code).exists():
+            raise ValidationError({"code": _("%(code)s is the current code of a location.") % {"code": self.code}})
+
+    def __str__(self):
+        return self.code
+
+
+@receiver(pre_delete, sender=Location)
+def block_code_of_deleted_location(sender, instance, using, **kwargs):
+    """Deleting a location for good keeps its code blocked (soft deletion keeps the location and its code)."""
+    LocationFormerCode.objects.using(using).update_or_create(
+        code=instance.unique_identifier, defaults={"location": None, "note": gettext("deleted")})
 
 
 class LocationHistory(models.Model):

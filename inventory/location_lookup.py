@@ -8,7 +8,7 @@ from django.utils.translation import gettext_lazy as _
 
 from .keyboard_layouts import layout_corrections
 from .label_ids import core as label_id_core, parsing as label_id_parsing
-from .models import LabelId, Location
+from .models import LabelId, Location, LocationFormerCode
 
 
 def scan_prefixes():
@@ -79,6 +79,10 @@ def _resolve(value):
         # A numeric label is an identifier first, a database ID only as fallback.
         if matches.exists():
             return matches.get()
+        # Codes a location had before (on older labels) still lead to it.
+        former = LocationFormerCode.objects.filter(code=value, location__is_deleted=False).select_related("location").first()
+        if former is not None and former.location is not None:
+            return former.location
         if value.isdecimal():
             pk = Location._meta.pk.clean(value, None)
             return Location.active.get(pk=pk)

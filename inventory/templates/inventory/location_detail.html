@@ -33,7 +33,7 @@
                     <span class="location-identifier">{{ object.unique_identifier }} <button type="button" class="location-help location-help-icon" data-bs-toggle="tooltip" aria-label="{% trans 'Unique identifier for this storage location, used on labels and to find the location in the inventory.' %}" title="{% trans 'Unique identifier for this storage location, used on labels and to find the location in the inventory.' %}">{% icon "info-circle" %}</button></span>
                     <span class="location-title-name">{{ object.name }}{% if object.purpose %}<span class="location-title-purpose">: {{ object.purpose }}</span>{% endif %}
                         {# Right after the last word, so it wraps with the text. #}
-                        {% if not purpose_denied %}<a href="#location-purpose-editor" class="btn btn-sm btn-warning location-edit-purpose" data-purpose-open data-bs-toggle="tooltip" title="{% trans 'Edit purpose' %}">{% icon "pencil" %} <span class="action-label">{% trans "Purpose" %}</span></a>{% else %}{% icon "pencil" as edit_icon %}{% disabled_action edit_icon label=_("Purpose") name=_("Edit purpose") reason=purpose_denied classes="btn btn-sm btn-warning location-edit-purpose" %}{% endif %}</span>
+                        {% if not purpose_denied %}<a href="#location-purpose-editor" class="btn btn-sm btn-warning location-edit-purpose" data-field-editor-open="location-purpose-editor" data-bs-toggle="tooltip" title="{% trans 'Edit purpose' %}">{% icon "pencil" %} <span class="action-label">{% trans "Purpose" %}</span></a>{% elif object.purpose %}{% icon "pencil" as edit_icon %}{% disabled_action edit_icon label=_("Purpose") name=_("Edit purpose") reason=purpose_denied classes="btn btn-sm btn-warning location-edit-purpose" %}{% endif %}</span>
                 </h1>
             </div>
             <div class="location-actions" data-action-group>
@@ -62,6 +62,11 @@
                 {% else %}
                     {% icon "plus-lg" as add_icon %}{% disabled_action add_icon label=numbering_label name=_("Add a location with a number from the number range here") classes="btn btn-success location-print" %}
                 {% endif %}{% endwith %}{% endif %}
+                {% if container_types %}{% with container_label=container_types|join:" / " %}{% if perms.inventory.add_location %}
+                    <a class="btn btn-success location-print" href="{% url 'container_create' pk=object.pk %}" data-bs-toggle="tooltip" title="{% trans 'Add a box, carton or pallet with the next number' %}">{% icon "plus-lg" %} <span class="action-label">{{ container_label }}</span></a>
+                {% else %}
+                    {% icon "plus-lg" as add_icon %}{% disabled_action add_icon label=container_label name=_("Add a box, carton or pallet with the next number") classes="btn btn-success location-print" %}
+                {% endif %}{% endwith %}{% endif %}
                 {% if object.type.sublocation_type and not object.type.no_sublocations %}{% if perms.inventory.add_location %}
                     <a class="btn btn-success location-print" href="{% url 'sublocation_add' pk=object.pk %}" data-bs-toggle="tooltip" title="{% blocktrans with type=object.type.sublocation_type.name %}Add {{ type }} with the next free letters{% endblocktrans %}">{% icon "plus-lg" %} <span class="action-label">{{ object.type.sublocation_type.name }}</span></a>
                 {% else %}
@@ -89,6 +94,7 @@
             <div class="location-header-description">
                 <div class="location-description-heading">
                     {% if object.physical_description %}<span class="location-eyebrow">{% trans "Physical description" %}</span>{% endif %}
+                    {% if not edit_denied %}<a href="#location-description-editor" class="btn btn-sm btn-warning location-edit-description" data-field-editor-open="location-description-editor" data-bs-toggle="tooltip" title="{% trans 'Edit physical description' %}">{% icon "pencil" %} <span class="action-label">{% trans "Description" %}</span></a>{% elif object.physical_description %}{# Without a description that can be added, nothing to show. #}{% icon "pencil" as edit_icon %}{% disabled_action edit_icon label=_("Description") name=_("Edit physical description") reason=edit_denied classes="btn btn-sm btn-warning location-edit-description" %}{% endif %}
                     <button type="button" class="btn btn-info btn-sm location-details-button" data-bs-toggle="modal" data-bs-target="#location-metadata" aria-controls="location-metadata" aria-haspopup="dialog">{% trans "Location details" %}</button>
                 </div>
                 {% if object.physical_description %}<p class="location-physical-description">{{ object.physical_description|linebreaksbr }}</p>{% endif %}
@@ -270,6 +276,7 @@
     {% include 'inventory/location_metadata.html' %}
     {% if not edit_denied %}{% include 'inventory/location_overview_editor.html' %}{% endif %}
     {% if not purpose_denied %}{% include 'inventory/location_purpose_editor.html' %}{% endif %}
+    {% if not edit_denied %}{% include 'inventory/location_description_editor.html' %}{% endif %}
     {% if perms.inventory.change_location %}{% include 'inventory/location_move_modals.html' %}{% endif %}
     {% if stock_change_form %}{% include 'inventory/stock_change_dialog.html' %}{% endif %}
 {% endblock %}
@@ -279,7 +286,7 @@
     <script src="{% static 'inventory/photo_lightbox.js' %}"></script>
     <script src="{% static 'inventory/location_detail.js' %}"></script>
     <script src="{% static 'inventory/list_collapse.js' %}"></script>
-    {% if perms.inventory.change_location %}<script src="{% static 'inventory/location_overview.js' %}"></script><script src="{% static 'inventory/location_purpose.js' %}"></script>{% endif %}
+    {% if perms.inventory.change_location %}<script src="{% static 'inventory/location_overview.js' %}"></script><script src="{% static 'inventory/location_field_editor.js' %}"></script>{% endif %}
     {% if can_manage_quick_items %}<script src="{% static 'inventory/location_quick_items.js' %}"></script>{% endif %}
     {% if stock_change_form %}<script src="{% static 'inventory/stock_change.js' %}"></script>{% endif %}
     {% if move_form %}

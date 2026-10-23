@@ -38,6 +38,8 @@ class LocalMembershipTests(TestCase):
         # Axes and number ranges belong to the building structure, which admins maintain (docs/location-structure.md).
         expected -= {("inventory", "add_locationaxis"), ("inventory", "change_locationaxis"),
                      ("inventory", "add_locationnumberrange"), ("inventory", "change_locationnumberrange")}
+        # Former codes stay blocked; only admins add or remove them (docs/location-structure.md).
+        expected -= {("inventory", "add_locationformercode"), ("inventory", "change_locationformercode")}
         # The printable inventory is internal (inventory/migrations/0029_print_inventory_permission).
         expected.add(("inventory", "print_inventory"))
         # ZAM IDs: only claiming (inventory/migrations/0022_zamid_triggers_and_claim)

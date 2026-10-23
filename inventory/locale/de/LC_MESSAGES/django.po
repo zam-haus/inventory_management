@@ -3191,8 +3191,8 @@ msgstr "Ebenen und Achsen"
 msgid "admin only"
 msgstr "nur im Admin"
 
-msgid "Locations of this type are created, changed and deleted only in the admin, which requires staff status. On the inventory pages only their purpose can be changed; photo, place and deletion are locked, what they contain can still be moved."
-msgstr "Standorte dieses Typs werden nur im Admin angelegt, bearbeitet und gelöscht; dafür sind Staff-Rechte nötig. Auf den Inventarseiten lässt sich nur ihr Zweck ändern; Foto, Ort und Löschen sind gesperrt, ihr Inhalt lässt sich weiter verschieben."
+msgid "Locations of this type are created, changed and deleted only in the admin, which requires staff status. On the inventory pages purpose, description, photo, place and deletion are locked; what they contain can still be moved."
+msgstr "Standorte dieses Typs werden nur im Admin angelegt, bearbeitet und gelöscht; dafür sind Staff-Rechte nötig. Auf den Inventarseiten sind Zweck, Beschreibung, Foto, Ort und Löschen gesperrt; ihr Inhalt lässt sich weiter verschieben."
 
 msgid "Locations of an admin-only type can be neither moved nor deleted on the inventory pages."
 msgstr "Standorte eines Admin-Typs können auf den Inventarseiten weder verschoben noch gelöscht werden."
@@ -3200,17 +3200,17 @@ msgstr "Standorte eines Admin-Typs können auf den Inventarseiten weder verschob
 msgid "You do not have permission to change this location."
 msgstr "Du hast keine Berechtigung, diesen Standort zu bearbeiten."
 
-msgid "Locations of type “%(type)s” can only be changed in the admin, except for their purpose."
-msgstr "Standorte vom Typ „%(type)s“ lassen sich außer dem Zweck nur im Admin-Bereich bearbeiten."
+msgid "Locations of type “%(type)s” can only be changed in the admin."
+msgstr "Standorte vom Typ „%(type)s“ lassen sich nur im Admin-Bereich bearbeiten."
 
 msgid "Changing"
 msgstr "Bearbeiten"
 
-msgid "Locations of this type are created, changed and deleted only in the admin; here only their purpose can be changed."
-msgstr "Standorte dieses Typs werden nur im Admin angelegt, bearbeitet und gelöscht; hier lässt sich nur ihr Zweck ändern."
+msgid "Locations of this type are created, changed and deleted only in the admin."
+msgstr "Standorte dieses Typs werden nur im Admin angelegt, bearbeitet und gelöscht."
 
-msgid "Purpose and overview photo can be changed here."
-msgstr "Zweck und Übersichtsfoto lassen sich hier bearbeiten."
+msgid "Purpose, physical description and overview photo can be changed here."
+msgstr "Zweck, physische Beschreibung und Übersichtsfoto lassen sich hier bearbeiten."
 
 
 
@@ -3244,11 +3244,11 @@ msgstr "%(name)s angelegt."
 msgid "number ranges per area"
 msgstr "Nummernkreise pro Bereich"
 
-msgid "New locations of this type get a free number from the number range of the room or area they are created in, on its page. Only for types with building-wide codes that are not moved, with a short name prefix and the numeric sequence."
-msgstr "Neue Standorte dieses Typs bekommen eine freie Nummer aus dem Nummernkreis des Raums oder Bereichs und werden auf dessen Seite angelegt. Nur für Typen mit hausweit eindeutigem Code, die nicht bewegt werden, mit Kürzel-Präfix und numerischer Folge."
+msgid "New locations of this type get a free number from the number range of the room or area they are created in (also on a pallet there), on its page. They keep it when moved. Only for types with building-wide codes, a short name prefix and the numeric sequence."
+msgstr "Neue Standorte dieses Typs bekommen eine freie Nummer aus dem Nummernkreis des Raums oder Bereichs, in dem sie angelegt werden (auch auf einer Palette dort), und werden auf dessen Seite angelegt. Beim Verschieben behalten sie sie. Nur für Typen mit hausweit eindeutigem Code, Kürzel-Präfix und numerischer Folge."
 
-msgid "Number ranges per area need building-wide codes, a type that is not moved, a short name prefix and the numeric sequence."
-msgstr "Nummernkreise pro Bereich brauchen hausweit eindeutige Codes, einen Typ, der nicht bewegt wird, ein Kürzel-Präfix und die numerische Folge."
+msgid "Number ranges per area need building-wide codes, a short name prefix and the numeric sequence."
+msgstr "Nummernkreise pro Bereich brauchen hausweit eindeutige Codes, ein Kürzel-Präfix und die numerische Folge."
 
 msgid "Numeric (0-9)"
 msgstr "Ziffern (0–9)"
@@ -3444,3 +3444,73 @@ msgstr "in %(parent)s"
 
 msgid "No levels yet. Levels are locations of a type with the building structure “Building and level” and a code like WH-1."
 msgstr "Noch keine Ebenen. Ebenen sind Standorte eines Typs mit der Gebäudestruktur „Haus und Ebene“ und einem Code wie WH-1."
+
+msgid "Locations of this type can be moved on the inventory pages, e.g. boxes, or shelves and cabinets (also onto a pallet)."
+msgstr "Standorte dieses Typs lassen sich auf den Inventarseiten verschieben, z. B. Kisten, oder Regale und Schränke (auch auf eine Palette)."
+
+#, python-format
+msgid "The code %(code)s was used before and stays blocked."
+msgstr "Die Kennung %(code)s war früher vergeben und bleibt gesperrt."
+
+#, python-format
+msgid "Locations of type “%(type)s” stand in a level, room or area, or on a pallet."
+msgstr "Standorte vom Typ „%(type)s“ stehen in einer Ebene, einem Raum oder Bereich oder auf einer Palette."
+
+msgid "former code"
+msgstr "frühere Kennung"
+
+msgid "former codes"
+msgstr "frühere Kennungen"
+
+msgid "code"
+msgstr "Kennung"
+
+msgid "Empty for codes of locations that were deleted for good."
+msgstr "Leer bei Kennungen von Standorten, die endgültig gelöscht wurden."
+
+#, python-format
+msgid "%(code)s is the current code of a location."
+msgstr "%(code)s ist die aktuelle Kennung eines Standorts."
+
+msgid "Codes are meant to stay. Changing the short name keeps the current code (and those of sub-locations that include it) blocked as a former code, which still finds this location."
+msgstr "Kennungen sollen bleiben. Wer das Kürzel ändert, lässt die bisherige Kennung (und die der Unterstandorte, die sie enthalten) als frühere Kennung gesperrt; sie findet diesen Standort weiterhin."
+
+msgid "Former codes"
+msgstr "Frühere Kennungen"
+
+msgid "Codes this location had before. They still lead here and are never given to another location."
+msgstr "Kennungen, die dieser Standort früher hatte. Sie führen weiter hierher und werden nie an einen anderen Standort vergeben."
+
+msgid "What it looks like and how it is built, e.g. colour, material, size or number of shelves."
+msgstr "Wie es aussieht und gebaut ist, z. B. Farbe, Material, Größe oder Zahl der Böden."
+
+msgid "Add container"
+msgstr "Behälter anlegen"
+
+msgid "Add a box, carton or pallet"
+msgstr "Kiste, Karton oder Palette anlegen"
+
+msgid "It gets the next number of its type, shown with each choice."
+msgstr "Es bekommt die nächste Nummer seines Typs; sie steht bei jeder Auswahl dabei."
+
+msgid "Add a box, carton or pallet with the next number"
+msgstr "Kiste, Karton oder Palette mit der nächsten Nummer anlegen"
+
+#, python-format
+msgid "%(name)s (%(code)s) created."
+msgstr "%(name)s (%(code)s) angelegt."
+
+msgid "The number was taken in the meantime. Try again."
+msgstr "Die Nummer wurde inzwischen vergeben. Bitte noch einmal versuchen."
+
+msgid "Description"
+msgstr "Beschreibung"
+
+msgid "Edit physical description"
+msgstr "Physische Beschreibung bearbeiten"
+
+msgid "Save description"
+msgstr "Beschreibung speichern"
+
+msgid "Physical description saved."
+msgstr "Physische Beschreibung gespeichert."

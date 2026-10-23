@@ -1,0 +1,50 @@
+{% extends 'base.html' %}
+{% load django_bootstrap5 i18n static icons %}
+
+{% block bootstrap5_extra_head %}
+    {{ block.super }}
+    <link rel="stylesheet" href="{% static 'inventory/location_detail.css' %}">
+{% endblock %}
+
+{% block title %}{% trans "Add container" %}: {{ object.unique_identifier }}{% endblock %}
+
+{% block page_header %}
+    <header class="location-header">
+        <nav aria-label="{% trans 'Location navigation' %}" class="location-breadcrumb">
+            <a href="{% url 'index_locations' %}">{% trans "Locations" %}</a>
+            <span aria-hidden="true">/</span>
+            <a href="{{ object.get_absolute_url }}">{{ object.name }}</a>
+        </nav>
+        <div class="location-heading">
+            <div class="location-heading-text">
+                <p class="location-eyebrow">{% trans "Add container" %} · {{ object.type.name }}</p>
+                <h1>{{ object.name }}</h1>
+                <span class="location-identifier">{{ object.unique_identifier }}</span>
+            </div>
+            <div class="location-actions">
+                <a class="btn btn-secondary" href="{{ object.get_absolute_url }}">{% trans "Cancel" %}</a>
+            </div>
+        </div>
+    </header>
+{% endblock %}
+
+{% block content %}
+    <div class="location-detail location-move">
+        <section class="location-panel" aria-labelledby="container-heading">
+            <div class="location-panel-heading">
+                <h2 id="container-heading">{% trans "Add a box, carton or pallet" %}</h2>
+                <p class="location-muted">{% trans "It gets the next number of its type, shown with each choice." %}</p>
+            </div>
+            <form method="post" novalidate class="location-move-form location-narrow-form">
+                {% csrf_token %}
+                {% bootstrap_form_errors form type="non_fields" %}
+                {% bootstrap_field form.type %}
+                {% bootstrap_field form.purpose %}
+                {% bootstrap_field form.physical_description %}
+                <div class="location-actions mt-3">
+                    <button class="btn btn-success" type="submit">{% icon "plus-lg" %} {% trans "Add container" %}</button>
+                </div>
+            </form>
+        </section>
+    </div>
+{% endblock %}

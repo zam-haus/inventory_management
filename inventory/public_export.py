@@ -80,6 +80,8 @@ EXPORTED_MODELS = {
                 "descriptive_identifier responsible_teams",
     },
     "inventory.locationnumberrange": {"keep": "location type first last"},
+    # Codes are public like the locations' own; the note is free text from the admin.
+    "inventory.locationformercode": {"keep": "code location created_at", "replace": {"note": emptied}},
     "inventory.locationhistory": {
         "keep": "location created_at event_type before after",
         "replace": {"actor": cleared, "actor_name": redacted_if("actor", "actor_name")},

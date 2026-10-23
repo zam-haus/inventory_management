@@ -14,7 +14,7 @@
             <div class="modal-body">
                 <p class="text-muted">{% trans "Current location path" %}: {{ object.descriptive_identifier }}</p>
                 {% bootstrap_form move_form %}
-                <p class="location-muted mb-0">{% trans "Stored items and child locations remain assigned to this location." %}{% if object.type.unique %} {% trans "Leave the destination empty to make this a top-level location." %}{% endif %}</p>
+                <p class="location-muted mb-0">{% trans "Stored items and child locations remain assigned to this location." %}{% if object.type.unique and not object.type.area_numbering %} {% trans "Leave the destination empty to make this a top-level location." %}{% endif %}</p>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{% trans "Cancel" %}</button>

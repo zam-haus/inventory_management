@@ -19,6 +19,8 @@
 /* The purpose belongs to the name but stays lighter; the pencil edits it (location_purpose_editor.html). */
 .location-title-purpose { font-weight: 400; }
 .location-edit-purpose { margin-left: .35rem; vertical-align: .2em; padding: .1rem .4rem; line-height: 1.2; }
+/* Edits the physical description (location_description_editor.html); compact like the purpose pencil. */
+.location-edit-description { margin-right: auto; padding: .1rem .4rem; line-height: 1.2; }
 .location-header-info { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem 2rem; margin-top: 1rem; }
 .location-path-heading,
 .location-description-heading { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem 1rem; min-height: 40px; margin-bottom: .4rem; }
@@ -71,6 +73,7 @@
 .location-panel { min-width: 0; border: 1px solid var(--location-border); border-radius: .65rem; background: #fff; }
 .location-panel-heading { padding: 1.2rem; }
 .location-panel-title-row { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+.location-panel-actions { display: flex; flex: 0 0 auto; gap: .5rem; }
 .location-panel-title-row h2,
 .location-panel-title-row h3 { min-width: 0; }
 .location-add-item { display: inline-flex; align-items: center; justify-content: center; flex: 0 0 44px; width: 44px; height: 44px; padding: 0; font-size: 1.5rem; line-height: 1; }

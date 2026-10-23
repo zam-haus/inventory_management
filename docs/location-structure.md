@@ -8,7 +8,8 @@ are in [Standortregeln](standortregeln.md) (German).
 ## Model
 
 * **Admin only** (`LocationType.admin_only`): locations of the type are created, changed and
-  deleted only in the admin by staff; on the inventory pages only their purpose can be changed.
+  deleted only in the admin by staff, purpose and description included; on the inventory pages they
+  are locked.
   See [Permissions](permissions.md). All building
   structure types use it.
 * **Location type → category** (`LocationType.category`): *space* (levels, rooms, areas),
@@ -16,7 +17,8 @@ are in [Standortregeln](standortregeln.md) (German).
   trolleys, and their compartments) or *container* (moves with its contents: boxes, cartons,
   pallets); empty for anything else (*Mobil*). Validation fills a missing category from the type
   (building structure → space, number ranges per area → storage unit) and rejects a contradicting
-  one. Migration `inventory.0037` made moveable types containers.
+  one. Migration `inventory.0037` made the then moveable types containers; since `inventory.0039` shelves
+  and cabinets are moveable, too, so *moveable* no longer tells containers apart.
   The location page lists
   sub-locations in one panel per category (`LocationType.group_by_category`), below the
   full-width “At this location” panel with the items on the left; a page whose sub-locations
@@ -36,9 +38,12 @@ are in [Standortregeln](standortregeln.md) (German).
 * **Outdoors** (`Location.outdoor`): courtyards, roofs, outside stairs.
 * **Responsible teams** (`Location.responsible_teams`, one or more `accounts.Team`).
 * **Number ranges per area** (`LocationType.area_numbering`): locations of the type get their
-  number from a range of the room or area they stand in. Only for types with building-wide codes
-  (*unique*) that are not *moveable* (boxes wander through the house), with a short name prefix
-  and the numeric sequence.
+  number from a range of the room or area they stand in (`Location.numbering_area()`, also for one
+  on a pallet there). Only for storage units with building-wide codes (*unique*), a short name
+  prefix and the numeric sequence. They are moveable (migration `inventory.0039`) and keep their
+  number when they move, but only into a level, room or area or onto a pallet, never to the top level
+  (`LocationType.holds_storage_units`, checked in `Location.clean` and offered by the move
+  dialog's search).
 * **Number ranges** (`LocationNumberRange`: *from*, *to* and the one *location type* it is for,
   edited inline on the location in the admin). Ranges are hierarchical: a range applies to
   everything below its location (`Location.number_range_source(type)`), and a location below may
@@ -49,7 +54,9 @@ are in [Standortregeln](standortregeln.md) (German).
   free gap, rounded to tens, within the range above if there is one, counting numbers used outside
   of ranges as taken.
 * **Creating numbered locations** (`inventory/numbered_location_views.py`, permission
-  `add_location`, on levels, rooms and areas only): the location page shows a button named after
+  `add_location`, on levels, rooms and areas and on pallets in them, `Location.numbering_types()`;
+  ranges are always reserved for the numbering area, never for the pallet): the location page shows
+  a button named after
   the area-numbered types (“Regal / Schrank”). The page first asks which type, then the number:
   a free *reserved* number of the range that applies (`Location.free_numbers(type)`, the next one
   first); a *wished-for* number that no range of the type covers and no code uses
@@ -60,11 +67,26 @@ are in [Standortregeln](standortregeln.md) (German).
   compartments from the bottom up. Only the fields of the chosen way count
   (`NumberedLocationForm.FIELDS_FOR`; `numbered_location.js` hides and disables the others), and
   the wish field shows the type's prefix in front.
+* **Creating containers** (`ContainerCreateView` in `inventory/numbered_location_views.py`, permission
+  `add_location`, on every location that takes sub-locations, `Location.container_types()`): boxes,
+  cartons and pallets (`LocationType.numbered_containers`: containers with building-wide codes, a
+  short name prefix and the numeric sequence, not admin-only) get the next number of their type, after
+  the highest one (`LocationType.next_free_number`, counting former codes, skipping taken codes;
+  codes of other sequences such as `K034c` do not count). There is no number to choose. The location
+  page shows a button named after the types (“Karton / Kiste / Palette”) and a **+** at the containers'
+  panel, which then shows while empty for logged-in users. Creating them and numbered locations also
+  asks for the purpose and the physical description. The physical description of everything but the
+  building structure can be changed later on the location page like the purpose
+  (`LocationDescriptionUpdateView`, `location_field_editor.js`).
 * **Sub-locations** (`LocationType.sublocation_type`, e.g. *Fach/Schub* for shelves and
   cabinets): creating such a location asks how many to add inside it and creates them with the
-  sub type's naming (`Fach a`, `a`). Its page has a button to add more later
+  sub type's naming, with the shelf's or cabinet's name first (`Regal 301 Fach a`, `a`;
+  `LocationType.sublocation_name`, “Fach a” if that would be too long). Renaming the shelf renames
+  the compartments that still have their default name; migration `inventory.0040` gave existing
+  ones with the old default name (“Fach a”) the new one. Its page has a button to add more later
   (`SublocationAddView`, permission `add_location`): they get the next free characters of the
-  sequence (`LocationType.free_sublocation_names`); letters run on like spreadsheet columns
+  sequence (`LocationType.free_sublocation_names`, skipping former codes); letters run on like
+  spreadsheet columns
   (`z`, `aa`, `ab`), at most 100 at a time. The admin's mass add names sub-locations the same way.
   After adding them, users with `change_location` go on to `SublocationPurposeView`
   (`?codes=a,b`) to give their purposes, listed top down as they sit (`a` at the bottom) next to
@@ -73,6 +95,17 @@ are in [Standortregeln](standortregeln.md) (German).
   `inventory.0037` moved types with a mixed sequence (hexadecimal boxes, alphanumeric pallets) to
   digits; their existing codes stay. Creating several locations in the admin skips codes that are
   taken (`LocationType.free_names`) and accepts only start values from the type's sequence.
+* **Former codes** (`LocationFormerCode`: *code*, *location*, *note*). Codes are meant to stay, so
+  that labels and links can name a location by its code for good. Only the admin changes a short
+  name. When a location's `unique_identifier` changes (a new short name, or a new parent of a part
+  such as `R301.a`), `Location.save` keeps the old code of the location and of every part that
+  includes it; deleting a location for good keeps its code without a location. Former codes are
+  never given again (`taken_location_codes`, `Location.clean`, free numbers and letters) and still
+  find their location (`location_lookup`, location search, the location details list them); a
+  location that gets one of its own former codes back uses it again. Admins edit them inline on
+  the location and in their own list (filter: without location); removing one frees the code. The
+  local group gets no permissions for them. Not yet: resolving codes via `i.zam.haus`, which must
+  include former codes.
 * **Team** got a *code* (shown as a badge, never resolved as an ID; unique when set; any
   characters but spaces, e.g. `⌂`), a *colour*
   (`#rrggbb`) and a *parent team*. `Team.badge_color` falls back to the parent's colour,

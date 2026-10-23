@@ -186,15 +186,32 @@ class LocationNumberRangeInline(admin.TabularInline):
     extra = 0
 
 
+class LocationFormerCodeInline(admin.TabularInline):
+    """Codes the location had before; they stay blocked and still find it. Removing one frees the code."""
+    model = models.LocationFormerCode
+    fields = ("code", "note", "created_at")
+    readonly_fields = ("created_at",)
+    extra = 0
+
+
+@admin.register(models.LocationFormerCode)
+class LocationFormerCodeAdmin(admin.ModelAdmin):
+    list_display = ("code", "location", "note", "created_at")
+    search_fields = ("code", "note", "location__unique_identifier", "location__name")
+    list_filter = (("location", admin.EmptyFieldListFilter),)
+    autocomplete_fields = ("location",)
+    readonly_fields = ("created_at",)
+
+
 class LocationAdmin(ClaimOnAddMixin, SoftDeleteAdminMixin, admin.ModelAdmin):
     list_display = ("locatable_identifier", "name", "descriptive_identifier", "deleted_status")
     ordering = ("locatable_identifier",)
     readonly_fields = ("label_image_tag",)
-    search_fields = ('locatable_identifier', 'name', 'purpose', 'physical_description')
+    search_fields = ('locatable_identifier', 'name', 'purpose', 'physical_description', 'former_codes__code')
     list_filter = (DeletedObjectFilter, "type__structure", "axis", "fire_load_free", "outdoor", "responsible_teams")
     autocomplete_fields = ("responsible_teams",)
     actions = ["send_to_printer_action", "send_to_printer_twice_action"]
-    inlines = [LocationInline, LocationNumberRangeInline]
+    inlines = [LocationInline, LocationNumberRangeInline, LocationFormerCodeInline]
     form = AdminLocationForm
 
     def save_model(self, request, obj, form, change):

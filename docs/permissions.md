@@ -40,18 +40,28 @@ property with the other location type properties.
 
 Location types marked **admin only** (`LocationType.admin_only`, used for the building
 structure, see [Building structure](location-structure.md)) go further: their locations are
-created, changed and deleted only in the admin, which requires staff status. On the inventory
-pages only their purpose can be changed (`change_location`); the overview photo button stays
-visible but locked, saying why (`inventory.permissions.location_edit_denied`), and its endpoint
-answers 403. Such a type
+created, changed and deleted only in the admin, which requires staff status, their purpose
+included. On the inventory pages the buttons for purpose, physical description and overview photo
+stay visible but locked, saying why (`inventory.permissions.location_edit_denied`), and their
+endpoints answer 403. Where the purpose or description is empty, its locked button is left out, as
+there is nothing to show. Such a type
 can be neither moveable nor deletable outside the admin. What these locations contain (shelves,
 boxes, stock) can still be moved as before.
 
 Locations of types with *number ranges per area* (shelves, cabinets) are created on the location
-page of the room or area they stand in, which requires `add_location`. Only the free numbers of
+page of the room or area they stand in, or of a pallet there, which requires `add_location`. So are
+boxes, cartons and pallets, on any location that takes sub-locations; they get the next number of
+their type. Only the free numbers of
 the number range that applies there are offered. The first one of a type in an area reserves the
 numbers for it, so `add_location` also lets members reserve numbers that way; changing ranges
 otherwise is for admins. See [Building structure](location-structure.md).
+
+Of a location's own details, the inventory pages change the purpose, the physical description and the
+overview photo (`change_location`, each in its own dialog), except for admin-only types (the building
+structure); changes of all three are recorded in the location history. Name and short name are
+changed in the admin. Short names stay fixed: a changed one is kept as a **former code**
+(`LocationFormerCode`), which only admins add or remove; the local group gets no permissions for
+them.
 
 Migration `accounts.0002_zam_local_group` creates the reserved **local group**
 (`LOCAL_GROUP_NAME`, by default `ZAM-local`) with add and change permissions for

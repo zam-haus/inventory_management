@@ -1,0 +1,24 @@
+{% load i18n %}{# The physical description, shown in the page header; location_field_editor.js makes this a dialog. #}
+<section id="location-description-editor" class="location-overview-editor location-description-editor" data-field-editor tabindex="-1" aria-labelledby="location-description-editor-title" data-open="{{ description_editor_open|yesno:'true,false' }}">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form action="{% url 'location_description_update' object.pk %}" method="post">
+                {% csrf_token %}
+                <div class="modal-header">
+                    <h2 class="modal-title fs-5" id="location-description-editor-title">{% trans "Edit physical description" %}</h2>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" data-field-editor-enhanced hidden aria-label="{% trans 'Cancel' %}"></button>
+                </div>
+                <div class="modal-body">
+                    <label for="{{ description_form.physical_description.id_for_label }}" class="form-label">{% trans "Physical description" %}</label>
+                    {{ description_form.physical_description }}
+                    <p class="form-text">{% trans "What it looks like and how it is built, e.g. colour, material, size or number of shelves." %}</p>
+                    <div class="text-danger" data-field-editor-errors>{{ description_form.physical_description.errors }}</div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" data-field-editor-enhanced hidden>{% trans "Cancel" %}</button>
+                    <button type="submit" class="btn btn-warning">{% trans "Save description" %}</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</section>

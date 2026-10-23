@@ -50,7 +50,7 @@
             <form id="location-move-form" class="location-move-form" method="post" novalidate>
                 {% csrf_token %}
                 {% bootstrap_form form %}
-                {% if object.type.unique %}
+                {% if object.type.unique and not object.type.area_numbering %}
                     <p class="location-muted mb-0">{% trans "Leave the destination empty to make this a top-level location." %}</p>
                 {% endif %}
                 <div class="location-actions mt-3">

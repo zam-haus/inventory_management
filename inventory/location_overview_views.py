@@ -8,7 +8,7 @@ from django.utils.translation import gettext_lazy as _
 from django.views import View
 from django.views.generic import ListView
 
-from .forms import LocationOverviewForm, LocationPurposeForm
+from .forms import LocationDescriptionForm, LocationOverviewForm, LocationPurposeForm
 from .models import Location
 from .permissions import location_edit_denied, location_purpose_denied
 from .views import DetailLocationView
@@ -19,7 +19,7 @@ class LocationEditView(PermissionRequiredMixin, View):
     permission_required = "inventory.change_location"
     http_method_names = ["post", "options"]
     form_class = fields = success_message = context_name = None
-    # Why a user may not save this part; the purpose of admin-only locations stays editable.
+    # Why a user may not save this part; locations of admin-only types are changed in the admin only.
     denied = staticmethod(location_edit_denied)
 
     def post(self, request, pk):
@@ -54,6 +54,14 @@ class LocationOverviewUpdateView(LocationEditView):
     fields = ["overview_photo"]
     success_message = _("Overview photo saved.")
     context_name = "overview"
+
+
+class LocationDescriptionUpdateView(LocationEditView):
+    # Like the overview photo, locked for the building structure (location_edit_denied).
+    form_class = LocationDescriptionForm
+    fields = ["physical_description"]
+    success_message = _("Physical description saved.")
+    context_name = "description"
 
 
 class LocationPurposeUpdateView(LocationEditView):

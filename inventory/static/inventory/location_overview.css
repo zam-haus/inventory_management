@@ -10,7 +10,8 @@
 .location-overview-editor:not(.modal) .modal-dialog { max-width: none; margin: 0; }
 .location-overview-editor .modal-header,
 .location-overview-editor .modal-footer { gap: .5rem; }
-.location-overview-editor input[type="text"] { display: block; width: 100%; border: 1px solid #adb5bd; border-radius: .375rem; padding: .5rem .75rem; font: inherit; }
+.location-overview-editor input[type="text"],
+.location-overview-editor textarea { display: block; width: 100%; border: 1px solid #adb5bd; border-radius: .375rem; padding: .5rem .75rem; font: inherit; }
 .location-overview-editor input[type="checkbox"] { width: 1.1rem; height: 1.1rem; margin-left: -1.5em; float: left; margin-top: .2em; }
 .location-overview-editor :focus-visible { outline: 3px solid #0d6efd; outline-offset: 2px; }
 .location-overview-editor .form-label { font-weight: 600; }

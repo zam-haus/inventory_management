@@ -92,16 +92,21 @@ class AdminOnlyTypeTests(TestCase):
         with self.assertRaises(ValidationError):
             LocationType(name="Halb", admin_only=True, moveable=True).full_clean()
 
-    def test_only_the_purpose_stays_editable(self):
+    def test_the_building_structure_is_changed_in_the_admin_only(self):
         from django.urls import reverse
+        # Also the purpose: it is locked like the description and photo.
         self.assertEqual(self.client.post(reverse("location_purpose_update", args=[self.room.pk]),
-                                          {"purpose": "Labor"}).status_code, 302)
-        self.assertEqual(Location.objects.get(pk=self.room.pk).purpose, "Labor")
+                                          {"purpose": "Labor"}).status_code, 403)
+        self.assertEqual(Location.objects.get(pk=self.room.pk).purpose, "")
         self.assertEqual(self.client.post(reverse("location_overview_update", args=[self.room.pk])).status_code, 403)
         page = self.client.get(self.room.get_absolute_url(), HTTP_ACCEPT_LANGUAGE="en").content.decode()
-        self.assertIn("can only be changed in the admin, except for their purpose", page)
-        self.assertIn('id="location-purpose-editor"', page)
+        self.assertNotIn('id="location-purpose-editor"', page)
         self.assertNotIn('id="location-overview-editor"', page)
+        self.assertNotIn("Edit purpose", page)  # nothing to show and nothing to add: no locked pencil either
+        Location.objects.filter(pk=self.room.pk).update(purpose="Labor")
+        page = self.client.get(self.room.get_absolute_url(), HTTP_ACCEPT_LANGUAGE="en").content.decode()
+        self.assertIn("Edit purpose", page)  # locked, with its reason
+        self.assertIn("can only be changed in the admin.", page)
         crate_page = self.client.get(self.crate.get_absolute_url()).content.decode()
         self.assertIn('id="location-overview-editor"', crate_page)
 
@@ -165,12 +170,15 @@ class NumberRangeTests(TestCase):
         # Below a location with a range, the suggestion is a reservation within it.
         self.assertEqual(LocationNumberRange.suggest(self.shelf, self.stage, size=2), (301, 302))
 
-    def test_type_needs_fixed_global_codes_and_digits(self):
+    def test_type_needs_global_codes_and_digits(self):
         from django.core.exceptions import ValidationError
-        for flags in ({"moveable": True}, {"unique": False}, {"auto_sequence": "abcdefghijklmnopqrstuvwxyz"}):
+        for flags in ({"unique": False}, {"auto_sequence": "abcdefghijklmnopqrstuvwxyz"}, {"auto_short_name_prefix": ""}):
             with self.subTest(flags=flags), self.assertRaises(ValidationError):
                 LocationType(**{"name": "X", "unique": True, "area_numbering": True, "auto_short_name_prefix": "X",
                                 "auto_sequence": "0123456789", **flags}).full_clean()
+        # Shelves and cabinets may be moved (e.g. onto a pallet); they keep their number.
+        LocationType(name="X", unique=True, area_numbering=True, moveable=True, auto_short_name_prefix="X",
+                     auto_sequence="0123456789").full_clean()
 
     def page(self, location, kind=None):
         from django.urls import reverse
@@ -230,8 +238,9 @@ class NumberRangeTests(TestCase):
         self.assertEqual(number_range.last - number_range.first + 1, 5)
         first = Location.objects.get(parent_location=store)
         self.assertEqual(first.short_name, f"R{number_range.first:03d}")
+        # Compartments carry their shelf's name: "Regal 640 Fach a".
         self.assertEqual(list(first.children.order_by("short_name").values_list("name", "short_name")),
-                         [("Fach a", "a"), ("Fach b", "b"), ("Fach c", "c")])
+                         [(f"{first.name} Fach {code}", code) for code in "abc"])
 
     def test_a_used_up_range_grows_right_behind_it(self):
         from ..models import LocationNumberRange
@@ -256,7 +265,7 @@ class NumberRangeTests(TestCase):
         self.assertIn(url, self.client.get(shelf.get_absolute_url()).content.decode())
         self.assertRedirects(self.client.post(url, {"count": 3}), shelf.get_absolute_url(), fetch_redirect_response=False)
         self.assertEqual(sorted(shelf.children.values_list("short_name", flat=True)), ["a", "b", "c", "d", "e"])
-        self.assertEqual(shelf.children.get(short_name="b").name, "Fach b")
+        self.assertEqual(shelf.children.get(short_name="b").name, "Regal 300 Fach b")
         self.assertEqual(self.client.post(url, {"count": 101}).status_code, 200)  # at most 100 at a time
         self.client.post(url, {"count": 23})
         codes = set(shelf.children.values_list("short_name", flat=True))

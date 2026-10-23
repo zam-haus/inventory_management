@@ -63,6 +63,7 @@
                     {% bootstrap_field form.expected %}
                     {% if "sublocations" in form.fields %}{% bootstrap_field form.sublocations %}{% endif %}
                     {% bootstrap_field form.purpose %}
+                    {% bootstrap_field form.physical_description %}
                     <div class="location-actions mt-3">
                         <button class="btn btn-success" type="submit">{% icon "plus-lg" %} {% blocktrans with type=kind.name %}Add {{ type }}{% endblocktrans %}</button>
                     </div>

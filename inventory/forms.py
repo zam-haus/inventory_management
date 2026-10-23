@@ -20,7 +20,7 @@ from .keyboard_layouts import layout_corrections
 from .location_lookup import scan_prefixes
 from .permissions import location_deletion_denied
 from .models import (
-    USAGE_LEVEL_DESCRIPTIONS, BarcodeType, Item, ItemBarcode, ItemFile, ItemImage, ItemLocation, Location, StockChange,
+    USAGE_LEVEL_DESCRIPTIONS, BarcodeType, Item, ItemBarcode, ItemFile, ItemImage, ItemLocation, Location, LocationType, StockChange,
     UniqueItem, UsageLevel, LabelId,
 )
 from .widgets import NEW_ITEM_PREFIX, AutocompleteSelect, ItemOrNewSelect, LocationSelect
@@ -49,6 +49,14 @@ class LocationPurposeForm(ModelForm):
         fields = ["purpose"]
         # data-modal-focus: modals.js focuses it when the dialog opens.
         widgets = {"purpose": TextInput(attrs={"class": "form-control", "maxlength": 50, "data-modal-focus": ""})}
+
+
+class LocationDescriptionForm(ModelForm):
+    """The physical description of a location that is not part of the building (LocationDescriptionUpdateView)."""
+    class Meta:
+        model = Location
+        fields = ["physical_description"]
+        widgets = {"physical_description": Textarea(attrs={"class": "form-control", "rows": 4, "data-modal-focus": ""})}
 
 
 class LocationOverviewForm(ModelForm):
@@ -736,6 +744,10 @@ class AdminLocationForm(ModelForm):
         self.fields["parent_location"].queryset = Location.objects.filter(
             Q(is_deleted=False) | Q(pk=self.instance.parent_location_id)
         )
+        if self.instance.pk and "short_name" in self.fields:
+            self.fields["short_name"].help_text = _(
+                "Codes are meant to stay. Changing the short name keeps the current code (and those of sub-locations "
+                "that include it) blocked as a former code, which still finds this location.")
 
     class Meta:
         model = Location
@@ -876,6 +888,14 @@ class LocationMoveForm(ModelForm):
     )
 
     id = IntegerField(widget=HiddenInput(), required = False)
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Shelves and cabinets go into a level, room or area, or onto a pallet (Location.clean).
+        if self.instance.pk and self.instance.type.area_numbering:
+            field = self.fields["parent_location"]
+            field.queryset = field.queryset.filter(LocationType.holding_storage_units())
+            field.required = True
 
 
 class StockChangeForm(Form):

@@ -100,9 +100,11 @@ class LocationOverviewTests(TestCase):
             self.assertEqual(event.actor_id, self.user.pk)
             self.assertTrue(event.actor_name)
             self.assertEqual(event.event_type, "overview_updated")
-        self.assertEqual(purpose_event.before, {"purpose": "Tools", "overview_photo": ""})
-        self.assertEqual(purpose_event.after, {"purpose": "Hand tools", "overview_photo": ""})
-        self.assertEqual(photo_event.after, {"purpose": "Hand tools", "overview_photo": self.location.overview_photo.name})
+        description = {"physical_description": self.location.physical_description}
+        self.assertEqual(purpose_event.before, {"purpose": "Tools", "overview_photo": "", **description})
+        self.assertEqual(purpose_event.after, {"purpose": "Hand tools", "overview_photo": "", **description})
+        self.assertEqual(photo_event.after, {"purpose": "Hand tools", "overview_photo": self.location.overview_photo.name,
+                                             **description})
 
     def test_photo_replacement_and_removal_keep_original_files_in_history(self):
         self.client.post(self.url, self.data(overview_photo=self.photo()))
@@ -388,7 +390,7 @@ class LocationOverviewTests(TestCase):
         # The pencil follows the name and purpose inside the heading text.
         title = next(e for e in html_elements(parse_html(self.client.get(self.location.get_absolute_url()).content.decode()))
                      if "location-title-name" in dict(e.attributes).get("class", ""))
-        self.assertIn("data-purpose-open", str(title))
+        self.assertIn('data-field-editor-open="location-purpose-editor"', str(title))
 
     def test_lists_and_location_choices_show_the_purpose_with_the_name(self):
         child = Location.objects.create(type=self.location.type, parent_location=self.location,
@@ -522,6 +524,7 @@ class LocationOverviewTests(TestCase):
             "children-TOTAL_FORMS": "1", "children-INITIAL_FORMS": "1",
             "children-MIN_NUM_FORMS": "0", "children-MAX_NUM_FORMS": "1000",
             "number_ranges-TOTAL_FORMS": "0", "number_ranges-INITIAL_FORMS": "0",
+            "former_codes-TOTAL_FORMS": "0", "former_codes-INITIAL_FORMS": "0",
             "children-0-id": child.pk, "children-0-parent_location": self.location.pk,
             "children-0-type": child.type_id, "children-0-name": child.name,
             "children-0-short_name": child.short_name, "children-0-purpose": "Updated child",

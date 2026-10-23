@@ -17,6 +17,14 @@
                             {% endif %}
                         </dd>
                     </dl>
+                    {% with former_codes=object.former_codes.all %}{% if former_codes %}
+                        <dl class="location-metadata-field">
+                            <dt>{% trans "Former codes" %}</dt>
+                            <dd>{% for former in former_codes %}<span class="location-identifier">{{ former.code }}</span> {% endfor %}
+                                <p class="location-muted">{% trans "Codes this location had before. They still lead here and are never given to another location." %}</p>
+                            </dd>
+                        </dl>
+                    {% endif %}{% endwith %}
                     {% if object.physical_description %}
                         <dl class="location-metadata-field">
                             <dt>{% trans "Physical description" %}</dt>
@@ -47,7 +55,7 @@
                         </div>
                         <div>
                             <dt>{% trans "Changing" %}</dt>
-                            <dd>{% if object.type.admin_only %}{% trans "Locations of this type are created, changed and deleted only in the admin; here only their purpose can be changed." %}{% else %}{% trans "Purpose and overview photo can be changed here." %}{% endif %}</dd>
+                            <dd>{% if object.type.admin_only %}{% trans "Locations of this type are created, changed and deleted only in the admin." %}{% else %}{% trans "Purpose, physical description and overview photo can be changed here." %}{% endif %}</dd>
                         </div>
                         <div>
                             <dt>{% trans "Deleting" %}</dt>
