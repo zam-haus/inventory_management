@@ -4,6 +4,8 @@
 
 .env
 data/
+backups/
+exports/
 
 ### Django ###
 *.log

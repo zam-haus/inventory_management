@@ -1,7 +1,7 @@
 # Documentation
 
-How the ZAM inventory works, feature by feature. Setup and deployment are
-covered in the [project README](../README.md).
+How the ZAM inventory works, feature by feature. Setup is covered in the
+[project README](../README.md), running the production server in [ops/README.md](../ops/README.md).
 
 * [Concepts](concepts.md): bulk items vs. unique items, locations, initial data collection
 * [Location purpose and photo](locations.md): purpose shown with the name, overview photo and change history
@@ -17,3 +17,4 @@ covered in the [project README](../README.md).
 * [Installable app](installable-app.md): manifest, offline page and its service worker
 * [Logo and icons](branding/README.md): source design and how the served icons are derived
 * [Icons and action buttons](icons.md): Bootstrap Icons instead of emojis, the agreed meaning of each icon, filled vs. outlined actions and the actions menu
+* [Data export](data-export.md): a copy of the inventory without personal data for development databases

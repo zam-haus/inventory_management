@@ -4,7 +4,7 @@ from pathlib import Path
 
 DEBUG = True
 # Any host name or address reaches the dev server (phones in the LAN, i.localhost for label IDs, …),
-# and none is redirected to the main domain (DEFAULT_DOMAIN).
+# and none is redirected to the main domain (DEFAULT_URL).
 ALLOWED_HOSTS = ['*']
 CANONICAL_HOST_REDIRECT = False
 

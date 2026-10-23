@@ -10,7 +10,7 @@ HOSTS = dict(
     SETTINGS,
     MIDDLEWARE=["imzam.canonical_host.CanonicalHostMiddleware", *MIDDLEWARE],
     ALLOWED_HOSTS=["testserver", "inventar.zam.haus", "inv.zam.haus", "i.zam.haus", "id.zam.haus"],
-    DEFAULT_DOMAIN="https://inventar.zam.haus",
+    DEFAULT_URL="https://inventar.zam.haus",
     DOMAIN_ALIASES=["https://inv.zam.haus"],
     LABEL_ID_RESOLVER_URL="https://id.zam.haus/",
     CANONICAL_HOST_REDIRECT=True,

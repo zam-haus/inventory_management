@@ -11,7 +11,7 @@ def _url_prefix():
     """Scanned labels contain a resolver URL (settings.LABEL_ID_BASE_URL); the inventory also serves it under /id/."""
     resolvers = {*settings.LABEL_ID_RESOLVER_HOSTS, urlsplit(settings.LABEL_ID_BASE_URL).netloc,
                  urlsplit(getattr(settings, "LABEL_ID_RESOLVER_URL", "")).netloc}
-    inventory_urls = (settings.LABEL_ID_INVENTORY_BASE, settings.DEFAULT_DOMAIN, *getattr(settings, "DOMAIN_ALIASES", ()))
+    inventory_urls = (settings.LABEL_ID_INVENTORY_BASE, settings.DEFAULT_URL, *getattr(settings, "DOMAIN_ALIASES", ()))
     inventories = {urlsplit(url).netloc for url in inventory_urls if url}
     hosts = [f"{re.escape(host)}/" for host in sorted(resolvers) if host]
     hosts += [f"{re.escape(host)}/id/" for host in sorted(inventories) if host]

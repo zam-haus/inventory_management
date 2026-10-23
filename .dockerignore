@@ -1,0 +1,16 @@
+# Not part of the app image: data, backups, secrets, local files
+.git
+.env
+# configuration comes from .env
+imzam/local_settings.py
+data/
+backups/
+exports/
+media/
+*.sqlite3
+*.sqlite3-journal
+db_dump.json*
+wget-log
+node_modules/
+**/__pycache__/
+*.py[cod]

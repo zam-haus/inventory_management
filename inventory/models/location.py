@@ -278,7 +278,7 @@ class LocationLabelTemplate(models.Model):
         if location:
             tmpl = Template(label_code)
             label_code = tmpl.safe_substitute(
-                url=settings.DEFAULT_DOMAIN
+                url=settings.DEFAULT_URL
                 + reverse(
                     "view_location",
                     kwargs={

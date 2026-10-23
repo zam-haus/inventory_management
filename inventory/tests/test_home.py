@@ -4,7 +4,7 @@ from django.test import TestCase, override_settings
 from django.urls import reverse
 
 
-@override_settings(ALLOWED_HOSTS=["inv.zam.haus", "i.zam.haus", ".example.org"], DEFAULT_DOMAIN="https://inv.zam.haus", DOMAIN_ALIASES=[],
+@override_settings(ALLOWED_HOSTS=["inv.zam.haus", "i.zam.haus", ".example.org"], DEFAULT_URL="https://inv.zam.haus", DOMAIN_ALIASES=[],
                    LABEL_ID_RESOLVER_HOSTS=["i.zam.haus"], LABEL_ID_BASE_URL="https://i.zam.haus/", LABEL_ID_RESOLVER_URL="https://i.zam.haus/")
 class HomePageTests(TestCase):
     def test_search_field_submits_to_item_or_location_search(self):

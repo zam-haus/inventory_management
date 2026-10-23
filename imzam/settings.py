@@ -54,7 +54,8 @@ ADMINS = json.loads(os.getenv("ADMINS", "[]"))
 # name redirects here, keeping path and query (imzam/canonical_host.py); label ID
 # resolver hosts redirect to LABEL_ID_RESOLVER_URL instead. Never redirected: IP
 # addresses, localhost and *.localhost. CANONICAL_HOST_REDIRECT=false turns it off.
-DEFAULT_DOMAIN = with_scheme(os.getenv("DEFAULT_DOMAIN", "https://inventar.zam.haus"))
+# DEFAULT_DOMAIN is the former name of the variable.
+DEFAULT_URL = with_scheme(os.getenv("DEFAULT_URL") or os.getenv("DEFAULT_DOMAIN") or "https://inventar.zam.haus")
 CANONICAL_HOST_REDIRECT = parse_bool(os.getenv("CANONICAL_HOST_REDIRECT", "true"))
 # Earlier addresses of the inventory, found on old location labels: they redirect like
 # every other domain, and scans of their URLs are still recognised.
@@ -62,14 +63,14 @@ DOMAIN_ALIASES = [
     with_scheme(url) for url in os.getenv("DOMAIN_ALIASES", "https://inv.zam.haus").split(",") if url.strip()
 ]
 
-# label IDs: hosts that serve only the QR resolver (they behave like DEFAULT_DOMAIN/id/).
+# label IDs: hosts that serve only the QR resolver (they behave like DEFAULT_URL/id/).
 # Each must also be in ALLOWED_HOSTS. i.localhost / id.localhost help local testing.
 LABEL_ID_RESOLVER_HOSTS = [
     host.strip()
     for host in os.getenv("LABEL_ID_RESOLVER_HOSTS", "i.zam.haus,id.zam.haus,i.localhost,id.localhost").split(",")
     if host.strip()
 ]
-# Where resolver hosts redirect to; defaults to DEFAULT_DOMAIN.
+# Where resolver hosts redirect to; defaults to DEFAULT_URL.
 LABEL_ID_INVENTORY_BASE = with_scheme(os.getenv("LABEL_ID_INVENTORY_BASE", "")) or None
 # The main resolver address: the other resolver hosts redirect there, except label scans,
 # which go straight on to the inventory (see imzam/canonical_host.py).
@@ -136,8 +137,10 @@ SELECT2_I18N_AVAILABLE_LANGUAGES = ['de', 'en']
 COMPUTEDFIELDS_ALLOW_RECURSION = True
 
 MIDDLEWARE = [
+    # /healthz for healthchecks; first, before host validation and redirects.
+    "imzam.health.HealthCheckMiddleware",
     "django.middleware.security.SecurityMiddleware",
-    # Redirects other domains to DEFAULT_DOMAIN / LABEL_ID_RESOLVER_URL; before routing by host.
+    # Redirects other domains to DEFAULT_URL / LABEL_ID_RESOLVER_URL; before routing by host.
     "imzam.canonical_host.CanonicalHostMiddleware",
     # Routes i.zam.haus / id.zam.haus to the label ID resolver; before CommonMiddleware.
     "inventory.label_ids.middleware.ResolverHostMiddleware",

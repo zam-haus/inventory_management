@@ -12,8 +12,8 @@ from .models import LabelId, Location
 
 
 def scan_prefixes():
-    """Location labels start with DEFAULT_DOMAIN, old ones with an earlier domain (DOMAIN_ALIASES)."""
-    return [url.rstrip("/") + "/" for url in (settings.DEFAULT_DOMAIN, *getattr(settings, "DOMAIN_ALIASES", ()))]
+    """Location labels start with DEFAULT_URL, old ones with an earlier domain (DOMAIN_ALIASES)."""
+    return [url.rstrip("/") + "/" for url in (settings.DEFAULT_URL, *getattr(settings, "DOMAIN_ALIASES", ()))]
 
 
 def location_from_label_id(value):

@@ -114,7 +114,7 @@ class ParsingTests(SimpleTestCase):
                 self.assertEqual(parsing.code_from_scan(raw), "K7R4XD")
 
     @override_settings(LABEL_ID_RESOLVER_HOSTS=["l.acme.example"], LABEL_ID_BASE_URL="https://l.acme.example/",
-                       LABEL_ID_INVENTORY_BASE="https://stuff.acme.example", DEFAULT_DOMAIN="https://stuff.acme.example")
+                       LABEL_ID_INVENTORY_BASE="https://stuff.acme.example", DEFAULT_URL="https://stuff.acme.example")
     def test_hosts_come_from_the_settings(self):
         for raw in ("HTTPS://L.ACME.EXAMPLE/K7R4XD", "https://stuff.acme.example/id/k7r-4xd"):
             self.assertEqual(parsing.code_from_scan(raw), "K7R4XD")

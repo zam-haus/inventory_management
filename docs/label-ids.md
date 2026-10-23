@@ -32,7 +32,7 @@ setting (and the hosts below).
   they must also be in `ALLOWED_HOSTS`. `LABEL_ID_BASE_URL` (default
   `https://i.zam.haus/`) is the URL in QR codes and labels; for local testing set
   it to `http://i.localhost:8000/` (larger QR codes). `LABEL_ID_INVENTORY_BASE` sets where they
-  redirect to and defaults to `DEFAULT_DOMAIN`. `LABEL_ID_RESOLVER_URL` (default
+  redirect to and defaults to `DEFAULT_URL`. `LABEL_ID_RESOLVER_URL` (default
   `https://id.zam.haus/`) is the main resolver address: the other resolver hosts
   redirect there, keeping the path, except label scans (`/<CODE>` exactly as in a QR
   code), which go straight on to `/id/<code>?via=label_scan` on the inventory, so

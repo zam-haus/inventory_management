@@ -56,7 +56,7 @@ class RetypeTests(SimpleTestCase):
         "django.contrib.messages.middleware.MessageMiddleware",
     ],
     LANGUAGE_CODE="en",
-    DEFAULT_DOMAIN="https://inv.zam.haus",
+    DEFAULT_URL="https://inv.zam.haus",
 )
 class ScannedLayoutMismatchTests(TestCase):
     @classmethod
@@ -73,7 +73,7 @@ class ScannedLayoutMismatchTests(TestCase):
         cls.user.user_permissions.add(Permission.objects.get(codename="change_location", content_type__app_label="inventory"))
 
     def label_url(self, location):
-        return settings.DEFAULT_DOMAIN + reverse("view_location", args=[location.pk, location.unique_identifier])
+        return settings.DEFAULT_URL + reverse("view_location", args=[location.pk, location.unique_identifier])
 
     def test_garbled_label_urls_resolve_to_their_location(self):
         box = self.boxes[0]
@@ -82,7 +82,7 @@ class ScannedLayoutMismatchTests(TestCase):
                 self.assertEqual(resolve_location_reference(retype(self.label_url(box), scanner, host)), box)
 
     def test_unknown_locations_are_still_reported(self):
-        garbled = retype(f"{settings.DEFAULT_DOMAIN}/loc/999999/NOPE", "us", "de")
+        garbled = retype(f"{settings.DEFAULT_URL}/loc/999999/NOPE", "us", "de")
         with self.assertRaisesMessage(ValidationError, "Location not found."):
             resolve_location_reference(garbled)
 
@@ -92,12 +92,12 @@ class ScannedLayoutMismatchTests(TestCase):
             with self.assertRaisesMessage(ValidationError, "Ambiguous scan"):
                 resolve_location_reference("httpsÖ--whatever")
 
-    @override_settings(DEFAULT_DOMAIN="https://example.org")
+    @override_settings(DEFAULT_URL="https://example.org")
     def test_prefix_follows_the_default_domain(self):
         box = self.boxes[0]
         self.assertEqual(resolve_location_reference(retype(self.label_url(box), "us", "de")), box)
 
-    @override_settings(DEFAULT_DOMAIN="https://inventar.zam.haus", DOMAIN_ALIASES=["https://inv.zam.haus"])
+    @override_settings(DEFAULT_URL="https://inventar.zam.haus", DOMAIN_ALIASES=["https://inv.zam.haus"])
     def test_old_labels_with_an_earlier_domain_still_resolve(self):
         box = self.boxes[0]
         old_label = "https://inv.zam.haus" + reverse("view_location", args=[box.pk, box.unique_identifier])

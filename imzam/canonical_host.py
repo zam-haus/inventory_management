@@ -1,7 +1,7 @@
 """
 Every domain name redirects to the main one, keeping path and query: label ID
 resolver hosts (settings.LABEL_ID_RESOLVER_HOSTS) to settings.LABEL_ID_RESOLVER_URL,
-all others to settings.DEFAULT_DOMAIN. Logins (cookies per domain) and installed
+all others to settings.DEFAULT_URL. Logins (cookies per domain) and installed
 apps then always use the same address, while old labels keep working.
 
 Label scans on a resolver alias (the short host in the QR codes) are served
@@ -44,7 +44,7 @@ def main_url(request):
     domain, _port = split_domain_port(raw_host.lower())
     if not domain or is_development_host(domain):
         return None
-    inventory = settings.DEFAULT_DOMAIN.rstrip("/")
+    inventory = settings.DEFAULT_URL.rstrip("/")
     resolver = settings.LABEL_ID_RESOLVER_URL.rstrip("/")
     if domain in (urlsplit(inventory).hostname, urlsplit(resolver).hostname):
         return None

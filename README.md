@@ -31,7 +31,7 @@ Implemented with Django. The full documentation is in [docs/](docs/README.md).
 
    DEBUG = True
    TEMPLATE_DEBUG = True
-   # Any host reaches the dev server (LAN, i.localhost); none is redirected to DEFAULT_DOMAIN
+   # Any host reaches the dev server (LAN, i.localhost); none is redirected to DEFAULT_URL
    ALLOWED_HOSTS = ['*']
    CANONICAL_HOST_REDIRECT = False
    SECRET_KEY = "REPLACE ME!!!!!"
@@ -57,7 +57,9 @@ Implemented with Django. The full documentation is in [docs/](docs/README.md).
    `pip install -r requirements.dev.txt`
 4. Initialize the database: `python manage.py migrate`
 5. Create a superuser account: `python manage.py createsuperuser`
-6. Load the basic dataset: `python manage.py loaddata initial_inventory`
+6. Load the basic dataset: `python manage.py loaddata initial_inventory`, or instead a copy
+   of the real inventory without personal data: `python manage.py import_public_data <export>`
+   (see [Data export](docs/data-export.md))
 7. Start the local server: `python manage.py runserver`
 8. Log in with the **Login** button (Django's own login while `OIDC_ENABLED = False`).
 
@@ -67,39 +69,14 @@ HTTPS or `localhost`.
 
 ## Deployment
 
-Deployment uses Docker Compose: PostgreSQL, the Django app (`python` service,
-which compiles messages, collects static files and runs migrations on start)
-and nginx in front of it.
+Production runs in containers with `podman-compose` (or Docker Compose): PostgreSQL, the
+Django app and nginx in front of it (`docker-compose.yml`). First installation, update,
+backup, restore and the other maintenance tasks are described in
+[ops/README.md](ops/README.md), with scripts for each in [ops/](ops/). A copy of the
+inventory without personal data, for development databases, comes from `ops/export.sh`
+([Data export](docs/data-export.md)).
 
-1. Clone this repository.
-2. Copy `.env.example` to `.env` and edit at least:
-   * `ALLOWED_HOSTS`: the main domains (`inventar.zam.haus`, the label ID hosts);
-     other domains are redirected before this check (see [Domains](#domains))
-   * `DEFAULT_DOMAIN`: the main address, default `https://inventar.zam.haus` (a bare
-     domain means HTTPS)
-   * `SECRET_KEY`: a long random string
-   * `POSTGRES_PASSWORD`: a random string
-   * `MQTT_PASSWORD`: the MQTT password (only needed for printing)
-   * `OIDC_RP_CLIENT_ID` and `OIDC_RP_CLIENT_SECRET`: for login via SSO
-
-   For a secure deployment, also consult Django's
-   [deployment checklist](https://docs.djangoproject.com/en/stable/howto/deployment/checklist/).
-3. Initialize the database and import the initial data:
-   ```sh
-   docker compose run --rm python ./manage.py migrate
-   docker compose run --rm python ./manage.py loaddata initial_inventory
-   ```
-4. Create a superuser:
-   ```sh
-   docker compose run --rm python ./manage.py createsuperuser
-   ```
-5. Start:
-   ```sh
-   docker compose up -d
-   ```
-
-Migrations are applied automatically on every start. Settings for the label ID
-resolver hosts and local network detection are described in
+Settings for the label ID resolver hosts and local network detection are described in
 [Label IDs](docs/label-ids.md) and [Permissions](docs/permissions.md);
 [`.env.example`](.env.example) lists all variables.
 
@@ -108,7 +85,7 @@ resolver hosts and local network detection are described in
 Every domain name reaching the app is redirected (permanently, keeping path and
 query) to its main address (`imzam/canonical_host.py`):
 
-* the inventory to `DEFAULT_DOMAIN` (`https://inventar.zam.haus`), e.g. from the
+* the inventory to `DEFAULT_URL` (`https://inventar.zam.haus`), e.g. from the
   earlier `inv.zam.haus`, whose URLs are still on location labels;
 * the label ID resolver hosts (`LABEL_ID_RESOLVER_HOSTS`) to `LABEL_ID_RESOLVER_URL`
   (`https://id.zam.haus/`), except label scans: `i.zam.haus/<CODE>` from a QR code
@@ -119,7 +96,7 @@ Logins (cookies per domain) and the installed app thus always use the main
 address. IP addresses, `localhost` and `*.localhost` are never redirected (local
 development); `CANONICAL_HOST_REDIRECT=false` turns redirecting off. Scans of the
 earlier domains (`DOMAIN_ALIASES`) are still recognised in location fields and by the
-camera scanner. New location labels use `DEFAULT_DOMAIN`.
+camera scanner. New location labels use `DEFAULT_URL`.
 ## License
 
 See [LICENSE](LICENSE).

@@ -32,7 +32,7 @@ def root_urlconf():
 
 
 def inventory_base():
-    return (getattr(settings, "LABEL_ID_INVENTORY_BASE", None) or settings.DEFAULT_DOMAIN).rstrip("/")
+    return (getattr(settings, "LABEL_ID_INVENTORY_BASE", None) or settings.DEFAULT_URL).rstrip("/")
 
 
 def inventory_url(request, build):

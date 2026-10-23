@@ -1,6 +1,7 @@
+# Production setup (podman-compose or docker compose). Update, backup, restore: ops/README.md
 services:
   db:
-    image: postgres:18
+    image: docker.io/library/postgres:18
     volumes:
       - ./data/db:/var/lib/postgresql
     env_file:
@@ -15,7 +16,7 @@ services:
       - default
 
   web:
-    image: nginx
+    image: docker.io/library/nginx:stable
     volumes:
       - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
       - ./data/media:/media_files
@@ -24,19 +25,34 @@ services:
       - "80:80"
     depends_on:
       - python
+    # The whole chain: nginx and the app (/healthz, imzam/health.py)
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "-o", "/dev/null", "http://localhost/healthz"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
     restart: unless-stopped
     networks:
       - default
 
   python:
     build: .
+    # The code is in the image; only data comes from the host.
     volumes:
-      - .:/code
+      - ./data/media:/code/data/media
+      - ./data/static:/code/data/static
+      - ./exports:/code/exports
     env_file:
       - ".env"
     depends_on:
       db:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "-o", "/dev/null", "http://localhost:8000/healthz"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 120s  # collectstatic and migrations on start
     restart: unless-stopped
     networks:
       - default
