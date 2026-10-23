@@ -1,0 +1,72 @@
+/* Levels and axes (structure_overview.html): a table of levels (rows) by axes (columns) that scrolls
+   sideways; the level column stays in view. Builds on location_detail.css. */
+.structure-overview { display: grid; gap: 1.5rem; }
+.structure-overview { --structure-area: #f1f3f5; --structure-outdoor: #e3f0f9; --structure-fire: #b42318; }
+
+.structure-legend { padding: 1rem 1.2rem; }
+.structure-legend-list { display: flex; flex-wrap: wrap; align-items: center; gap: .6rem 1.25rem; margin: 0; padding: 0; list-style: none; font-size: .875rem; }
+.structure-sample { display: inline-block; padding: .15rem .6rem; }
+
+.structure-scroll { overflow-x: auto; border-radius: .65rem; }
+.structure-scroll:focus-visible { outline: 3px solid #0d6efd; outline-offset: 3px; }
+/* Long German words are hyphenated instead of broken anywhere (location_detail.css). */
+.structure-table { border-collapse: separate; border-spacing: 0; font-size: .85rem; overflow-wrap: break-word; hyphens: auto; }
+.structure-table th,
+.structure-table td { min-width: 12rem; max-width: 12rem; padding: .6rem; vertical-align: top; border-left: 1px solid var(--location-border); border-top: 1px solid var(--location-border); }
+.structure-table .structure-wide { min-width: 24rem; max-width: 24rem; }
+.structure-table thead tr:first-child > * { border-top: 0; }
+.structure-house { font-size: 1.1rem; font-weight: 650; border-bottom: 2px solid #212529; }
+.structure-house-code { color: var(--location-muted); font-family: monospace; font-weight: 600; }
+.structure-axis { font-weight: 400; color: var(--location-muted); }
+.structure-axis-number { font-family: monospace; font-weight: 700; color: #0d6efd; }
+
+/* The level column and the corner stay put while the table scrolls. */
+.structure-corner,
+.structure-level { position: sticky; left: 0; z-index: 1; min-width: 5rem !important; max-width: 5rem !important; background: #fff; border-left: 0 !important; border-right: 1px solid var(--location-border); }
+.structure-level { text-align: center; }
+.structure-corner,
+.structure-level { overflow-wrap: normal; }
+.structure-level-number { display: block; font-size: 1.6rem; font-weight: 650; line-height: 1.1; }
+.structure-level-word { display: block; font-size: .7rem; letter-spacing: .06em; text-transform: uppercase; color: var(--location-muted); }
+.structure-table tbody tr:nth-child(even) td { background: #f7f9fb; }
+.structure-table td.structure-void { background-image: repeating-linear-gradient(135deg, var(--location-border) 0 1px, transparent 1px 8px); }
+
+.structure-main { display: flex; flex-wrap: wrap; align-items: baseline; gap: .15rem .4rem; margin-bottom: .5rem; }
+.structure-code { font-family: monospace; font-weight: 700; }
+/* Links read like the sub-location lists: code in link colour, title in text colour, underlined on hover. */
+.structure-table a { color: inherit; text-decoration: none; }
+.structure-table a .structure-code,
+.structure-table a.structure-code { color: #0d6efd; }
+.structure-table a:hover,
+.structure-table a:focus-visible { text-decoration: underline; }
+.structure-code-part { color: var(--location-muted); }
+
+.structure-nodes { display: grid; grid-template-columns: minmax(0, 1fr); gap: .45rem; margin: 0; padding: 0; list-style: none; }
+.structure-wide .structure-nodes { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.structure-node { min-width: 0; padding: .4rem .55rem; border: 1px solid #212529; border-radius: .4rem; background: #fff; }
+.structure-node-area { border: 1px dashed var(--location-muted); background: var(--structure-area); }
+.structure-node-outdoor { border: 1px dashed var(--location-muted); background: var(--structure-outdoor); }
+.structure-fire { box-shadow: inset 3px 0 0 var(--structure-fire); }
+.structure-node-head { display: flex; align-items: baseline; gap: .4rem; }
+.structure-node-head > a { flex: 1 1 auto; min-width: 0; }
+.structure-node-title { font-weight: 600; }
+.structure-node .location-muted { font-size: .8rem; }
+.structure-fire-mark { font-size: .7rem; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--structure-fire); }
+
+.structure-parts { display: grid; gap: .15rem; margin: .35rem 0 0; padding: .3rem 0 0 .5rem; border-left: 1px solid var(--location-border); list-style: none; font-size: .8rem; }
+.structure-parts li { display: flex; flex-wrap: wrap; align-items: baseline; gap: .1rem .35rem; }
+
+.team-badges { display: inline-flex; flex: 0 0 auto; gap: .2rem; }
+.team-badge { display: inline-flex; align-items: center; justify-content: center; min-width: 1.4rem; height: 1.25rem; padding: 0 .3rem; border-radius: .25rem; background: var(--team-bg); color: var(--team-fg); box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .25); font-family: monospace; font-size: .75rem; font-weight: 700; line-height: 1; }
+.team-badge-plain { --team-bg: transparent; --team-fg: inherit; }
+
+@media (max-width: 575.98px) {
+    .structure-overview { gap: 1rem; }
+    .structure-table th,
+    .structure-table td { min-width: 10.5rem; max-width: 10.5rem; }
+    .structure-table .structure-wide { min-width: 21rem; max-width: 21rem; }
+    .structure-corner,
+    .structure-level { min-width: 4.25rem !important; max-width: 4.25rem !important; padding-inline: .3rem; }
+    .structure-level-number { font-size: 1.25rem; }
+    .structure-level-word { font-size: .6rem; letter-spacing: .02em; }
+}

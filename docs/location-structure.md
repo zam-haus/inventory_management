@@ -2,7 +2,7 @@
 
 Locations of the fixed building structure (levels, rooms, areas) carry a few details that
 furniture and containers do not: an axis, a fire-load flag, an outdoor flag and responsible
-teams. A command draws the levels-and-axes overview. The rules ZAM applies to codes and names
+teams. The page *Levels and axes* shows them all at once. The rules ZAM applies to codes and names
 are in [Standortregeln](standortregeln.md) (German).
 
 ## Model
@@ -93,12 +93,13 @@ properties yet; the admin shows and filters the new fields.
 
 ## Overview
 
-```sh
-python manage.py building_overview -o overview.html
-```
+*Levels and axes* (`/loc/structure/`, `StructureOverviewView`, linked from the location list,
+public like the other location pages) draws the structure from the database: levels across, axes
+down, grouped by house. Each level, room and area shows its code (linked to its page), purpose
+(or name), description, team badges and the fire-load mark; rooms, areas and outdoor places are
+told apart by their frame. Numbered parts are listed with their code relative to their room
+(`.1`). A level's main area is drawn in its axis. Containers are left out. The table scrolls
+sideways, the level column stays in view.
 
-writes a standalone HTML page from the database: levels across, axes down, each level, room and
-area with code, purpose (or name), description, team badges and the fire-load mark. Containers are
-left out.
-
-Code: `inventory/structure_overview.py`; tests: `inventory/tests/test_building_structure.py`.
+Code: `inventory/structure_overview.py`, `inventory/templates/inventory/structure_overview.html`;
+tests: `inventory/tests/test_building_structure.py`.

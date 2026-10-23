@@ -1,9 +1,5 @@
-import tempfile
-from io import StringIO
-from pathlib import Path
 
 from django.contrib.auth.models import Group
-from django.core.management import call_command
 from django.test import TestCase
 
 from accounts.models import Team
@@ -48,15 +44,18 @@ class StructureTests(TestCase):
         self.assertEqual(self.hood.purpose_context, "Abzug")
         self.assertTrue(self.box_lab.is_fire_load_free)
 
-    def test_overview_from_the_database(self):
-        with tempfile.TemporaryDirectory() as tmp:
-            target = Path(tmp) / "overview.html"
-            call_command("building_overview", "-o", str(target), stdout=StringIO())
-            html = target.read_text(encoding="utf-8")
-        self.assertIn('"c": "CHE"', html)
-        self.assertIn('"c": "1"', html)
-        self.assertIn('"name": "Werkhaus"', html)  # the house, without the level number
-        self.assertNotIn("K2", html)  # boxes and shelves are left out
+    def test_levels_and_axes_page(self):
+        from django.urls import reverse
+        page = self.client.get(reverse("structure_overview")).content.decode()
+        lab = Location.objects.get(short_name="CHE")
+        self.assertIn(f'href="{lab.get_absolute_url()}"', page)
+        self.assertIn(f'href="{self.hood.get_absolute_url()}"', page)
+        self.assertIn(">.1</span> Abzug", page)  # numbered parts relative to their room
+        self.assertIn("Werkhaus <span class=\"structure-house-code\">WH</span>", page)  # without the level number
+        self.assertIn("--team-bg: #7d3a2d", page)
+        self.assertNotIn("Kiste 2", page)  # boxes and shelves are left out
+        self.assertLess(page.index(">+0<"), page.index(">-1<"))  # upper levels first
+        self.assertIn(reverse("structure_overview"), self.client.get(reverse("index_locations")).content.decode())
 
 
 class TeamBadgeTests(TestCase):

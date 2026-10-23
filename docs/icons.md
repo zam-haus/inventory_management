@@ -31,6 +31,7 @@ when they are first used:
 | More / less stock | `arrow-up` / `arrow-down` | done |
 | Info or help tooltip | `info-circle` | done |
 | Print inventory | `printer` | done |
+| Levels-and-axes overview of the building | `grid-3x3` | done |
 | Search | `search` | done |
 | Edit (item, unique item, purpose) | `pencil` | done |
 | Add | `plus-lg` | done |

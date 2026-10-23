@@ -2,8 +2,8 @@
 
 Wie im ZAM Häuser, Ebenen, Räume und Bereiche benannt und codiert werden. Die technische Seite
 (Modell, Kategorien, Nummernkreise) steht in [Building structure](location-structure.md). Der
-aktuelle Stand aller Orte steht im Inventar; `manage.py building_overview -o ebenen-und-achsen.html`
-erzeugt daraus die Übersicht nach Ebenen und Achsen.
+aktuelle Stand aller Orte steht im Inventar; die Seite **Ebenen und Achsen** (`/loc/structure/`,
+verlinkt auf der Standortliste) zeigt ihn als Übersicht.
 
 ## Grundsätze
 

@@ -1,0 +1,1 @@
+{# One responsible team as a badge: its code in its colour (Team.badge_color), the group name on hover. #}<span class="team-badge{% if not team.badge_color %} team-badge-plain{% endif %}"{% if team.badge_color %} style="--team-bg: {{ team.badge_color }}; --team-fg: {{ team.badge_text_color }}"{% endif %} title="{{ team.group.name }}">{{ team.code|default:team.group.name }}</span>

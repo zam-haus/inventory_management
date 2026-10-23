@@ -3170,9 +3170,6 @@ msgstr "Außen"
 msgid "Free of fire load"
 msgstr "brandlastfrei"
 
-msgid "From the inventory"
-msgstr "Aus dem Inventar"
-
 msgid "Level"
 msgstr "Ebene"
 
@@ -3187,15 +3184,6 @@ msgstr "Hauptfläche:"
 
 msgid "Name:"
 msgstr "Name:"
-
-msgid "within"
-msgstr "in"
-
-msgid "codes"
-msgstr "Codes"
-
-msgid "numbered parts"
-msgstr "nummerierte Teile"
 
 msgid "Levels and axes"
 msgstr "Ebenen und Achsen"
@@ -3442,3 +3430,17 @@ msgstr "Nummernkreise pro Bereich gibt es nur für Lagermöbel."
 
 msgid "Add %(numbering_label)s"
 msgstr "%(numbering_label)s anlegen"
+
+msgid "Building structure"
+msgstr "Gebäudestruktur"
+
+#, python-format
+msgid "%(coded)s codes · %(numbered)s numbered parts"
+msgstr "%(coded)s Codes · %(numbered)s nummerierte Teile"
+
+#, python-format
+msgid "within %(parent)s"
+msgstr "in %(parent)s"
+
+msgid "No levels yet. Levels are locations of a type with the building structure “Building and level” and a code like WH-1."
+msgstr "Noch keine Ebenen. Ebenen sind Standorte eines Typs mit der Gebäudestruktur „Haus und Ebene“ und einem Code wie WH-1."

@@ -21,7 +21,7 @@ from django.utils import timezone
 from django.utils.html import format_html, format_html_join
 from django.utils.translation import gettext_lazy as _
 from django.views import View
-from django.views.generic import DetailView, ListView, UpdateView
+from django.views.generic import DetailView, ListView, TemplateView, UpdateView
 
 from . import forms, models
 from .location_lookup import resolve_location_reference
@@ -30,6 +30,7 @@ from .permissions import (
     location_edit_denied, location_purpose_denied,
 )
 from .stock_change_views import mark_last_stock
+from .structure_overview import structure_overview
 from .label_ids import services
 from .label_ids.lookup import annotate_label_code
 from .label_ids.search import LabelIdSearchMixin
@@ -524,6 +525,14 @@ class SearchableLocationListView(
         "itemlocation_set", queryset=models.ItemLocation.objects.filter(item__is_deleted=False),
     ))
     paginate_by = 100
+
+
+class StructureOverviewView(TemplateView):
+    """Levels and axes: the building structure on one page, from the inventory (docs/location-structure.md)."""
+    template_name = "inventory/structure_overview.html"
+
+    def get_context_data(self, **kwargs):
+        return super().get_context_data(overview=structure_overview(), **kwargs)
 
 
 class ParentLocationAutocompleteView(autocomplete.Select2QuerySetView):

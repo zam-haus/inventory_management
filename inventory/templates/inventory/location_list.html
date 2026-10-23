@@ -19,6 +19,9 @@
         </div>
         </form>
     </div>
+    <div class="col-auto">
+        <a href="{% url 'structure_overview' %}" class="btn btn-info">{% icon "grid-3x3" %} <span class="action-label">{% trans "Levels and axes" %}</span></a>
+    </div>
     {# Printing applies to the locations found, so it is offered only for a search. #}
     {% with query=request.GET.q.strip %}
     {% if query and perms.inventory.print_inventory or query and user.is_authenticated %}
