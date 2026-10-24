@@ -158,7 +158,8 @@ class UniqueItemViewTests(UniqueItemFixture, TestCase):
     def test_public_page_shows_first_names_and_team_only(self):
         response = self.client.get(self.unique_item.get_absolute_url())
         self.assertContains(response, "K7R-4XD")
-        self.assertContains(response, reverse("label_id_label", args=[self.lid.code]) + "?printer=P900&amp;tape=24")
+        # No label section: labels are printed with the print dialog's templates
+        self.assertNotContains(response, reverse("label_id_label", args=[self.lid.code]))
         self.assertContains(response, "Woodworking")
         self.assertContains(response, "Alex")
         self.assertContains(response, "Not ZAM property: Robin")

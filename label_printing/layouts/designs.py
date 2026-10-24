@@ -4,14 +4,15 @@ label_printing.design) as layouts. A template is designed for a label size and p
 size (fits), on any printer: it is drawn at the printer's resolution. Media offer the fitting templates; only
 those chosen for the medium or its label stock, if there are any of the kind.
 """
+import functools
+
 from django.utils.translation import gettext as _
 
 from inventory.models import LocationLabelTemplate
 from .. import label_urls
-from ..design import Context, TooSmall, check, render_design
+from ..design import Context, TooSmall, check, parse, render_design
 from ..design import fields as design_fields
-from . import LabelTooSmall, Layout, NotRendered, Rendered
-from .label_id import snapshot as label_id_snapshot
+from . import Canvas, LabelTooSmall, Layout, NotRendered, Rendered
 
 SIZE_TOLERANCE_MM = 1
 
@@ -36,6 +37,41 @@ def fits(template, medium):
             return False
         return medium.height_mm is None or close(template.label_width, medium.height_mm)
     return close(template.label_width, medium.width_mm) and close(template.label_height, medium.height_mm)
+
+
+# Values of typical length to try a template with: whether its QR code fits on a printer's labels at all
+SAMPLES = {
+    "location": {"code": "WH-1.R303.a", "qr": "HTTPS://I.ZAM.HAUS/WH-1.R303.A", "name": "Fach a", "path": "R303.a",
+                 "purpose": "", "short": "R303.a"},
+    "item": {"name": "Artikel", "price": "0,15 € / Stk", "amount": "0,15", "qr": "HTTPS://I.ZAM.HAUS/K7R4XD",
+             "location": "R303.a", "id": "K7R-4XD", "unit": "Stk"},
+    "labelid": {"id": "K7R-4XD", "id1": "K7R", "id2": "4XD", "qr": "HTTPS://I.ZAM.HAUS/K7R4XD", "idname": "ZAMid",
+                "target": ""},
+}
+
+
+@functools.lru_cache(maxsize=512)
+def renders(subject_type, description, dpi, height, width, squeeze):
+    """Whether a description can be drawn on a canvas of this size (its QR codes big enough to scan)."""
+    design, problems = parse(description)
+    if problems or design.height is None:
+        return False
+    try:
+        render_design(design, Context(dpi, SAMPLES.get(subject_type, {}), lambda name: None, squeeze, strict=True),
+                      width, height)
+    except TooSmall:
+        return False
+    return True
+
+
+def drawable(template, medium):
+    """Whether the template can be drawn on the medium at its printer's resolution (QR codes big enough)."""
+    try:
+        canvas = Canvas.for_medium(medium)
+    except KeyError:  # tape the printer has no profile for
+        return False
+    return renders(template.subject_type, template.description, canvas.dpi, canvas.height, canvas.width,
+                   canvas.squeeze)
 
 
 def candidates(medium, subject_type):
@@ -77,8 +113,10 @@ class DesignLayout(Layout):
         self.quality = template.quality
 
     def supports(self, printer, medium):
+        """For labels of its size, if chosen for them, and if its QR codes are big enough on the printer."""
         return (printer.language in self.languages and fits(self.template, medium)
-                and candidates(medium, self.subject_type).filter(pk=self.template.pk).exists())
+                and candidates(medium, self.subject_type).filter(pk=self.template.pk).exists()
+                and drawable(self.template, medium))
 
     def subject_data(self, subject, preview, user):
         """(values, snapshot, code in the QR code)."""
@@ -88,7 +126,7 @@ class DesignLayout(Layout):
         if self.subject_type == "item":
             code = label_urls.item_label_code(subject, user, create=not preview) or label_urls.PREVIEW_CODE
             return design_fields.item_values(subject, code), label_urls.item_snapshot(subject, code), code
-        return design_fields.label_id_values(subject), label_id_snapshot(subject), subject.code
+        return design_fields.label_id_values(subject), label_urls.label_id_snapshot(subject), subject.code
 
     def render(self, subject, canvas, medium, *, preview=False, user=None):
         design, problems = problems_of(self.template)
@@ -107,7 +145,7 @@ def template_layouts(subject_type, printer, medium):
     if medium is None or medium.pk is None or printer.language not in DesignLayout.languages:
         return []
     return [DesignLayout(template) for template in candidates(medium, subject_type).order_by("name")
-            if fits(template, medium)]
+            if fits(template, medium) and drawable(template, medium)]
 
 
 def template_layout(key):

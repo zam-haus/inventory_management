@@ -5,9 +5,10 @@ Brother P-touch printers. Printers are reached on the network (raw TCP, port 910
 connected by USB, through a **print agent** on a computer next to them. Every job is logged with
 what the printer reported: printed, failed (and why) or sent without confirmation.
 
-Every label is drawn by the server as an image, dot for dot at the printer's resolution:
-* by the built-in layouts, or
-* by **label templates** written in a small language ([label designs](label-designs.md)).
+Every label is drawn by the server as an image, dot for dot at the printer's resolution, from a
+**label template** written in a small language ([label designs](label-designs.md)). Labels are for
+locations, bulk items and unique items (ZAMid); there are templates for each of them on every label
+size in use (see [label templates](#label-templates-and-images)).
 
 A Zebra gets the image as `^GFA` in ZPL, with the medium's settings (darkness, speed, offset); a
 Brother gets P-touch raster data. The code is in the app `label_printing`.
@@ -15,8 +16,9 @@ Brother gets P-touch raster data. The code is in the app `label_printing`.
 ## Printing
 
 * **Location pages:** the **Label** button in the header opens the print dialog. It offers
-  labels, not printers: each label template and built-in layout on each size of labels the
-  printers have, e.g. "Preisschild 60x30" or "QR code, code and path" on 12 mm tape.
+  labels, not printers: each label template for labels the printers have, e.g.
+  "Preisschild 60x30" or "QR-Code, Kennung und Ort, Band 12 mm". Templates whose QR code would be
+  too small to scan at a printer's resolution are not offered on it (9 mm tape on the E550W).
   * Each choice has a preview and either the printer it would print on or why no printer can
     print it now.
   * The server picks the printer: active, reachable, with these labels and, as far as it
@@ -29,13 +31,13 @@ Brother gets P-touch raster data. The code is in the app `label_printing`.
     job. The dialog remembers the label chosen last for each kind.
 * **Item pages** (bulk items): the same, with the location the label is for. Item labels show
   name, price per unit (items for sale) and a QR code.
-* **Label IDs (ZAMid):** the **Label** button on a unique item's page and on an ID's info page
-  (`/id/<code>/info/`). On Brother tape the label as designed (logo, QR code, ID; pixel-exact from
-  `inventory/label_ids/labels`, so always in standard resolution: E550W/P750W 9–24 mm, P900
-  series 9–36 mm); on any printer also a plain one (QR code and ID). Batches: the admin action
-  **Print labels** on selected IDs, or `manage.py label_id_labels --batch NAME --print PRINTER
-  [--tape 12]` (the printer's short name); jobs of at most 20 labels. An ID's *printed at* is set
-  once the printer reports the label printed.
+* **Unique items (ZAMid):** the **Label** button on a unique item's page and on an ID's info page
+  (`/id/<code>/info/`) prints the ID's label: "ZAMid" (lettering, QR code, ID) or "ZAMid: QR + ID".
+  Batches: the admin action **Print labels** on selected IDs, or `manage.py label_id_labels --batch
+  NAME --print PRINTER [--tape 12]` (the printer's short name), with the medium's first ZAMid
+  template; jobs of at most 20 labels. An ID's *printed at* is set once the printer reports the
+  label printed. The admin's label ID pages still offer the label as a PNG to download (pixel-exact
+  from `inventory/label_ids/labels`); unique item pages have no label section of their own.
 * **After creating** a box, carton, pallet, shelf or compartments, the new location's page opens
   the dialog right away (`?print=1`) for whoever may print.
 * The previews show the label as the printer gets it, in the tape's colours for Brother tapes
@@ -86,8 +88,8 @@ for removing. The location from the label (`?loc=`) comes first and is marked in
      goes on from there, saving the tape's leading margin. Cut it off with the printer's cutter
      button. Off, the printer feeds and cuts after every job.
 3. **Media** of a printer (inline): choose a label stock, which fills in name, size and tape
-   width, or enter them. The **print quality** set there is the one built-in layouts print in; label
-   templates set their own: *draft (fast)*, *standard*, *high quality (slower)*. Brother: draft printing,
+   width, or enter them. Labels print in the **print quality** of their template (the medium's is
+   only for its test label): *draft (fast)*, *standard*, *high quality (slower)*. Brother: draft printing,
    or high resolution (E550W 180×360, P900 series 360×720 dpi): the label is drawn at twice the
    resolution along the tape, not only printed twice as dense. Zebra: print speed (`^PR6`, the
    printer's own setting, `^PR2`); darkness stays with the medium. Offset and darkness (`^MD`)
@@ -117,7 +119,15 @@ Migration `label_printing.0008` described the ZPL templates there were in the la
 their logo as the label image "ZAM Logo". It also added label ID templates for the Zebra labels in
 use and a location template for 12 mm tape; `0009` price tags for bulk items (price with € in a price tag
 frame, unit, name, QR code) on 60 × 30 mm labels and on 12, 18 and 24 mm tape. A template it did not know gets a plain design and its
-ZPL as comments. Fonts:
+ZPL as comments. `0012` made the templates that replaced the labels drawn in code, each for 57 × 32,
+60 × 30, 70 × 32 and 105 × 52 mm labels and for 9, 12, 18, 24 and 36 mm tape:
+* locations: "QR-Code, Kennung und Ort" (QR code, code, path);
+* bulk items: "Name, Preis und QR-Code";
+* unique items: "ZAMid" (lettering, QR code, ID in two lines; on tape with a margin of at least
+  1 mm at top and bottom) and "ZAMid: QR + ID".
+
+It changed 0008's ZAMid templates and replaced its 12 mm location template only where they were
+unchanged. Fonts:
 * Raleway and Roboto Mono (the ZAMid's),
 * Roboto Condensed (narrow like Zebra's built-in font),
 * OCR-B.

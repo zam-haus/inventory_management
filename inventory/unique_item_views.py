@@ -20,7 +20,7 @@ from django.views.generic import DetailView
 from . import forms
 from .models import Item, Location, UniqueItem
 from .permissions import UNIQUE_ITEM_CREATE_PERMISSIONS, ItemEditorPermissionMixin
-from .label_ids import labels, services
+from .label_ids import services
 from .widgets import NEW_ITEM_PREFIX
 from .label_ids.lookup import active_id, annotate_label_code
 
@@ -44,8 +44,6 @@ class DetailUniqueItemView(DetailView):
             files=list(self.object.files.all()),
             general_files=list(self.object.item.itemfile_set.filter(unique_item__isnull=True)),
             general_files_count=self.object.item.itemfile_set.filter(unique_item__isnull=True).count(),
-            label_profiles=sorted(labels.PROFILES),
-            preview_printer=labels.PREVIEW[0], preview_tape=labels.PREVIEW[1],
             can_view_internal=self.request.user.has_perm(forms.INTERNAL_DETAILS_PERMISSION),
             events=self.object.events.select_related("from_owner_user", "to_owner_user")[:50],
         )

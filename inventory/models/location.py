@@ -315,8 +315,8 @@ class LocationLabelTemplate(models.Model):
 
     class SubjectType(models.TextChoices):
         LOCATION = "location", _("location")
-        ITEM = "item", _("item")
-        LABEL_ID = "labelid", _("label ID")
+        ITEM = "item", _("bulk item")
+        LABEL_ID = "labelid", _("unique item (ZAMid)")
 
     name = models.CharField(_("name"), max_length=128)
     subject_type = models.CharField(_("labels for"), max_length=16, choices=SubjectType.choices,

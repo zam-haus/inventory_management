@@ -143,30 +143,6 @@
             </div>
 
             <div class="item-main">
-                {% if lid %}
-                <section class="item-panel" aria-labelledby="unique-item-label-heading">
-                    <div class="item-panel-heading">
-                        <h2 id="unique-item-label-heading">{% trans "Label" %}</h2>
-                    </div>
-                    <div class="item-panel-body">
-                        {% url 'label_id_label' lid.code as label_url %}
-                        <div class="unique-item-label">
-                            <a href="{{ label_url }}?printer={{ preview_printer }}&amp;tape={{ preview_tape }}">
-                                <img src="{{ label_url }}?printer={{ preview_printer }}&amp;tape={{ preview_tape }}"
-                                     alt="{% blocktrans with code=lid.display %}Label for {{ code }}{% endblocktrans %}">
-                            </a>
-                            <span class="unique-item-code fs-4">{{ lid.display }}</span>
-                        </div>
-                        <p class="item-muted mt-3 mb-1">{% trans "Download for printing (standard resolution, no scaling):" %}</p>
-                        <ul class="unique-item-label-downloads">
-                            {% for printer, tape in label_profiles %}
-                                <li><a href="{{ label_url }}?printer={{ printer }}&amp;tape={{ tape }}" download>PT-{{ printer }} {{ tape }} mm</a></li>
-                            {% endfor %}
-                        </ul>
-                    </div>
-                </section>
-                {% endif %}
-
                 <section class="item-panel" aria-labelledby="unique-item-history-heading">
                     <div class="item-panel-heading"><h2 id="unique-item-history-heading">{% trans "History" %}</h2></div>
                     <ul class="item-panel-body unique-item-history">

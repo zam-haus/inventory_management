@@ -18,9 +18,6 @@
 .unique-item-internal { padding: .05rem .4rem; border-radius: .3rem; background: #fff3cd; color: #664d03; font-size: .7rem; font-weight: 600; text-transform: uppercase; }
 .unique-item-general { padding: .05rem .4rem; border-radius: .3rem; background: #e7f1ff; color: #0a3d7a; font-size: .7rem; font-weight: 600; text-transform: uppercase; }
 .unique-item-files { list-style: none; margin: 0; display: grid; gap: .4rem; }
-.unique-item-label { display: flex; flex-wrap: wrap; align-items: center; gap: 1rem; }
-.unique-item-label img { height: 120px; max-width: 100%; object-fit: contain; outline: 1px solid var(--item-border, #dee2e6); background: #fff; }
-.unique-item-label-downloads { display: flex; flex-wrap: wrap; gap: .25rem .75rem; margin: .75rem 0 0; padding: 0; list-style: none; font-size: .875rem; }
 .unique-item-notice { padding: 1rem 1.2rem; border-radius: .65rem; margin-bottom: 1.5rem; }
 .unique-item-history { list-style: none; margin: 0; }
 .unique-item-history li { padding: .5rem 0; border-top: 1px solid var(--item-border, #dee2e6); }

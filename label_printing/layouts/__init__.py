@@ -1,8 +1,9 @@
 """
 Label layouts: what goes on a label of a subject (location, item, the printer itself for a test).
 
-Every layout draws a 1-bit image for the printer: the built-in ones in code, label templates (inventory's
-LocationLabelTemplate) from their description (layouts/designs.py, label_printing.design).
+Every label is a label template (inventory's LocationLabelTemplate), drawn from its description as a 1-bit image
+for the printer (layouts/designs.py, label_printing.design). Only the admin's test labels for printers are drawn
+in code (test_label.py).
 """
 from dataclasses import dataclass, field
 
@@ -62,13 +63,11 @@ class Layout:
     languages = ("zpl", "ptouch")
     # Drawn pixel-exact for the printer's standard resolution: printed in high quality as standard.
     fixed_resolution = False
-    # Height in dots a label needs at least (raster layouts with a QR code: see render.MIN_QR_DOTS).
-    min_height = 0
     # Its print quality (label templates set it); None: the medium's.
     quality = None
 
     def supports(self, printer, medium):
-        return printer.language in self.languages and Canvas.for_medium(medium).height >= self.min_height
+        return printer.language in self.languages
 
     def render(self, subject, canvas, medium, *, preview=False, user=None):
         """The label for `subject`; a preview must not change anything (e.g. hand out label IDs)."""
@@ -104,5 +103,5 @@ def get_layout(key):
 
 
 # The layouts register themselves.
-from . import item, label_id, location, test_label  # noqa: E402,F401
+from . import test_label  # noqa: E402,F401
 from .designs import template_layout, template_layouts  # noqa: E402

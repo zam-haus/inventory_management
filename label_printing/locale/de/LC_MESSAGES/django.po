@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-24 23:00+0200\n"
+"POT-Creation-Date: 2026-10-24 23:20+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -458,18 +458,10 @@ msgstr "kein ZIP-Archiv"
 msgid "not a PNG, GIF, JPEG or WebP image"
 msgstr "kein PNG-, GIF-, JPEG- oder WebP-Bild"
 
-#: label_printing/layouts/designs.py:96
+#: label_printing/layouts/designs.py:134
 #, python-format
 msgid "Line %(line)s: %(message)s"
 msgstr "Zeile %(line)s: %(message)s"
-
-#: label_printing/layouts/item.py:13
-msgid "Name, price and QR code"
-msgstr "Name, Preis und QR-Code"
-
-#: label_printing/layouts/location.py:21
-msgid "QR code, code and path"
-msgstr "QR-Code, Kennung und Ort"
 
 #: label_printing/layouts/test_label.py:18
 msgid "Test label"
@@ -597,7 +589,8 @@ msgstr "Der Drucker ist im Admin deaktiviert."
 #: label_printing/messages.py:36
 #: label_printing/templates/label_printing/form_attrs.html:16
 msgid "No printer could print it in time, so it was not printed."
-msgstr "Kein Drucker konnte es rechtzeitig drucken, daher wurde es nicht gedruckt."
+msgstr ""
+"Kein Drucker konnte es rechtzeitig drucken, daher wurde es nicht gedruckt."
 
 #: label_printing/messages.py:37
 msgid "What the label was for no longer exists."
@@ -789,7 +782,10 @@ msgid ""
 "Brother: the last label stays in the printer and the next job goes on from "
 "there, which saves tape; cut it off with the printer's cutter button. Off: "
 "the printer feeds and cuts after every job."
-msgstr "Brother: Das letzte Etikett bleibt im Drucker, der nächste Auftrag macht dort weiter, das spart Band; abschneiden mit der Schneidetaste des Druckers. Aus: Der Drucker schiebt vor und schneidet nach jedem Auftrag."
+msgstr ""
+"Brother: Das letzte Etikett bleibt im Drucker, der nächste Auftrag macht "
+"dort weiter, das spart Band; abschneiden mit der Schneidetaste des Druckers. "
+"Aus: Der Drucker schiebt vor und schneidet nach jedem Auftrag."
 
 #: label_printing/models.py:115
 msgid "default printer"
@@ -1394,7 +1390,9 @@ msgstr "Der QR-Code enthält %(id)s und führt zu %(item)s an %(location)s."
 msgid ""
 "The QR code gets a label ID of its own for %(item)s at %(location)s when it "
 "is first printed; the preview shows a placeholder."
-msgstr "Der QR-Code bekommt beim ersten Druck eine eigene Label-ID für %(item)s an %(location)s; die Vorschau zeigt einen Platzhalter."
+msgstr ""
+"Der QR-Code bekommt beim ersten Druck eine eigene Label-ID für %(item)s an "
+"%(location)s; die Vorschau zeigt einen Platzhalter."
 
 #: label_printing/templates/label_printing/form_attrs.html:12
 #, python-format
@@ -1452,7 +1450,9 @@ msgstr[1] "Auch seine Unterorte (%(count)s)"
 msgid ""
 "If no printer can print it now: wait up to %(minutes)s minutes for one (a "
 "printer coming back, the right labels loaded)"
-msgstr "Wenn gerade kein Drucker kann: bis zu %(minutes)s Minuten auf einen warten (ein Drucker wieder da, das passende Material eingelegt)"
+msgstr ""
+"Wenn gerade kein Drucker kann: bis zu %(minutes)s Minuten auf einen warten "
+"(ein Drucker wieder da, das passende Material eingelegt)"
 
 #: label_printing/templates/label_printing/print_page.html:19
 msgid "Back"
@@ -1471,3 +1471,9 @@ msgid ""
 msgstr ""
 "%(width)s × %(height)s Punkte bei %(dpi)s dpi: %(width_mm).1f × "
 "%(height_mm).1f mm"
+
+#~ msgid "Name, price and QR code"
+#~ msgstr "Name, Preis und QR-Code"
+
+#~ msgid "QR code, code and path"
+#~ msgstr "QR-Code, Kennung und Ort"

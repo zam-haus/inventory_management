@@ -58,7 +58,7 @@ class Design:
     """A label: fixed size (width and height in mm), or a height and as long as its content (width None)."""
     width: float | None = None
     height: float | None = None
-    margin: float = 0
+    margin: tuple = (0, 0, 0, 0)  # top, right, bottom, left
     min_length: float | None = None
     max_length: float | None = None
     rotate: int = 0
@@ -116,7 +116,7 @@ SPEC = {
               "options": COMMON},
     "space": {"argument": SIZE, "options": COMMON},
 }
-LABEL_OPTIONS = {"margin": LENGTH, "min": LENGTH, "max": LENGTH, "rotate": choice(0, 180)}
+LABEL_OPTIONS = {"margin": SIDES, "min": LENGTH, "max": LENGTH, "rotate": choice(0, 180)}
 
 
 class LineError(Exception):
@@ -259,7 +259,7 @@ def label(words, design):
     if words[used:used + 1] and words[used][1].lower() == "mm":
         used += 1
     found = options(words[used:], {"options": LABEL_OPTIONS}, "label")
-    design.margin = found.get("margin", 0)
+    design.margin = found.get("margin", (0, 0, 0, 0))
     design.min_length, design.max_length = found.get("min"), found.get("max")
     design.rotate = found.get("rotate", 0)
 

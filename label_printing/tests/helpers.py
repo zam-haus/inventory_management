@@ -1,5 +1,6 @@
 from django.contrib.auth import get_user_model
 
+from inventory.models import LocationLabelTemplate
 from .. import simulator
 from ..models import LabelMedium, Printer
 
@@ -54,3 +55,28 @@ def create_user(username="printer-user", *permissions):
         app_label, codename = codename.split(".")
         user.user_permissions.add(Permission.objects.get(content_type__app_label=app_label, codename=codename))
     return user
+
+
+# The label templates the migrations make for every label size (label_printing 0012): (labels, tape)
+GENERATED = {
+    "location": ("QR-Code, Kennung und Ort {width}x{height}", "QR-Code, Kennung und Ort, Band {tape} mm"),
+    "item": ("Name, Preis und QR-Code {width}x{height}", "Name, Preis und QR-Code, Band {tape} mm"),
+    "labelid": ("ZAMid {width}x{height}", "ZAMid Band {tape} mm"),
+    "labelid_plain": ("ZAMid: QR + ID {width}x{height}", "ZAMid: QR + ID, Band {tape} mm"),
+}
+
+
+def generated(kind, size):
+    """A template of GENERATED for a size key, e.g. generated("location", "tape12") or ("item", "57x32")."""
+    labels, tape = GENERATED[kind]
+    if size.startswith("tape"):
+        name = tape.format(tape=size.removeprefix("tape"))
+    else:
+        width, height = size.split("x")
+        name = labels.format(width=width, height=height)
+    return LocationLabelTemplate.objects.get(name=name)
+
+
+def outcome_key(kind, size):
+    """The print dialog's key of a generated template on labels of that size, e.g. "design:7@tape12"."""
+    return f"design:{generated(kind, size).pk}@{size}"

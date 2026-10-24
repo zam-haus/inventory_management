@@ -11,8 +11,6 @@ MONO = str(FONTS / "RobotoMono%5Bwght%5D.ttf")
 MIN_FONT_PX = 8
 QR_BORDER = 2  # modules of quiet zone; tape and label edges add to it
 MIN_MODULE = 2  # dots per module, below that scanners struggle
-# A version 1 QR code (21 modules, e.g. a label ID) at MIN_MODULE: the least height for a QR layout.
-MIN_QR_DOTS = (21 + 2 * QR_BORDER) * MIN_MODULE
 
 
 @functools.lru_cache(maxsize=512)
@@ -151,15 +149,6 @@ def qr_image(code, max_dots, border=QR_BORDER, min_module=MIN_MODULE, step=1):
                     for x in range(x0, x0 + scale):
                         pixels[x, y] = 0
     return image
-
-
-def inverted_text(image, box, text, path=MONO, weight=700, padding=None):
-    """White text on a black box = (x, y, width, height); returns the font used."""
-    x, y, width, height = box
-    padding = max(1, height // 8) if padding is None else padding
-    ImageDraw.Draw(image).rectangle((x, y, x + width - 1, y + height - 1), fill=0)
-    return text_box(image, (x + padding, y + padding, width - 2 * padding, height - 2 * padding), text, path, weight,
-                    align="center", valign="middle", fill=1)
 
 
 # Colours of label stock (names as on Brother's tape list), for previews.

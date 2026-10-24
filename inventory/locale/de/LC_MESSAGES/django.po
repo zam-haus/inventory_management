@@ -3606,3 +3606,6 @@ msgid ""
 msgstr ""
 "Ihre Etiketten werden in dieser Qualität gedruckt. Brother: Entwurfsdruck oder "
 "doppelte Auflösung entlang des Bands; Zebra: Druckgeschwindigkeit."
+
+msgid "unique item (ZAMid)"
+msgstr "Einzelobjekt (ZAMid)"

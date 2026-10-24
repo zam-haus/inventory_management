@@ -370,7 +370,7 @@ def default_target():
 
 
 def location_layout(location, printer, medium):
-    """The location's own ZPL template or its type's, if offered for the medium; else the first location layout."""
+    """The location's own template or its type's, if offered for the medium; else the first location template."""
     layouts = layouts_for("location", printer, medium)
     preferred = location.label_template_id or location.type.default_label_template_id
     for layout in layouts:

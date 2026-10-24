@@ -20,7 +20,7 @@ from ..label_urls import ItemAt
 from ..image_import import import_images
 from ..layouts import get_layout, layouts_for
 from ..models import LabelImage
-from .helpers import SETTINGS, create_printers, create_user
+from .helpers import GENERATED, SETTINGS, create_printers, create_user, generated
 from .test_dialog import InventoryData
 
 
@@ -63,7 +63,7 @@ class LanguageTests(SimpleTestCase):
                                  '  qr {qr}  ecc Q  max 32\n  column\n    text "Ort: {path}"  size 4  bold  center\n'
                                  'text \'x\'  rotate 270  # trailing comment\n')
         self.assertEqual(problems, [])
-        self.assertEqual((design.width, design.height, design.margin), (105, 52, 1.5))
+        self.assertEqual((design.width, design.height, design.margin), (105, 52, (1.5, 1.5, 1.5, 1.5)))
         row, text = design.children
         self.assertEqual((row.kind, row.options, [child.kind for child in row.children]),
                          ("row", {"gap": 3, "align": "top"}, ["qr", "column"]))
@@ -112,6 +112,14 @@ class LayoutTests(SimpleTestCase):
         # 10 dots per mm: margin 20, box 100, gap 20, fill (130), gap 20, box 25% of 360
         self.assertEqual(blocks(black_columns(image)), [(20, 119), (140, 269), (290, 379)])
         self.assertEqual((black_rows(image)[0], black_rows(image)[-1]), (20, 79))
+
+    def test_label_margin_per_side(self):
+        image, _problems = draw("label 40 x 10  margin 1 3\nbox", dpi=254)  # top and bottom, left and right
+        self.assertEqual((black_rows(image)[0], black_rows(image)[-1]), (10, 89))
+        self.assertEqual((black_columns(image)[0], black_columns(image)[-1]), (30, 369))
+        image, _problems = draw("label 40 x 10  margin 1 2 3 4\nbox", dpi=254)  # top, right, bottom, left
+        self.assertEqual((black_rows(image)[0], black_rows(image)[-1]), (10, 69))
+        self.assertEqual((black_columns(image)[0], black_columns(image)[-1]), (40, 379))
 
     def test_text_then_image_with_a_fixed_gap(self):
         """The image follows the text, however long it is; on a label of fixed length the text shrinks for it."""
@@ -308,6 +316,25 @@ class TemplateTests(InventoryData, TestCase):
                                         preview=True)
             self.assertEqual(rendered.snapshot["price"], "0.15 € / Stk")
         self.assertEqual(rendered.image.height, 128)  # E550W, 24 mm tape
+
+    def test_templates_for_every_label(self):
+        """The migrations' templates: each kind for the Zebra labels in use and every Brother tape width."""
+        from ..layouts.designs import problems_of
+        from ..models import LabelMedium, Printer
+        p900 = Printer.objects.create(name="P900W", slug="p900", language="ptouch", model="P900W", dpi=360,
+                                      host="127.0.0.1")
+        media = {f"tape{width}": LabelMedium.objects.create(printer=p900, name=f"{width} mm", ptouch_tape=width)
+                 for width in (9, 12, 18, 24, 36)}
+        media |= {f"{width}x{height}": LabelMedium.objects.create(printer=self.zebra, name=f"{width}x{height}",
+                                                                  width_mm=width, height_mm=height)
+                  for width, height in ((57, 32), (60, 30), (70, 32), (105, 52))}
+        for kind in GENERATED:
+            for size, medium in media.items():
+                with self.subTest(kind=kind, size=size):
+                    template = generated(kind, size)
+                    self.assertEqual(problems_of(template)[1], [])
+                    self.assertIn(template.name, [str(layout) for layout in
+                                                  layouts_for(template.subject_type, medium.printer, medium)])
 
     def test_mistakes_and_too_small_labels_are_refused(self):
         broken = self.template("label 57 x 32\ntext {nope}")

@@ -9,7 +9,7 @@ from PIL import Image
 from inventory.models import Location, LocationLabelTemplate, LocationType
 from ..layouts import layouts_for
 from ..models import LabelMedium, LabelStock
-from .helpers import SETTINGS, create_printers, create_user
+from .helpers import SETTINGS, create_printers, create_user, generated
 
 
 @override_settings(**SETTINGS)
@@ -72,6 +72,6 @@ class LabelStockTests(TestCase):
         location = Location.objects.create(name="Lager", short_name="WH", type=LocationType.objects.create(name="Room", unique=True))
         self.client.force_login(create_user("p", "label_printing.print_label"))
         response = self.client.get(reverse("print_preview", args=["location", location.pk]),
-                                   {"medium": tape.pk, "layout": "location"})
+                                   {"medium": tape.pk, "layout": f"design:{generated('location', 'tape12').pk}"})
         image = Image.open(BytesIO(response.content)).convert("RGB")
         self.assertEqual(image.getpixel((image.width - 1, 0)), (255, 212, 0))

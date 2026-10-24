@@ -12,9 +12,9 @@ from PIL import Image
 from inventory.numbered_location_views import with_print_dialog
 from inventory.models import Item, ItemLocation, LabelId, Location, LocationLabelTemplate, LocationType, MeasurementUnit
 from .. import dialog, drivers, label_urls, services, simulator
-from ..layouts import Canvas, REGISTRY
-from ..models import PrintJob
-from .helpers import SETTINGS, SimulatedPrinters, create_printers, create_user
+from ..layouts import Canvas, get_layout, layouts_for
+from ..models import LabelMedium, PrintJob
+from .helpers import SETTINGS, SimulatedPrinters, create_printers, create_user, generated, outcome_key
 
 
 class InventoryData:
@@ -39,34 +39,40 @@ class LayoutTests(InventoryData, TestCase):
         cls.create_inventory()
         cls.zebra, cls.labels, cls.brother, cls.tape = create_printers()
 
-    def test_raster_labels_fill_the_medium(self):
-        for medium in (self.labels, self.tape):
+    def layout(self, kind, size):
+        return get_layout(f"design:{generated(kind, size).pk}")
+
+    def test_labels_fill_the_medium(self):
+        for medium, size in ((self.labels, "57x32"), (self.tape, "tape12")):
             canvas = Canvas.for_medium(medium)
-            for key, subject in (("location", self.part), ("item", label_urls.ItemAt(self.item, self.part))):
-                with self.subTest(medium=medium.name, layout=key):
-                    image = REGISTRY[key].render(subject, canvas, medium, preview=True).image
+            for kind, subject in (("location", self.part), ("item", label_urls.ItemAt(self.item, self.part))):
+                with self.subTest(medium=medium.name, kind=kind):
+                    image = self.layout(kind, size).render(subject, canvas, medium, preview=True).image
                     self.assertEqual(image.height, canvas.height)
                     if canvas.width:
                         self.assertEqual(image.width, canvas.width)
 
     def test_labels_too_small_for_a_qr_code_are_not_offered(self):
-        self.tape.ptouch_tape = 6
-        self.assertFalse(REGISTRY["location"].supports(self.brother, self.tape))
-        self.tape.ptouch_tape = 12
-        self.assertTrue(REGISTRY["location"].supports(self.brother, self.tape))
+        tape = LabelMedium.objects.create(printer=self.brother, name="9 mm", ptouch_tape=9)
+        layout = self.layout("labelid", "tape9")
+        self.assertFalse(layout.supports(self.brother, tape))  # 180 dpi: too few dots per module
+        self.assertNotIn(layout.key, [found.key for found in layouts_for("labelid", self.brother, tape)])
+        self.brother.model, self.brother.dpi = "P900W", 360
+        self.assertTrue(layout.supports(self.brother, tape))
 
     def test_location_label_holds_its_code(self):
-        rendered = REGISTRY["location"].render(self.part, Canvas.for_medium(self.labels), self.labels)
+        rendered = self.layout("location", "57x32").render(self.part, Canvas.for_medium(self.labels), self.labels)
         self.assertEqual(rendered.label_code, "R303.a")
         self.assertEqual(rendered.snapshot["qr"], "HTTPS://I.ZAM.HAUS/R303.A")
 
     def test_item_label_gets_a_label_id_once(self):
         subject = label_urls.ItemAt(self.item, self.part)
         canvas = Canvas.for_medium(self.labels)
-        preview = REGISTRY["item"].render(subject, canvas, self.labels, preview=True)
+        layout = self.layout("item", "57x32")
+        preview = layout.render(subject, canvas, self.labels, preview=True)
         self.assertEqual((preview.label_code, LabelId.objects.count()), (label_urls.PREVIEW_CODE, 0))
-        first = REGISTRY["item"].render(subject, canvas, self.labels)
-        again = REGISTRY["item"].render(subject, canvas, self.labels)
+        first = layout.render(subject, canvas, self.labels)
+        again = layout.render(subject, canvas, self.labels)
         lid = LabelId.objects.get()
         self.assertEqual((first.label_code, again.label_code), (lid.code, lid.code))
         self.assertEqual(lid.url, f"https://inv.zam.haus/item/{self.item.pk}?loc={self.part.pk}")
@@ -74,12 +80,12 @@ class LayoutTests(InventoryData, TestCase):
         self.assertEqual(first.snapshot["price"], "0.15 € / Stk")
         self.assertEqual(first.snapshot["qr"], f"HTTPS://I.ZAM.HAUS/{lid.code}")
         # Another location is another label.
-        REGISTRY["item"].render(label_urls.ItemAt(self.item, self.other_part), canvas, self.labels)
+        layout.render(label_urls.ItemAt(self.item, self.other_part), canvas, self.labels)
         self.assertEqual(LabelId.objects.count(), 2)
 
     def test_zebra_raster_size(self):
-        job = services.submit(printer=self.zebra, medium=self.labels, layout_key="location", subject_type="location",
-                              subjects=[self.part])
+        job = services.submit(printer=self.zebra, medium=self.labels, layout_key=f"design:{generated('location', '57x32').pk}",
+                              subject_type="location", subjects=[self.part])
         self.assertIn(f"^PW{drivers.mm_to_dots(57, 203)}^LL{drivers.mm_to_dots(32, 203)}", bytes(job.payload).decode())
 
 
@@ -109,11 +115,12 @@ class PrintDialogTests(SimulatedPrinters, InventoryData, TestCase):
         self.assertContains(response, 'id="label-print-modal"')
         self.assertContains(response, '"printer": "Zebra Lager"')
         self.assertContains(response, f'"key": "design:{self.template.pk}@57x32"')
-        self.assertContains(response, '"key": "location@tape12"')
+        self.assertContains(response, f'"key": "{outcome_key("location", "tape12")}"')
         self.assertContains(response, "Also its sub-locations (2)")
 
     def test_print_a_location_and_its_compartments(self):
-        response = self.post("location", self.shelf, {"outcome": "location@tape12", "copies": 1, "children": "on",
+        response = self.post("location", self.shelf, {"outcome": outcome_key("location", "tape12"), "copies": 1,
+                                                      "children": "on",
                                                       "request_id": str(uuid4())})
         data = response.json()
         self.assertTrue(data["ok"], data)
@@ -125,11 +132,11 @@ class PrintDialogTests(SimulatedPrinters, InventoryData, TestCase):
         self.assertEqual((status["status"], status["message"]), ("done", "printed"))
 
     def test_print_an_item_label(self):
-        type(self.labels).objects.filter(pk=self.labels.pk).update(quality="draft")
-        data = self.post("item", self.item, {"outcome": "item@57x32", "copies": 2, "location": self.part.pk}).json()
+        data = self.post("item", self.item, {"outcome": outcome_key("item", "57x32"), "copies": 2,
+                                             "location": self.part.pk}).json()
         job = PrintJob.objects.get(pk=data["job"]["id"])
-        # Built-in layouts print in the medium's quality
-        self.assertEqual((job.subject_type, job.subject_id, job.copies, job.quality), ("item", self.item.pk, 2, "draft"))
+        self.assertEqual((job.subject_type, job.subject_id, job.copies, job.quality),
+                         ("item", self.item.pk, 2, "standard"))  # the template's quality
         self.assertEqual(job.snapshot[0]["location"], "R303.a")
         self.assertEqual(job.label_code, LabelId.objects.get().code)
         # The dialog says the QR code of each location now has its label ID
@@ -139,9 +146,9 @@ class PrintDialogTests(SimulatedPrinters, InventoryData, TestCase):
 
     def test_errors_are_shown_in_the_dialog(self):
         cases = [
-            ({"outcome": "location@tape24", "copies": 1}, "outcome"),
-            ({"outcome": "item@57x32", "copies": 1}, "outcome"),
-            ({"outcome": "location@57x32", "copies": 99}, "copies"),
+            ({"outcome": outcome_key("location", "tape24"), "copies": 1}, "outcome"),
+            ({"outcome": outcome_key("item", "57x32"), "copies": 1}, "outcome"),
+            ({"outcome": f"design:{self.template.pk}@57x32", "copies": 99}, "copies"),
         ]
         for data, field in cases:
             with self.subTest(field=field):
@@ -152,7 +159,7 @@ class PrintDialogTests(SimulatedPrinters, InventoryData, TestCase):
 
     def test_printer_errors_come_back_with_the_job(self):
         self.brother_state.tape_mm = 24
-        data = self.post("location", self.part, {"outcome": "location@tape12", "copies": 1}).json()
+        data = self.post("location", self.part, {"outcome": outcome_key("location", "tape12"), "copies": 1}).json()
         # In the test's transaction the job starts after the answer; the dialog then follows it.
         status = self.client.get(reverse("print_job_status", args=[data["job"]["id"]])).json()
         self.assertEqual((status["status"], status["message"]), ("failed", "24 mm tape is loaded, but 12 mm was chosen."))
@@ -169,7 +176,8 @@ class PrintDialogTests(SimulatedPrinters, InventoryData, TestCase):
 
     def test_preview(self):
         url = reverse("print_preview", args=["item", self.item.pk])
-        response = self.client.get(url, {"medium": self.tape.pk, "layout": "item", "location": self.part.pk})
+        response = self.client.get(url, {"medium": self.tape.pk, "layout": f"design:{generated('item', 'tape12').pk}",
+                                         "location": self.part.pk})
         self.assertEqual(response["Content-Type"], "image/png")
         image = Image.open(BytesIO(response.content))
         self.assertEqual(image.height, drivers.ptouch_print_pins("E550W", 12))
@@ -239,8 +247,9 @@ class OutdatedLabelsTests(InventoryData, TestCase):
         return PrintJob.objects.get(pk=job.pk)
 
     def test_changed_codes_names_and_prices(self):
-        location_job = self.print_job("location", [self.part], "location")
-        item_job = self.print_job("item", [label_urls.ItemAt(self.item, self.part)], "item")
+        location_job = self.print_job("location", [self.part], f"design:{generated('location', '57x32').pk}")
+        item_job = self.print_job("item", [label_urls.ItemAt(self.item, self.part)],
+                                  f"design:{generated('item', '57x32').pk}")
         self.assertEqual((services.outdated_reasons(location_job), services.outdated_reasons(item_job)), ([], []))
         self.shelf.short_name = "R304"
         self.shelf.save()
@@ -266,25 +275,27 @@ class QualityChoiceTests(InventoryData, TestCase):
     def setUpTestData(cls):
         cls.create_inventory()
         cls.zebra, cls.labels, cls.brother, cls.tape = create_printers()
+        cls.on_tape = f"design:{generated('location', 'tape12').pk}"
+        cls.on_labels = f"design:{generated('location', '57x32').pk}"
 
     def test_high_quality_location_label_on_tape(self):
-        job = services.submit(printer=self.brother, medium=self.tape, layout_key="location", subject_type="location",
+        job = services.submit(printer=self.brother, medium=self.tape, layout_key=self.on_tape, subject_type="location",
                               subjects=[self.part], quality="high")
-        standard = services.submit(printer=self.brother, medium=self.tape, layout_key="location",
+        standard = services.submit(printer=self.brother, medium=self.tape, layout_key=self.on_tape,
                                    subject_type="location", subjects=[self.part])
         self.assertEqual((job.quality, standard.quality), ("high", "standard"))
         high_page, = simulator.decode_brother(bytes(job.payload))
         standard_page, = simulator.decode_brother(bytes(standard.payload))
         self.assertEqual(high_page.height, standard_page.height)
-        self.assertAlmostEqual(high_page.width, 2 * standard_page.width, delta=4)
+        # Twice the dots along the tape; QR modules snap to whole dots at either resolution
+        self.assertAlmostEqual(high_page.width, 2 * standard_page.width, delta=standard_page.width * 0.1)
 
-    def test_medium_preselects_the_quality(self):
-        self.labels.quality = "high"
-        self.labels.save()
-        job = services.submit(printer=self.zebra, medium=self.labels, layout_key="location", subject_type="location",
+    def test_the_template_sets_the_quality(self):
+        LocationLabelTemplate.objects.filter(pk=generated("location", "57x32").pk).update(quality="high")
+        job = services.submit(printer=self.zebra, medium=self.labels, layout_key=self.on_labels, subject_type="location",
                               subjects=[self.part])
         self.assertEqual(job.quality, "high")
         self.assertIn("^PR2", bytes(job.payload).decode())
         with self.assertRaises(services.PrintError):
-            services.submit(printer=self.zebra, medium=self.labels, layout_key="location", subject_type="location",
+            services.submit(printer=self.zebra, medium=self.labels, layout_key=self.on_labels, subject_type="location",
                             subjects=[self.part], quality="best")

@@ -10,7 +10,7 @@ from inventory.models import LocationLabelTemplate
 from .. import dialog, outcomes, services
 from ..devices.run import DONE, Result
 from ..models import LabelMedium, PrintAgent, Printer, PrintJob
-from .helpers import SETTINGS, create_printers, create_user
+from .helpers import SETTINGS, create_printers, create_user, outcome_key
 from .test_dialog import InventoryData
 
 TAPE_24 = {"ok": True, "errors": [], "media_width_mm": 24}
@@ -23,6 +23,7 @@ class OutcomeTests(InventoryData, TestCase):
     def setUpTestData(cls):
         cls.create_inventory()
         cls.zebra, cls.labels, cls.brother, cls.tape = create_printers()
+        cls.on_tape, cls.on_labels = outcome_key("location", "tape12"), outcome_key("location", "57x32")
         cls.template = LocationLabelTemplate.objects.create(name="Fach", description="label 57 x 32\ntext {code}")
         cls.user = create_user("printing", "label_printing.print_label")
 
@@ -32,23 +33,22 @@ class OutcomeTests(InventoryData, TestCase):
     def test_labels_instead_of_printers(self):
         found = self.found()
         self.assertEqual(list(found)[0], f"design:{self.template.pk}@57x32")  # templates first
-        self.assertIn("location@tape12", found)
-        self.assertEqual((found["location@tape12"].target().printer, found["location@tape12"].size),
-                         (self.brother, "12 mm tape"))
-        self.assertEqual(found["location@57x32"].size, "57 × 32 mm labels")
+        self.assertIn(self.on_tape, found)
+        self.assertEqual((found[self.on_tape].target().printer, found[self.on_tape].size), (self.brother, "12 mm tape"))
+        self.assertEqual(found[self.on_labels].size, "57 × 32 mm labels")
 
     def test_greyed_with_the_reason(self):
         Printer.objects.filter(pk=self.zebra.pk).update(is_active=False)
         self.brother.remember_status(TAPE_24)
         found = self.found()
-        self.assertNotIn("location@57x32", found)  # inactive printers offer nothing
-        tape = found["location@tape12"]
+        self.assertNotIn(self.on_labels, found)  # inactive printers offer nothing
+        tape = found[self.on_tape]
         self.assertEqual((tape.target(), tape.why_not, tape.can_wait), (None, "Loaded: 24 mm tape.", True))
         # A template for labels no printer has: shown, not printable, no printer to wait for
         template = found[f"design:{self.template.pk}"]
         self.assertEqual((template.why_not, template.can_wait), ("No printer has labels of this size.", False))
         options = dialog.options("location", self.part)
-        item = next(item for item in options["outcomes"] if item["key"] == "location@tape12")
+        item = next(item for item in options["outcomes"] if item["key"] == self.on_tape)
         self.assertEqual((item["printer"], item["reason"], item["can_wait"]), ("", "Loaded: 24 mm tape.", True))
         self.assertIn(f"medium={self.tape.pk}", item["preview"])  # previewed as it would print
         self.assertEqual(dialog.unavailable_reason(options), "")  # the dialog opens: labels may wait
@@ -57,11 +57,11 @@ class OutcomeTests(InventoryData, TestCase):
         other = Printer.objects.create(name="P-touch Lager", slug="ptouch2", language="ptouch", model="E550W", dpi=180,
                                        host="127.0.0.1", is_default=True)
         LabelMedium.objects.create(printer=other, name="12 mm", ptouch_tape=12)
-        self.assertEqual(self.found()["location@tape12"].target().printer, other)  # the default printer first
+        self.assertEqual(self.found()[self.on_tape].target().printer, other)  # the default printer first
         other.remember_status(TAPE_24)
-        self.assertEqual(self.found()["location@tape12"].target().printer, self.brother)
+        self.assertEqual(self.found()[self.on_tape].target().printer, self.brother)
         Printer.objects.filter(pk=self.brother.pk).update(last_status={"ok": False, "errors": ["cover_open"]})
-        self.assertEqual(self.found()["location@tape12"].why_not, "Loaded: 24 mm tape.")
+        self.assertEqual(self.found()[self.on_tape].why_not, "Loaded: 24 mm tape.")
 
     def test_nothing_set_up(self):
         Printer.objects.all().delete()
@@ -76,6 +76,7 @@ class WaitingTests(InventoryData, TestCase):
     def setUpTestData(cls):
         cls.create_inventory()
         cls.zebra, cls.labels, cls.brother, cls.tape = create_printers()
+        cls.on_tape, cls.on_labels = outcome_key("location", "tape12"), outcome_key("location", "57x32")
         cls.user = create_user("printing", "label_printing.print_label")
 
     def setUp(self):
@@ -94,11 +95,11 @@ class WaitingTests(InventoryData, TestCase):
 
     def test_waits_until_the_right_tape_is_loaded(self):
         self.brother.remember_status(TAPE_24)
-        response = self.post({"outcome": "location@tape12", "copies": 1})
+        response = self.post({"outcome": self.on_tape, "copies": 1})
         self.assertEqual(response.json()["errors"]["outcome"][0]["message"], "Loaded: 24 mm tape.")
-        data = self.post({"outcome": "location@tape12", "copies": 1, "wait": "on"}).json()
+        data = self.post({"outcome": self.on_tape, "copies": 1, "wait": "on"}).json()
         job = PrintJob.objects.get(pk=data["job"]["id"])
-        self.assertEqual((job.status, job.printer, job.payload, job.outcome), ("waiting", None, None, "location@tape12"))
+        self.assertEqual((job.status, job.printer, job.payload, job.outcome), ("waiting", None, None, self.on_tape))
         self.assertTrue(data["job"]["message"].startswith("Waiting for a printer that can print it, until "))
         url = reverse("print_job_status", args=[job.pk])
         # The dialog asks …
@@ -122,10 +123,11 @@ class WaitingTests(InventoryData, TestCase):
         agent.save()
         printer = Printer.objects.create(name="USB", slug="usb", uid="usb-1", language="zpl", dpi=203,
                                          transport="agent", agent=agent)
-        LabelMedium.objects.create(printer=printer, name="50 × 30", width_mm=50, height_mm=30)
+        LabelMedium.objects.create(printer=printer, name="60 × 30", width_mm=60, height_mm=30)
         found = {outcome.key: outcome for outcome in outcomes.outcomes("location")}
-        self.assertEqual(found["location@50x30"].why_not, "The print agent of this printer is offline.")
-        job = services.submit_outcome(found["location@50x30"], subject_type="location", subjects=[self.part],
+        on_usb = outcome_key("location", "60x30")
+        self.assertEqual(found[on_usb].why_not, "The print agent of this printer is offline.")
+        job = services.submit_outcome(found[on_usb], subject_type="location", subjects=[self.part],
                                       user=self.user, wait=True)
         self.assertEqual(job.status, "waiting")
         answer = self.client.post(reverse("print_agent_poll"), {}, content_type="application/json",
@@ -137,7 +139,7 @@ class WaitingTests(InventoryData, TestCase):
     def test_expires_unprinted(self):
         self.brother.remember_status(TAPE_24)
         found = {outcome.key: outcome for outcome in outcomes.outcomes("location")}
-        job = services.submit_outcome(found["location@tape12"], subject_type="location", subjects=[self.part],
+        job = services.submit_outcome(found[self.on_tape], subject_type="location", subjects=[self.part],
                                       user=self.user, wait=True)
         PrintJob.objects.filter(pk=job.pk).update(expires_at=timezone.now() - timedelta(seconds=1))
         status = self.client.get(reverse("print_job_status", args=[job.pk])).json()
@@ -154,7 +156,7 @@ class WaitingTests(InventoryData, TestCase):
         from django.core.cache import cache
         cache.delete("label_printing:dispatch_scheduled")
         self.brother.remember_status(TAPE_24)
-        outcome = {outcome.key: outcome for outcome in outcomes.outcomes("location")}["location@tape12"]
+        outcome = {outcome.key: outcome for outcome in outcomes.outcomes("location")}[self.on_tape]
         with override_settings(CELERY_TASK_ALWAYS_EAGER=False), \
                 patch("label_printing.tasks.dispatch_waiting_jobs.apply_async") as schedule, \
                 self.captureOnCommitCallbacks(execute=True):
@@ -173,6 +175,6 @@ class WaitingTests(InventoryData, TestCase):
 
     def test_printable_labels_print_at_once(self):
         with patch("label_printing.services.process"):
-            data = self.post({"outcome": "location@57x32", "copies": 1, "wait": "on"}).json()
+            data = self.post({"outcome": self.on_labels, "copies": 1, "wait": "on"}).json()
         job = PrintJob.objects.get(pk=data["job"]["id"])
         self.assertEqual((job.status, job.printer), ("pending", self.zebra))

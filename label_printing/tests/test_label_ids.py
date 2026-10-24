@@ -4,15 +4,14 @@ from django.contrib.auth import get_user_model
 from django.core.management import CommandError, call_command
 from django.test import TestCase, override_settings
 from django.urls import reverse
-from PIL import ImageChops
-
-from inventory.label_ids import labels, services as label_ids
+from inventory.label_ids import services as label_ids
 from inventory.label_ids.testing import make_id
 from inventory.models import Item, LabelId, Location, LocationType, MeasurementUnit, UniqueItem
-from .. import services, simulator
-from ..layouts import REGISTRY, Canvas, layouts_for
+from .. import services
+from ..design import parse
+from ..layouts import Canvas, get_layout, layouts_for
 from ..models import LabelMedium, PrintJob
-from .helpers import SETTINGS, SimulatedPrinters, create_printers, create_user
+from .helpers import SETTINGS, SimulatedPrinters, create_printers, create_user, generated, outcome_key
 
 
 @override_settings(**SETTINGS)
@@ -22,31 +21,32 @@ class LabelIdLayoutTests(TestCase):
         cls.zebra, cls.labels, cls.brother, cls.tape = create_printers()
         cls.lid = make_id("K7R4X")
 
-    def test_designed_label_on_brother_tape_only(self):
-        self.assertEqual([layout.key for layout in layouts_for("labelid", self.brother, self.tape)],
-                         ["labelid", "labelid_plain"])
-        self.assertEqual([layout.key for layout in layouts_for("labelid", self.zebra, self.labels)], ["labelid_plain"])
-        wide = LabelMedium(printer=self.brother, name="36", ptouch_tape=36)  # the E550W has no 36 mm profile
-        self.assertFalse(REGISTRY["labelid"].supports(self.brother, wide))
+    def names(self, printer, medium):
+        return [layout.name for layout in layouts_for("labelid", printer, medium)]
 
-    def test_designed_label_is_the_downloadable_one(self):
-        rendered = REGISTRY["labelid"].render(self.lid, Canvas.for_medium(self.tape), self.tape)
-        expected = labels.image(self.lid.code, "E550W", 12)
-        self.assertIsNone(ImageChops.difference(rendered.image.convert("L"), expected.convert("L")).getbbox())
-        self.assertEqual(rendered.snapshot["qr"], f"HTTPS://I.ZAM.HAUS/{self.lid.code}")
+    def test_zamid_templates_for_every_label(self):
+        self.assertEqual(self.names(self.brother, self.tape), ["ZAMid Band 12 mm", "ZAMid: QR + ID, Band 12 mm"])
+        self.assertEqual(self.names(self.zebra, self.labels), ["ZAMid 57x32", "ZAMid: QR + ID 57x32"])
+        wide = LabelMedium.objects.create(printer=self.brother, name="36", ptouch_tape=36)
+        self.assertEqual(self.names(self.brother, wide), [])  # the E550W has no 36 mm profile
 
-    def test_plain_label_fills_the_medium(self):
-        for medium in (self.labels, self.tape):
+    def test_zamid_on_every_tape_width_with_a_margin(self):
+        for tape in (9, 12, 18, 24, 36):
+            with self.subTest(tape=tape):
+                design, problems = parse(generated("labelid", f"tape{tape}").description)
+                top, _right, bottom, _left = design.margin
+                self.assertEqual((problems, design.height, design.width), ([], tape, None))
+                self.assertGreaterEqual(min(top, bottom), 1)
+
+    def test_labels_fill_the_medium(self):
+        for medium, size in ((self.labels, "57x32"), (self.tape, "tape12")):
             canvas = Canvas.for_medium(medium)
-            image = REGISTRY["labelid_plain"].render(self.lid, canvas, medium).image
-            self.assertEqual(image.height, canvas.height)
-
-    def test_designed_label_is_never_printed_in_high_resolution(self):
-        job = services.submit(printer=self.brother, medium=self.tape, layout_key="labelid", subject_type="labelid",
-                              subjects=[self.lid], quality="high")
-        self.assertEqual(job.quality, "standard")
-        page, = simulator.decode_brother(bytes(job.payload))
-        self.assertEqual(page.width, labels.image(self.lid.code, "E550W", 12).width)
+            for kind in ("labelid", "labelid_plain"):
+                with self.subTest(medium=medium.name, kind=kind):
+                    rendered = get_layout(f"design:{generated(kind, size).pk}").render(self.lid, canvas, medium)
+                    self.assertEqual(rendered.image.height, canvas.height)
+                    self.assertEqual((rendered.label_code, rendered.snapshot["qr"]),
+                                     (self.lid.code, f"HTTPS://I.ZAM.HAUS/{self.lid.code}"))
 
 
 @override_settings(**SETTINGS)
@@ -60,6 +60,7 @@ class LabelIdPrintingTests(SimulatedPrinters, TestCase):
                                                     location=room)
         cls.lid = label_ids.generate_and_claim(cls.unique_item, None)
         cls.user = create_user("printing", "label_printing.print_label", "inventory.view_labelid")
+        cls.zamid = f"design:{generated('labelid', 'tape12').pk}"
 
     def setUp(self):
         super().setUp()
@@ -67,7 +68,7 @@ class LabelIdPrintingTests(SimulatedPrinters, TestCase):
 
     def test_printed_at_is_set_once_printed(self):
         with self.captureOnCommitCallbacks(execute=True):
-            job = services.submit(printer=self.brother, medium=self.tape, layout_key="labelid",
+            job = services.submit(printer=self.brother, medium=self.tape, layout_key=self.zamid,
                                   subject_type="labelid", subjects=[self.lid])
         job.refresh_from_db()
         self.assertEqual(job.status, "done")
@@ -76,15 +77,15 @@ class LabelIdPrintingTests(SimulatedPrinters, TestCase):
         self.assertEqual(len(self.brother_output.printed), 1)
 
     def test_reprint(self):
-        job = services.submit(printer=self.brother, medium=self.tape, layout_key="labelid", subject_type="labelid",
+        job = services.submit(printer=self.brother, medium=self.tape, layout_key=self.zamid, subject_type="labelid",
                               subjects=[self.lid])
         again = services.reprint(job)
-        self.assertEqual((again.label_code, again.layout_key, again.pages), (self.lid.code, "labelid", 1))
+        self.assertEqual((again.label_code, again.layout_key, again.pages), (self.lid.code, self.zamid, 1))
 
     def test_failed_print_is_not_printed(self):
         self.brother_state.errors = ["cover_open"]
         with self.captureOnCommitCallbacks(execute=True):
-            services.submit(printer=self.brother, medium=self.tape, layout_key="labelid", subject_type="labelid",
+            services.submit(printer=self.brother, medium=self.tape, layout_key=self.zamid, subject_type="labelid",
                             subjects=[self.lid])
         self.lid.refresh_from_db()
         self.assertIsNone(self.lid.printed_at)
@@ -101,11 +102,11 @@ class LabelIdPrintingTests(SimulatedPrinters, TestCase):
         url = reverse("print_labels", args=["labelid", self.lid.code])
         self.assertContains(self.client.get(url), self.lid.display)
         with self.captureOnCommitCallbacks(execute=True):
-            response = self.client.post(url, {"outcome": "labelid@tape12", "copies": 2})
+            response = self.client.post(url, {"outcome": outcome_key("labelid", "tape12"), "copies": 2})
         self.assertRedirects(response, reverse("label_id_info", args=[self.lid.code]), fetch_redirect_response=False)
         self.assertEqual(len(self.brother_output.printed), 2)
         preview = self.client.get(reverse("print_preview", args=["labelid", self.lid.code]),
-                                  {"medium": self.tape.pk, "layout": "labelid"})
+                                  {"medium": self.tape.pk, "layout": self.zamid})
         self.assertEqual(preview["Content-Type"], "image/png")
         self.assertEqual(self.client.get(reverse("print_labels", args=["labelid", "NOPE00"])).status_code, 404)
 

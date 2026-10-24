@@ -36,7 +36,7 @@ text "Eigentum Betreiberverein ZAM e.V."  font condensed  bold  center  height 4
 |---|---|
 | `label W x H` | fixed size, width × height in mm |
 | `label height H` | as long as the content (Brother tape) |
-| `margin M` | white border on all sides |
+| `margin M` | white border: `margin 1` on all sides, `margin 1 2` top and bottom, left and right, `margin 1 2 1 0` top, right, bottom, left |
 | `min L`, `max L` | shortest and longest length of a label without width |
 | `rotate 180` | print upside down |
 
@@ -154,7 +154,9 @@ A template is designed for a label size and prints only on labels of that size, 
 no resolution in a template):
 * Zebra labels of its width and height, within a millimetre (labels of unknown size: none);
 * Brother tape as wide as its height. Endless tape takes templates of any length; a medium with a
-  label length only templates of that length.
+  label length only templates of that length;
+* and only where its QR codes come out big enough to scan at the printer's resolution, tried with a
+  sample record of typical length: 9 mm tape templates, for example, are not offered on the E550W (180 dpi).
 
 Media offer the fitting templates of the kind being printed. If templates are chosen for a medium (or for
 its label stock), only those are offered.

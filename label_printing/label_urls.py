@@ -84,5 +84,11 @@ def item_snapshot(subject, code):
             "code": code, "qr": label_id_content(code)}
 
 
+def label_id_snapshot(lid):
+    target = lid.target
+    return {"type": "labelid", "code": lid.code, "status": lid.status,
+            "target": str(lid.url or target or ""), "qr": label_id_content(lid.code)}
+
+
 def display(code):
     return core.display(code)

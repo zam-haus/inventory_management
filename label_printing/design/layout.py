@@ -129,8 +129,8 @@ def text_layout(element, context, width, height):
         if width is not None:
             lines[-1] = render.ellipsize(loaded, lines[-1], max(1, width - 2 * padding)) if len(lines) == 1 else lines[-1]
         return loaded, lines, padding
-    if height is None:
-        height = context.dots(element.get("size", DEFAULT_TEXT_MM)) if width is None else context.dots(DEFAULT_TEXT_MM)
+    if height is None:  # as large as fits the width in one line (a turned name along a tape's height)
+        height = context.dots(element.get("size", DEFAULT_TEXT_MM)) if width is None else width
     padding = text_padding(element, height, context)
     inner_height = max(1, height - 2 * padding)
     max_size = context.dots(element.get("size")) if "size" in element.options else None
@@ -148,8 +148,8 @@ def text_natural(element, context, width, height):
     loaded, lines, padding = text_layout(element, context, width, height)
     natural_width = max((round(render.text_width(loaded, line)) for line in lines), default=0) + 2 * padding
     natural_height = len(lines) * render.line_height(loaded) + 2 * padding
-    if height is not None and "size" not in element.options:
-        natural_height = height
+    if height is not None:
+        natural_height = min(natural_height, height)
     if width is not None:
         natural_width = min(natural_width, width)
     return (natural_height, natural_width) if rotated else (natural_width, natural_height)
@@ -513,21 +513,21 @@ def draw(element, context, image, x, y, width, height, horizontal=False):
 def render_design(design, context, width=None, height=None):
     """The label as a 1-bit image: width × height dots (the printer's label), or the design's size; a label
     without width is as long as its content (within its min and max length)."""
-    margin = context.dots(design.margin)
+    top, right, bottom, left = (context.dots(side) for side in design.margin)
     height = height or context.dots(design.height)
     if width is None and design.width:
         width = context.dots(design.width)
     root = Element("column", 0, options={"align": "left"}, children=design.children)
-    inner_height = max(0, height - 2 * margin)
+    inner_height = max(0, height - top - bottom)
     if width is None:
         _placed, inner_width, _height = arrange(root, context, None, inner_height)
-        width = inner_width + 2 * margin
+        width = inner_width + left + right
         if design.max_length and width > context.dots(design.max_length):
             width = context.dots(design.max_length)
         if design.min_length:
             width = max(width, context.dots(design.min_length))
     image = render.blank(width, height)
-    draw(root, context, image, margin, margin, max(0, width - 2 * margin), inner_height)
+    draw(root, context, image, left, top, max(0, width - left - right), inner_height)
     if design.rotate:
         image = image.rotate(design.rotate)
     return image
