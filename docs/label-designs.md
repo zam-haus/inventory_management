@@ -51,6 +51,8 @@ The label itself lays out its elements like a column, from top to bottom.
   * what its content needs (`auto`), the default for text with a `size`, QR codes, images and lines;
   * a share of what is left (`fill`), the default otherwise. Several fill elements share equally. On a
     label without width, fill means auto.
+* **Text** in a row is as wide as it needs at the height it gets (shrinking if the row is too short);
+  in a column, texts without a size share the height.
 * **Across**, an element fills the row or column unless its width or height is given; the row or
   column then places it by its `align`.
 * **`at X Y`** places an element X mm from the left and Y mm from the top of its row or column (or of
@@ -61,8 +63,11 @@ The label itself lays out its elements like a column, from top to bottom.
 | Option | Row | Column |
 |---|---|---|
 | `gap G` | space between the elements | space between the elements |
-| `padding P` | white border inside | white border inside |
-| `align …` | `top`, `middle` (default), `bottom` | `left`, `center` (default), `right` |
+| `align …` | across: `top`, `middle` (default), `bottom` | across: `left`, `center` (default), `right` |
+| `justify …` | along, if there is room left: `start` (default), `center`, `end` | the same |
+| `padding P` | white inside, 1, 2 or 4 lengths like `margin` | the same |
+| `border B` | a frame of this thickness | the same |
+| `shape …` | of the frame: `rect` (default), `round` (`radius R`), `bulge` (left and right side arched outwards like a price tag; `bulge D` how far, default a fifth of the height) | the same |
 | `width`, `height` | its own size within its parent | its own size within its parent |
 
 Every element, and rows and columns too, takes **`margin`**: white around its content, inside the room the
@@ -134,6 +139,7 @@ Which `{fields}` a template may use depends on what it is for; the template page
 |---|---|---|
 | `{code}` WH-1.R303.a | `{name}` | `{id}` K7R-4XD |
 | `{qr}` the code via the label host | `{price}` 0,15 € / Stk (items for sale) | `{id1}` K7R, `{id2}` 4XD |
+| | `{amount}` 0,15 (just the price) | |
 | `{name}` | `{qr}` its label ID, leading to the item at the location | `{qr}` the ID via the label host |
 | `{path}` where it is, with codes | `{location}` the location's code | `{idname}` ZAMid |
 | `{purpose}` | `{id}` the label ID as printed | `{target}` what the ID belongs to |
@@ -174,6 +180,19 @@ row  gap 1.5
     text {id1}  font mono  bold  center
     line  thickness 0.8  width 40%
     text {id2}  font mono  bold  center
+```
+
+A price tag for bulk items on 24 mm tape (template "Preisschild Band 24 mm"): the name, below it the price
+and the QR code.
+
+```
+label height 24  margin 0.5
+text {name}  font condensed  bold  height 30%
+row  gap 2  margin 0.5 0 0 0
+  row  border 0.5  shape bulge  padding 0.3 0  width auto
+    text "€ {amount}"  font condensed  bold
+    text "/ {unit}"  font condensed  height 40%  margin 0 0 0 1  bottom
+  qr {qr}  ecc M
 ```
 
 A fixed shelf label with an arrow pointing up to the shelf:

@@ -26,6 +26,7 @@ FIELDS = {
     "item": [
         Field("name", _("the item's name")),
         Field("price", _("price per unit for items for sale, e.g. 0,15 € / Stk; else empty")),
+        Field("amount", _("just the price, e.g. 0,15; else empty")),
         Field("qr", _("for QR codes: its label ID, leading to the item at the location")),
         Field("location", _("the location's code")),
         Field("id", _("the label ID as printed, e.g. K7R-4XD")),
@@ -54,7 +55,8 @@ def location_values(location):
 
 def item_values(subject, code):
     item = subject.item
-    return {"name": item.name, "price": label_urls.price_text(item), "qr": label_urls.label_id_content(code),
+    return {"name": item.name, "price": label_urls.price_text(item), "amount": label_urls.price_amount(item),
+            "qr": label_urls.label_id_content(code),
             "location": subject.location.unique_identifier if subject.location else "",
             "id": label_urls.display(code), "unit": item.measurement_unit.short}
 

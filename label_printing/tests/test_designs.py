@@ -155,6 +155,26 @@ class LayoutTests(SimpleTestCase):
                          "“margin” takes 1, 2 or 4 lengths in mm: all sides; top and bottom, left and right; top, "
                          "right, bottom, left.")
 
+    def test_frames_justify_and_padding(self):
+        image, _problems = draw("label 40 x 10\nrow  border 0.5  shape bulge  bulge 2\n  space", dpi=254)
+        self.assertEqual((image.getpixel((0, 50)), image.getpixel((2, 2)), image.getpixel((200, 2))), (0, 1, 0))
+        self.assertEqual(image.getpixel((200, 50)), 1)  # only a frame
+        image, _problems = draw("label 40 x 10\nrow  border 0.5  shape round  radius 3\n  space", dpi=254)
+        self.assertEqual((image.getpixel((0, 50)), image.getpixel((1, 1))), (0, 1))
+        # a bulged frame keeps its content clear of the arches
+        image, _problems = draw("label 40 x 10\nrow  border 0.5  shape bulge  bulge 2  padding 0 1\n  box  width 5", dpi=254)
+        self.assertEqual(blocks(black_columns(image.crop((0, 40, 400, 60))))[1][0], 5 + 20 + 10)
+        image, _problems = draw("label 40 x 10\nrow  justify center\n  box  width 10", dpi=254)
+        self.assertEqual(blocks(black_columns(image)), [(150, 249)])
+        image, _problems = draw("label 40 x 10\nrow  justify end  padding 0 2\n  box  width 10", dpi=254)
+        self.assertEqual(blocks(black_columns(image)), [(280, 379)])
+
+    def test_text_in_a_row_is_as_wide_as_it_needs(self):
+        image, _problems = draw('label 40 x 10\nrow  border 0.5  justify center\n  text "MM"\n  text "x"  height 40%  bottom',
+                                dpi=254)
+        inner = blocks(black_columns(image.crop((10, 10, 390, 90))), gap=8)
+        self.assertGreater(inner[0][0], 50)  # centred, not spread over the row
+
     def test_any_length_within_min_and_max(self):
         def width(text, name):
             return draw(text, {"name": name}, dpi=254)[0].width
@@ -272,6 +292,22 @@ class TemplateTests(InventoryData, TestCase):
         labelid = self.template('label 57 x 32\nrow\n  qr {qr}\n  column\n    text {id1}\n    text {id2}', "labelid")
         rendered, = services.render(get_layout(f"design:{labelid.pk}"), [lid], self.labels, preview=True)
         self.assertEqual(rendered.label_code, "K7R4XD")
+
+    def test_price_tags(self):
+        from inventory.models import LocationLabelTemplate as Template
+        from ..models import LabelMedium
+        card = LabelMedium.objects.create(printer=self.zebra, name="60 × 30", width_mm=60, height_mm=30)
+        tapes = {width: LabelMedium.objects.create(printer=self.brother, name=f"{width} mm", ptouch_tape=width)
+                 for width in (18, 24)}
+        tapes[12] = self.tape
+        price_tags = [("Preisschild 60x30", card)] + [(f"Preisschild Band {width} mm", tapes[width]) for width in (12, 18, 24)]
+        for name, medium in price_tags:
+            template = Template.objects.get(name=name)
+            self.assertIn(f"design:{template.pk}", [layout.key for layout in layouts_for("item", medium.printer, medium)])
+            rendered, = services.render(get_layout(f"design:{template.pk}"), [ItemAt(self.item, self.part)], medium,
+                                        preview=True)
+            self.assertEqual(rendered.snapshot["price"], "0.15 € / Stk")
+        self.assertEqual(rendered.image.height, 128)  # E550W, 24 mm tape
 
     def test_mistakes_and_too_small_labels_are_refused(self):
         broken = self.template("label 57 x 32\ntext {nope}")

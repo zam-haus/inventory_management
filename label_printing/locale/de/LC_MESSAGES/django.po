@@ -1368,3 +1368,6 @@ msgid ""
 "%(width)s × %(height)s dots at %(dpi)s dpi: %(width_mm).1f × %(height_mm).1f "
 "mm"
 msgstr "%(width)s × %(height)s Punkte bei %(dpi)s dpi: %(width_mm).1f × %(height_mm).1f mm"
+#: label_printing/design/fields.py
+msgid "just the price, e.g. 0,15; else empty"
+msgstr "nur der Preis, z. B. 0,15; sonst leer"

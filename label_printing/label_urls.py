@@ -62,11 +62,17 @@ def item_label_code(subject, user=None, create=True):
         return label_ids.assign_url(lid.code, url, user).code
 
 
-def price_text(item):
-    """"1,50 € / Stk" for items for sale with a price, else ""."""
+def price_amount(item):
+    """"1,50" for items for sale with a price, else ""."""
     if not item.for_sale or item.sale_price is None:
         return ""
-    return f"{number_format(item.sale_price, 2, use_l10n=True)} € / {item.measurement_unit.short}"
+    return number_format(item.sale_price, 2, use_l10n=True)
+
+
+def price_text(item):
+    """"1,50 € / Stk" for items for sale with a price, else ""."""
+    amount = price_amount(item)
+    return f"{amount} € / {item.measurement_unit.short}" if amount else ""
 
 
 def item_snapshot(subject, code):

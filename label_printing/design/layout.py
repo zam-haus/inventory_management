@@ -10,6 +10,7 @@ it fills the row or column unless given; then the row's or column's align places
 "at x y" (mm from the top left of their row or column) are placed there instead.
 """
 import functools
+import math
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Callable
@@ -84,9 +85,11 @@ def margins(element, context):
     return tuple(context.dots(side) for side in element.get("margin", (0, 0, 0, 0)))
 
 
-def intrinsic(element):
-    """Whether the element has a size of its own along a row or column (else it fills)."""
-    return (element.kind in ("qr", "image", "line") or (element.kind == "text" and "size" in element.options)
+def intrinsic(element, horizontal):
+    """Whether the element has a size of its own along a row (horizontal) or column (else it fills): text is as
+    wide as it needs at the height it gets, and as high as its size."""
+    return (element.kind in ("qr", "image", "line")
+            or (element.kind == "text" and ("size" in element.options or horizontal))
             or (element.kind == "space" and element.get("extent", ("fill",))[0] != "fill"))
 
 
@@ -316,13 +319,92 @@ def natural_content(element, context, width, height, horizontal):
     return width or context.dots(5), height or context.dots(5)
 
 
+def bulge_depth(container, context, height):
+    """How far a bulged frame's sides arch out: given, else a fifth of its height."""
+    if "bulge" in container.options:
+        return context.dots(container.get("bulge"))
+    return max(1, height // 5) if height else context.dots(1.5)
+
+
+def insets(container, context, height):
+    """(top, right, bottom, left) between a row's or column's edge and its elements: padding, the frame's
+    border and, for a bulged frame, the depth of its arches."""
+    top, right, bottom, left = (context.dots(side) for side in container.get("padding", (0, 0, 0, 0)))
+    border = context.dots(container.get("border", 0)) if "border" in container.options else 0
+    arch = bulge_depth(container, context, height) if container.get("shape") == "bulge" else 0
+    return top + border, right + border + arch, bottom + border, left + border + arch
+
+
+def draw_frame(container, context, image, x, y, width, height):
+    """The frame of a row or column: its border, square, with round corners or with arched sides."""
+    if "border" not in container.options or width < 2 or height < 2:
+        return
+    border = max(1, context.dots(container.get("border")))
+    draw = ImageDraw.Draw(image)
+    shape = container.get("shape", "rect")
+    right, bottom = x + width - 1, y + height - 1
+    if shape == "bulge":
+        # One line of the same thickness all round, its outer edge on the box.
+        half = border / 2
+        outline = bulge_outline(x + half, y + half, right - half, bottom - half, bulge_depth(container, context, height))
+        stroke(image, outline, border)
+    elif shape == "round":
+        radius = context.dots(container.get("radius")) if "radius" in container.options else min(width, height) // 4
+        draw.rounded_rectangle((x, y, right, bottom), radius=radius, outline=0, width=border)
+    else:
+        draw.rectangle((x, y, right, bottom), outline=0, width=border)
+
+
+def stroke(image, points, width, scale=4):
+    """A closed line through the points, width dots thick everywhere, with round joins: drawn four times as
+    large (each piece a quadrilateral, each join a disc) and brought down to the image's dots, so it has no
+    holes or notches at any resolution."""
+    radius = width / 2
+    left = math.floor(min(x for x, _y in points) - radius) - 1
+    top = math.floor(min(y for _x, y in points) - radius) - 1
+    right = math.ceil(max(x for x, _y in points) + radius) + 1
+    bottom = math.ceil(max(y for _x, y in points) + radius) + 1
+    canvas = Image.new("L", ((right - left) * scale, (bottom - top) * scale), 0)
+    draw = ImageDraw.Draw(canvas)
+    scaled = [((x - left) * scale, (y - top) * scale) for x, y in points]
+    big = radius * scale
+    for (x0, y0), (x1, y1) in zip(scaled, scaled[1:] + scaled[:1]):
+        length = math.hypot(x1 - x0, y1 - y0)
+        if length:
+            nx, ny = -(y1 - y0) / length * big, (x1 - x0) / length * big
+            draw.polygon([(x0 + nx, y0 + ny), (x1 + nx, y1 + ny), (x1 - nx, y1 - ny), (x0 - nx, y0 - ny)], fill=255)
+        draw.ellipse((x0 - big, y0 - big, x0 + big, y0 + big), fill=255)
+    mask = canvas.resize((right - left, bottom - top), Image.Resampling.BOX).point(lambda value: 255 if value >= 128 else 0)
+    image.paste(0, (left, top), mask.convert("1"))
+
+
+def bulge_outline(left, top, right, bottom, depth):
+    """Points of a price tag's shape: straight top and bottom, and sides like a price gun's labels, which leave
+    the corners straight down, swing out and reach the middle upright again, depth beyond the corners."""
+    height = bottom - top
+    depth = max(1, min(depth, (right - left) // 2))
+    # Upper half of a side as a cubic Bézier curve: (outwards from the corner, down), corner to middle.
+    points = ((0, 0), (0, 0.22 * height), (depth, 0.2 * height), (depth, height / 2))
+    steps = max(8, int(height) // 3)
+    half = []
+    for step in range(steps + 1):
+        t = step / steps
+        weights = ((1 - t) ** 3, 3 * (1 - t) ** 2 * t, 3 * (1 - t) * t * t, t ** 3)
+        half.append((sum(w * point[0] for w, point in zip(weights, points)),
+                     sum(w * point[1] for w, point in zip(weights, points))))
+    side = half + [(out, height - down) for out, down in reversed(half[:-1])]
+    right_side = [(right - depth + out, top + down) for out, down in side]
+    left_side = [(left + depth - out, top + down) for out, down in side]
+    return right_side + left_side[::-1]
+
+
 def arrange(container, context, width, height):
     """([(element, x, y, width, height)], used width, used height): the container's elements placed within its
     size (width or height None: as needed), relative to its top left."""
     horizontal = container.kind == "row"
-    padding = context.dots(container.get("padding", 0))
-    inner_width = None if width is None else max(0, width - 2 * padding)
-    inner_height = None if height is None else max(0, height - 2 * padding)
+    inset_top, inset_right, inset_bottom, inset_left = insets(container, context, height)
+    inner_width = None if width is None else max(0, width - inset_left - inset_right)
+    inner_height = None if height is None else max(0, height - inset_top - inset_bottom)
     main_total, cross_total = (inner_width, inner_height) if horizontal else (inner_height, inner_width)
     main_name, cross_name = ("width", "height") if horizontal else ("height", "width")
     gap = context.dots(container.get("gap", 0))
@@ -343,7 +425,7 @@ def arrange(container, context, width, height):
         fixed = None if fixed is None else fixed + margin(child, True)
         if fixed is not None:
             kinds.append("fixed")
-        elif (spec == ("fill",) or (spec is None and not intrinsic(child))) and main_total is not None:
+        elif (spec == ("fill",) or (spec is None and not intrinsic(child, horizontal))) and main_total is not None:
             kinds.append("fill")
         else:
             kinds.append("auto")
@@ -381,10 +463,14 @@ def arrange(container, context, width, height):
         cross_total = max([cross for cross in crosses if cross is not None], default=0)
     crosses = [cross_total if cross is None else cross for cross in crosses]
 
-    placed, position = [], padding
+    placed, position = [], inset_left if horizontal else inset_top
+    if main_total is not None and taken < main_total:  # room left: where the elements go along
+        position += place(main_total, taken, {"start": "left", "end": "right"}.get(container.get("justify"), "center")
+                          if container.get("justify") else "left")
     align = container.get("align")
     for child, main, cross in zip(flow, mains, crosses):
-        offset = padding + place(cross_total, cross, align, "middle" if horizontal else "center")
+        offset = (inset_top if horizontal else inset_left) + place(cross_total, cross, align,
+                                                                  "middle" if horizontal else "center")
         x, y = (position, offset) if horizontal else (offset, position)
         placed.append((child, x, y, *size(main, cross)))
         position += main + gap
@@ -400,10 +486,9 @@ def arrange(container, context, width, height):
         child_height = resolve(child.get("height"), inner_height, context)
         child_height = None if child_height is None else child_height + top + bottom
         need = natural(child, context, child_width or room_width, child_height or room_height)
-        placed.append((child, padding + x, padding + y, child_width or need[0], child_height or need[1]))
-    used_main = taken + 2 * padding
-    used_cross = cross_total + 2 * padding
-    used_width, used_height = (used_main, used_cross) if horizontal else (used_cross, used_main)
+        placed.append((child, inset_left + x, inset_top + y, child_width or need[0], child_height or need[1]))
+    used_width = (taken if horizontal else cross_total) + inset_left + inset_right
+    used_height = (cross_total if horizontal else taken) + inset_top + inset_bottom
     return placed, width if width is not None else used_width, height if height is not None else used_height
 
 
@@ -411,6 +496,7 @@ def draw(element, context, image, x, y, width, height, horizontal=False):
     top, right, bottom, left = margins(element, context)
     x, y, width, height = x + left, y + top, max(0, width - left - right), max(0, height - top - bottom)
     if element.kind in ("row", "column"):
+        draw_frame(element, context, image, x, y, width, height)
         placed, _width, _height = arrange(element, context, width, height)
         for child, child_x, child_y, child_width, child_height in placed:
             draw(child, context, image, x + child_x, y + child_y, child_width, child_height, element.kind == "row")

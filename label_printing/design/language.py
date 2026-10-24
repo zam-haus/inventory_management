@@ -93,11 +93,15 @@ def choice(*values):
 
 
 COMMON = {"width": SIZE, "height": SIZE, "at": (LENGTH, LENGTH), "margin": SIDES}
+# Rows and columns: where their elements go along them if there is room left (justify), white inside, and a
+# frame around (bulge: left and right side arched outwards).
+FRAME = {"justify": choice("start", "center", "end"), "padding": SIDES, "border": LENGTH, "shape": choice("rect", "round", "bulge"), "radius": LENGTH,
+         "bulge": LENGTH}
 ALIGN = {"left": "align", "center": "align", "right": "align", "top": "valign", "middle": "valign", "bottom": "valign"}
 SPEC = {
-    "row": {"options": {"gap": LENGTH, "padding": LENGTH, "align": choice("top", "middle", "bottom"), **COMMON},
+    "row": {"options": {"gap": LENGTH, "align": choice("top", "middle", "bottom"), **FRAME, **COMMON},
             "container": True},
-    "column": {"options": {"gap": LENGTH, "padding": LENGTH, "align": choice("left", "center", "right"), **COMMON},
+    "column": {"options": {"gap": LENGTH, "align": choice("left", "center", "right"), **FRAME, **COMMON},
                "container": True},
     "text": {"content": "text", "flags": {"fit": "fit", "bold": "bold", "invert": "invert", **ALIGN},
              "options": {"size": LENGTH, "lines": INT, "weight": INT, "font": choice(*FONTS), "padding": LENGTH,

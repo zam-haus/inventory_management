@@ -96,7 +96,8 @@ if the medium offers it.
 
 Migration `label_printing.0008` described the ZPL templates there were in the language and stored
 their logo as the label image "ZAM Logo". It also added label ID templates for the Zebra labels in
-use and a location template for 12 mm tape. A template it did not know gets a plain design and its
+use and a location template for 12 mm tape; `0009` price tags for bulk items (price with € in a price tag
+frame, unit, name, QR code) on 60 × 30 mm labels and on 12, 18 and 24 mm tape. A template it did not know gets a plain design and its
 ZPL as comments. Fonts:
 * Raleway and Roboto Mono (the ZAMid's),
 * Roboto Condensed (narrow like Zebra's built-in font),
