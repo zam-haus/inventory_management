@@ -16,7 +16,7 @@ class LocationAdminAddTests(TestCase):
     @classmethod
     def setUpTestData(cls):
         template = LocationLabelTemplate.objects.create(
-            name="Small", zpl_template="^XA^FD$url^FS^XZ", label_width=50, label_height=25)
+            name="Small", description="label 50 x 25\nqr {qr}")
         cls.room = LocationType.objects.create(name="Room", unique=True, default_label_template=template)
         cls.user = get_user_model().objects.create_user(username="admin", is_staff=True, is_superuser=True)
 
@@ -38,4 +38,5 @@ class LocationAdminAddTests(TestCase):
 
         response = self.client.get(reverse("admin:inventory_location_change", args=[location.pk]))
 
-        self.assertContains(response, "api.labelary.com")
+        self.assertContains(response, reverse("label_template_preview",
+                                              args=[self.room.default_label_template_id, "location", location.pk]))

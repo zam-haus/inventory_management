@@ -1,7 +1,5 @@
 """Storage locations, their types, label templates and change history."""
 from pathlib import Path
-from string import Template
-import urllib.parse
 from uuid import uuid4
 
 from computedfields.models import ComputedFieldsModel, computed
@@ -16,7 +14,6 @@ from django.utils import timezone
 from django.utils.html import format_html
 from django.utils.translation import gettext, gettext_lazy as _
 
-from ..label_ids import qr as label_id_qr
 from ..soft_delete import SoftDeleteModel
 
 
@@ -91,6 +88,7 @@ class LocationType(models.Model):
 
     default_label_template = models.ForeignKey(
         "LocationLabelTemplate",
+        limit_choices_to={"subject_type": "location"},
         null=True,
         blank=True,
         on_delete=models.SET_NULL,
@@ -307,54 +305,44 @@ class LocationType(models.Model):
 
 
 class LocationLabelTemplate(models.Model):
+    """A label design (label_printing.design) for locations, items or label IDs; the name is kept from when
+    templates were ZPL for locations only. Its size comes from the design's first line."""
+
     class Meta:
-        verbose_name = _("location label template")
-        verbose_name_plural = _("location label templates")
+        verbose_name = _("label template")
+        verbose_name_plural = _("label templates")
+        ordering = ("name",)
+
+    class SubjectType(models.TextChoices):
+        LOCATION = "location", _("location")
+        ITEM = "item", _("item")
+        LABEL_ID = "labelid", _("label ID")
 
     name = models.CharField(_("name"), max_length=128)
-    zpl_template = models.TextField(
-        _("ZPL template"),
-        help_text=_(
-            "ZPL2 string, where $label_url (the code via the label host, for QR codes), $url (the "
-            "location's page), $unique_identifier, $locatable_identifier and $descriptive_identifier will be "
-            "replaced."
-        ),
-    )
-    label_width = models.IntegerField(_("Label width (mm)"))
-    label_height = models.IntegerField(_("Label height (mm)"))
+    subject_type = models.CharField(_("labels for"), max_length=16, choices=SubjectType.choices,
+                                    default=SubjectType.LOCATION)
+    description = models.TextField(_("label description"))
+    label_width = models.FloatField(_("width (mm)"), null=True, editable=False,
+                                    help_text=_("Empty: as long as the content (Brother tape)."))
+    label_height = models.FloatField(_("height (mm)"), null=True, editable=False)
 
-    def generate_label_zpl(self, location=None):
-        label_code = self.zpl_template
-        if location:
-            tmpl = Template(label_code)
-            label_code = tmpl.safe_substitute(
-                url=settings.DEFAULT_URL
-                + reverse(
-                    "view_location",
-                    kwargs={
-                        "pk": location.pk,
-                        "unique_identifier": location.unique_identifier,
-                    },
-                ),
-                label_url=label_id_qr.location_content(location.unique_identifier),
-                unique_identifier=location.unique_identifier,
-                locatable_identifier=location.locatable_identifier,
-                descriptive_identifier=location.descriptive_identifier,
-            )
-        return label_code
+    def design(self):
+        """(Design, [Problem]) of the description."""
+        from label_printing.design import parse
+        return parse(self.description)
 
-    def get_lablary_url(self, location=None):
-        return (
-            "https://api.labelary.com/v1/printers/8dpmm/labels/"
-            + "{:.1f}".format((self.label_width or 0) / 25.4)
-            + "x{:.1f}".format((self.label_height or 0) / 25.4)
-            + "/0/"
-            + urllib.parse.quote(self.generate_label_zpl(location))
-        )
+    def save(self, *args, **kwargs):
+        design, _problems = self.design()
+        self.label_width, self.label_height = design.width, design.height
+        super().save(*args, **kwargs)
 
-    def image_tag(self, location=None):
-        return format_html('<img width="100%" src="{}" />', self.get_lablary_url(location))
-    image_tag.short_description = "Rendered label"
+    @property
+    def size_text(self):
+        if self.label_height is None:
+            return "–"
+        if self.label_width is None:
+            return gettext("height %(height)s mm, any length") % {"height": f"{self.label_height:g}"}
+        return f"{self.label_width:g} × {self.label_height:g} mm"
 
     def __str__(self):
         return self.name
@@ -554,6 +542,7 @@ class Location(SoftDeleteModel, ComputedFieldsModel):
 
     label_template = models.ForeignKey(
         "LocationLabelTemplate",
+        limit_choices_to={"subject_type": "location"},
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
@@ -904,26 +893,18 @@ class Location(SoftDeleteModel, ComputedFieldsModel):
             )
         return self.name + f" [{self.short_name}]"
 
+    def label_preview_url(self):
+        """The location's label (its template, else its type's) as an image (label_printing.views)."""
+        template_id = self.label_template_id or self.type.default_label_template_id
+        if self.pk is None or template_id is None:
+            return None
+        return reverse("label_template_preview", args=[template_id, "location", self.pk])
+
     def label_image_tag(self):
-        # Unsaved locations (e.g. an add form re-rendered with errors) have no URL to encode yet.
-        if self.pk is None:
-            return None
-        if self.label_template:
-            return self.label_template.image_tag(self)
-        elif self.type.default_label_template:
-            return self.type.default_label_template.image_tag(self)
-        else:
-            return None
+        url = self.label_preview_url()
+        return format_html('<img src="{}" alt="" style="max-width: 100%">', url) if url else None
 
-    label_image_tag.short_description = "Label"
-
-    def get_lablary_url(self):
-        if self.label_template:
-            return self.label_template.get_lablary_url(self)
-        elif self.type.default_label_template:
-            return self.type.default_label_template.get_lablary_url(self)
-        else:
-            return None
+    label_image_tag.short_description = _("label")
 
     def get_absolute_url(self):
         return reverse(

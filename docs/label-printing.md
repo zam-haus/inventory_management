@@ -5,7 +5,12 @@ Brother P-touch printers. Printers are reached on the network (raw TCP, port 910
 connected by USB, through a **print agent** on a computer next to them. Every job is logged with
 what the printer reported: printed, failed (and why) or sent without confirmation.
 
-The code is in the app `label_printing`.
+Every label is drawn by the server as an image, dot for dot at the printer's resolution:
+* by the built-in layouts, or
+* by **label templates** written in a small language ([label designs](label-designs.md)).
+
+A Zebra gets the image as `^GFA` in ZPL, with the medium's settings (darkness, speed, offset); a
+Brother gets P-touch raster data. The code is in the app `label_printing`.
 
 ## Printing
 
@@ -23,11 +28,9 @@ The code is in the app `label_printing`.
   once the printer reports the label printed.
 * **After creating** a box, carton, pallet, shelf or compartments, the new location's page opens
   the dialog right away (`?print=1`) for whoever may print.
-* The dialog shows a preview (raster layouts, in the tape's colours for Brother tapes from the
-  label stock), and after printing follows the job until the printer reports back. ZPL templates
-  are rendered by **labelary.com**: the server sends the label's ZPL (location code, name, path,
-  all public in the inventory anyway) and keeps the picture a day in the cache, so the browsers
-  never contact labelary; `PRINT_LABELARY_URL=` (empty) switches that off.
+* The dialog shows a preview of the label as the printer gets it (in the tape's colours for
+  Brother tapes from the label stock), and after printing follows the job until the printer
+  reports back.
 * Printing requires `label_printing.print_label`, which migration `label_printing.0002` grants
   to the local group. Without it, logged-in users see the button disabled; guests do not see it.
   With no suitable or reachable printer, the button is disabled with the reason.
@@ -37,7 +40,7 @@ The code is in the app `label_printing`.
 * **Locations:** the location's code via the label host, uppercase so the QR code stays small
   (alphanumeric mode): `HTTPS://I.ZAM.HAUS/WH-1.R303.A`. Codes stay with their location
   ([location structure](location-structure.md)); the resolver finds codes and former codes in
-  any case ([label IDs](label-ids.md)). The same text is `$label_url` in ZPL templates.
+  any case ([label IDs](label-ids.md)). In label templates it is `{qr}`.
 * **Items:** a label ID (ZAMid) linked to the item's page for that location,
   `/item/<id>?loc=<location>`. It is created when the first label is printed and reused for
   later ones (previews use a placeholder). That page puts **Take out** first for this location.
@@ -56,8 +59,8 @@ for removing. The location from the label (`?loc=`) comes first and is marked in
      Heat shrink tubes, flags and stencil tape are left out.
    * Zebra labels with width and height, **printing method** (direct thermal, or thermal
      transfer with a **wax**, **wax/resin** or **resin** ribbon) and material. Migration `0004`
-     created one per size of the existing location label templates, linked to those templates;
-     their printing method and material are not known: fill them in.
+     created one per size of the label templates there were, linked to them; their printing
+     method and material are not known: fill them in.
 2. **Printers:** name, short name (used by the print agent), language, model (Brother: E550W,
    P750W, P900, P900W, P950NW; sets the resolution), resolution (Zebra: 203/300/600 dpi), and the
    connection: *network* with host and port, or *print agent*. Leave *reports its status* on
@@ -68,13 +71,39 @@ for removing. The location from the label (`?loc=`) comes first and is marked in
    be changed per job: *draft (fast)*, *standard*, *high quality (slower)*. Brother: draft printing,
    or high resolution (E550W 180×360, P900 series 360×720 dpi): the label is drawn at twice the
    resolution along the tape, not only printed twice as dense. Zebra: print speed (`^PR6`, the
-   printer's own setting, `^PR2`); darkness stays with the medium. Zebra media offer the ZPL templates of their stock, or those chosen for
-   the medium itself; offset and darkness (`^MD`) are optional.
+   printer's own setting, `^PR2`); darkness stays with the medium. Offset and darkness (`^MD`)
+   are optional. Media offer the label templates of their size; if templates are chosen for the
+   medium (or its stock), only those of the kind being printed.
 4. **Test label** (30 mm on tape) and **Check the printer status** are actions on the printer list.
 
 The location admin's print actions, its **Print label** button and printing after mass creation
 use the default printer and its default medium, with the location's own template or its type's
 if the medium offers it.
+
+### Label templates and images
+
+**Label templates** (admin → Inventory) are for locations, items or label IDs:
+* Each is written in the label description language: [label designs](label-designs.md).
+* The page shows the label beside the description while it is typed, with real records and with
+  the printer it is for chosen or none. Mistakes are listed by line, and a template with mistakes
+  is not saved.
+* The location page shows the location's label (its template, else its type's).
+
+**Label images** (admin → Label printing) are logos, safety signs and tool icons:
+* Each image is stored once in its full size and cut down on its page by dragging.
+* **Import** takes many images at once, or ZIP archives of them.
+* Designs scale the images for each printer and turn them black and white (threshold or dither).
+
+Migration `label_printing.0008` described the ZPL templates there were in the language and stored
+their logo as the label image "ZAM Logo". It also added label ID templates for the Zebra labels in
+use and a location template for 12 mm tape. A template it did not know gets a plain design and its
+ZPL as comments. Fonts:
+* Raleway and Roboto Mono (the ZAMid's),
+* Roboto Condensed (narrow like Zebra's built-in font),
+* OCR-B.
+
+They are in `label_printing/design/fonts/` and `inventory/label_ids/labels/fonts/`, with their
+licences.
 
 ### Job log
 
@@ -198,12 +227,11 @@ The tests start the simulator on free ports (`label_printing/tests/helpers.py`).
 | `PRINT_AGENT_OFFLINE_AFTER` | 30 | seconds after an agent's last request that its printers count as offline |
 | `PRINT_MAX_COPIES` | 20 | most copies per job |
 | `PRINT_AGENT_MAX_PENDING` | 20 | agents that may wait for activation |
-| `PRINT_LABELARY_URL` | `https://api.labelary.com` | renders previews of ZPL templates; empty: none |
 | `PRINT_AGENT_MAX_PRINTERS` | 20 | printers an agent may register |
 
 ## Personal data
 
 Labels show only location and item data. The job log records who printed (like the actor of a
 stock change) and is visible in the admin only; print jobs, printers, agents and label stock
-are left out of the [data export](data-export.md). labelary.com gets the ZPL of previewed
-templates (location data only, from the server) and, from the simulator, what it prints.
+are left out of the [data export](data-export.md); label templates and images are exported. Only the
+simulator sends anything to labelary.com (what it prints, in development).

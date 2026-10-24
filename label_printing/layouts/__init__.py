@@ -1,8 +1,8 @@
 """
 Label layouts: what goes on a label of a subject (location, item, the printer itself for a test).
 
-Raster layouts draw a 1-bit image for any printer; ZPL templates of locations (inventory's
-LocationLabelTemplate) are offered on the Zebra media they are assigned to.
+Every layout draws a 1-bit image for the printer: the built-in ones in code, label templates (inventory's
+LocationLabelTemplate) from their description (layouts/designs.py, label_printing.design).
 """
 from dataclasses import dataclass, field
 
@@ -41,15 +41,18 @@ class Canvas:
 
 @dataclass
 class Rendered:
-    """One label: an image (raster layouts) or ZPL (templates), and what is on it."""
+    """One label: its image, and what is on it."""
     image: Image.Image | None = None
-    zpl: str | None = None
     snapshot: dict = field(default_factory=dict)
     label_code: str = ""
 
 
 class LabelTooSmall(ValueError):
     """The content does not fit the label (e.g. no readable QR code)."""
+
+
+class NotRendered(ValueError):
+    """A label template cannot be drawn (a mistake in its description)."""
 
 
 class Layout:
@@ -82,7 +85,7 @@ def register(cls):
 
 
 def layouts_for(subject_type, printer, medium):
-    """The layouts for subjects of this type on this printer and medium, ZPL templates first."""
+    """The layouts for subjects of this type on this printer and medium, label templates first."""
     layouts = list(template_layouts(subject_type, printer, medium))
     layouts += [layout for layout in REGISTRY.values()
                 if layout.subject_type == subject_type and layout.supports(printer, medium)]
@@ -90,7 +93,7 @@ def layouts_for(subject_type, printer, medium):
 
 
 def get_layout(key):
-    if key.startswith("zpl:"):
+    if key.startswith("design:"):
         return template_layout(key)
     try:
         return REGISTRY[key]
@@ -100,4 +103,4 @@ def get_layout(key):
 
 # The layouts register themselves.
 from . import item, label_id, location, test_label  # noqa: E402,F401
-from .zpl_templates import template_layout, template_layouts  # noqa: E402
+from .designs import template_layout, template_layouts  # noqa: E402

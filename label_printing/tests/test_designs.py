@@ -1,0 +1,372 @@
+"""Label designs: the description language, the layout, and label templates in printing and the admin."""
+import io
+import shutil
+import tempfile
+import zipfile
+
+from django.contrib.auth import get_user_model
+from django.core.files.base import ContentFile
+from django.core.files.uploadedfile import SimpleUploadedFile
+from django.db import connection
+from django.db.migrations.executor import MigrationExecutor
+from django.test import SimpleTestCase, TestCase, TransactionTestCase, override_settings
+from django.urls import reverse
+from PIL import Image, ImageDraw
+
+from inventory.models import LabelId, LocationLabelTemplate
+from .. import services
+from ..design import Context, check, parse, render_design
+from ..label_urls import ItemAt
+from ..image_import import import_images
+from ..layouts import get_layout, layouts_for
+from ..models import LabelImage
+from .helpers import SETTINGS, create_printers, create_user
+from .test_dialog import InventoryData
+
+
+def black_columns(image):
+    return [x for x in range(image.width) if any(image.getpixel((x, y)) == 0 for y in range(image.height))]
+
+
+def black_rows(image):
+    return [y for y in range(image.height) if any(image.getpixel((x, y)) == 0 for x in range(image.width))]
+
+
+def blocks(columns, gap=4):
+    """(first, last) of runs of black columns, split where more than gap columns are white."""
+    found = []
+    for column in columns:
+        if found and column - found[-1][1] <= gap:
+            found[-1][1] = column
+        else:
+            found.append([column, column])
+    return [tuple(block) for block in found]
+
+
+def logo(width=40, height=20):
+    image = Image.new("L", (width, height), 255)
+    ImageDraw.Draw(image).rectangle((0, 0, width - 1, height - 1), fill=0)
+    return image
+
+
+def draw(text, values=None, dpi=203, images=None, width=None, height=None, strict=False):
+    design, problems = parse(text)
+    assert not problems, problems
+    context = Context(dpi, values or {}, images or (lambda name: None), strict=strict)
+    return render_design(design, context, width, height), context.problems
+
+
+@override_settings(LANGUAGE_CODE="en")
+class LanguageTests(SimpleTestCase):
+    def test_size_elements_and_nesting(self):
+        design, problems = parse('# a comment\nlabel 105 x 52 mm  margin 1.5\nrow  gap 3, align top\n'
+                                 '  qr {qr}  ecc Q  max 32\n  column\n    text "Ort: {path}"  size 4  bold  center\n'
+                                 'text \'x\'  rotate 270  # trailing comment\n')
+        self.assertEqual(problems, [])
+        self.assertEqual((design.width, design.height, design.margin), (105, 52, 1.5))
+        row, text = design.children
+        self.assertEqual((row.kind, row.options, [child.kind for child in row.children]),
+                         ("row", {"gap": 3, "align": "top"}, ["qr", "column"]))
+        self.assertEqual(row.children[0].options, {"ecc": "Q", "max": 32})
+        self.assertEqual(row.children[1].children[0].options, {"size": 4, "bold": True, "weight": 700, "align": "center"})
+        self.assertEqual((text.content, text.options), ("x", {"rotate": 270}))
+        self.assertEqual(design.fields(), {"qr": [4], "path": [6]})
+
+    def test_any_length(self):
+        design, problems = parse("label height 12  min 20  max 80\nspace 3")
+        self.assertEqual((design.width, design.height, design.min_length, design.max_length, problems),
+                         (None, 12, 20, 80, []))
+        self.assertEqual(design.children[0].options, {"extent": ("mm", 3)})
+
+    def test_problems_by_line(self):
+        _design, problems = parse('label 70 x 32\ntext {code}  heigth 4\nimgae "Logo"\ntext\nqr {qr}  ecc X\n'
+                                  'text "a"\n  text "b"\nrow  width 50%  gap x\ntext "open')
+        self.assertEqual([(problem.line, problem.message) for problem in problems], [
+            (2, "“heigth” is not an option of text. Did you mean “height”?"),
+            (3, "“imgae” is not an element. Did you mean “image”? Elements: row, column, text, qr, image, box, line, "
+                "arrow, space."),
+            (4, "text needs its content first: text in quotes or a {field}."),
+            (5, "“ecc” is one of L, M, Q, H, not “X”."),
+            (7, "Only row and column hold indented elements."),
+            (8, "“x” is not a length in mm."),
+            (9, "A quote is not closed."),
+        ])
+        self.assertEqual(parse("text {code}")[1][0].line, 1)  # the size first
+
+    def test_unknown_fields_and_images(self):
+        design, _problems = parse('label 50 x 20\ntext {code}\ntext {nope}\nimage "Logo"')
+        self.assertEqual([(problem.line, problem.message) for problem in check(design, ["code"], set())], [
+            (3, "There is no field {nope}; there are: {code}."), (4, "There is no label image “Logo”.")])
+
+
+@override_settings(LANGUAGE_CODE="en")
+class LayoutTests(SimpleTestCase):
+    def test_millimetres_become_the_printers_dots(self):
+        for dpi, size in ((203, (559, 256)), (300, (827, 378))):
+            image, _problems = draw("label 70 x 32\nbox", dpi=dpi)
+            self.assertEqual(image.size, size)
+            self.assertEqual(black_columns(image)[-1], size[0] - 1)
+
+    def test_margin_gap_and_fill(self):
+        image, _problems = draw("label 40 x 10  margin 2\nrow  gap 2\n  box  width 10\n  box\n  box  width 25%", dpi=254)
+        # 10 dots per mm: margin 20, box 100, gap 20, fill (130), gap 20, box 25% of 360
+        self.assertEqual(blocks(black_columns(image)), [(20, 119), (140, 269), (290, 379)])
+        self.assertEqual((black_rows(image)[0], black_rows(image)[-1]), (20, 79))
+
+    def test_text_then_image_with_a_fixed_gap(self):
+        """The image follows the text, however long it is; on a label of fixed length the text shrinks for it."""
+        text = 'label height 12  margin 1\nrow  gap 2\n  text {name}  size 5\n  image "Logo"  height 6'
+        ends = []
+        for name in ("Bohrer", "Akkuschrauber 18 V"):
+            image, problems = draw(text, {"name": name}, dpi=254, images=lambda name: logo())
+            text_block, logo_block = blocks(black_columns(image), gap=15)[-2:]
+            # 2 mm, plus the little room a glyph keeps beside it
+            self.assertIn(logo_block[0] - text_block[1] - 1, range(20, 24), name)
+            self.assertEqual((logo_block[1] - logo_block[0] + 1, problems), (120, []))  # 6 mm high, twice as wide
+            ends.append(image.width)
+        self.assertLess(ends[0], ends[1])
+        long = "Akku-Bohrschrauber mit Schnellspannfutter"
+        image, problems = draw('label 70 x 12  margin 1\nrow  gap 2\n  text {name}  width auto\n  image "Logo"  height 6',
+                               {"name": long}, dpi=254, images=lambda name: logo())
+        text_block, logo_block = blocks(black_columns(image), gap=15)[-2:]
+        self.assertIn(logo_block[0] - text_block[1] - 1, range(20, 24))  # the text shrank to leave room
+        self.assertEqual((logo_block[1] - logo_block[0] + 1, problems), (120, []))
+        self.assertLessEqual(logo_block[1], 689)
+
+    def test_longest_text_decides_where_the_image_starts(self):
+        text = ('label height 12  margin 1\nrow  gap 2\n  column\n    text {name}  size 5\n    text {path}  size 2.5\n'
+                '  image "Logo"')
+        for name, path in (("Bohrer", "Werkstatt › Regal 303 › Fach a"), ("Akkuschrauber 18 V", "Lager")):
+            image, _problems = draw(text, {"name": name, "path": path}, dpi=254, images=lambda name: logo())
+            *texts, logo_block = blocks(black_columns(image), gap=15)
+            self.assertIn(logo_block[0] - max(block[1] for block in texts) - 1, range(20, 24), name)
+
+    def test_margins_around_elements(self):
+        """An element's box is its content and its margin: images, QR codes and texts keep their room."""
+        image, _problems = draw('label height 10\nrow\n  image "L"  height 4  margin 1\n  image "L"  height 4  margin 0 2 0 3',
+                                dpi=254, images=lambda name: logo())
+        self.assertEqual((image.width, blocks(black_columns(image))), (230, [(10, 89), (130, 209)]))
+        image, _problems = draw('label height 10\nrow\n  qr "HTTPS://I.ZAM.HAUS/K7R4XD"  quiet 0  margin 1\n'
+                                '  text "I"  size 4  margin 0 5', dpi=254)
+        qr_block, text_block = blocks(black_columns(image))
+        self.assertEqual(qr_block[0], 10)
+        self.assertGreaterEqual(text_block[0] - qr_block[1], 10 + 50)  # the QR code's margin and the text's
+        self.assertEqual(parse('label 10 x 10\ntext "a"  margin 1 2 3')[1][0].message,
+                         "“margin” takes 1, 2 or 4 lengths in mm: all sides; top and bottom, left and right; top, "
+                         "right, bottom, left.")
+
+    def test_any_length_within_min_and_max(self):
+        def width(text, name):
+            return draw(text, {"name": name}, dpi=254)[0].width
+        self.assertEqual(width("label height 10  margin 1\ntext {name}  size 4", ""), 20)
+        self.assertEqual(width("label height 10  margin 1  min 30\ntext {name}  size 4", "a"), 300)
+        self.assertEqual(width("label height 10  margin 1  max 40\ntext {name}  size 4", "a" * 80), 400)
+
+    def test_qr_codes_have_whole_dots_per_module(self):
+        image, problems = draw('label 30 x 30\nqr "HTTPS://I.ZAM.HAUS/K7R4XD"  quiet 0', dpi=203)
+        rows = black_rows(image)
+        self.assertEqual(((rows[-1] - rows[0] + 1) % 21, problems), (0, []))  # version 1: 21 modules
+        image, problems = draw('label 30 x 30\nqr "HTTPS://I.ZAM.HAUS/K7R4XD"  max 10  quiet 0', dpi=203)
+        self.assertLessEqual(black_rows(image)[-1] - black_rows(image)[0] + 1, 80)
+        _image, problems = draw('label 30 x 4\nqr "HTTPS://I.ZAM.HAUS/K7R4XD"')
+        self.assertEqual(problems[0].message, "The QR code does not fit: it needs 6.3 mm at least.")
+        with self.assertRaises(Exception):
+            draw('label 30 x 4\nqr "HTTPS://I.ZAM.HAUS/K7R4XD"', strict=True)
+
+    def test_text_options(self):
+        image, _problems = draw('label 40 x 10\ntext "MMMM"  invert', dpi=254)
+        self.assertEqual(image.getpixel((0, 0)), 0)  # white on black
+        image, _problems = draw('label 40 x 10\ntext "I"  size 6  right', dpi=254)
+        self.assertGreater(black_columns(image)[0], 300)
+        image, _problems = draw('label 10 x 40\ntext "Lange Zeile"  rotate 270', dpi=254)
+        rows = black_rows(image)
+        self.assertGreater(rows[-1] - rows[0], 200)  # runs along the height
+        image, _problems = draw('label 30 x 20\ntext "eins zwei drei vier fünf"  size 4  lines 2', dpi=254)
+        self.assertGreater(black_rows(image)[-1] - black_rows(image)[0], 50)  # two lines
+
+    def test_images_scaled_and_black_and_white(self):
+        grey = Image.new("L", (100, 50), 100)
+        image, _problems = draw('label 40 x 20\nimage "Logo"', dpi=254, images=lambda name: grey)
+        self.assertEqual(blocks(black_columns(image)), [(0, 399)])  # 2:1 fills 40 × 20 mm
+        image, _problems = draw('label 40 x 20\nimage "Logo"  threshold 50', dpi=254, images=lambda name: grey)
+        self.assertEqual(black_columns(image), [])
+        image, _problems = draw('label 40 x 20\nimage "Logo"  dither', dpi=254, images=lambda name: grey)
+        self.assertGreater(len(black_columns(image)), 300)
+        self.assertLess(sum(image.getpixel((x, 100)) == 0 for x in range(400)), 400)
+        _image, problems = draw('label 40 x 20\nimage "Logo"', images=lambda name: None)
+        self.assertEqual(problems[0].message, "There is no label image “Logo”.")
+
+    def test_shapes_and_absolute_places(self):
+        image, _problems = draw("label 20 x 10\ncolumn\n  line  thickness 1\nbox  at 15 5  width 2  height 2", dpi=254)
+        self.assertEqual(image.getpixel((150, 50)), 0)
+        self.assertEqual(image.getpixel((100, 50)), 1)
+        image, _problems = draw("label 20 x 10\narrow up", dpi=254)
+        self.assertEqual((image.getpixel((100, 5)), image.getpixel((5, 95)), image.getpixel((5, 5))), (0, 0, 1))
+        _image, problems = draw("label 20 x 10\nrow\n  box  width 15\n  box  width 15", dpi=254)
+        self.assertEqual(problems[0].message, "The elements are 10.0 mm too long for this row.")
+
+
+@override_settings(**SETTINGS)
+class TemplateTests(InventoryData, TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        cls.create_inventory()
+        cls.zebra, cls.labels, cls.brother, cls.tape = create_printers()
+
+    def setUp(self):
+        media = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, media)
+        self.enterContext(override_settings(MEDIA_ROOT=media))
+
+    def template(self, description, subject_type="location", name="T"):
+        return LocationLabelTemplate.objects.create(name=name, subject_type=subject_type, description=description)
+
+    def test_size_from_the_description_and_where_offered(self):
+        fixed = self.template("label 57 x 32\ntext {code}")
+        tape = self.template("label height 12\ntext {code}")
+        wide = self.template("label height 24\ntext {code}")
+        self.assertEqual((fixed.label_width, fixed.label_height, tape.label_width, tape.size_text),
+                         (57, 32, None, "height 12 mm, any length"))
+        keys = lambda printer, medium: [layout.key for layout in layouts_for("location", printer, medium)]
+        self.assertIn(f"design:{fixed.pk}", keys(self.zebra, self.labels))
+        self.assertNotIn(f"design:{tape.pk}", keys(self.zebra, self.labels))
+        self.assertIn(f"design:{tape.pk}", keys(self.brother, self.tape))
+        self.assertNotIn(f"design:{wide.pk}", keys(self.brother, self.tape))
+        self.assertNotIn(f"design:{fixed.pk}", keys(self.brother, self.tape))
+
+    def test_printed_on_tape_as_long_as_the_content(self):
+        template = self.template('label height 12  margin 0.5\nrow  gap 1\n  qr {qr}\n  text {path}')
+        rendered, = services.render(get_layout(f"design:{template.pk}"), [self.part], self.tape, preview=True)
+        self.assertEqual(rendered.image.height, 70)  # E550W, 12 mm tape
+        self.assertEqual(rendered.snapshot["code"], "R303.a")
+        job = services.submit(printer=self.brother, medium=self.tape, layout_key=f"design:{template.pk}",
+                              subject_type="location", subjects=[self.part], copies=1)
+        self.assertEqual(job.label_code, "R303.a")
+
+    def test_item_and_label_id_templates(self):
+        item = self.template('label 57 x 32\nrow\n  qr {qr}\n  column\n    text {name}\n    text {price}', "item")
+        rendered, = services.render(get_layout(f"design:{item.pk}"), [ItemAt(self.item, self.part)],
+                                    self.labels, preview=True)
+        self.assertEqual(rendered.image.size, (456, 256))
+        self.assertFalse(LabelId.objects.exists())  # previews hand out no IDs
+        lid = LabelId.objects.create(code="K7R4XD")
+        labelid = self.template('label 57 x 32\nrow\n  qr {qr}\n  column\n    text {id1}\n    text {id2}', "labelid")
+        rendered, = services.render(get_layout(f"design:{labelid.pk}"), [lid], self.labels, preview=True)
+        self.assertEqual(rendered.label_code, "K7R4XD")
+
+    def test_mistakes_and_too_small_labels_are_refused(self):
+        broken = self.template("label 57 x 32\ntext {nope}")
+        with self.assertRaisesMessage(services.PrintError, "Line 2: There is no field {nope}"):
+            services.render(get_layout(f"design:{broken.pk}"), [self.part], self.labels, preview=True)
+        tiny = self.template("label 57 x 32\nqr {qr}  max 3")
+        with self.assertRaisesMessage(services.PrintError, "The content does not fit"):
+            services.render(get_layout(f"design:{tiny.pk}"), [self.part], self.labels, preview=True)
+
+    def test_label_images_in_designs(self):
+        image = LabelImage(name="ZAM Logo", crop_left=10)
+        out = io.BytesIO()
+        logo(80, 20).save(out, format="PNG")
+        image.image.save("logo.png", ContentFile(out.getvalue()), save=False)
+        image.full_clean()
+        image.save()
+        self.assertEqual(image.cropped().size, (70, 20))
+        template = self.template('label 57 x 32\nimage "ZAM Logo"')
+        rendered, = services.render(get_layout(f"design:{template.pk}"), [self.part], self.labels, preview=True)
+        (first, last), = blocks(black_columns(rendered.image))  # 7:2 across 57 mm
+        self.assertEqual(first, 0)
+        self.assertGreaterEqual(last, 454)
+
+    def test_import_of_images_and_archives(self):
+        out = io.BytesIO()
+        logo().save(out, format="PNG")
+        archive = io.BytesIO()
+        with zipfile.ZipFile(archive, "w") as files:
+            files.writestr("iso7010/W001.png", out.getvalue())
+            files.writestr("iso7010/readme.txt", "no image")
+            files.writestr("__MACOSX/iso7010/._W001.png", "junk")
+        LabelImage.objects.create(name="W001", image=SimpleUploadedFile("w.png", out.getvalue()))
+        created, skipped = import_images([SimpleUploadedFile("signs.zip", archive.getvalue()),
+                                          SimpleUploadedFile("broken.png", b"no image")])
+        self.assertEqual(([image.name for image in created], [name for name, _why in skipped]), (["W001 2"], ["broken.png"]))
+
+
+@override_settings(**SETTINGS)
+class AdminTests(InventoryData, TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        cls.create_inventory()
+        cls.admin = get_user_model().objects.create_superuser("admin", password="pw")
+
+    def setUp(self):
+        self.client.force_login(self.admin)
+
+    def test_preview_while_writing(self):
+        url = reverse("label_design_preview")
+        data = self.client.post(url, {"description": "label 57 x 32\ntext {code}  size 6", "subject_type": "location"}).json()
+        self.assertTrue(data["image"].startswith("data:image/png;base64,"))
+        self.assertEqual((data["problems"], data["size"]), ([], "456 × 256 dots at 203 dpi: 57.1 × 32.0 mm"))
+        self.assertIn("R303.b", data["records"])
+        data = self.client.post(url, {"description": "label height 12\ntext {code}\nfoo", "subject_type": "location"}).json()
+        self.assertEqual(data["problems"][0]["line"], 3)
+        self.assertIn(" × 150 dots at 360 dpi", data["size"])  # tape as a P900 prints it
+        self.client.force_login(create_user("reader"))
+        self.assertEqual(self.client.post(url, {"description": "label 10 x 10"}).status_code, 403)
+
+    def test_template_form(self):
+        add = reverse("admin:inventory_locationlabeltemplate_add")
+        self.assertContains(self.client.get(add), "label 70 x 32")  # a starter description
+        response = self.client.post(add, {"name": "Neu", "subject_type": "location", "description": "label 50 x 20\ntext {nope}"})
+        self.assertContains(response, "Line 2: There is no field {nope}")
+        self.client.post(add, {"name": "Neu", "subject_type": "location", "description": "label 50 x 20\ntext {code}"})
+        template = LocationLabelTemplate.objects.get(name="Neu")
+        self.assertEqual((template.label_width, template.label_height), (50, 20))
+        self.assertContains(self.client.get(reverse("label_design_help")), "Label designs")
+
+    def test_location_page_shows_its_label(self):
+        template = LocationLabelTemplate.objects.create(name="T", description="label 57 x 32\ntext {code}")
+        self.part.label_template = template
+        self.part.save()
+        self.client.logout()
+        url = self.part.label_preview_url()
+        self.assertContains(self.client.get(self.part.get_absolute_url()), url)
+        response = self.client.get(url)
+        self.assertEqual(Image.open(io.BytesIO(response.content)).size, (456, 256))
+        item_url = reverse("label_template_preview", args=[template.pk, "item", self.item.pk])
+        self.assertEqual(self.client.get(item_url).status_code, 404)  # not public
+
+
+class ZplTemplatesMigrationTests(TransactionTestCase):
+    """label_printing.0008: the ZPL templates in use become label designs, their logo a label image."""
+
+    def test_zpl_templates_become_designs(self):
+        before = [("inventory", "0042_location_label_url"), ("label_printing", "0007_medium_offset_help")]
+        executor = MigrationExecutor(connection)
+        latest = executor.loader.graph.leaf_nodes()
+        media = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, media)
+        try:
+            executor.migrate(before)
+            apps = executor.loader.project_state(before).apps
+            Template = apps.get_model("inventory", "LocationLabelTemplate")
+            Template.objects.create(name="105x52 mobile", label_width=105, label_height=52,
+                                    zpl_template="^XA^FO405,190^GFA,8,8,2,HFF0,\n,:FF00!^FS^FD$url^FS^XZ")
+            Template.objects.create(name="Eigene", label_width=50, label_height=25, zpl_template="^XA^FD$url^FS^XZ")
+            with override_settings(MEDIA_ROOT=media):
+                executor = MigrationExecutor(connection)
+                executor.migrate(latest)
+                apps = executor.loader.project_state(latest).apps
+                Template = apps.get_model("inventory", "LocationLabelTemplate")
+                mobile, own = Template.objects.get(name="105x52 mobile"), Template.objects.get(name="Eigene")
+                self.assertIn('image "ZAM Logo"', mobile.description)
+                self.assertEqual(parse(mobile.description)[1], [])
+                self.assertTrue(own.description.startswith("# Converted from a ZPL template"))
+                self.assertIn("# ^XA^FD$url^FS^XZ", own.description)
+                self.assertEqual((parse(own.description)[0].width, parse(own.description)[0].height), (50, 25))
+                self.assertTrue(Template.objects.filter(name="ZAMid 70x32", subject_type="labelid").exists())
+                logo = apps.get_model("label_printing", "LabelImage").objects.get(name="ZAM Logo")
+                with Image.open(logo.image.path) as image:
+                    self.assertEqual(image.size, (16, 4))
+                    self.assertEqual([image.getpixel((x, 0)) for x in (0, 11, 12)], [0, 0, 255])  # FFF0
+        finally:
+            executor = MigrationExecutor(connection)
+            executor.migrate(latest)

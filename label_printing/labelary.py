@@ -1,6 +1,6 @@
 """
-Rendering ZPL with labelary.com (api.labelary.com): previews of ZPL templates in the print dialog and
-the fake Zebra printer (simulator.py). An external service with rate limits; it gets the label's ZPL.
+Rendering ZPL with labelary.com (api.labelary.com) for the fake Zebra printer (simulator.py), to see what a
+Zebra would print. An external service with rate limits; it gets the label's ZPL. Development only.
 No Django here, so the simulator runs without it.
 """
 import urllib.request

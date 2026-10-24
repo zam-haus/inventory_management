@@ -99,18 +99,11 @@
                 return;
             }
             parts.preview.hidden = false;
-            if (!current.preview) {
-                parts.image.hidden = true;
-                parts.image.removeAttribute('src');
-                parts.note.textContent = text.labelNoPreview;
-                return;
-            }
             const query = new URLSearchParams({medium: fields.medium.value, layout: current.key});
             if (fields.location) query.set('location', fields.location.value);
             parts.image.hidden = false;
             parts.image.src = `${options.preview_url}?${query}`;
-            parts.note.textContent = current.labelary ? text.labelLabelary
-                : text.subject === 'item' ? text.labelPreviewNewId : '';
+            parts.note.textContent = text.subject === 'item' ? text.labelPreviewNewId : '';
         }, 150);
     }
     parts.image.addEventListener('error', () => {

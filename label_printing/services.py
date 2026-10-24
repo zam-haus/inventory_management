@@ -17,7 +17,7 @@ from inventory.models import Item, LabelId, Location
 from . import drivers, label_urls, messages
 from .devices.io import TcpDevice
 from .devices.run import DONE, FAILED, SENT, Result, query_status, run_job
-from .layouts import Canvas, LabelTooSmall, get_layout, layouts_for
+from .layouts import Canvas, LabelTooSmall, NotRendered, get_layout, layouts_for
 from .models import PrintJob, Printer, Quality
 from .render import squeeze
 
@@ -30,18 +30,12 @@ RESULT_STATUS = {DONE: PrintJob.Status.DONE, SENT: PrintJob.Status.SENT, FAILED:
 
 
 def build_payload(printer, medium, rendered, copies, quality=Quality.STANDARD):
-    """(bytes, pages) for the printer: ZPL formats, or one P-touch job with half cuts between the labels."""
+    """(bytes, pages) for the printer: a ZPL format per label (the image as ^GFA, with the printer settings),
+    or one P-touch job with half cuts between the labels."""
     if printer.language == Printer.Language.ZPL:
-        formats = []
-        for label in rendered:
-            if label.zpl is not None:
-                formats.extend([drivers.zpl_with_quality(label.zpl, quality)] * copies)
-            else:
-                formats.append(drivers.zpl_raster_label(label.image, copies, (medium.offset_x, medium.offset_y),
-                                                        medium.zpl_darkness, quality))
+        formats = [drivers.zpl_raster_label(label.image, copies, (medium.offset_x, medium.offset_y),
+                                            medium.zpl_darkness, quality) for label in rendered]
         return "".join(formats).encode("utf-8"), len(rendered) * copies
-    if any(label.image is None for label in rendered):
-        raise PrintError(_("This layout only prints on Zebra printers."))
     return drivers.ptouch_job(printer.model, medium.ptouch_tape, [label.image for label in rendered], copies, quality,
                               medium.offset_y)
 
@@ -53,9 +47,10 @@ def render(layout, subjects, medium, preview=False, user=None, quality=Quality.S
         rendered = [layout.render(subject, canvas, medium, preview=preview, user=user) for subject in subjects]
     except LabelTooSmall:
         raise PrintError(_("The content does not fit on %(medium)s; choose a larger label.") % {"medium": medium.name}) from None
+    except NotRendered as error:
+        raise PrintError(_("The label template has a mistake: %(error)s") % {"error": error}) from None
     for label in rendered:
-        if label.image is not None:
-            label.image = squeeze(label.image, canvas.squeeze)
+        label.image = squeeze(label.image, canvas.squeeze)
     return rendered
 
 

@@ -1,5 +1,6 @@
 """Printers, their label media, print agents and the print queue (PrintJob)."""
 import hashlib
+import io
 import secrets
 from datetime import timedelta
 
@@ -8,6 +9,7 @@ from django.core.exceptions import ValidationError
 from django.db import models, transaction
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
+from PIL import Image, ImageOps
 
 from . import drivers, messages
 
@@ -221,9 +223,9 @@ class LabelStock(models.Model):
                               help_text=_("Thermal transfer: the ribbon the material needs."))
     material = models.CharField(_("material"), max_length=64, blank=True,
                                 help_text=_("e.g. paper, polypropylene, polyester"))
-    zpl_templates = models.ManyToManyField(
-        "inventory.LocationLabelTemplate", verbose_name=_("ZPL templates"), blank=True, related_name="stock",
-        help_text=_("Zebra: location label templates for these labels; media of this stock offer them."),
+    label_templates = models.ManyToManyField(
+        "inventory.LocationLabelTemplate", verbose_name=_("label templates"), blank=True, related_name="stock",
+        help_text=_("Only these of their kind for these labels; none: every template of the labels' size."),
     )
     url = models.URLField(_("product page"), blank=True)
 
@@ -294,9 +296,10 @@ class LabelMedium(models.Model):
     )
     zpl_darkness = models.SmallIntegerField(_("darkness"), null=True, blank=True,
                                             help_text=_("Zebra: -30 to 30 (^MD); empty for the printer's setting."))
-    zpl_templates = models.ManyToManyField(
-        "inventory.LocationLabelTemplate", verbose_name=_("ZPL templates"), blank=True, related_name="media",
-        help_text=_("Zebra: location label templates offered for this medium."),
+    label_templates = models.ManyToManyField(
+        "inventory.LocationLabelTemplate", verbose_name=_("label templates"), blank=True, related_name="media",
+        help_text=_("Only these of their kind for this medium (else those chosen for its label stock); none: "
+                    "every template of the medium's size."),
     )
     quality = models.CharField(
         _("print quality"), max_length=16, choices=Quality.choices, default=Quality.STANDARD,
@@ -356,12 +359,12 @@ class LabelMedium(models.Model):
     def is_tape(self):
         return self.printer.language == Printer.Language.PTOUCH
 
-    def templates(self):
-        """The ZPL templates offered: the medium's own, else those of its label stock."""
-        own = self.zpl_templates.all()
+    def chosen_templates(self):
+        """The label templates chosen for the medium, else for its label stock (maybe none)."""
+        own = self.label_templates.all()
         if own.exists() or self.stock_id is None:
             return own
-        return self.stock.zpl_templates.all()
+        return self.stock.label_templates.all()
 
 
 class PrintJob(models.Model):
@@ -423,3 +426,57 @@ class PrintJob(models.Model):
     def message(self):
         """The outcome in words: the error, or the plain status."""
         return messages.describe(self.code, self.detail) or self.get_status_display()
+
+
+class LabelImage(models.Model):
+    """An image for label designs (a logo, a safety sign, a tool icon), stored once in its full size and cropped
+    here. Designs scale it for each printer and turn it black and white (label_printing.design)."""
+
+    class Meta:
+        verbose_name = _("label image")
+        verbose_name_plural = _("label images")
+        ordering = ("name",)
+
+    name = models.CharField(_("name"), max_length=64, unique=True,
+                            help_text=_("Designs use it by this name: image \"ZAM Logo\"."))
+    image = models.ImageField(_("original"), upload_to="label_images/",
+                              help_text=_("PNG, GIF, JPEG or WebP, best large: designs scale it down."))
+    crop_left = models.PositiveIntegerField(_("cut off left"), default=0)
+    crop_top = models.PositiveIntegerField(_("cut off top"), default=0)
+    crop_right = models.PositiveIntegerField(_("cut off right"), default=0)
+    crop_bottom = models.PositiveIntegerField(_("cut off bottom"), default=0)
+
+    def __str__(self):
+        return self.name
+
+    def picture(self):
+        """The original as a Pillow image, EXIF rotation applied. An upload not yet saved stays open for saving."""
+        if self.image._committed:
+            with self.image.open("rb") as file:
+                data = file.read()
+        else:
+            self.image.seek(0)
+            data = self.image.read()
+            self.image.seek(0)
+        return ImageOps.exif_transpose(Image.open(io.BytesIO(data)))
+
+    def size(self):
+        """The original's size in pixels (as shown, EXIF rotation applied)."""
+        return self.picture().size
+
+    def cropped(self):
+        """The cropped original in grey, transparency as white."""
+        image = self.picture().convert("RGBA")
+        image = Image.alpha_composite(Image.new("RGBA", image.size, "white"), image).convert("L")
+        return image.crop((self.crop_left, self.crop_top, image.width - self.crop_right, image.height - self.crop_bottom))
+
+    def clean(self):
+        if not self.image:
+            return
+        try:
+            width, height = self.size()
+        except (OSError, ValueError):
+            raise ValidationError({"image": _("The file is not an image that can be read.")}) from None
+        if self.crop_left + self.crop_right >= width or self.crop_top + self.crop_bottom >= height:
+            raise ValidationError(_("Cut off less than the image: it is %(width)s × %(height)s pixels.") % {
+                "width": width, "height": height})

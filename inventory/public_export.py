@@ -77,6 +77,7 @@ EXPORTED_MODELS = {
     "inventory.barcodetype": {},
     "inventory.measurementunit": {},
     "inventory.locationlabeltemplate": {},
+    "label_printing.labelimage": {},  # images for the templates
     "inventory.locationtype": {},
     "inventory.locationaxis": {},
     "inventory.location": {},

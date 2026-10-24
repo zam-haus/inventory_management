@@ -1,20 +1,27 @@
-import hashlib
+import base64
 import io
+from pathlib import Path
+
+import markdown
 
 from django.conf import settings
-from django.contrib import messages
+from django.contrib import admin, messages
+from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib.auth.decorators import login_required, permission_required
 from django.contrib.auth.mixins import PermissionRequiredMixin
-from django.core.cache import cache
 from django.http import Http404, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils.decorators import method_decorator
 from django.views import View
 from django.views.decorators.cache import never_cache
-from django.views.decorators.http import require_safe
+from django.utils.safestring import mark_safe
+from django.utils.translation import gettext
+from django.views.decorators.http import require_POST, require_safe
 
-from . import dialog, labelary, services
+from inventory.models import LocationLabelTemplate
+from . import dialog, editor, label_urls, services
+from .design import fields as design_fields
 from .render import coloured
 from .layouts import get_layout
 from .models import LabelMedium, PrintJob
@@ -96,8 +103,7 @@ class PrintLabelsView(PermissionRequiredMixin, View):
 @login_required
 @permission_required("label_printing.print_label", raise_exception=True)
 def preview(request, subject_type, pk):
-    """The first label as PNG, as the printer gets it (dots); ZPL templates rendered by labelary.com
-    (204 if that is switched off, 503 if it does not answer)."""
+    """The first label as PNG, as the printer gets it (dots), in the colours of its label stock."""
     obj = dialog.subject_object(subject_type, pk)
     medium = get_object_or_404(LabelMedium.objects.select_related("printer", "stock"), pk=request.GET.get("medium") or 0)
     try:
@@ -106,8 +112,6 @@ def preview(request, subject_type, pk):
         raise Http404 from None
     if layout.subject_type != subject_type or not layout.supports(medium.printer, medium):
         raise Http404
-    if layout.key.startswith("zpl:") and not settings.PRINT_LABELARY_URL:
-        return HttpResponse(status=204)
     if subject_type == "item":
         locations = {str(location.pk): location for location in dialog.item_locations(obj)}
         subject = dialog.ItemAt(obj, locations.get(request.GET.get("location", "")))
@@ -117,30 +121,79 @@ def preview(request, subject_type, pk):
         rendered, = services.render(layout, [subject], medium, preview=True)
     except services.PrintError as error:
         return HttpResponse(str(error), status=422, content_type="text/plain; charset=utf-8")
-    if rendered.zpl is not None:
-        return zpl_preview(rendered.zpl, medium)
     image = rendered.image
     if medium.stock is not None:
         image = coloured(image, medium.stock.background_color, medium.stock.print_color)
+    return png_response(image, medium.printer.dpi)
+
+
+def png(image, dpi):
     out = io.BytesIO()
-    image.save(out, format="PNG", dpi=(medium.printer.dpi, medium.printer.dpi))
-    response = HttpResponse(out.getvalue(), content_type="image/png")
-    response["Cache-Control"] = "private, max-age=60"
+    image.save(out, format="PNG", dpi=(dpi, dpi))
+    return out.getvalue()
+
+
+def png_response(image, dpi, cache_control="private, max-age=60"):
+    response = HttpResponse(png(image, dpi), content_type="image/png")
+    response["Cache-Control"] = cache_control
     return response
 
 
-def zpl_preview(zpl, medium):
-    """A ZPL template's label as PNG from labelary.com, kept a day in the cache (labelary limits requests)."""
-    dpi = medium.printer.dpi
-    key = "label_printing:labelary:" + hashlib.sha256(f"{dpi}:{medium.width_mm}:{medium.height_mm}:{zpl}".encode()).hexdigest()
-    png = cache.get(key)
-    if png is None:
-        try:
-            png, _extension = labelary.render(zpl, dpi, (medium.width_mm or 57) / 25.4, (medium.height_mm or 32) / 25.4,
-                                              base=settings.PRINT_LABELARY_URL, timeout=8)
-        except OSError:  # unreachable, refused, rate limit
-            return HttpResponse(status=503)
-        cache.set(key, png, 24 * 3600)
-    response = HttpResponse(png, content_type="image/png")
-    response["Cache-Control"] = "private, max-age=60"
-    return response
+def template_subject(subject_type, pk):
+    """(subject, values) for a template's preview; items with their first location."""
+    obj = dialog.subject_object(subject_type, pk)
+    if subject_type == "location":
+        return obj, design_fields.location_values(obj)
+    if subject_type == "item":
+        locations = dialog.item_locations(obj)
+        subject = dialog.ItemAt(obj, locations[0] if locations else None)
+        return subject, design_fields.item_values(subject, label_urls.item_label_code(subject, create=False)
+                                                  or label_urls.PREVIEW_CODE)
+    return obj, design_fields.label_id_values(obj)
+
+
+@require_safe
+def template_preview(request, pk, subject_type, subject_pk):
+    """A template's label for one location, item or label ID, without a printer (editor.nominal_canvas). Location
+    labels are public like the location page that shows them; the others for who may print."""
+    if subject_type != "location" and not request.user.has_perm("label_printing.print_label"):
+        raise Http404
+    template = get_object_or_404(LocationLabelTemplate, pk=pk, subject_type=subject_type)
+    _subject, values = template_subject(subject_type, subject_pk)
+    image, _problems, canvas = editor.preview(template.description, subject_type, values)
+    if image is None:
+        raise Http404
+    return png_response(image, canvas.dpi, "public, max-age=300")
+
+
+@login_required
+@permission_required("inventory.change_locationlabeltemplate", raise_exception=True)
+@require_POST
+def design_preview(request):
+    """The admin's preview while a description is typed (label_template.js): JSON with the label as a PNG data URL,
+    the problems by line, the size, and the sample records to choose from."""
+    subject_type = request.POST.get("subject_type", "location")
+    records = design_fields.sample_records(subject_type)
+    try:
+        values = records[int(request.POST.get("record") or 0)][1]
+    except (IndexError, ValueError):
+        values = {name: f"{{{name}}}" for name in design_fields.names(subject_type)}
+    medium = LabelMedium.objects.select_related("printer", "stock").filter(pk=request.POST.get("medium") or 0).first()
+    image, problems, canvas = editor.preview(request.POST.get("description", ""), subject_type, values, medium)
+    data = {"problems": [{"line": problem.line, "message": problem.message} for problem in problems],
+            "records": [name for name, _values in records], "image": None}
+    if image is not None:
+        data["image"] = "data:image/png;base64," + base64.b64encode(png(image, canvas.dpi)).decode("ascii")
+        data["size"] = gettext("%(width)s × %(height)s dots at %(dpi)s dpi: %(width_mm).1f × %(height_mm).1f mm") % {
+            "width": image.width, "height": image.height, "dpi": canvas.dpi,
+            "width_mm": image.width * 25.4 / canvas.dpi, "height_mm": image.height * 25.4 / canvas.dpi}
+    return JsonResponse(data)
+
+
+@staff_member_required
+def design_help(request):
+    """The description language's reference (docs/label-designs.md) in the admin."""
+    text = (Path(settings.BASE_DIR) / "docs" / "label-designs.md").read_text(encoding="utf-8")
+    html = markdown.markdown(text, extensions=["tables", "fenced_code"])
+    return render(request, "label_printing/admin/design_help.html", {
+        **admin.site.each_context(request), "title": gettext("How to describe labels"), "content": mark_safe(html)})

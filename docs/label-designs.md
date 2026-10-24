@@ -1,0 +1,191 @@
+# Label designs
+
+Label templates (admin → Inventory → Label templates) are written in a small language. The server draws them
+for each printer, dot for dot at its resolution. A Zebra gets the result as an image in ZPL; a Brother gets it
+as P-touch raster data. While a template is being written, the preview beside it shows the label with real
+records, and lists mistakes by line.
+
+```
+# Mobile locations, 105 × 52 mm polyester
+label 105 x 52  margin 1
+row  gap 3
+  qr {qr}  ecc Q  max 32
+  column  gap 3
+    text {code}  font condensed  bold  invert  height 18
+    image "ZAM Logo"
+text "Eigentum Betreiberverein ZAM e.V."  font condensed  bold  center  height 4.5
+```
+
+## The rules
+
+* **The first line gives the size:**
+  * `label 105 x 52` is width × height in mm.
+  * `label height 12` is a label as long as its content, for Brother tape: the height is the tape
+    width, and the printer cuts after each label.
+* **Then one element per line:** a keyword, its content, then options in any order. `#` starts a
+  comment; commas and extra spaces are allowed.
+* **Indentation:** elements indented below a `row` or `column` are laid out in it. Use spaces; in
+  the admin, Tab indents by two.
+* **Lengths are in mm** (`3`, `2.5`, `2.5mm`). Some sizes may also be a percentage of the row or
+  column (`50%`), `fill` or `auto`.
+* **Content** is text in quotes with `{fields}`, e.g. `"Ort: {path}"`, or a field alone: `{code}`.
+
+## The label
+
+| | |
+|---|---|
+| `label W x H` | fixed size, width × height in mm |
+| `label height H` | as long as the content (Brother tape) |
+| `margin M` | white border on all sides |
+| `min L`, `max L` | shortest and longest length of a label without width |
+| `rotate 180` | print upside down |
+
+The label itself lays out its elements like a column, from top to bottom.
+
+## Layout: row and column
+
+`row` lays its elements out from left to right; `column` from top to bottom.
+
+* **Along a row or column**, an element takes one of these sizes:
+  * what is given: `width 20` in a row, `height 8` in a column, also `50%`;
+  * what its content needs (`auto`), the default for text with a `size`, QR codes, images and lines;
+  * a share of what is left (`fill`), the default otherwise. Several fill elements share equally. On a
+    label without width, fill means auto.
+* **Across**, an element fills the row or column unless its width or height is given; the row or
+  column then places it by its `align`.
+* **`at X Y`** places an element X mm from the left and Y mm from the top of its row or column (or of
+  the label), outside the flow. It takes its `width` and `height`, else what its content needs.
+* **`space`** takes room: `space 2`, or `space` alone to share what is left (to centre something,
+  put a space before and after it).
+
+| Option | Row | Column |
+|---|---|---|
+| `gap G` | space between the elements | space between the elements |
+| `padding P` | white border inside | white border inside |
+| `align …` | `top`, `middle` (default), `bottom` | `left`, `center` (default), `right` |
+| `width`, `height` | its own size within its parent | its own size within its parent |
+
+Every element, and rows and columns too, takes **`margin`**: white around its content, inside the room the
+element takes, like CSS. `margin 1` adds 1 mm on all sides; `margin 1 2` adds 1 mm at top and bottom and
+2 mm left and right; `margin 1 2 1 0` gives top, right, bottom and left. A given `width` or `height` is the
+content's: `image "Logo"  height 6  margin 1` takes 8 mm. (`padding` of a row or column is white inside its
+border, around all its elements.)
+
+## Elements
+
+### text
+
+`text "Fixed text"` or `text {field}`, also both: `text "{price} / Stück"`.
+
+| Option | |
+|---|---|
+| `size S` | font size in mm (about 1.4 × the height of capital letters). Without it the text fits its box. |
+| `fit` | fit the box, with `size` as the largest size |
+| `lines N` | wrap into at most N lines (default 1); text that does not fit ends with "…" |
+| `font F` | `sans` (Raleway, as in the ZAMid lettering), `mono` (Roboto Mono, the ZAMid's ID), `condensed` (Roboto Condensed, narrow like Zebra's built-in font), `ocr` (OCR-B, readable by people and machines) |
+| `bold`, `weight W` | weight 100 to 900 (bold is 700); OCR-B has one weight only |
+| `left`, `center`, `right` | justification (default left; inverted text centred) |
+| `top`, `middle`, `bottom` | vertical position in its box (default middle) |
+| `invert` | white on black; with `padding P` around the text (default an eighth of the height) |
+| `rotate 90`, `180`, `270` | turned clockwise; in a row a text turned 270° reads from bottom to top |
+
+### qr
+
+`qr {qr}` is a QR code with whole printer dots per module, so it stays sharp.
+
+| Option | |
+|---|---|
+| `size S` | edge length in mm, or `fill` (as large as fits, the default) |
+| `max M` | at most this large |
+| `ecc L`, `M`, `Q`, `H` | error correction (default L: smallest code) |
+| `quiet N` | white border in modules (default 2) |
+| `left` … `bottom` | position in its box (default centred) |
+
+If the QR code cannot get at least two dots per module, the label is refused as too small.
+
+### image
+
+`image "ZAM Logo"` shows a label image (admin → Label printing → Label images) by its name. The original
+is cropped there, scaled here to fit the element's box while keeping its proportions, and turned black
+and white for the printer.
+
+| Option | |
+|---|---|
+| `width`, `height` | its box; without them it is as large as its row or column allows |
+| `threshold T` | black where darker than T, 1 to 254 (default 128) |
+| `dither` | shades as dot patterns, for photos and grey logos |
+| `invert` | black and white swapped |
+| `rotate 90`, `180`, `270` | turned clockwise |
+| `left` … `bottom` | position in its box (default centred) |
+
+### box, line, arrow
+
+* `box` is a black rectangle filling its box; `box border 0.5` is just the frame.
+* `line` is a line across its row or column, upright in a row, flat in a column. `thickness T`
+  defaults to 0.25 mm, at least one dot.
+* `arrow up` (or `down`, `left`, `right`) is a filled triangle pointing that way, e.g. to say which
+  side of a shelf a label is for.
+
+## Fields
+
+Which `{fields}` a template may use depends on what it is for; the template page lists them.
+
+| Locations | Items | Label IDs |
+|---|---|---|
+| `{code}` WH-1.R303.a | `{name}` | `{id}` K7R-4XD |
+| `{qr}` the code via the label host | `{price}` 0,15 € / Stk (items for sale) | `{id1}` K7R, `{id2}` 4XD |
+| `{name}` | `{qr}` its label ID, leading to the item at the location | `{qr}` the ID via the label host |
+| `{path}` where it is, with codes | `{location}` the location's code | `{idname}` ZAMid |
+| `{purpose}` | `{id}` the label ID as printed | `{target}` what the ID belongs to |
+| `{short}` code within its area | `{unit}` Stk | |
+
+## Where templates are offered
+
+There is no resolution in a template, so a template fits any printer with labels of its size:
+* Zebra labels of its width and height, within a millimetre;
+* Brother tape as wide as its height. A template without width fits tape of any length; one with a
+  width fits only a medium of that length, or tape of any length.
+
+Media offer the fitting templates of the kind being printed. If templates are chosen for a medium (or for
+its label stock), only those are offered.
+
+## Examples
+
+A location label on 12 mm tape, as long as the path needs:
+
+```
+label height 12  margin 0.5
+row  gap 1
+  qr {qr}
+  column  gap 0.5
+    text {code}  font mono  bold  invert
+    text {path}  font condensed
+```
+
+A label ID, like the Brother design:
+
+```
+label 70 x 32  margin 1.5
+row  gap 1.5
+  text {idname}  rotate 270  font sans  weight 800
+  qr {qr}
+  column
+    text {id1}  font mono  bold  center
+    line  thickness 0.8  width 40%
+    text {id2}  font mono  bold  center
+```
+
+A fixed shelf label with an arrow pointing up to the shelf:
+
+```
+label 70 x 32  margin 1
+row  gap 2
+  qr {qr}  ecc Q
+  column
+    space
+    arrow up  width 14  height 6
+    space 1
+    text {code}  font mono  bold  invert  height 11
+    space
+text {path}  font condensed  center  height 3.5
+```

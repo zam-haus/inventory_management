@@ -1,0 +1,20 @@
+{% extends "admin/change_form.html" %}
+{% load i18n static %}
+{% block extrastyle %}{{ block.super }}<link rel="stylesheet" href="{% static 'label_printing/label_template.css' %}">{% endblock %}
+{% block admin_change_form_document_ready %}
+{{ block.super }}
+{{ label_editor|json_script:"label-editor-data" }}
+<template id="label-preview-template">
+  <div class="label-preview" data-label-preview>
+    <div class="label-preview-controls">
+      <label>{% trans "Record" %} <select data-preview-record></select></label>
+      <label>{% trans "Printer" %} <select data-preview-medium><option value="">{% trans "none (203 dpi; tape: 360 dpi)" %}</option></select></label>
+    </div>
+    <div class="label-preview-stage"><img alt="{% trans 'Preview of the label' %}" data-preview-image hidden></div>
+    <p class="help" data-preview-size></p>
+    <ul class="label-preview-problems" data-preview-problems></ul>
+    <p class="help"><a href="{% url 'label_design_help' %}" target="_blank" rel="noopener">{% trans "How to describe labels" %}</a></p>
+  </div>
+</template>
+<script src="{% static 'label_printing/label_template.js' %}"></script>
+{% endblock %}

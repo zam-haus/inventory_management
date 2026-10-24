@@ -1,11 +1,7 @@
-import importlib
 from decimal import Decimal
 from io import BytesIO
-from types import SimpleNamespace
 
-from django.apps import apps
 from django.core.exceptions import ValidationError
-from django.db import connection
 from django.test import TestCase, override_settings
 from django.urls import reverse
 from PIL import Image
@@ -14,8 +10,6 @@ from inventory.models import Location, LocationLabelTemplate, LocationType
 from ..layouts import layouts_for
 from ..models import LabelMedium, LabelStock
 from .helpers import SETTINGS, create_printers, create_user
-
-stock_data = importlib.import_module("label_printing.migrations.0004_label_stock_data")
 
 
 @override_settings(**SETTINGS)
@@ -30,23 +24,6 @@ class LabelStockTests(TestCase):
         self.assertEqual(LabelStock.objects.get(code="TZe-N201").tape_mm, 4)  # 3.5 mm tape
         self.assertFalse(LabelStock.objects.filter(code__startswith="HSe-").exists())
         self.assertGreater(LabelStock.objects.filter(language="ptouch").count(), 100)
-
-    def test_zebra_stock_from_the_templates(self):
-        small = LocationLabelTemplate.objects.create(name="70x32 static", zpl_template="^XA^XZ", label_width=70, label_height=32)
-        down = LocationLabelTemplate.objects.create(name="70x32 down", zpl_template="^XA^XZ", label_width=70, label_height=32)
-        box = LocationLabelTemplate.objects.create(name="105x52 mobile", zpl_template="^XA^XZ", label_width=105, label_height=52)
-        LocationLabelTemplate.objects.create(name="other", zpl_template="^XA^XZ", label_width=50, label_height=25)
-        stock_data.zebra_labels_of_templates(apps, SimpleNamespace(connection=connection))
-        stocks = {stock.name: stock for stock in LabelStock.objects.filter(language="zpl")}
-        self.assertEqual(set(stocks), {"Etikett 70 × 32 mm Papier", "Etikett 105 × 52 mm Polyester", "Etikett 50 × 25 mm"})
-        paper, polyester = stocks["Etikett 70 × 32 mm Papier"], stocks["Etikett 105 × 52 mm Polyester"]
-        self.assertEqual(set(paper.zpl_templates.all()), {small, down})
-        self.assertEqual(list(polyester.zpl_templates.all()), [box])
-        self.assertEqual((paper.method, paper.ribbon, paper.material), ("transfer", "wax", "Papier"))
-        self.assertEqual((polyester.method, polyester.ribbon, polyester.material), ("transfer", "resin", "Polyester"))
-        self.assertEqual(stocks["Etikett 50 × 25 mm"].method, "")  # other sizes: not known
-        for stock in stocks.values():
-            stock.full_clean()
 
     def test_zebra_printing_method_and_ribbon(self):
         stock = LabelStock(language="zpl", name="Polyester", width_mm=50, height_mm=25, method="transfer")
@@ -72,16 +49,21 @@ class LabelStockTests(TestCase):
 
     def test_templates_of_the_stock_are_offered(self):
         zebra, labels, *_ = create_printers()
-        template = LocationLabelTemplate.objects.create(name="Fach", zpl_template="^XA^XZ", label_width=57, label_height=32)
+        def template(name):
+            return LocationLabelTemplate.objects.create(name=name, description="label 57 x 32\ntext {code}")
+        chosen, other = template("Fach"), template("Anderes")
+        keys = lambda: [layout.key for layout in layouts_for("location", zebra, labels)]
+        self.assertIn(f"design:{other.pk}", keys())  # nothing chosen: every template of the size
         stock = LabelStock.objects.create(language="zpl", name="57 × 32", width_mm=57, height_mm=32, method="direct")
-        stock.zpl_templates.add(template)
+        stock.label_templates.add(chosen)
         labels.stock = stock
         labels.save()
-        self.assertIn(f"zpl:{template.pk}", [layout.key for layout in layouts_for("location", zebra, labels)])
-        other = LocationLabelTemplate.objects.create(name="Own", zpl_template="^XA^XZ", label_width=57, label_height=32)
-        labels.zpl_templates.add(other)  # the medium's own choice wins
-        self.assertEqual([layout.key for layout in layouts_for("location", zebra, labels)][:1], [f"zpl:{other.pk}"])
-        self.assertNotIn(f"zpl:{template.pk}", [layout.key for layout in layouts_for("location", zebra, labels)])
+        self.assertIn(f"design:{chosen.pk}", keys())
+        self.assertNotIn(f"design:{other.pk}", keys())
+        own = template("Own")
+        labels.label_templates.add(own)  # the medium's own choice wins
+        self.assertEqual(keys()[:1], [f"design:{own.pk}"])
+        self.assertNotIn(f"design:{chosen.pk}", keys())
 
     def test_preview_in_the_tape_colours(self):
         _zebra, _labels, brother, tape = create_printers()

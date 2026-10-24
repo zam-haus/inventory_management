@@ -409,7 +409,7 @@ class LocationOverviewTests(TestCase):
     def test_public_metadata_modal_opens_beside_the_physical_description(self):
         self.client.logout()
         label_url = "https://example.com/location-label.png"
-        with patch.object(Location, "get_lablary_url", new=lambda location: label_url):
+        with patch.object(Location, "label_preview_url", new=lambda location: label_url):
             response = self.client.get(self.location.get_absolute_url())
         elements = list(html_elements(parse_html(response.content.decode())))
         metadata = next(element for element in elements if dict(element.attributes).get("id") == "location-metadata")

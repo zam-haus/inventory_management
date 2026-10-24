@@ -1,0 +1,15 @@
+/* A label template's admin page: the description and, beside it, its preview (label_template.js). */
+.label-description { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: 13px; line-height: 1.5;
+                     tab-size: 2; white-space: pre; width: 38em; max-width: 100%; }
+.label-description-row { display: flex; flex-wrap: wrap; gap: 1.5rem; align-items: flex-start; }
+.label-preview { flex: 1 1 320px; min-width: 0; }
+.label-preview-controls { display: flex; flex-wrap: wrap; gap: 0.5rem 1rem; margin-bottom: 0.5rem; }
+.label-preview-stage { background: repeating-conic-gradient(#ddd 0% 25%, #f4f4f4 0% 50%) 0 0 / 16px 16px;
+                       padding: 12px; display: inline-block; max-width: 100%; box-sizing: border-box; }
+.label-preview-stage img { display: block; max-width: 100%; image-rendering: pixelated; box-shadow: 0 1px 4px rgba(0,0,0,.3); }
+.label-preview-problems { margin: 0.5rem 0; padding: 0; list-style: none; }
+.label-preview-problems li { color: #ba2121; margin: 0.15rem 0; }
+.label-preview-problems a { font-family: ui-monospace, Menlo, monospace; cursor: pointer; }
+.label-design-help { max-width: 60em; }
+.label-design-help pre { background: var(--darkened-bg, #f8f8f8); padding: 0.75rem 1rem; overflow-x: auto; }
+.label-design-help table { margin: 0.5rem 0 1rem; }

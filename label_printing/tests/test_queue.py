@@ -89,20 +89,24 @@ class SubmitTests(TestCase):
         with self.assertRaisesMessage(services.PrintError, "The print agent of this printer is offline."):
             self.submit(printer, medium, subjects=[printer])
 
-    def test_zpl_templates_print_on_their_media_only(self):
-        template = LocationLabelTemplate.objects.create(
-            name="Fach", zpl_template="^XA^FO10,10^BQN,2,4^FDQA,$label_url^FS^FD$unique_identifier^FS^XZ",
-            label_width=57, label_height=32)
+    def test_label_templates_print_on_media_of_their_size(self):
+        def template(name, size="57 x 32"):
+            return LocationLabelTemplate.objects.create(name=name, description=f"label {size}\nrow\n  qr {{qr}}\n  text {{code}}")
+        fitting, wide = template("Fach"), template("Breit", "70 x 32")
         kind = LocationType.objects.create(name="Room", unique=True)
         location = Location.objects.create(name="Lager", short_name="WH", type=kind)
-        options = dict(layout_key=f"zpl:{template.pk}", subject_type="location", subjects=[location])
+        options = dict(subject_type="location", subjects=[location])
         with self.assertRaises(services.PrintError):
-            self.submit(**options)
-        self.labels.zpl_templates.add(template)
-        job = self.submit(copies=2, **options)
-        self.assertEqual(bytes(job.payload).decode(), "^XA^FO10,10^BQN,2,4^FDQA,HTTPS://I.ZAM.HAUS/WH^FS^FDWH^FS^XZ" * 2)
+            self.submit(layout_key=f"design:{wide.pk}", **options)
+        job = self.submit(copies=2, layout_key=f"design:{fitting.pk}", **options)
+        payload = bytes(job.payload).decode()
+        self.assertTrue(payload.startswith("^XA^PW456^LL256") and "^GFA" in payload and "^PQ2" in payload)
         self.assertEqual((job.label_code, job.subject_label, job.subject_id), ("WH", str(location), location.pk))
         self.assertEqual(job.snapshot[0]["code"], "WH")
+        # Templates chosen for the medium: only those.
+        self.labels.label_templates.add(template("Gewählt"))
+        with self.assertRaises(services.PrintError):
+            self.submit(layout_key=f"design:{fitting.pk}", **options)
 
 
 @override_settings(**SETTINGS)

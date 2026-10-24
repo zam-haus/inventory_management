@@ -1,6 +1,10 @@
+import re
+
 from django.conf import settings
 from django.conf.urls.static import static
-from django.urls import include, path
+from django.core.exceptions import PermissionDenied
+from django.urls import include, path, re_path
+from django.views.static import serve
 from django.views.generic.base import TemplateView
 
 from . import attachment_views, unique_item_views, views
@@ -83,4 +87,15 @@ urlpatterns = [
     path('location-autocomplete/', views.LocationAutocomplete.as_view(), name='location-autocomplete'),
 ]
 urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
-urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+
+
+def media(request, path):
+    """Media files in development as nginx serves them (nginx.conf): attached documents only through the
+    app, which checks internal ones."""
+    if path.startswith("documents/"):
+        raise PermissionDenied
+    return serve(request, path, document_root=settings.MEDIA_ROOT)
+
+
+if settings.DEBUG:
+    urlpatterns += [re_path(rf"^{re.escape(settings.MEDIA_URL.lstrip('/'))}(?P<path>.*)$", media)]

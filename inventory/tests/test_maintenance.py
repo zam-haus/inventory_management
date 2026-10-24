@@ -23,14 +23,13 @@ class LabelPrintingTests(TestCase):
 
     @classmethod
     def setUpTestData(cls):
-        template = LocationLabelTemplate.objects.create(name="Box", zpl_template="^XA^FD$unique_identifier^FS^XZ",
-                                                        label_width=57, label_height=32)
+        template = LocationLabelTemplate.objects.create(name="Box", description="label 57 x 32\ntext {code}")
         kind = LocationType.objects.create(name="Room", unique=True, default_label_template=template)
         cls.locations = [Location.objects.create(name=f"Room {n}", short_name=f"R{n}", type=kind) for n in (1, 2)]
         cls.printer = Printer.objects.create(name="Zebra", slug="zebra", language="zpl", host="192.0.2.1",
                                              is_default=True)
         cls.medium = LabelMedium.objects.create(printer=cls.printer, name="57 × 32", width_mm=57, height_mm=32)
-        cls.medium.zpl_templates.add(template)
+        cls.medium.label_templates.add(template)
 
     def run_action(self, action):
         request = RequestFactory().post("/")
@@ -48,7 +47,9 @@ class LabelPrintingTests(TestCase):
                 self.assertEqual(self.run_action(action), [f"Sent {2 * copies} labels to printer."])
                 job = PrintJob.objects.latest("pk")
                 self.assertEqual((job.copies, job.pages, job.printer), (copies, 2 * copies, self.printer))
-                self.assertEqual(bytes(job.payload).decode(), "^XA^FDR1^FS^XZ" * copies + "^XA^FDR2^FS^XZ" * copies)
+                payload = bytes(job.payload).decode()
+                self.assertEqual((payload.count("^XA"), payload.count(f"^PQ{copies}"), payload.count("^GFA")), (2, 2, 2))
+                self.assertEqual(job.layout_key, f"design:{self.medium.label_templates.get().pk}")
 
     def test_without_default_printer(self):
         Printer.objects.update(is_default=False)

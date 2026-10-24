@@ -10,11 +10,13 @@ from django.forms.models import _get_foreign_key
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import path, reverse
 from django.utils.decorators import method_decorator
-from django.utils.html import format_html
+from django.utils.html import format_html, format_html_join
 from django.utils.http import urlencode
 from django.utils.translation import gettext_lazy as _, ngettext
 from django.views.generic import FormView
-from label_printing import services as label_printing
+from label_printing import editor as label_editor, services as label_printing
+from label_printing.layouts import designs as label_designs
+from label_printing.models import LabelMedium
 
 from . import models
 from .icons import icon
@@ -48,10 +50,71 @@ class CategoryAdmin(admin.ModelAdmin):
 admin.site.register(models.Category, CategoryAdmin)
 
 
+class LocationLabelTemplateForm(forms.ModelForm):
+    class Meta:
+        model = models.LocationLabelTemplate
+        fields = ("name", "subject_type", "description")
+        widgets = {"description": forms.Textarea(attrs={
+            "rows": 24, "cols": 72, "spellcheck": "false", "autocapitalize": "off", "class": "label-description"})}
+
+    def clean(self):
+        data = super().clean()
+        if data.get("description"):
+            template = models.LocationLabelTemplate(subject_type=data.get("subject_type", "location"),
+                                                    description=data["description"])
+            _design, problems = label_designs.problems_of(template)
+            for problem in problems:
+                self.add_error("description", _("Line %(line)s: %(message)s") % {
+                    "line": problem.line, "message": problem.message})
+        return data
+
+
 class LocationLabelTemplateAdmin(admin.ModelAdmin):
+    """Label templates: a label design written in the description language (docs/label-designs.md), with a
+    preview the server renders while it is typed (label_printing/editor.py)."""
     model = models.LocationLabelTemplate
-    fields = ("name", "zpl_template", "label_width", "label_height", "image_tag")
-    readonly_fields = ("image_tag",)
+    form = LocationLabelTemplateForm
+    list_display = ("name", "subject_type", "size_text")
+    list_filter = ("subject_type",)
+    search_fields = ("name", "description")
+    fields = ("name", "subject_type", "description", "fields_list", "fitting_media")
+    readonly_fields = ("fields_list", "fitting_media")
+    change_form_template = "label_printing/admin/label_template_change_form.html"
+
+    STARTER = (
+        "# The size first (width x height in mm, or: label height 12 for any length),\n"
+        "# then one element per line; indented elements are laid out in their row or column.\n"
+        "label 70 x 32  margin 1.5\n"
+        "row  gap 2\n"
+        "  qr {qr}  ecc Q\n"
+        "  column  gap 1\n"
+        "    text {code}  font mono  bold  invert\n"
+        "    text {path}  font condensed  lines 2\n"
+    )
+
+    @admin.display(description=_("fields"))
+    def fields_list(self, obj):
+        return label_editor.field_tables()
+
+    @admin.display(description=_("offered on"))
+    def fitting_media(self, obj):
+        if not obj or not obj.pk:
+            return "–"
+        media = label_editor.fitting_media(obj)
+        if not media:
+            return _("No printer has labels of this size.")
+        return format_html_join("", "<div>{} – {}</div>", ((medium.printer, medium.name) for medium in media))
+
+    def get_changeform_initial_data(self, request):
+        return {"description": self.STARTER, **super().get_changeform_initial_data(request)}
+
+    def render_change_form(self, request, context, add=False, change=False, form_url="", obj=None):
+        media = LabelMedium.objects.filter(printer__is_active=True).select_related("printer").order_by("printer__name", "name")
+        context["label_editor"] = {
+            "preview_url": reverse("label_design_preview"),
+            "media": [{"id": medium.pk, "name": f"{medium.printer} – {medium.name}"} for medium in media],
+        }
+        return super().render_change_form(request, context, add, change, form_url, obj)
 admin.site.register(models.LocationLabelTemplate, LocationLabelTemplateAdmin)
 
 

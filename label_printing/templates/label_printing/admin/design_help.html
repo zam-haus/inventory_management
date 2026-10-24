@@ -1,0 +1,4 @@
+{% extends "admin/base_site.html" %}
+{% load static %}
+{% block extrastyle %}{{ block.super }}<link rel="stylesheet" href="{% static 'label_printing/label_template.css' %}">{% endblock %}
+{% block content %}<div class="label-design-help">{{ content }}</div>{% endblock %}

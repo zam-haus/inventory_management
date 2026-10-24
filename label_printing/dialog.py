@@ -57,9 +57,7 @@ def options(subject_type, obj):
                               "tape": medium.ptouch_tape, "detail": medium_detail(medium), "quality": medium.quality,
                               "colors": [medium.stock.print_color, medium.stock.background_color]
                               if medium.stock else None,
-                              "layouts": [{"key": layout.key, "name": str(layout),
-                                           "preview": not layout.key.startswith("zpl:") or bool(settings.PRINT_LABELARY_URL),
-                                           "labelary": layout.key.startswith("zpl:")} for layout in layouts]})
+                              "layouts": [{"key": layout.key, "name": str(layout)} for layout in layouts]})
         if media:
             printers.append({"id": printer.pk, "name": printer.name, "default": printer.is_default,
                              "unavailable": printer.unavailable_reason(), "status": str(printer.status_text),

@@ -31,7 +31,7 @@
                             <dd>{{ object.physical_description|linebreaksbr }}</dd>
                         </dl>
                     {% endif %}
-                    {% with label_url=object.get_lablary_url %}
+                    {% with label_url=object.label_preview_url %}
                         {% if label_url %}
                             <figure class="location-metadata-label">
                                 <figcaption>{% trans "Label preview" %}</figcaption>

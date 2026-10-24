@@ -2,7 +2,6 @@ from decimal import Decimal
 from io import BytesIO
 from unittest.mock import patch
 
-from django.core.cache import cache
 from uuid import uuid4
 
 from django.contrib.auth import get_user_model
@@ -90,9 +89,8 @@ class PrintDialogTests(SimulatedPrinters, InventoryData, TestCase):
     def setUpTestData(cls):
         cls.create_inventory()
         cls.zebra, cls.labels, cls.brother, cls.tape = create_printers(cls.zebra_server.port, cls.brother_server.port)
-        cls.template = LocationLabelTemplate.objects.create(name="Fach", zpl_template="^XA^FD$label_url^FS^XZ",
-                                                            label_width=57, label_height=32)
-        cls.labels.zpl_templates.add(cls.template)
+        cls.template = LocationLabelTemplate.objects.create(name="Fach", description="label 57 x 32\nqr {qr}")
+        cls.labels.label_templates.add(cls.template)
         cls.user = create_user("printing", "label_printing.print_label", "inventory.add_stockchange")
 
     def setUp(self):
@@ -110,7 +108,7 @@ class PrintDialogTests(SimulatedPrinters, InventoryData, TestCase):
         self.assertContains(response, 'data-modal-open="label-print-modal"')
         self.assertContains(response, 'id="label-print-modal"')
         self.assertContains(response, '"name": "Zebra Lager"')
-        self.assertContains(response, f'"key": "zpl:{self.template.pk}"')
+        self.assertContains(response, f'"key": "design:{self.template.pk}"')
         self.assertContains(response, "Also its sub-locations (2)")
 
     def test_print_a_location_and_its_compartments(self):
@@ -159,9 +157,10 @@ class PrintDialogTests(SimulatedPrinters, InventoryData, TestCase):
         response = self.client.get(reverse("print_labels", args=["location", self.part.pk]))
         self.assertContains(response, "Print labels")
         response = self.post("location", self.part, {"printer": self.zebra.pk, "medium": self.labels.pk,
-                                                     "layout": f"zpl:{self.template.pk}", "copies": 1}, json=False)
+                                                     "layout": f"design:{self.template.pk}", "copies": 1}, json=False)
         self.assertRedirects(response, self.part.get_absolute_url(), fetch_redirect_response=False)
-        self.assertEqual(self.zebra_output.printed[0][1], b"^XA^FDHTTPS://I.ZAM.HAUS/R303.A^FS^XZ")
+        printed = self.zebra_output.printed[0][1]
+        self.assertTrue(printed.startswith(b"^XA^PW456^LL256") and b"^GFA" in printed)
 
     def test_preview(self):
         url = reverse("print_preview", args=["item", self.item.pk])
@@ -172,23 +171,10 @@ class PrintDialogTests(SimulatedPrinters, InventoryData, TestCase):
         self.assertFalse(LabelId.objects.exists())  # previews hand out no IDs
         self.assertEqual(self.client.get(url, {"medium": self.tape.pk, "layout": "nope"}).status_code, 404)
 
-    def test_zpl_preview_from_labelary(self):
+    def test_template_preview_as_the_printer_prints_it(self):
         url = reverse("print_preview", args=["location", self.part.pk])
-        query = {"medium": self.labels.pk, "layout": f"zpl:{self.template.pk}"}
-        cache.clear()
-        with patch("label_printing.labelary.render", return_value=(b"PNG", "png")) as render:
-            response = self.client.get(url, query)
-            self.client.get(url, query)  # from the cache
-        self.assertEqual((response.status_code, response.content, response["Content-Type"]), (200, b"PNG", "image/png"))
-        render.assert_called_once()
-        zpl, dpi, width, height = render.call_args.args
-        self.assertEqual((zpl, dpi, round(width * 25.4), round(height * 25.4)),
-                         ("^XA^FDHTTPS://I.ZAM.HAUS/R303.A^FS^XZ", 203, 57, 32))
-        cache.clear()
-        with patch("label_printing.labelary.render", side_effect=OSError("rate limit")):
-            self.assertEqual(self.client.get(url, query).status_code, 503)
-        with override_settings(PRINT_LABELARY_URL=""):
-            self.assertEqual(self.client.get(url, query).status_code, 204)
+        response = self.client.get(url, {"medium": self.labels.pk, "layout": f"design:{self.template.pk}"})
+        self.assertEqual(Image.open(BytesIO(response.content)).size, (456, 256))
 
     def test_permission(self):
         self.client.force_login(get_user_model().objects.create_user("reader"))
@@ -201,7 +187,7 @@ class PrintDialogTests(SimulatedPrinters, InventoryData, TestCase):
 
     def test_without_printers_the_button_says_why(self):
         PrintJob.objects.all().delete()
-        self.labels.zpl_templates.clear()
+        self.labels.label_templates.clear()
         type(self.zebra).objects.update(is_active=False)
         response = self.client.get(self.part.get_absolute_url())
         self.assertContains(response, "No printer is set up for these labels yet.")

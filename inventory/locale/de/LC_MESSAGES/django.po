@@ -3538,3 +3538,47 @@ msgstr "„%(q)s“ ist die Kennung mehrerer Standorte:"
 #: inventory/label_ids/admin.py
 msgid "Print labels"
 msgstr "Etiketten drucken"
+
+#: inventory/admin.py
+msgid "Line %(line)s: %(message)s"
+msgstr "Zeile %(line)s: %(message)s"
+
+#: inventory/admin.py
+msgid "fields"
+msgstr "Felder"
+
+#: inventory/admin.py
+msgid "offered on"
+msgstr "angeboten auf"
+
+#: inventory/admin.py
+msgid "No printer has labels of this size."
+msgstr "Kein Drucker hat Etiketten dieser Größe."
+
+#: inventory/models/location.py
+msgid "Empty: as long as the content (Brother tape)."
+msgstr "Leer: so lang wie der Inhalt (Brother-Band)."
+
+#: inventory/models/location.py
+msgid "height %(height)s mm, any length"
+msgstr "Höhe %(height)s mm, beliebig lang"
+
+#: inventory/models/location.py
+msgid "label templates"
+msgstr "Etikettenvorlagen"
+
+#: inventory/models/location.py
+msgid "labels for"
+msgstr "Etiketten für"
+
+#: inventory/models/location.py
+msgid "label description"
+msgstr "Etikettenbeschreibung"
+
+#: inventory/models/location.py
+msgid "width (mm)"
+msgstr "Breite (mm)"
+
+#: inventory/models/location.py
+msgid "height (mm)"
+msgstr "Höhe (mm)"

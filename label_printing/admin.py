@@ -1,11 +1,18 @@
+from django import forms
 from django.contrib import admin, messages
-from django.core.exceptions import ValidationError
+from django.core.exceptions import PermissionDenied, ValidationError
+from django.shortcuts import redirect
+from django.template.response import TemplateResponse
+from django.urls import path
 from django.utils.html import format_html
-from django.utils.translation import gettext_lazy as _, gettext
+from django.utils.translation import gettext_lazy as _, gettext, ngettext
+
+from inventory.models import LocationLabelTemplate
 
 from . import services
 from .messages import describe
-from .models import LabelMedium, LabelStock, PrintAgent, Printer, PrintJob
+from .image_import import import_images
+from .models import LabelImage, LabelMedium, LabelStock, PrintAgent, Printer, PrintJob
 
 
 @admin.register(LabelStock)
@@ -13,11 +20,11 @@ class LabelStockAdmin(admin.ModelAdmin):
     list_display = ("__str__", "language", "size", "colours", "method_text", "material")
     list_filter = ("language", "tape_mm", "method", "ribbon", "background_color", "print_color")
     search_fields = ("code", "name", "description", "background_color", "print_color", "material")
-    filter_horizontal = ("zpl_templates",)
+    filter_horizontal = ("label_templates",)
     fieldsets = (
         (None, {"fields": ("language", ("code", "name"), "description", "url")}),
         (_("Brother P-touch"), {"fields": ("tape_mm", ("print_color", "background_color"), "length_m")}),
-        (_("Zebra"), {"fields": (("width_mm", "height_mm"), ("method", "ribbon"), "material", "zpl_templates")}),
+        (_("Zebra"), {"fields": (("width_mm", "height_mm"), ("method", "ribbon"), "material", "label_templates")}),
     )
 
     @admin.display(description=_("size"))
@@ -35,13 +42,100 @@ class LabelStockAdmin(admin.ModelAdmin):
         return stock.method_text or "–"
 
 
+class MultipleFileInput(forms.ClearableFileInput):
+    allow_multiple_selected = True
+
+
+class MultipleFileField(forms.FileField):
+    def __init__(self, *args, **kwargs):
+        kwargs.setdefault("widget", MultipleFileInput(attrs={"accept": "image/png,image/gif,image/jpeg,image/webp,.zip"}))
+        super().__init__(*args, **kwargs)
+
+    def clean(self, data, initial=None):
+        items = data if isinstance(data, (list, tuple)) else [data]
+        return [super(MultipleFileField, self).clean(item, initial) for item in items]
+
+
+class ImageImportForm(forms.Form):
+    files = MultipleFileField(label=_("Images or ZIP archives"),
+                              help_text=_("PNG, GIF, JPEG, WebP; ZIP archives of them, e.g. a set of safety signs."))
+
+
+@admin.register(LabelImage)
+class LabelImageAdmin(admin.ModelAdmin):
+    """Images for label designs: stored once, cropped here; designs scale them (docs/label-designs.md)."""
+    list_display = ("name", "thumbnail", "pixels", "used_by")
+    search_fields = ("name",)
+    readonly_fields = ("cropping", "used_by")
+    fieldsets = (
+        (None, {"fields": ("name", "image", "used_by")}),
+        (_("Cut off"), {"fields": ("cropping", ("crop_left", "crop_top", "crop_right", "crop_bottom"))}),
+    )
+    change_list_template = "label_printing/admin/labelimage_change_list.html"
+
+    class Media:
+        js = ("label_printing/label_image.js",)
+
+    @admin.display(description=_("image"))
+    def thumbnail(self, image):
+        return format_html('<img src="{}" alt="" style="max-height: 48px; max-width: 160px">', image.image.url)
+
+    @admin.display(description=_("size (pixels)"))
+    def pixels(self, image):
+        try:
+            return "{} × {}".format(*image.size())
+        except (OSError, ValueError):
+            return "–"
+
+    @admin.display(description=_("used by"))
+    def used_by(self, image):
+        if not image.pk:
+            return "–"
+        templates = LocationLabelTemplate.objects.filter(description__contains=f'"{image.name}"').order_by("name")
+        return ", ".join(template.name for template in templates) or "–"
+
+    @admin.display(description=_("original"))
+    def cropping(self, image):
+        """The original with the part cut off greyed; drag over it to choose the part (label_image.js)."""
+        if not image.pk or not image.image:
+            return gettext("Save the image first.")
+        try:
+            width, height = image.size()
+        except (OSError, ValueError):
+            return "–"
+        return format_html('<div class="label-graphic-crop" data-crop data-width="{}" data-height="{}">'
+                           '<img src="{}" alt="" style="max-width: 640px; max-height: 400px"><div data-crop-box></div>'
+                           '</div><div class="help">{}</div>', width, height, image.image.url,
+                           gettext("Drag over the image to choose the part to keep; the margins below follow."))
+
+    def get_urls(self):
+        return [path("import/", self.admin_site.admin_view(self.import_view), name="label_printing_labelimage_import"),
+                *super().get_urls()]
+
+    def import_view(self, request):
+        if not self.has_add_permission(request):
+            raise PermissionDenied
+        form = ImageImportForm(request.POST or None, request.FILES or None)
+        if request.method == "POST" and form.is_valid():
+            created, skipped = import_images(form.cleaned_data["files"])
+            if created:
+                self.message_user(request, ngettext("%(count)d image imported.", "%(count)d images imported.",
+                                                    len(created)) % {"count": len(created)}, messages.SUCCESS)
+            for filename, reason in skipped:
+                self.message_user(request, f"{filename}: {reason}", messages.WARNING)
+            return redirect("admin:label_printing_labelimage_changelist")
+        context = {**self.admin_site.each_context(request), "opts": self.model._meta, "form": form,
+                   "title": gettext("Import label images")}
+        return TemplateResponse(request, "label_printing/admin/image_import.html", context)
+
+
 class LabelMediumInline(admin.StackedInline):
     model = LabelMedium
     extra = 0
     fields = ("stock", ("name", "is_default"), ("width_mm", "height_mm", "ptouch_tape"),
-              ("offset_x", "offset_y", "zpl_darkness"), "quality", "zpl_templates")
+              ("offset_x", "offset_y", "zpl_darkness"), "quality", "label_templates")
     autocomplete_fields = ("stock",)
-    filter_horizontal = ("zpl_templates",)
+    filter_horizontal = ("label_templates",)
 
 
 @admin.register(Printer)

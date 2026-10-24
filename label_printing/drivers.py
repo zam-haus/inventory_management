@@ -66,12 +66,6 @@ def zpl_raster_label(image: Image.Image, copies=1, offset=(0, 0), darkness=None,
             f"^FO0,0{zpl_graphic(image)}^FS^PQ{copies}^XZ")
 
 
-def zpl_with_quality(zpl, quality):
-    """A template's format with the print speed of `quality` (right after ^XA)."""
-    speed = zpl_speed(quality)
-    return zpl.replace("^XA", "^XA" + speed, 1) if speed else zpl
-
-
 def zpl_job(formats, copies=1) -> bytes:
     """ZPL formats (each ^XA…^XZ) repeated `copies` times; raster labels carry ^PQ themselves."""
     return "".join(zpl for zpl in formats for _ in range(copies)).encode("utf-8")

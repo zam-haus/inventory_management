@@ -224,7 +224,6 @@ class QualityTests(SimpleTestCase):
         self.assertIn("^PR2^FO", drivers.zpl_raster_label(image, quality="high"))
         self.assertIn("^PR6^FO", drivers.zpl_raster_label(image, quality="draft"))
         self.assertNotIn("^PR", drivers.zpl_raster_label(image))
-        self.assertEqual(drivers.zpl_with_quality("^XA^FDx^FS^XZ", "high"), "^XA^PR2^FDx^FS^XZ")
 
     def test_squeeze_keeps_thin_lines(self):
         from .. import render
