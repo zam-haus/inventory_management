@@ -3,22 +3,24 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-    """Label templates become label designs (label_printing.design) for locations, items or label IDs; the
-    ZPL is converted by label_printing.0008 and removed by 0044."""
+    """Label templates become label designs (label_printing.design) for locations, bulk items or unique items;
+    label_printing.0002 describes the ZPL templates anew, 0043 removes their ZPL."""
 
     dependencies = [
-        ("inventory", "0042_location_label_url"),
+        ("inventory", "0041_admin_only_locks_purpose"),
     ]
 
     operations = [
         migrations.AlterModelOptions(
             name="locationlabeltemplate",
-            options={"ordering": ("name",), "verbose_name": "label template", "verbose_name_plural": "label templates"},
+            options={"ordering": ("name", "label_height", "label_width"), "verbose_name": "label template",
+                     "verbose_name_plural": "label templates"},
         ),
         migrations.AddField(
             model_name="locationlabeltemplate",
             name="subject_type",
-            field=models.CharField(choices=[("location", "location"), ("item", "item"), ("labelid", "label ID")],
+            field=models.CharField(choices=[("location", "location"), ("item", "bulk item"),
+                                            ("labelid", "unique item (ZAMid)")],
                                    default="location", max_length=16, verbose_name="labels for"),
         ),
         migrations.AddField(
@@ -26,6 +28,21 @@ class Migration(migrations.Migration):
             name="description",
             field=models.TextField(default="", verbose_name="label description"),
             preserve_default=False,
+        ),
+        migrations.AddField(
+            model_name="locationlabeltemplate",
+            name="quality",
+            field=models.CharField(
+                choices=[("draft", "draft (fast)"), ("standard", "standard"), ("high", "high quality (slower)")],
+                default="standard", max_length=16, verbose_name="print quality",
+                help_text="Its labels are printed in this quality. Brother: draft printing, or twice the resolution "
+                          "along the tape; Zebra: print speed."),
+        ),
+        migrations.AddField(
+            model_name="locationlabeltemplate",
+            name="is_active",
+            field=models.BooleanField(default=True, help_text="Only active templates are offered and printed.",
+                                      verbose_name="active"),
         ),
         migrations.AlterField(
             model_name="locationlabeltemplate",

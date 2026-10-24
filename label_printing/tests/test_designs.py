@@ -418,17 +418,18 @@ class AdminTests(InventoryData, TestCase):
 
 
 class ZplTemplatesMigrationTests(TransactionTestCase):
-    """label_printing.0008: the ZPL templates in use become label designs, their logo a label image."""
+    """From the inventory with ZPL templates (before label_printing): they become label designs, their logo a
+    label image; label stock and the templates for every label are added (label_printing.0002)."""
 
     def test_zpl_templates_become_designs(self):
-        before = [("inventory", "0042_location_label_url"), ("label_printing", "0007_medium_offset_help")]
+        before = [("inventory", "0041_admin_only_locks_purpose"), ("label_printing", None)]
         executor = MigrationExecutor(connection)
         latest = executor.loader.graph.leaf_nodes()
         media = tempfile.mkdtemp()
         self.addCleanup(shutil.rmtree, media)
         try:
             executor.migrate(before)
-            apps = executor.loader.project_state(before).apps
+            apps = executor.loader.project_state(before[:1]).apps
             Template = apps.get_model("inventory", "LocationLabelTemplate")
             Template.objects.create(name="105x52 mobile", label_width=105, label_height=52,
                                     zpl_template="^XA^FO405,190^GFA,8,8,2,HFF0,\n,:FF00!^FS^FD$url^FS^XZ")
@@ -438,7 +439,6 @@ class ZplTemplatesMigrationTests(TransactionTestCase):
                 executor.migrate(latest)
                 apps = executor.loader.project_state(latest).apps
                 Template = apps.get_model("inventory", "LocationLabelTemplate")
-                # named by what is on them since 0013
                 mobile, own = Template.objects.get(name="Mobil, mit Logo und Eigentum"), Template.objects.get(name="Eigene")
                 self.assertIn('image "ZAM Logo"', mobile.description)
                 self.assertEqual(parse(mobile.description)[1], [])
@@ -446,6 +446,13 @@ class ZplTemplatesMigrationTests(TransactionTestCase):
                 self.assertIn("# ^XA^FD$url^FS^XZ", own.description)
                 self.assertEqual((parse(own.description)[0].width, parse(own.description)[0].height), (50, 25))
                 self.assertTrue(Template.objects.filter(name="ZAMid", label_width=70, subject_type="labelid").exists())
+                self.assertEqual(Template.objects.count(), 2 + 4 * 9 + 4)  # converted, for every label, price tags
+                stock = apps.get_model("label_printing", "LabelStock")
+                self.assertEqual(sorted(stock.objects.filter(language="zpl").values_list("name", flat=True)),
+                                 ["Etikett 105 × 52 mm Polyester", "Etikett 50 × 25 mm"])
+                self.assertTrue(stock.objects.filter(language="ptouch").exists())
+                self.assertTrue(apps.get_model("auth", "Group").objects.get(name="ZAM-local").permissions.filter(
+                    codename="print_label").exists())
                 logo = apps.get_model("label_printing", "LabelImage").objects.get(name="ZAM Logo")
                 with Image.open(logo.image.path) as image:
                     self.assertEqual(image.size, (16, 4))

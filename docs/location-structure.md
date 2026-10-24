@@ -109,8 +109,8 @@ are in [Standortregeln](standortregeln.md) (German).
   codes and former codes must differ in more than that: `R301.A` always leads to `R301.a`.
   `Location.clean` refuses a short name whose code (or a code of the parts that change with it)
   differs from another location's code or a former code only in case, and so do sibling and
-  unique-type short names; unique indexes on the uppercase codes (`inventory.0048`) make sure in
-  the database. Changing only the case of a code keeps no former code. Migration `0048` stops with
+  unique-type short names; unique indexes on the uppercase codes (`inventory.0044`) make sure in
+  the database. Changing only the case of a code keeps no former code. Migration `0044` stops with
   a list if codes differ only in case; rename them first.
 * **Team** got a *code* (shown as a badge, never resolved as an ID; unique when set; any
   characters but spaces, e.g. `⌂`), a *colour*

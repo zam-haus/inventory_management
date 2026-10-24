@@ -8,7 +8,7 @@ get_absolute_url() and, optionally, is_deleted. The one exception: a location's 
 first (location labels hold HTTPS://I.ZAM.HAUS/<code>).
 """
 from contextlib import contextmanager
-from urllib.parse import parse_qsl, urlencode, urlsplit
+from urllib.parse import urlencode
 
 from django.conf import settings
 from django.http import HttpResponseRedirect
@@ -57,9 +57,8 @@ def forwarded(request):
 
 
 def with_forwarded(request, url):
-    """An inventory URL with the scan's forwarded arguments, unless it has them already."""
-    extra = {name: value for name, value in forwarded(request).items()
-             if name not in dict(parse_qsl(urlsplit(url).query))}
+    """An inventory URL with the scan's forwarded arguments."""
+    extra = forwarded(request)
     return f"{url}{'&' if '?' in url else '?'}{urlencode(extra)}" if extra else url
 
 
@@ -83,14 +82,10 @@ def _page(request, state, status, **context):
 
 
 def _location(request, raw):
-    """For a location's code (or former code, in any case): its page, or a choice if several match."""
+    """For a location's code (or former code, in any case; codes differ in more than that): its page."""
     found = locations_by_code(parsing.strip_url(raw))
     if len(found) == 1:
         return HttpResponseRedirect(inventory_url(request, found[0].get_absolute_url))
-    if found:
-        locations = [(location.unique_identifier, str(location), inventory_url(request, location.get_absolute_url))
-                     for location in sorted(found, key=lambda location: location.unique_identifier)]
-        return _page(request, "locations", 200, q=raw, locations=locations)
     return None
 
 
@@ -144,7 +139,7 @@ def resolve(request, raw):
 @require_safe
 def resolve_at(request, raw, at):
     """An item label: the item's ID, then the code of the location it is stored at (uppercase, so the QR code
-    stays alphanumeric). The location goes on to the item's page; one that is unknown or ambiguous is left out."""
+    stays alphanumeric). The location goes on to the item's page; one that is unknown is left out."""
     found = locations_by_code(at.strip("/"))
     if len(found) == 1:
         request.label_id_forwarded = {"loc": str(found[0].pk)}

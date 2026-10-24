@@ -67,9 +67,7 @@ Brother gets P-touch raster data. The code is in the app `label_printing`.
   uppercase so the QR code stays alphanumeric: `HTTPS://I.ZAM.HAUS/K7R4XD/WH-1.R303.A`. The ID is
   claimed for the item when its first label is printed and serves every location (previews use a
   placeholder). The resolver passes the location on to the item's page (`?loc=`; a location code
-  that is unknown or fits several locations is left out), which puts **Take out** first there.
-  Item labels printed before held a label ID per location, linked to `/item/<id>?loc=<location>`;
-  they keep working.
+  that is unknown is left out), which puts **Take out** first there.
 
 ### Taking stock out (item pages)
 
@@ -81,12 +79,12 @@ for removing. The location from the label (`?loc=`) comes first and is marked in
 1. **Label stock** is the catalog of labels and tapes:
    * Brother P-touch tapes (TZe, HGe) with article number, width, print and background colour,
      kind (laminated, extra strong adhesive, flexible, matte, …) and description, from Brother's
-     tape selector (`label_printing/catalog/brother_tapes.json`, loaded by migration `0004`).
+     tape selector (`label_printing/catalog/brother_tapes.json`, loaded by migration `0002`).
      Heat shrink tubes, flags and stencil tape are left out.
    * Zebra labels with width and height, **printing method** (direct thermal, or thermal
-     transfer with a **wax**, **wax/resin** or **resin** ribbon) and material. Migration `0004`
-     created one per size of the label templates there were, linked to them; their printing
-     method and material are not known: fill them in.
+     transfer with a **wax**, **wax/resin** or **resin** ribbon) and material. Migration `0002`
+     created one per size of the ZPL templates there were; where their printing method and
+     material are not known, fill them in.
 2. **Printers:** name, short name (used by the print agent), language, model (Brother: E550W,
    P750W, P900, P900W, P950NW; sets the resolution), resolution (Zebra: 203/300/600 dpi), and the
    connection: *network* with host and port, or *print agent*. Leave *reports its status* on
@@ -95,8 +93,8 @@ for removing. The location from the label (`?loc=`) comes first and is marked in
    media) whenever labels are changed. Only those are printed on, and only while the label length
    the printer measured (`~HS`, after calibration) matches their height within 2 mm; the width
    cannot be checked. The check is made when the dialog lists the labels and again right before a
-   job is sent (also by print agents, version 3). Migration `0014` set each Zebra's default
-   medium as loaded. Brother printers report the tape themselves; they set the **cutting**:
+   job is sent (also by print agents). Brother printers report the tape themselves; they set the
+   **cutting**:
    * half cut between the labels of a job (default), a full cut after each label, or no cut;
    * **continuous printing** (default on): the last label stays in the printer and the next job
      goes on from there, saving the tape's leading margin. Cut it off with the printer's cutter
@@ -120,8 +118,7 @@ own template or its type's if the medium offers it.
 **Label templates** (admin → Inventory) are for locations, bulk items or unique items (ZAMid):
 * Each is written in the label description language: [label designs](label-designs.md).
 * The name says what is on the label; its size comes from the description and is shown beside the
-  name (migration `label_printing.0013` took the sizes out of the names and renamed the converted
-  ZPL templates: "Fester Standort" with or without arrow, "Mobil, mit Logo und Eigentum").
+  name.
 * Templates can be **deactivated** (field or list action): they are then neither offered nor
   printed, not even by waiting jobs or the admin's print actions.
 * The page shows the label beside the description while it is typed, with real records and with
@@ -134,19 +131,18 @@ own template or its type's if the medium offers it.
 * **Import** takes many images at once, or ZIP archives of them.
 * Designs scale the images for each printer and turn them black and white (threshold or dither).
 
-Migration `label_printing.0008` described the ZPL templates there were in the language and stored
-their logo as the label image "ZAM Logo". It also added label ID templates for the Zebra labels in
-use and a location template for 12 mm tape; `0009` price tags for bulk items (price with € in a price tag
-frame, unit, name, QR code) on 60 × 30 mm labels and on 12, 18 and 24 mm tape. A template it did not know gets a plain design and its
-ZPL as comments. `0012` made the templates that replaced the labels drawn in code, each for 57 × 32,
-60 × 30, 70 × 32 and 105 × 52 mm labels and for 9, 12, 18, 24 and 36 mm tape:
+Migration `label_printing.0002` described the ZPL templates there were in the language, named by
+what is on them ("Fester Standort", also with an arrow up or down, and "Mobil, mit Logo und
+Eigentum"), and stored their logo as the label image "ZAM Logo"; a template it did not know gets a
+plain design and its ZPL as comments. It also added templates for 57 × 32, 60 × 30, 70 × 32 and
+105 × 52 mm labels and for 9, 12, 18, 24 and 36 mm tape:
 * locations: "QR-Code, Kennung und Ort" (QR code, code, path);
-* bulk items: "Name, Preis und QR-Code";
+* bulk items: "Name, Preis und QR-Code", and "Preisschild" (price with € in a price tag frame, unit,
+  name, QR code) on 60 × 30 mm labels and on 12, 18 and 24 mm tape;
 * unique items: "ZAMid" (lettering, QR code, ID in two lines; on tape with a margin of at least
   1 mm at top and bottom) and "ZAMid: QR + ID".
 
-It changed 0008's ZAMid templates and replaced its 12 mm location template only where they were
-unchanged. Fonts:
+Fonts:
 * Raleway and Roboto Mono (the ZAMid's),
 * Roboto Condensed (narrow like Zebra's built-in font),
 * OCR-B.

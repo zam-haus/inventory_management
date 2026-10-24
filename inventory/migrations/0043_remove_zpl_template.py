@@ -2,11 +2,11 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-    """The ZPL of label templates, described anew by label_printing.0008."""
+    """The ZPL of label templates, described anew by label_printing.0002."""
 
     dependencies = [
-        ("inventory", "0043_label_designs"),
-        ("label_printing", "0008_label_designs"),
+        ("inventory", "0042_label_designs"),
+        ("label_printing", "0002_labels_to_start_with"),
     ]
 
     operations = [
