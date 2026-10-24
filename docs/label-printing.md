@@ -14,9 +14,19 @@ Brother gets P-touch raster data. The code is in the app `label_printing`.
 
 ## Printing
 
-* **Location pages:** the **Label** button in the header opens the print dialog. Choose the
-  printer, the labels loaded in it, the layout and the number of copies. A location with
-  sub-locations (e.g. a shelf with compartments) can print theirs in the same job.
+* **Location pages:** the **Label** button in the header opens the print dialog. It offers
+  labels, not printers: each label template and built-in layout on each size of labels the
+  printers have, e.g. "Preisschild 60x30" or "QR code, code and path" on 12 mm tape.
+  * Each choice has a preview and either the printer it would print on or why no printer can
+    print it now.
+  * The server picks the printer: active, reachable, with these labels and, as far as it
+    reported, with them loaded. The default printer comes first.
+  * Labels no printer can print now are greyed but can still be previewed. They can also wait for
+    a printer: the job waits up to five minutes (`PRINT_WAIT_MAX`) and is printed as soon as a
+    printer can (a print agent back online, the right tape loaded). Otherwise it expires
+    unprinted. The dialog follows the job as long as it waits.
+  * A location with sub-locations (e.g. a shelf with compartments) can print theirs in the same
+    job. The dialog remembers the label chosen last for each kind.
 * **Item pages** (bulk items): the same, with the location the label is for. Item labels show
   name, price per unit (items for sale) and a QR code.
 * **Label IDs (ZAMid):** the **Label** button on a unique item's page and on an ID's info page
@@ -28,9 +38,14 @@ Brother gets P-touch raster data. The code is in the app `label_printing`.
   once the printer reports the label printed.
 * **After creating** a box, carton, pallet, shelf or compartments, the new location's page opens
   the dialog right away (`?print=1`) for whoever may print.
-* The dialog shows a preview of the label as the printer gets it (in the tape's colours for
-  Brother tapes from the label stock), and after printing follows the job until the printer
-  reports back.
+* The previews show the label as the printer gets it, in the tape's colours for Brother tapes
+  from the label stock. After printing the dialog follows the job until the printer reports back.
+* **Waiting jobs** have no printer and no printer data yet. They are drawn for the printer that
+  turns out able to print them. Who looks for one:
+  * every request of a print agent, for the printers on it;
+  * the dialog, while it follows the job; this also asks network printers for their status, at
+    most every 20 seconds;
+  * with a broker, a Celery task every ten seconds while jobs wait.
 * Printing requires `label_printing.print_label`, which migration `label_printing.0002` grants
   to the local group. Without it, logged-in users see the button disabled; guests do not see it.
   With no suitable or reachable printer, the button is disabled with the reason.
@@ -65,10 +80,14 @@ for removing. The location from the label (`?loc=`) comes first and is marked in
    P750W, P900, P900W, P950NW; sets the resolution), resolution (Zebra: 203/300/600 dpi), and the
    connection: *network* with host and port, or *print agent*. Leave *reports its status* on
    unless a printer cannot answer status requests. One printer is the default for the admin's
-   print actions.
+   print actions. Brother printers also set the **cutting**:
+   * half cut between the labels of a job (default), a full cut after each label, or no cut;
+   * **continuous printing** (default on): the last label stays in the printer and the next job
+     goes on from there, saving the tape's leading margin. Cut it off with the printer's cutter
+     button. Off, the printer feeds and cuts after every job.
 3. **Media** of a printer (inline): choose a label stock, which fills in name, size and tape
-   width, or enter them. The **print quality** set there is preselected in the dialog, where it can
-   be changed per job: *draft (fast)*, *standard*, *high quality (slower)*. Brother: draft printing,
+   width, or enter them. The **print quality** set there is the one built-in layouts print in; label
+   templates set their own: *draft (fast)*, *standard*, *high quality (slower)*. Brother: draft printing,
    or high resolution (E550W 180×360, P900 series 360×720 dpi): the label is drawn at twice the
    resolution along the tape, not only printed twice as dense. Zebra: print speed (`^PR6`, the
    printer's own setting, `^PR2`); darkness stays with the medium. Offset and darkness (`^MD`)
@@ -227,6 +246,7 @@ The tests start the simulator on free ports (`label_printing/tests/helpers.py`).
 | `PRINT_JOB_LEASE` | 180 | seconds a job may be printing without a result |
 | `PRINT_AGENT_OFFLINE_AFTER` | 30 | seconds after an agent's last request that its printers count as offline |
 | `PRINT_MAX_COPIES` | 20 | most copies per job |
+| `PRINT_WAIT_MAX` | 300 | seconds a label no printer can print now may wait for one |
 | `PRINT_AGENT_MAX_PENDING` | 20 | agents that may wait for activation |
 | `PRINT_AGENT_MAX_PRINTERS` | 20 | printers an agent may register |
 

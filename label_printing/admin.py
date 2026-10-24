@@ -149,6 +149,7 @@ class PrinterAdmin(admin.ModelAdmin):
     fieldsets = (
         (None, {"fields": ("name", "slug", ("language", "model", "dpi"), ("is_active", "is_default"))}),
         (_("Connection"), {"fields": ("transport", ("host", "port"), "agent", "reports_status")}),
+        (_("Brother P-touch"), {"fields": ("cut", "chain_printing")}),
         (_("Status"), {"fields": ("status", "last_status_at")}),
         (_("Reported by the print agent"), {"fields": ("uid", "reported", "discovered_at")}),
     )

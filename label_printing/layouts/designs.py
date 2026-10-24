@@ -74,6 +74,7 @@ class DesignLayout(Layout):
         self.key = f"design:{template.pk}"
         self.name = template.name
         self.subject_type = template.subject_type
+        self.quality = template.quality
 
     def supports(self, printer, medium):
         return (printer.language in self.languages and fits(self.template, medium)

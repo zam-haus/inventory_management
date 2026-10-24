@@ -11,7 +11,7 @@ from PIL import Image
 
 from inventory.numbered_location_views import with_print_dialog
 from inventory.models import Item, ItemLocation, LabelId, Location, LocationLabelTemplate, LocationType, MeasurementUnit
-from .. import drivers, label_urls, services, simulator
+from .. import dialog, drivers, label_urls, services, simulator
 from ..layouts import Canvas, REGISTRY
 from ..models import PrintJob
 from .helpers import SETTINGS, SimulatedPrinters, create_printers, create_user
@@ -107,13 +107,13 @@ class PrintDialogTests(SimulatedPrinters, InventoryData, TestCase):
         response = self.client.get(self.shelf.get_absolute_url())
         self.assertContains(response, 'data-modal-open="label-print-modal"')
         self.assertContains(response, 'id="label-print-modal"')
-        self.assertContains(response, '"name": "Zebra Lager"')
-        self.assertContains(response, f'"key": "design:{self.template.pk}"')
+        self.assertContains(response, '"printer": "Zebra Lager"')
+        self.assertContains(response, f'"key": "design:{self.template.pk}@57x32"')
+        self.assertContains(response, '"key": "location@tape12"')
         self.assertContains(response, "Also its sub-locations (2)")
 
     def test_print_a_location_and_its_compartments(self):
-        response = self.post("location", self.shelf, {"printer": self.brother.pk, "medium": self.tape.pk,
-                                                      "layout": "location", "copies": 1, "children": "on",
+        response = self.post("location", self.shelf, {"outcome": "location@tape12", "copies": 1, "children": "on",
                                                       "request_id": str(uuid4())})
         data = response.json()
         self.assertTrue(data["ok"], data)
@@ -125,18 +125,23 @@ class PrintDialogTests(SimulatedPrinters, InventoryData, TestCase):
         self.assertEqual((status["status"], status["message"]), ("done", "printed"))
 
     def test_print_an_item_label(self):
-        data = self.post("item", self.item, {"printer": self.zebra.pk, "medium": self.labels.pk, "layout": "item",
-                                             "copies": 2, "location": self.part.pk, "quality": "draft"}).json()
+        type(self.labels).objects.filter(pk=self.labels.pk).update(quality="draft")
+        data = self.post("item", self.item, {"outcome": "item@57x32", "copies": 2, "location": self.part.pk}).json()
         job = PrintJob.objects.get(pk=data["job"]["id"])
+        # Built-in layouts print in the medium's quality
         self.assertEqual((job.subject_type, job.subject_id, job.copies, job.quality), ("item", self.item.pk, 2, "draft"))
         self.assertEqual(job.snapshot[0]["location"], "R303.a")
         self.assertEqual(job.label_code, LabelId.objects.get().code)
+        # The dialog says the QR code of each location now has its label ID
+        locations = dialog.options("item", self.item)["locations"]
+        self.assertEqual([(entry["code"], bool(entry["label_id"])) for entry in locations],
+                         [("R303.a", True), ("R303.b", False)])
 
     def test_errors_are_shown_in_the_dialog(self):
         cases = [
-            ({"printer": self.zebra.pk, "medium": self.tape.pk, "layout": "location", "copies": 1}, "medium"),
-            ({"printer": self.zebra.pk, "medium": self.labels.pk, "layout": "item", "copies": 1}, "layout"),
-            ({"printer": self.zebra.pk, "medium": self.labels.pk, "layout": "location", "copies": 99}, "copies"),
+            ({"outcome": "location@tape24", "copies": 1}, "outcome"),
+            ({"outcome": "item@57x32", "copies": 1}, "outcome"),
+            ({"outcome": "location@57x32", "copies": 99}, "copies"),
         ]
         for data, field in cases:
             with self.subTest(field=field):
@@ -147,8 +152,7 @@ class PrintDialogTests(SimulatedPrinters, InventoryData, TestCase):
 
     def test_printer_errors_come_back_with_the_job(self):
         self.brother_state.tape_mm = 24
-        data = self.post("location", self.part, {"printer": self.brother.pk, "medium": self.tape.pk,
-                                                 "layout": "location", "copies": 1}).json()
+        data = self.post("location", self.part, {"outcome": "location@tape12", "copies": 1}).json()
         # In the test's transaction the job starts after the answer; the dialog then follows it.
         status = self.client.get(reverse("print_job_status", args=[data["job"]["id"]])).json()
         self.assertEqual((status["status"], status["message"]), ("failed", "24 mm tape is loaded, but 12 mm was chosen."))
@@ -156,8 +160,9 @@ class PrintDialogTests(SimulatedPrinters, InventoryData, TestCase):
     def test_fallback_page_without_javascript(self):
         response = self.client.get(reverse("print_labels", args=["location", self.part.pk]))
         self.assertContains(response, "Print labels")
-        response = self.post("location", self.part, {"printer": self.zebra.pk, "medium": self.labels.pk,
-                                                     "layout": f"design:{self.template.pk}", "copies": 1}, json=False)
+        self.assertContains(response, 'name="outcome"')
+        response = self.post("location", self.part, {"outcome": f"design:{self.template.pk}@57x32", "copies": 1},
+                             json=False)
         self.assertRedirects(response, self.part.get_absolute_url(), fetch_redirect_response=False)
         printed = self.zebra_output.printed[0][1]
         self.assertTrue(printed.startswith(b"^XA^PW456^LL256") and b"^GFA" in printed)

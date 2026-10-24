@@ -64,6 +64,8 @@ class Layout:
     fixed_resolution = False
     # Height in dots a label needs at least (raster layouts with a QR code: see render.MIN_QR_DOTS).
     min_height = 0
+    # Its print quality (label templates set it); None: the medium's.
+    quality = None
 
     def supports(self, printer, medium):
         return printer.language in self.languages and Canvas.for_medium(medium).height >= self.min_height

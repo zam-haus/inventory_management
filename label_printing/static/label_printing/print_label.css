@@ -1,10 +1,24 @@
-/* The print dialog (label_printing/print_dialog.html) */
-.label-print-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 1rem 1.5rem; align-items: start; }
+/* The print dialog (label_printing/print_dialog.html): the labels to choose from, each with its preview */
+.label-outcomes { display: grid; grid-template-columns: repeat(auto-fill, minmax(11rem, 1fr)); gap: .75rem; }
+.label-outcome { position: relative; display: flex; flex-direction: column; gap: .15rem; padding: .5rem;
+                 border: 2px solid #dee2e6; border-radius: .5rem; cursor: pointer; background: #fff; }
+.label-outcome:hover { border-color: #9ec5fe; }
+.label-outcome.is-chosen, .label-outcome:has(.label-outcome-input:checked) { border-color: #0d6efd; box-shadow: 0 0 0 .15rem rgba(13, 110, 253, .2); }
+.label-outcome-input { position: absolute; opacity: 0; pointer-events: none; }
+.label-outcome-input:focus-visible + .label-outcome-preview { outline: 2px solid #0d6efd; outline-offset: 2px; }
+.label-outcome-preview { display: flex; align-items: center; justify-content: center; height: 5.5rem; padding: .25rem;
+                         border-radius: .25rem; background: #f1f3f5; }
+.label-outcome-preview img { max-width: 100%; max-height: 100%; background: #fff; box-shadow: 0 0 0 1px #ced4da;
+                             image-rendering: pixelated; }
+.label-outcome-name { font-weight: 600; line-height: 1.2; }
+.label-outcome-size, .label-outcome-state { font-size: .8125rem; color: #6c757d; line-height: 1.2; }
+.label-outcome-state { color: #198754; }
+/* Not printable now: greyed, still to look at and to wait for a printer */
+.label-outcome.is-unavailable .label-outcome-preview img { opacity: .45; filter: grayscale(1); }
+.label-outcome.is-unavailable .label-outcome-name { color: #6c757d; }
+.label-outcome.is-unavailable .label-outcome-state { color: #b02a37; }
+.label-print-options { display: grid; grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr)); gap: 0 1rem; }
 .label-print-copies { max-width: 8rem; }
-.label-print-preview { margin: 0; padding: .75rem; border: 1px solid #dee2e6; border-radius: .5rem; background: #f7f9fb; text-align: center; }
-.label-print-preview img { display: block; max-width: 100%; max-height: 14rem; margin: 0 auto; background: #fff; box-shadow: 0 0 0 1px #ced4da; image-rendering: pixelated; }
-.label-print-preview figcaption { margin-top: .5rem; }
 .label-print-status { margin: 1rem 0 0; }
 .label-print-subject { font-family: monospace; }
 .label-print-page { max-width: 56rem; }
-@media (max-width: 767.98px) { .label-print-grid { grid-template-columns: minmax(0, 1fr); } }

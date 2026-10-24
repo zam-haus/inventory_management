@@ -3582,3 +3582,27 @@ msgstr "Breite (mm)"
 #: inventory/models/location.py
 msgid "height (mm)"
 msgstr "Höhe (mm)"
+
+#: inventory/models/location.py
+msgid "print quality"
+msgstr "Druckqualität"
+
+#: inventory/models/location.py
+msgid "draft (fast)"
+msgstr "Entwurf (schnell)"
+
+#: inventory/models/location.py
+msgid "standard"
+msgstr "Standard"
+
+#: inventory/models/location.py
+msgid "high quality (slower)"
+msgstr "hohe Qualität (langsamer)"
+
+#: inventory/models/location.py
+msgid ""
+"Its labels are printed in this quality. Brother: draft printing, or twice the "
+"resolution along the tape; Zebra: print speed."
+msgstr ""
+"Ihre Etiketten werden in dieser Qualität gedruckt. Brother: Entwurfsdruck oder "
+"doppelte Auflösung entlang des Bands; Zebra: Druckgeschwindigkeit."

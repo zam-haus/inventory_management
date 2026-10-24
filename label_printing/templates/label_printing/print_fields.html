@@ -1,63 +1,47 @@
-{% load i18n %}{# The fields of the print form; print_label.js narrows the choices to the chosen printer and labels. #}
+{% load i18n %}{# The fields of the print form: which label (outcomes), then where and how often; print_label.js follows the job. #}
 {% csrf_token %}
 <input type="hidden" name="request_id" value="">
 {% if form.non_field_errors %}<div class="alert alert-danger">{{ form.non_field_errors|join:" " }}</div>{% endif %}
-<div class="label-print-grid">
-    <div class="label-print-fields">
-        <div class="mb-3">
-            <label class="form-label" for="label-print-printer">{% trans "Printer" %}</label>
-            <select class="form-select{% if form.printer.errors %} is-invalid{% endif %}" id="label-print-printer" name="printer" required>
-                {% for printer in print_options.printers %}<option value="{{ printer.id }}"{% if printer.unavailable %} disabled{% endif %}>{{ printer.name }}{% if printer.unavailable %} – {{ printer.unavailable }}{% endif %}</option>{% endfor %}
-            </select>
-            <div class="invalid-feedback" data-error-for="printer">{{ form.printer.errors|join:" " }}</div>
-            <div class="form-text" data-printer-status></div>
-        </div>
-        <div class="mb-3">
-            <label class="form-label" for="label-print-medium">{% trans "Labels" %}</label>
-            <select class="form-select{% if form.medium.errors %} is-invalid{% endif %}" id="label-print-medium" name="medium" required>
-                {% for printer in print_options.printers %}{% for medium in printer.media %}<option value="{{ medium.id }}">{{ printer.name }}: {{ medium.name }}</option>{% endfor %}{% endfor %}
-            </select>
-            <div class="invalid-feedback" data-error-for="medium">{{ form.medium.errors|join:" " }}</div>
-            <div class="form-text" data-medium-detail></div>
-        </div>
-        <div class="mb-3">
-            <label class="form-label" for="label-print-layout">{% trans "Layout" %}</label>
-            <select class="form-select{% if form.layout.errors %} is-invalid{% endif %}" id="label-print-layout" name="layout" required>
-                {% for printer in print_options.printers %}{% for medium in printer.media %}{% for layout in medium.layouts %}<option value="{{ layout.key }}">{{ medium.name }}: {{ layout.name }}</option>{% endfor %}{% endfor %}{% endfor %}
-            </select>
-            <div class="invalid-feedback" data-error-for="layout">{{ form.layout.errors|join:" " }}</div>
-        </div>
-        {% if subject_type == "item" %}
-        <div class="mb-3">
-            <label class="form-label" for="label-print-location">{% trans "Location on the label" %}</label>
-            <select class="form-select{% if form.location.errors %} is-invalid{% endif %}" id="label-print-location" name="location">
-                {% for location in print_options.locations %}<option value="{{ location.id }}"{% if request.GET.loc == location.id|stringformat:"s" %} selected{% endif %}>{{ location.code }} {{ location.name }}</option>{% endfor %}
-                <option value="">{% trans "None (the QR code opens the item)" %}</option>
-            </select>
-            <div class="invalid-feedback" data-error-for="location">{{ form.location.errors|join:" " }}</div>
-        </div>
-        {% elif print_options.children %}
-        <div class="form-check mb-3">
-            <input class="form-check-input" type="checkbox" name="children" id="label-print-children"{% if request.GET.print %} checked{% endif %}>
-            <label class="form-check-label" for="label-print-children">{% blocktrans count count=print_options.children %}Also its sub-location ({{ count }}){% plural %}Also its sub-locations ({{ count }}){% endblocktrans %}</label>
-        </div>
-        {% endif %}
-        <div class="mb-3">
-            <label class="form-label" for="label-print-quality">{% trans "Print quality" %}</label>
-            <select class="form-select{% if form.quality.errors %} is-invalid{% endif %}" id="label-print-quality" name="quality">
-                {% for value, label in form.fields.quality.choices %}<option value="{{ value }}"{% if value == "standard" %} selected{% endif %}>{{ label }}</option>{% endfor %}
-            </select>
-            <div class="invalid-feedback" data-error-for="quality">{{ form.quality.errors|join:" " }}</div>
-        </div>
-        <div class="mb-3">
-            <label class="form-label" for="label-print-copies">{% trans "Copies" %}</label>
-            <input class="form-control label-print-copies{% if form.copies.errors %} is-invalid{% endif %}" type="number" id="label-print-copies" name="copies" value="1" min="1" max="{{ print_options.max_copies }}" inputmode="numeric" required>
-            <div class="invalid-feedback" data-error-for="copies">{{ form.copies.errors|join:" " }}</div>
-        </div>
+<fieldset class="mb-3">
+    <legend class="form-label fs-6">{% trans "Label" %}</legend>
+    <div class="label-outcomes" data-outcomes>
+        {% for outcome in print_options.outcomes %}
+        <label class="label-outcome{% if not outcome.printer %} is-unavailable{% endif %}" data-outcome="{{ outcome.key }}">
+            <input class="label-outcome-input" type="radio" name="outcome" value="{{ outcome.key }}"{% if form.outcome.value == outcome.key %} checked{% endif %} required>
+            <span class="label-outcome-preview"><img src="{{ outcome.preview }}" alt="" loading="lazy" data-preview="{{ outcome.preview }}"></span>
+            <span class="label-outcome-name">{{ outcome.name }}</span>
+            <span class="label-outcome-size">{{ outcome.size }}</span>
+            <span class="label-outcome-state">{% if outcome.printer %}{{ outcome.printer }}{% else %}{{ outcome.reason }}{% endif %}</span>
+        </label>
+        {% endfor %}
     </div>
-    <figure class="label-print-preview" data-preview hidden>
-        <img alt="{% trans 'Preview of the label' %}" data-preview-image>
-        <figcaption class="form-text" data-preview-note></figcaption>
-    </figure>
+    <div class="invalid-feedback d-block" data-error-for="outcome">{{ form.outcome.errors|join:" " }}</div>
+</fieldset>
+<div class="label-print-options">
+    {% if subject_type == "item" %}
+    <div class="mb-3">
+        <label class="form-label" for="label-print-location">{% trans "Location on the label" %}</label>
+        <select class="form-select{% if form.location.errors %} is-invalid{% endif %}" id="label-print-location" name="location">
+            {% for location in print_options.locations %}<option value="{{ location.id }}"{% if request.GET.loc == location.id|stringformat:"s" %} selected{% endif %}>{{ location.code }} {{ location.name }}</option>{% endfor %}
+            <option value="">{% trans "None (the QR code opens the item)" %}</option>
+        </select>
+        <div class="invalid-feedback" data-error-for="location">{{ form.location.errors|join:" " }}</div>
+        <div class="form-text" data-qr-note></div>
+    </div>
+    {% elif print_options.children %}
+    <div class="form-check mb-3">
+        <input class="form-check-input" type="checkbox" name="children" id="label-print-children"{% if request.GET.print %} checked{% endif %}>
+        <label class="form-check-label" for="label-print-children">{% blocktrans count count=print_options.children %}Also its sub-location ({{ count }}){% plural %}Also its sub-locations ({{ count }}){% endblocktrans %}</label>
+    </div>
+    {% endif %}
+    <div class="mb-3">
+        <label class="form-label" for="label-print-copies">{% trans "Copies" %}</label>
+        <input class="form-control label-print-copies{% if form.copies.errors %} is-invalid{% endif %}" type="number" id="label-print-copies" name="copies" value="1" min="1" max="{{ print_options.max_copies }}" inputmode="numeric" required>
+        <div class="invalid-feedback" data-error-for="copies">{{ form.copies.errors|join:" " }}</div>
+    </div>
+</div>
+<div class="form-check mb-2" data-wait-option>
+    <input class="form-check-input" type="checkbox" name="wait" id="label-print-wait"{% if form.wait.value %} checked{% endif %}>
+    <label class="form-check-label" for="label-print-wait">{% blocktrans with minutes=print_options.wait_minutes %}If no printer can print it now: wait up to {{ minutes }} minutes for one (a printer coming back, the right labels loaded){% endblocktrans %}</label>
 </div>
 <div class="label-print-status" role="status" aria-live="polite" data-print-status hidden></div>

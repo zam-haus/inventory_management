@@ -129,7 +129,7 @@ class QueueTests(TestCase):
     def test_stale_jobs_expire_and_lost_ones_fail(self):
         old = timezone.now() - timedelta(seconds=200)
         waiting, lost, fresh = self.job(), self.job(status="processing"), self.job()
-        PrintJob.objects.filter(pk=waiting.pk).update(created_at=old)
+        PrintJob.objects.filter(pk=waiting.pk).update(ready_at=old)
         PrintJob.objects.filter(pk=lost.pk).update(claimed_at=old)
         self.assertFalse(services.claim(waiting.pk, "worker"))
         services.expire_stale()
@@ -233,7 +233,7 @@ class JobStatusViewTests(TestCase):
         self.client.force_login(self.user)
         response = self.client.get(reverse("print_job_status", args=[self.job.pk]))
         self.assertEqual(response.json(), {"id": self.job.pk, "status": "failed", "finished": True, "ok": False,
-                                           "message": "The printer is out of labels."})
+                                           "message": "The printer is out of labels.", "printer": "Zebra Lager"})
 
     def test_others_do_not(self):
         self.client.force_login(self.other)

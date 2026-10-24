@@ -33,6 +33,9 @@ MESSAGES = {
     "lease_expired": _("The print worker or agent did not report back."),
     "agent_offline": _("The print agent of this printer is offline."),
     "inactive": _("The printer is switched off in the admin."),
+    "wait_expired": _("No printer could print it in time, so it was not printed."),
+    "subject_gone": _("What the label was for no longer exists."),
+    "not_rendered": _("The label could not be drawn: %(error)s"),
 }
 
 

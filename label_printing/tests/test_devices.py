@@ -219,6 +219,18 @@ class QualityTests(SimpleTestCase):
         decoded, = simulator.decode_brother(high)  # every line once, not doubled
         self.assertIsNone(ImageChops.difference(decoded.convert("L"), wide.convert("L")).getbbox())
 
+    def test_brother_cutting(self):
+        def flags(payload, command):
+            return {payload[index + 3] for index in range(len(payload) - 3) if payload[index:index + 3] == command}
+        image = Image.new("1", (64, drivers.ptouch_print_pins("E550W", 12)), 1)
+        for cut, chain, advanced, various in (("half", True, 0x04, 0x00), ("half", False, 0x0C, 0x00),
+                                              ("full", False, 0x08, 0x40), ("none", True, 0x00, 0x00)):
+            with self.subTest(cut=cut, chain=chain):
+                payload, _pages = drivers.ptouch_job("E550W", 12, [image, image], cut=cut, chain=chain)
+                self.assertEqual((flags(payload, b"\x1biK"), flags(payload, b"\x1biM")), ({advanced}, {various}))
+        draft, _pages = drivers.ptouch_job("E550W", 12, [image], quality="draft")
+        self.assertEqual(flags(draft, b"\x1biK"), {0x05})  # draft printing and half cut, continuous
+
     def test_zebra_speed(self):
         image = Image.new("1", (16, 8), 1)
         self.assertIn("^PR2^FO", drivers.zpl_raster_label(image, quality="high"))

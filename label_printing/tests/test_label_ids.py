@@ -101,8 +101,7 @@ class LabelIdPrintingTests(SimulatedPrinters, TestCase):
         url = reverse("print_labels", args=["labelid", self.lid.code])
         self.assertContains(self.client.get(url), self.lid.display)
         with self.captureOnCommitCallbacks(execute=True):
-            response = self.client.post(url, {"printer": self.brother.pk, "medium": self.tape.pk, "layout": "labelid",
-                                              "copies": 2})
+            response = self.client.post(url, {"outcome": "labelid@tape12", "copies": 2})
         self.assertRedirects(response, reverse("label_id_info", args=[self.lid.code]), fetch_redirect_response=False)
         self.assertEqual(len(self.brother_output.printed), 2)
         preview = self.client.get(reverse("print_preview", args=["labelid", self.lid.code]),

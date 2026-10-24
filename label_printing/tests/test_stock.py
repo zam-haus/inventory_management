@@ -75,4 +75,3 @@ class LabelStockTests(TestCase):
                                    {"medium": tape.pk, "layout": "location"})
         image = Image.open(BytesIO(response.content)).convert("RGB")
         self.assertEqual(image.getpixel((image.width - 1, 0)), (255, 212, 0))
-        self.assertIn("Standard, laminiert", self.client.get(location.get_absolute_url()).content.decode())

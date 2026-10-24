@@ -1,5 +1,6 @@
-// The print dialog (label_printing/print_dialog.html, also the fallback page): printer → labels → layout,
-// a preview, and after printing the job's progress until the printer reports back.
+// The print dialog (label_printing/print_dialog.html, also the fallback page): which label to print (the server
+// picks the printer), each with its preview; labels no printer can print now are greyed but may wait for one.
+// After printing the dialog follows the job until the printer reports back, or until a waiting job expires.
 (() => {
     const form = document.querySelector('[data-label-print-form]');
     const data = document.getElementById('label-print-options');
@@ -8,22 +9,18 @@
     const text = form.dataset;
     const modal = form.closest('.modal');
     const fields = {
-        printer: form.elements.printer, medium: form.elements.medium, layout: form.elements.layout,
-        location: form.elements.location, children: form.elements.children, copies: form.elements.copies,
-        quality: form.elements.quality,
-        requestId: form.elements.request_id,
+        location: form.elements.location, copies: form.elements.copies,
+        wait: form.elements.wait, requestId: form.elements.request_id,
     };
     const parts = {
-        printerStatus: form.querySelector('[data-printer-status]'),
-        mediumDetail: form.querySelector('[data-medium-detail]'),
-        preview: form.querySelector('[data-preview]'),
-        image: form.querySelector('[data-preview-image]'),
-        note: form.querySelector('[data-preview-note]'),
+        outcomes: [...form.querySelectorAll('[data-outcome]')],
+        qrNote: form.querySelector('[data-qr-note]'),
+        wait: form.querySelector('[data-wait-option]'),
         status: form.querySelector('[data-print-status]'),
         submit: form.querySelector('[data-print-submit]'),
     };
     const submitLabel = parts.submit.querySelector('span');
-    // Per device: the printer, labels and layout chosen last (private windows may forbid storage).
+    // Per device: the label chosen last for each kind (private windows may forbid storage).
     const storage = {
         get(key) { try { return window.localStorage.getItem(`label-print:${key}`); } catch { return null; } },
         set(key, value) { try { window.localStorage.setItem(`label-print:${key}`, value); } catch { /* not kept */ } },
@@ -41,86 +38,63 @@
         return [hex.slice(0, 8), hex.slice(8, 12), hex.slice(12, 16), hex.slice(16, 20), hex.slice(20)].join('-');
     }
 
-    function fill(select, items, label, chosen) {
-        select.replaceChildren(...items.map(item => {
-            const option = new Option(label(item), item.id ?? item.key);
-            option.disabled = Boolean(item.unavailable);
-            return option;
-        }));
-        const usable = items.filter(item => !item.unavailable);
-        const pick = usable.find(chosen) || usable[0];
-        if (pick) select.value = String(pick.id ?? pick.key);
+    const outcome = key => options.outcomes.find(item => item.key === key);
+    const chosen = () => outcome(form.querySelector('[name=outcome]:checked')?.value);
+
+    function choose(key) {
+        const radio = form.querySelector(`[name=outcome][value="${CSS.escape(key)}"]`);
+        if (radio) radio.checked = true;
+        update();
     }
 
-    const printer = () => options.printers.find(p => String(p.id) === fields.printer.value);
-    const medium = () => printer()?.media.find(m => String(m.id) === fields.medium.value);
-    const layout = () => medium()?.layouts.find(l => l.key === fields.layout.value);
-
-    function choosePrinter() {
-        const stored = storage.get('printer');
-        fill(fields.printer, options.printers, p => (p.unavailable ? `${p.name} – ${p.unavailable}` : p.name),
-            p => String(p.id) === stored || (!stored && p.default));
-        chooseMedium();
+    // The button says what will happen: print on a printer, or wait for one.
+    function update() {
+        const current = chosen();
+        parts.outcomes.forEach(card => card.classList.toggle('is-chosen', current && card.dataset.outcome === current.key));
+        const waits = Boolean(current && !current.printer && current.can_wait);
+        parts.wait.hidden = !waits;
+        fields.wait.checked = waits;
+        parts.submit.disabled = pending || !current || (!current.printer && !current.can_wait);
+        if (!pending) {
+            submitLabel.textContent = !current ? text.labelPrint
+                : current.printer ? text.labelPrintOn.replace('{printer}', current.printer)
+                    : current.can_wait ? text.labelQueue : text.labelPrint;
+        }
     }
 
-    function chooseMedium() {
-        const current = printer();
-        if (!current) return;
-        const stored = storage.get(`medium:${current.id}`);
-        // A Brother tells which tape is loaded (width and colours): the medium of that tape comes first.
-        const sameColors = m => m.colors && current.colors && m.colors[0] === current.colors[0] && m.colors[1] === current.colors[1];
-        const loaded = current.tape && (current.media.find(m => m.tape === current.tape && sameColors(m))
-            || current.media.find(m => m.tape === current.tape));
-        fill(fields.medium, current.media, m => m.name,
-            m => (loaded ? m === loaded : String(m.id) === stored || (!stored && m.default)));
-        const info = [current.status];
-        if (current.tape) info.push(text.labelTape.replace('{width}', current.tape));
-        parts.printerStatus.textContent = info.filter(Boolean).join(' · ');
-        chooseLayout();
-    }
-
-    function chooseLayout() {
-        const current = medium();
-        if (!current) return;
-        parts.mediumDetail.textContent = current.detail || '';
-        if (current.quality) fields.quality.value = current.quality;
-        const stored = storage.get(`layout:${text.subject}`);
-        fill(fields.layout, current.layouts, l => l.name, l => l.key === stored);
-        preview();
-    }
-
-    let previewTimer = null;
-    function preview() {
-        window.clearTimeout(previewTimer);
-        previewTimer = window.setTimeout(() => {
-            const current = layout();
-            if (!current) {
-                parts.preview.hidden = true;
-                return;
+    // Previews of the location chosen for an item label (the QR code leads there)
+    function previews() {
+        parts.outcomes.forEach(card => {
+            const image = card.querySelector('img');
+            const url = new URL(image.dataset.preview, window.location.href);
+            if (fields.location && url.pathname.endsWith('.png') && url.searchParams.has('medium')) {
+                url.searchParams.set('location', fields.location.value);
             }
-            parts.preview.hidden = false;
-            const query = new URLSearchParams({medium: fields.medium.value, layout: current.key});
-            if (fields.location) query.set('location', fields.location.value);
-            parts.image.hidden = false;
-            parts.image.src = `${options.preview_url}?${query}`;
-            parts.note.textContent = text.subject === 'item' ? text.labelPreviewNewId : '';
-        }, 150);
+            image.src = url.pathname + url.search;
+        });
     }
-    parts.image.addEventListener('error', () => {
-        parts.image.hidden = true;
-        parts.note.textContent = text.labelPreviewFailed;
-    });
+
+    // Item labels: where the QR code leads (each location has a label ID of its own)
+    function qrNote() {
+        if (!parts.qrNote || !fields.location) return;
+        const location = options.locations.find(item => String(item.id) === fields.location.value);
+        const fill = template => template.replace('{item}', options.item).replace('{location}', location?.code || '')
+            .replace('{id}', location?.label_id || options.label_id_without_location);
+        parts.qrNote.textContent = !location ? fill(text.labelQrNoLocation)
+            : fill(location.label_id ? text.labelQrExisting : text.labelQrNew);
+    }
 
     function remember() {
-        storage.set('printer', fields.printer.value);
-        storage.set(`medium:${fields.printer.value}`, fields.medium.value);
-        storage.set(`layout:${text.subject}`, fields.layout.value);
+        if (chosen()) storage.set(`outcome:${text.subject}`, chosen().key);
     }
 
-    fields.printer.addEventListener('change', chooseMedium);
-    fields.medium.addEventListener('change', chooseLayout);
-    fields.layout.addEventListener('change', preview);
-    fields.location?.addEventListener('change', preview);
+    form.addEventListener('change', event => {
+        if (event.target.name === 'outcome') update();
+        if (event.target === fields.location) {
+            previews();
+            qrNote();
+        }
+    });
 
     function showStatus(message, kind) {
         parts.status.hidden = !message;
@@ -139,7 +113,7 @@
             const message = list.map(error => error.message).join(' ');
             const target = form.querySelector(`[data-error-for="${name}"]`);
             if (target && form.elements[name]) {
-                form.elements[name].classList.add('is-invalid');
+                if (form.elements[name].classList) form.elements[name].classList.add('is-invalid');
                 target.textContent = message;
             } else {
                 general.push(message);
@@ -150,7 +124,7 @@
 
     function setBusy(busy) {
         pending = busy;
-        parts.submit.disabled = busy;
+        update();
     }
 
     function startOver() {
@@ -165,14 +139,18 @@
             startOver();
             submitLabel.textContent = text.labelAgain;
         };
+        const progress = current => (current.status === 'processing' ? text.labelPrinting
+            : current.status === 'waiting' ? current.message : text.labelWaiting);
         if (job.finished) {
             showStatus(job.status === 'done' ? text.labelPrinted : job.status === 'sent' ? text.labelSent : job.message,
                 job.status === 'done' ? 'success' : job.ok ? 'warning' : 'danger');
             finish();
             return;
         }
-        showStatus(job.status === 'processing' ? text.labelPrinting : text.labelWaiting, 'info');
-        const started = Date.now();
+        showStatus(progress(job), 'info');
+        // A waiting job is followed until it expires, then as long as any job.
+        const until = () => (job.expires_at ? Date.parse(job.expires_at) : Date.now()) + 90000;
+        const deadline = job.status === 'waiting' ? until() : Date.now() + 90000;
         const poll = async () => {
             try {
                 const response = await fetch(options.status_url.replace(/0\.json$/, `${job.id}.json`), {
@@ -180,14 +158,14 @@
                 });
                 const current = await response.json();
                 if (current.finished) return follow(current);
-                showStatus(current.status === 'processing' ? text.labelPrinting : text.labelWaiting, 'info');
+                showStatus(progress(current), 'info');
             } catch { /* try again */ }
-            if (Date.now() - started > 90000) {
+            if (Date.now() > deadline) {
                 showStatus(text.labelStillWaiting, 'warning');
                 finish();
                 return;
             }
-            polling = window.setTimeout(poll, 1000);
+            polling = window.setTimeout(poll, job.status === 'waiting' ? 2000 : 1000);
         };
         polling = window.setTimeout(poll, 700);
     }
@@ -225,13 +203,19 @@
         if (pending) return;
         clearErrors();
         showStatus('', 'info');
-        submitLabel.textContent = text.labelPrint;
         startOver();
-        preview();
+        update();
+        previews();
+        qrNote();
     }
 
-    choosePrinter();
+    // The label chosen last, else the first one printable now
+    const stored = storage.get(`outcome:${text.subject}`);
+    const first = options.outcomes.find(item => item.key === stored) || options.outcomes.find(item => item.printer)
+        || options.outcomes[0];
+    if (first && !form.querySelector('[name=outcome]:checked')) choose(first.key);
     startOver();
+    update();
     if (modal && window.bootstrap) {
         modal.addEventListener('show.bs.modal', open);
         // After creating a location, its page opens the dialog right away (?print=1).

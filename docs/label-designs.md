@@ -145,6 +145,9 @@ Which `{fields}` a template may use depends on what it is for; the template page
 | `{purpose}` | `{id}` the label ID as printed | `{target}` what the ID belongs to |
 | `{short}` code within its area | `{unit}` Stk | |
 
+A template also sets the **print quality** its labels are printed in (draft, standard, high), on its admin
+page.
+
 ## Where templates are offered
 
 A template is designed for a label size and prints only on labels of that size, on any printer (there is

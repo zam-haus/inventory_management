@@ -3,13 +3,14 @@ from django import forms
 from django.conf import settings
 from django.http import Http404
 from django.urls import reverse
+from django.utils.http import urlencode
 from django.utils.translation import gettext, gettext_lazy as _
 
 from inventory.models import Item, LabelId, Location
-from . import messages
+from . import label_urls, outcomes
 from .label_urls import ItemAt
 from .layouts import layouts_for
-from .models import LabelMedium, Printer, Quality
+from .models import LabelMedium
 
 SUBJECT_TYPES = ("location", "item", "labelid")
 
@@ -46,61 +47,47 @@ def sub_locations(location):
 
 
 def options(subject_type, obj):
-    """What the dialog offers: printers with their media and layouts (unavailable printers with the reason)."""
-    printers = []
-    for printer in Printer.objects.filter(is_active=True).prefetch_related("media__stock").order_by("name"):
-        media = []
-        for medium in printer.media.all():
-            layouts = layouts_for(subject_type, printer, medium)
-            if layouts:
-                media.append({"id": medium.pk, "name": medium.name, "default": medium.is_default,
-                              "tape": medium.ptouch_tape, "detail": medium_detail(medium), "quality": medium.quality,
-                              "colors": [medium.stock.print_color, medium.stock.background_color]
-                              if medium.stock else None,
-                              "layouts": [{"key": layout.key, "name": str(layout)} for layout in layouts]})
-        if media:
-            printers.append({"id": printer.pk, "name": printer.name, "default": printer.is_default,
-                             "unavailable": printer.unavailable_reason(), "status": str(printer.status_text),
-                             "tape": (printer.last_status or {}).get("media_width_mm"),
-                             "colors": [(printer.last_status or {}).get("text_color"),
-                                        (printer.last_status or {}).get("tape_color")], "media": media})
-    data = {"printers": printers, "max_copies": settings.PRINT_MAX_COPIES,
+    """What the dialog offers: label outcomes (outcomes.py) with their preview, whether they can be printed now
+    (on which printer, else why not) and whether a job may wait for a printer."""
+    preview_url = reverse("print_preview", args=[subject_type, obj.pk])
+    items = []
+    for outcome in outcomes.outcomes(subject_type):
+        target, medium = outcome.target(), outcome.sample_medium()
+        if medium is not None:
+            preview = f"{preview_url}?{urlencode({'medium': medium.pk, 'layout': outcome.layout.key})}"
+        else:  # a template for labels no printer has: drawn without a printer
+            preview = reverse("label_template_preview", args=[outcome.layout.template.pk, subject_type, obj.pk])
+        items.append({"key": outcome.key, "name": outcome.name, "size": outcome.size,
+                      "printer": str(target.printer) if target else "", "reason": outcome.why_not,
+                      "can_wait": outcome.can_wait, "preview": preview})
+    data = {"outcomes": items, "max_copies": settings.PRINT_MAX_COPIES, "wait_minutes": settings.PRINT_WAIT_MAX // 60,
             "submit_url": reverse("print_labels", args=[subject_type, obj.pk]),
-            "preview_url": reverse("print_preview", args=[subject_type, obj.pk]),
             "status_url": reverse("print_job_status", args=[0])}
     if subject_type == "item":
-        data["locations"] = [{"id": location.pk, "code": location.unique_identifier, "name": location.name}
+        # Where the QR code leads: the item at the location, by its label ID (given out when first printed)
+        data["item"] = obj.name
+        data["locations"] = [{"id": location.pk, "code": location.unique_identifier, "name": location.name,
+                              "label_id": label_urls.display(code) if (code := label_urls.item_label_code(
+                                  ItemAt(obj, location), create=False)) else ""}
                              for location in item_locations(obj)]
+        code = label_urls.item_label_code(ItemAt(obj, None), create=False)
+        data["label_id_without_location"] = label_urls.display(code) if code else ""
     elif subject_type == "location":
         data["children"] = len(sub_locations(obj))
     return data
 
 
-def medium_detail(medium):
-    """What else to know about the labels: printing method and material (Zebra), or the tape kind (Brother)."""
-    stock = medium.stock
-    if stock is None:
-        return ""
-    if stock.language == Printer.Language.PTOUCH:
-        return stock.description_short
-    return ", ".join(part for part in (stock.method_text, stock.material) if part)
-
-
 def unavailable_reason(data):
-    """Why the print button is disabled, or ""."""
-    if not data["printers"]:
+    """Why the print button is disabled, or "": labels can be printed now or wait for a printer."""
+    if not any(item["printer"] or item["can_wait"] for item in data["outcomes"]):
         return gettext("No printer is set up for these labels yet.")
-    if all(printer["unavailable"] for printer in data["printers"]):
-        return gettext("No printer can print right now: %(reason)s") % {"reason": data["printers"][0]["unavailable"]}
     return ""
 
 
 class PrintForm(forms.Form):
-    printer = forms.ModelChoiceField(Printer.objects.filter(is_active=True), label=_("Printer"))
-    medium = forms.ModelChoiceField(LabelMedium.objects.select_related("printer"), label=_("Labels"))
-    layout = forms.CharField(label=_("Layout"), max_length=64)
+    outcome = forms.CharField(label=_("Label"), max_length=96)
+    wait = forms.BooleanField(label=_("Wait for a printer if none can print it now"), required=False)
     copies = forms.IntegerField(label=_("Copies"), min_value=1, initial=1)
-    quality = forms.ChoiceField(label=_("Print quality"), choices=Quality.choices, required=False)
     location = forms.ModelChoiceField(Location.active.all(), label=_("Location"), required=False)
     children = forms.BooleanField(label=_("Also the sub-locations"), required=False)
     request_id = forms.UUIDField(required=False, widget=forms.HiddenInput)
@@ -108,6 +95,7 @@ class PrintForm(forms.Form):
     def __init__(self, *args, subject_type, obj, **kwargs):
         super().__init__(*args, **kwargs)
         self.subject_type, self.obj = subject_type, obj
+        self.chosen = None
         self.fields["copies"].widget.attrs["max"] = settings.PRINT_MAX_COPIES
         if subject_type == "item":
             self.fields["location"].queryset = Location.active.filter(itemlocation__item=obj).distinct()
@@ -125,14 +113,13 @@ class PrintForm(forms.Form):
 
     def clean(self):
         data = super().clean()
-        printer, medium = data.get("printer"), data.get("medium")
-        if printer and medium and medium.printer_id != printer.pk:
-            self.add_error("medium", _("Choose labels of this printer."))
-        elif printer and medium and data.get("layout") not in {
-                layout.key for layout in layouts_for(self.subject_type, printer, medium)}:
-            self.add_error("layout", _("This layout does not fit the chosen labels."))
-        if printer and (code := printer.unavailable_code()):
-            self.add_error("printer", messages.describe(code))
+        if not data.get("outcome"):
+            return data
+        self.chosen = outcomes.find(self.subject_type, data["outcome"])
+        if self.chosen is None:
+            self.add_error("outcome", _("These labels cannot be printed here."))
+        elif not self.chosen.target() and not (data.get("wait") and self.chosen.can_wait):
+            self.add_error("outcome", self.chosen.why_not)
         return data
 
     def subjects(self):

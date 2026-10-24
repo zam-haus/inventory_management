@@ -11,7 +11,7 @@
 {% block content %}
     <h1 class="h3 mt-3">{% icon "tag" %} {% trans "Print labels" %}</h1>
     <p><a href="{{ back_url }}">{{ print_title }}</a></p>
-    {% if print_options.printers %}
+    {% if print_options.outcomes %}
         {{ print_options|json_script:"label-print-options" }}
         <form method="post" class="label-print-page" {% include 'label_printing/form_attrs.html' %}>
             {% include 'label_printing/print_fields.html' %}

@@ -53,7 +53,7 @@ admin.site.register(models.Category, CategoryAdmin)
 class LocationLabelTemplateForm(forms.ModelForm):
     class Meta:
         model = models.LocationLabelTemplate
-        fields = ("name", "subject_type", "description")
+        fields = ("name", "subject_type", "quality", "description")
         widgets = {"description": forms.Textarea(attrs={
             "rows": 24, "cols": 72, "spellcheck": "false", "autocapitalize": "off", "class": "label-description"})}
 
@@ -74,10 +74,10 @@ class LocationLabelTemplateAdmin(admin.ModelAdmin):
     preview the server renders while it is typed (label_printing/editor.py)."""
     model = models.LocationLabelTemplate
     form = LocationLabelTemplateForm
-    list_display = ("name", "subject_type", "size_text")
-    list_filter = ("subject_type",)
+    list_display = ("name", "subject_type", "size_text", "quality")
+    list_filter = ("subject_type", "quality")
     search_fields = ("name", "description")
-    fields = ("name", "subject_type", "description", "fields_list", "fitting_media")
+    fields = ("name", "subject_type", "quality", "description", "fields_list", "fitting_media")
     readonly_fields = ("fields_list", "fitting_media")
     change_form_template = "label_printing/admin/label_template_change_form.html"
 

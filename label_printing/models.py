@@ -98,6 +98,19 @@ class Printer(models.Model):
         help_text=_("Check paper, tape and errors before printing and wait until the printer reports the "
                     "labels printed. Turn off only for printers that cannot answer."),
     )
+    # Brother: how labels are cut (drivers.ptouch_job)
+    class Cut(models.TextChoices):
+        HALF = "half", _("half cut between labels")
+        FULL = "full", _("full cut after each label")
+        NONE = "none", _("no cut between labels")
+
+    cut = models.CharField(_("cutting"), max_length=8, choices=Cut.choices, default=Cut.HALF,
+                           help_text=_("Brother: between the labels of a job."))
+    chain_printing = models.BooleanField(
+        _("continuous printing"), default=True,
+        help_text=_("Brother: the last label stays in the printer and the next job goes on from there, which "
+                    "saves tape; cut it off with the printer's cutter button. Off: the printer feeds and cuts "
+                    "after every job."))
     is_active = models.BooleanField(_("active"), default=True)
     is_default = models.BooleanField(_("default printer"), default=False,
                                      help_text=_("Used by the print actions in the admin."))
@@ -368,7 +381,8 @@ class LabelMedium(models.Model):
 
 
 class PrintJob(models.Model):
-    """One print request: the printer-ready data and what became of it."""
+    """One print request: the printer-ready data and what became of it. A job asked for while no printer can
+    print it waits (WAITING) without printer and data, until one can (services.dispatch_waiting) or it expires."""
 
     class Meta:
         verbose_name = _("print job")
@@ -378,6 +392,7 @@ class PrintJob(models.Model):
         indexes = [models.Index(fields=["printer", "status", "created_at"])]
 
     class Status(models.TextChoices):
+        WAITING = "waiting", _("waiting for a printer")
         PENDING = "pending", _("waiting")
         PROCESSING = "processing", _("printing")
         DONE = "done", _("printed")
@@ -389,7 +404,8 @@ class PrintJob(models.Model):
 
     user = models.ForeignKey(settings.AUTH_USER_MODEL, verbose_name=_("user"), null=True, blank=True,
                              on_delete=models.SET_NULL, related_name="+")
-    printer = models.ForeignKey(Printer, verbose_name=_("printer"), on_delete=models.PROTECT, related_name="jobs")
+    printer = models.ForeignKey(Printer, verbose_name=_("printer"), null=True, blank=True, on_delete=models.PROTECT,
+                                related_name="jobs")
     medium = models.ForeignKey(LabelMedium, verbose_name=_("label medium"), null=True, blank=True,
                                on_delete=models.SET_NULL, related_name="+")
     layout_key = models.CharField(_("layout"), max_length=64)
@@ -411,12 +427,18 @@ class PrintJob(models.Model):
                               on_delete=models.SET_NULL, related_name="+")
     claimed_by = models.CharField(_("processed by"), max_length=64, blank=True)
     request_id = models.UUIDField(null=True, blank=True, unique=True, editable=False)
+    # A waiting job: the label outcome asked for (outcomes.py), its subjects and options, until when it waits.
+    outcome = models.CharField(_("label"), max_length=96, blank=True)
+    request = models.JSONField(default=dict, blank=True, editable=False)
+    expires_at = models.DateTimeField(_("waits until"), null=True, blank=True)
     created_at = models.DateTimeField(_("created at"), auto_now_add=True)
+    # When its data was ready for the printer: picked up within PRINT_JOB_MAX_AGE from then.
+    ready_at = models.DateTimeField(default=timezone.now, editable=False)
     claimed_at = models.DateTimeField(_("picked up at"), null=True, blank=True)
     finished_at = models.DateTimeField(_("finished at"), null=True, blank=True)
 
     def __str__(self):
-        return f"#{self.pk} {self.subject_label} → {self.printer}"
+        return f"#{self.pk} {self.subject_label} → {self.printer or self.get_status_display()}"
 
     @property
     def is_finished(self):

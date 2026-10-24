@@ -16,6 +16,8 @@ from django.utils.decorators import method_decorator
 from django.views import View
 from django.views.decorators.cache import never_cache
 from django.utils.safestring import mark_safe
+from django.utils import timezone
+from django.utils.formats import date_format
 from django.utils.translation import gettext
 from django.views.decorators.http import require_POST, require_safe
 
@@ -28,23 +30,33 @@ from .models import LabelMedium, PrintJob
 
 
 def job_data(job):
-    return {
+    data = {
         "id": job.pk,
         "status": job.status,
         "finished": job.is_finished,
         "ok": job.status in (PrintJob.Status.DONE, PrintJob.Status.SENT),
         "message": str(job.message),
+        "printer": str(job.printer) if job.printer else "",
     }
+    if job.status == PrintJob.Status.WAITING:
+        data["message"] = gettext("Waiting for a printer that can print it, until %(time)s.") % {
+            "time": date_format(timezone.localtime(job.expires_at), "TIME_FORMAT")}
+        data["expires_at"] = job.expires_at.isoformat()
+    return data
 
 
 @require_safe
 @login_required
 def job_status(request, pk):
-    """How a job is getting on, for the print dialog; users see their own jobs, admins every job."""
+    """How a job is getting on, for the print dialog; users see their own jobs, admins every job. A waiting job
+    is printed here as soon as a printer can (without a broker nobody else looks while no agent asks)."""
     services.expire_stale()
     job = get_object_or_404(PrintJob, pk=pk)
     if job.user_id != request.user.pk and not request.user.has_perm("label_printing.view_printjob"):
         raise Http404
+    if job.status == PrintJob.Status.WAITING:
+        services.dispatch_waiting()
+        job.refresh_from_db()
     return JsonResponse(job_data(job))
 
 
@@ -81,10 +93,9 @@ class PrintLabelsView(PermissionRequiredMixin, View):
         if form.is_valid():
             data = form.cleaned_data
             try:
-                job = services.submit(printer=data["printer"], medium=data["medium"], layout_key=data["layout"],
-                                      subject_type=subject_type, subjects=form.subjects(), copies=data["copies"],
-                                      user=request.user, request_id=data["request_id"],
-                                      quality=data.get("quality") or None)
+                job = services.submit_outcome(form.chosen, subject_type=subject_type, subjects=form.subjects(),
+                                              copies=data["copies"], user=request.user, request_id=data["request_id"],
+                                              wait=data["wait"])
             except services.PrintError as error:
                 form.add_error(None, str(error))
         if job is None:
@@ -95,7 +106,7 @@ class PrintLabelsView(PermissionRequiredMixin, View):
         if wants_json:
             return JsonResponse({"ok": True, "job": job_data(job)})
         level = messages.ERROR if job.status == PrintJob.Status.FAILED else messages.SUCCESS
-        messages.add_message(request, level, job.message)
+        messages.add_message(request, level, job_data(job)["message"])
         return redirect(self.back_url())
 
 

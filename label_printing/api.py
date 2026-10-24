@@ -153,6 +153,7 @@ def poll(request, agent, data):
                 printer.remember_status(report["status"])
     printers = {printer.uid or printer.slug: {"language": printer.language, "check_status": printer.reports_status}
                 for printer in agent.printers.filter(is_active=True)}
+    services.dispatch_waiting(refresh=False)  # the agent's printers may just have come back or got other tape
     job = services.next_for_agent(agent) if agent.is_active else None
     return JsonResponse({"active": agent.is_active, "printers": printers, "job": job and {
         "id": job.pk,

@@ -322,6 +322,12 @@ class LocationLabelTemplate(models.Model):
     subject_type = models.CharField(_("labels for"), max_length=16, choices=SubjectType.choices,
                                     default=SubjectType.LOCATION)
     description = models.TextField(_("label description"))
+    # The same choices as label_printing.models.Quality
+    quality = models.CharField(
+        _("print quality"), max_length=16, default="standard",
+        choices=[("draft", _("draft (fast)")), ("standard", _("standard")), ("high", _("high quality (slower)"))],
+        help_text=_("Its labels are printed in this quality. Brother: draft printing, or twice the resolution along "
+                    "the tape; Zebra: print speed."))
     label_width = models.FloatField(_("width (mm)"), null=True, editable=False,
                                     help_text=_("Empty: as long as the content (Brother tape)."))
     label_height = models.FloatField(_("height (mm)"), null=True, editable=False)

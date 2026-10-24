@@ -137,11 +137,22 @@ def ptouch_high_resolution_dpi(model):
     return PTOUCH_MODELS[model].RESOLUTION_DPI_HIGH
 
 
-def ptouch_job(model, tape_mm, images, copies=1, quality="standard", offset=0):
-    """(bytes, pages): the labels, with half cuts between them when there are several. In high quality the
-    images are twice as long in dots (see ptouch_printer). offset moves the print area across the tape by
-    that many print head pins, positive = down as the label is read (image row 0 is the top row), for
-    printers whose tape sits a little apart from the pins Brother's specification gives."""
+def cutting(base, cut, chain):
+    """The printer class cutting as asked in every page's control sequence (ESC i M bit 6: auto cut; ESC i K
+    bit 2: half cut, bit 3: no chain printing): cut "half", "full" or "none" between the labels; chain: the last
+    label is neither fed out nor cut, the next job goes on from it."""
+    class Cutting(base):
+        def _build_page_control_sequence(self, num_lines, *args, **kwargs):
+            kwargs.update(auto_cut=cut == "full", half_cut=cut == "half", chain_printing=chain)
+            return super()._build_page_control_sequence(num_lines, *args, **kwargs)
+    return Cutting
+
+
+def ptouch_job(model, tape_mm, images, copies=1, quality="standard", offset=0, cut="half", chain=True):
+    """(bytes, pages): the labels, cut between them as set (cutting). In high quality the images are twice as
+    long in dots (see ptouch_printer). offset moves the print area across the tape by that many print head pins,
+    positive = down as the label is read (image row 0 is the top row), for printers whose tape sits a little
+    apart from the pins Brother's specification gives."""
     tape = ptouch_tape(tape_mm)
     pins = ptouch_print_pins(model, tape_mm)
     labels = []
@@ -150,14 +161,11 @@ def ptouch_job(model, tape_mm, images, copies=1, quality="standard", offset=0):
             raise ValueError(f"label image is {image.height} dots high, the {tape_mm} mm tape needs {pins}")
         labels.extend(ptouch.Label(image.convert("1"), tape) for _ in range(copies))
     connection = BufferConnection()
-    printer = ptouch_printer(model, quality)(connection, high_resolution=quality == "high")
+    printer = cutting(ptouch_printer(model, quality), cut, chain)(connection, high_resolution=quality == "high")
     if offset:
         config = printer.PIN_CONFIGS[tape]
         offset = max(-config.left_pins, min(offset, config.right_pins))
         printer.PIN_CONFIGS = {**printer.PIN_CONFIGS, tape: ptouch.TapeConfig(
             config.left_pins + offset, config.print_pins, config.right_pins - offset)}
-    if len(labels) == 1:
-        printer.print(labels[0])
-    else:
-        printer.print_multi(labels, half_cut=True)
+    printer.print_multi(labels)
     return bytes(connection.data), len(labels)

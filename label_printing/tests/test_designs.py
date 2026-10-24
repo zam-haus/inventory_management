@@ -370,9 +370,9 @@ class AdminTests(InventoryData, TestCase):
     def test_template_form(self):
         add = reverse("admin:inventory_locationlabeltemplate_add")
         self.assertContains(self.client.get(add), "label 70 x 32")  # a starter description
-        response = self.client.post(add, {"name": "Neu", "subject_type": "location", "description": "label 50 x 20\ntext {nope}"})
+        response = self.client.post(add, {"name": "Neu", "subject_type": "location", "quality": "standard", "description": "label 50 x 20\ntext {nope}"})
         self.assertContains(response, "Line 2: There is no field {nope}")
-        self.client.post(add, {"name": "Neu", "subject_type": "location", "description": "label 50 x 20\ntext {code}"})
+        self.client.post(add, {"name": "Neu", "subject_type": "location", "quality": "standard", "description": "label 50 x 20\ntext {code}"})
         template = LocationLabelTemplate.objects.get(name="Neu")
         self.assertEqual((template.label_width, template.label_height), (50, 20))
         self.assertContains(self.client.get(reverse("label_design_help")), "Label designs")
