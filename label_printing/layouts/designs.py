@@ -1,9 +1,8 @@
 """
 Label templates (inventory's LocationLabelTemplate: a label design in the description language,
-label_printing.design) as layouts. A template is drawn for each printer at its resolution, so it fits any
-printer with labels of its size: Zebra labels of its width and height (within a millimetre), Brother tape as
-wide as its height, any length if the template has none. Media offer the fitting templates; only those
-chosen for the medium or its label stock, if there are any of the kind.
+label_printing.design) as layouts. A template is designed for a label size and prints only on labels of that
+size (fits), on any printer: it is drawn at the printer's resolution. Media offer the fitting templates; only
+those chosen for the medium or its label stock, if there are any of the kind.
 """
 from django.utils.translation import gettext as _
 
@@ -17,18 +16,26 @@ from .label_id import snapshot as label_id_snapshot
 SIZE_TOLERANCE_MM = 1
 
 
+def tape_width(medium):
+    """The tape's width in mm (3.5 mm tape is stored as 4)."""
+    return 3.5 if medium.ptouch_tape == 4 else medium.ptouch_tape
+
+
+def close(size, wanted):
+    return size is not None and wanted is not None and abs(size - wanted) <= SIZE_TOLERANCE_MM
+
+
 def fits(template, medium):
-    """Whether the template is for labels of the medium's size."""
+    """Whether the template is for labels of the medium's size; a template prints on matching labels only.
+    Zebra: labels of its width and height. Brother: tape as wide as its height; endless tape takes any length,
+    tape with a label length only templates of that length."""
     if template.label_height is None:
         return False
     if medium.is_tape:
-        return template.label_height == medium.ptouch_tape and (
-            medium.height_mm is None or template.label_width is None
-            or abs(template.label_width - medium.height_mm) <= SIZE_TOLERANCE_MM)
-    if template.label_width is None:
-        return False  # as long as the content: Brother tape only
-    return all(size is None or abs(size - wanted) <= SIZE_TOLERANCE_MM
-               for size, wanted in ((medium.width_mm, template.label_width), (medium.height_mm, template.label_height)))
+        if medium.ptouch_tape is None or template.label_height not in (medium.ptouch_tape, tape_width(medium)):
+            return False
+        return medium.height_mm is None or close(template.label_width, medium.height_mm)
+    return close(template.label_width, medium.width_mm) and close(template.label_height, medium.height_mm)
 
 
 def candidates(medium, subject_type):

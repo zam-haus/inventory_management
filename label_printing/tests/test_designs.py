@@ -234,6 +234,25 @@ class TemplateTests(InventoryData, TestCase):
         self.assertNotIn(f"design:{wide.pk}", keys(self.brother, self.tape))
         self.assertNotIn(f"design:{fixed.pk}", keys(self.brother, self.tape))
 
+    def test_printed_on_matching_labels_only(self):
+        from ..layouts.designs import fits
+        from ..models import LabelMedium
+        fixed = self.template("label 57 x 32\ntext {code}")
+        endless = self.template("label height 12\ntext {code}")
+        long_tape = self.template("label 40 x 12\ntext {code}")
+        narrow = self.template("label height 3.5\ntext {code}")
+        unknown = LabelMedium(printer=self.zebra, name="?")
+        self.assertFalse(fits(fixed, unknown))  # labels of unknown size match no template
+        self.assertTrue(fits(fixed, LabelMedium(printer=self.zebra, name="a", width_mm=58, height_mm=32)))
+        self.assertFalse(fits(fixed, LabelMedium(printer=self.zebra, name="b", width_mm=57, height_mm=25)))
+        cut = LabelMedium(printer=self.brother, name="12 mm, 40 mm long", ptouch_tape=12, height_mm=40)
+        self.assertEqual((fits(endless, self.tape), fits(long_tape, self.tape)), (True, True))  # endless tape
+        self.assertEqual((fits(endless, cut), fits(long_tape, cut)), (False, True))
+        self.assertTrue(fits(narrow, LabelMedium(printer=self.brother, name="3.5 mm", ptouch_tape=4)))
+        with self.assertRaisesMessage(services.PrintError, "This layout does not fit"):
+            services.submit(printer=self.zebra, medium=self.labels, layout_key=f"design:{endless.pk}",
+                            subject_type="location", subjects=[self.part])
+
     def test_printed_on_tape_as_long_as_the_content(self):
         template = self.template('label height 12  margin 0.5\nrow  gap 1\n  qr {qr}\n  text {path}')
         rendered, = services.render(get_layout(f"design:{template.pk}"), [self.part], self.tape, preview=True)

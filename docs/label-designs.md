@@ -141,10 +141,11 @@ Which `{fields}` a template may use depends on what it is for; the template page
 
 ## Where templates are offered
 
-There is no resolution in a template, so a template fits any printer with labels of its size:
-* Zebra labels of its width and height, within a millimetre;
-* Brother tape as wide as its height. A template without width fits tape of any length; one with a
-  width fits only a medium of that length, or tape of any length.
+A template is designed for a label size and prints only on labels of that size, on any printer (there is
+no resolution in a template):
+* Zebra labels of its width and height, within a millimetre (labels of unknown size: none);
+* Brother tape as wide as its height. Endless tape takes templates of any length; a medium with a
+  label length only templates of that length.
 
 Media offer the fitting templates of the kind being printed. If templates are chosen for a medium (or for
 its label stock), only those are offered.
