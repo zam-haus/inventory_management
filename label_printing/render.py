@@ -5,7 +5,7 @@ from pathlib import Path
 import segno
 from PIL import Image, ImageDraw, ImageFont, ImageOps
 
-FONTS = Path(__file__).resolve().parent.parent / "inventory" / "label_ids" / "labels" / "fonts"
+FONTS = Path(__file__).resolve().parent / "design" / "fonts"
 SANS = str(FONTS / "Raleway%5Bwght%5D.ttf")
 MONO = str(FONTS / "RobotoMono%5Bwght%5D.ttf")
 MIN_FONT_PX = 8

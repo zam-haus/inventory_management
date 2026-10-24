@@ -17,6 +17,8 @@ MESSAGES = {
     "paper_out": _("The printer is out of labels."),
     "paused": _("The printer is paused; press its pause button."),
     "head_open": _("The print head is open."),
+    "wrong_length": _("The printer measures labels %(measured_mm)s mm long, but labels %(expected_mm)s mm high are "
+                      "set as loaded."),
     "ribbon_out": _("The ribbon is used up."),
     "temperature": _("The print head is too hot or too cold."),
     # Both

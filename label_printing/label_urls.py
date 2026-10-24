@@ -1,9 +1,6 @@
 """What the QR codes on printed labels hold, and what is recorded about each printed label."""
 from dataclasses import dataclass
 
-from django.conf import settings
-from django.db import transaction
-from django.urls import reverse
 from django.utils.formats import number_format
 
 from inventory.label_ids import core, qr, services as label_ids
@@ -42,24 +39,21 @@ def label_id_content(code):
     return qr.url_prefix() + code
 
 
-def item_target(subject):
-    """Where an item label leads: the item's page for that location, with taking stock out at hand."""
-    path = reverse("view_item", args=[subject.item.pk])
-    if subject.location is not None:
-        path += f"?loc={subject.location.pk}"
-    return settings.DEFAULT_URL.rstrip("/") + path
+def item_qr(subject, code):
+    """An item label's QR code: the item's label ID, then the code of the location it is stored at, uppercase so
+    the QR code stays alphanumeric (HTTPS://I.ZAM.HAUS/K7R4XD/WH-1.R303.A); the resolver passes the location on
+    to the item's page, which puts taking stock out there first. One ID serves every location."""
+    content = label_id_content(code)
+    return f"{content}/{subject.location.unique_identifier.upper()}" if subject.location is not None else content
 
 
 def item_label_code(subject, user=None, create=True):
-    """The label ID whose QR code leads to the item at its location: the one used before, else a new one
-    (without create, e.g. for previews: None)."""
-    url = item_target(subject)
-    existing = LabelId.objects.filter(status=LabelId.Status.ASSIGNED, url=url).order_by("assigned_at", "code").first()
+    """The item's label ID: the one it has, else a new one claimed for it (without create, e.g. for previews:
+    None)."""
+    existing = LabelId.objects.assigned().filter(item=subject.item).order_by("assigned_at", "code").first()
     if existing is not None or not create:
         return existing.code if existing else None
-    with transaction.atomic():
-        lid, = label_ids.generate_batch(1, batch="print", user=user)
-        return label_ids.assign_url(lid.code, url, user).code
+    return label_ids.generate_and_claim(subject.item, user, batch="print").code
 
 
 def price_amount(item):
@@ -81,7 +75,7 @@ def item_snapshot(subject, code):
             "sale_price": str(item.sale_price) if item.sale_price is not None else None,
             "location": subject.location.unique_identifier if subject.location else None,
             "location_id": subject.location.pk if subject.location else None,
-            "code": code, "qr": label_id_content(code)}
+            "code": code, "qr": item_qr(subject, code)}
 
 
 def label_id_snapshot(lid):

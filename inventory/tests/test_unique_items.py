@@ -18,6 +18,7 @@ from accounts.models import Team
 from ..actor import acting_as
 from ..models import Item, ItemLocation, LabelId, Location, LocationType, UniqueItem, UniqueItemEvent, UsageLevel
 from ..label_ids import services
+from ..label_ids.views import label_preview_url
 from ..label_ids.testing import SETTINGS, InventoryFixture, make_id, local_group
 
 
@@ -159,7 +160,7 @@ class UniqueItemViewTests(UniqueItemFixture, TestCase):
         response = self.client.get(self.unique_item.get_absolute_url())
         self.assertContains(response, "K7R-4XD")
         # No label section: labels are printed with the print dialog's templates
-        self.assertNotContains(response, reverse("label_id_label", args=[self.lid.code]))
+        self.assertNotContains(response, "/print/templates/")
         self.assertContains(response, "Woodworking")
         self.assertContains(response, "Alex")
         self.assertContains(response, "Not ZAM property: Robin")
@@ -200,13 +201,12 @@ class UniqueItemViewTests(UniqueItemFixture, TestCase):
         self.assertNotContains(self.client.get(self.unique_item.get_absolute_url()), "Not ZAM property")
 
     def test_label_of_assigned_id_is_public(self):
-        url = reverse("label_id_label", args=[self.lid.code])
-        response = self.client.get(url, {"printer": "P900", "tape": 24})
+        response = self.client.get(label_preview_url(self.lid))
         self.assertEqual((response.status_code, response["Content-Type"]), (200, "image/png"))
         reserved = make_id("ABCDE")
-        self.assertEqual(self.client.get(reverse("label_id_label", args=[reserved.code])).status_code, 302)
-        self.client.force_login(self.member)
-        self.assertEqual(self.client.get(reverse("label_id_label", args=[reserved.code])).status_code, 403)
+        self.assertEqual(self.client.get(label_preview_url(reserved)).status_code, 404)
+        self.client.force_login(self.member)  # may print labels
+        self.assertEqual(self.client.get(label_preview_url(reserved)).status_code, 200)
 
     def test_create_generates_an_id(self):
         self.client.force_login(self.member)

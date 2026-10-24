@@ -107,6 +107,7 @@ class RegistrationTests(TestCase):
         self.assertEqual(answer["printers"], {"usb-04f9-2085-A1B2C3": {"language": "ptouch", "check_status": True}})
         self.assertEqual((answer["job"]["id"], answer["job"]["printer"], answer["job"]["expected_tape_mm"]),
                          (job.pk, "usb-04f9-2085-A1B2C3", 24))
+        self.assertIsNone(answer["job"]["expected_length"])  # Zebra only: [height in mm, dpi]
 
     def test_unknown_brother_model_must_be_chosen_before_activating(self):
         self.register()

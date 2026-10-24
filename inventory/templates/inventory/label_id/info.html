@@ -9,13 +9,12 @@
 {% block admin_url %}{% url 'admin:inventory_labelid_change' lid.code %}{% endblock %}
 
 {% block content %}
-{% url 'label_id_label' lid.code as label_url %}
+{% if label_url %}
 <p>
-    <a href="{{ label_url }}?printer={{ preview_printer }}&amp;tape={{ preview_tape }}">
-        <img src="{{ label_url }}?printer={{ preview_printer }}&amp;tape={{ preview_tape }}" class="label-id-label-preview"
-             alt="{% blocktrans with code=lid.display %}Label for {{ code }}{% endblocktrans %}">
-    </a>
+    <img src="{{ label_url }}" class="label-id-label-preview"
+         alt="{% blocktrans with code=lid.display %}Label for {{ code }}{% endblocktrans %}">
 </p>
+{% endif %}
 <div class="row g-4">
     <div class="col-lg-8">
         <dl class="row">
@@ -38,12 +37,6 @@
         {% include "inventory/label_id/accesses.html" with show_user=can_see_access_user %}
         <h2 class="h5">{% trans "Labels" %}</h2>
         <p>{% label_print_button lid "labelid" %}</p>
-        <p class="text-muted small">{% trans "Print in standard resolution, without scaling." %}</p>
-        <ul class="list-inline">
-            {% for printer, tape in label_profiles %}
-                <li class="list-inline-item"><a href="{% url 'label_id_label' lid.code %}?printer={{ printer }}&amp;tape={{ tape }}">PT-{{ printer }} {{ tape }} mm</a></li>
-            {% endfor %}
-        </ul>
     </div>
 </div>
 {% label_print_dialog lid "labelid" %}

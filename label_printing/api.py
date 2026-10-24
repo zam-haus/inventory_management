@@ -162,6 +162,7 @@ def poll(request, agent, data):
         "payload": base64.b64encode(bytes(job.payload)).decode("ascii"),
         "pages": job.pages,
         "expected_tape_mm": job.medium.ptouch_tape if job.medium else None,
+        "expected_length": services.expected_length(job),
         "check_status": job.printer.reports_status,
     }})
 

@@ -149,12 +149,19 @@ class PrinterAdmin(admin.ModelAdmin):
     fieldsets = (
         (None, {"fields": ("name", "slug", ("language", "model", "dpi"), ("is_active", "is_default"))}),
         (_("Connection"), {"fields": ("transport", ("host", "port"), "agent", "reports_status")}),
+        (_("Zebra"), {"fields": ("loaded_medium",)}),
         (_("Brother P-touch"), {"fields": ("cut", "chain_printing")}),
         (_("Status"), {"fields": ("status", "last_status_at")}),
         (_("Reported by the print agent"), {"fields": ("uid", "reported", "discovered_at")}),
     )
     inlines = [LabelMediumInline]
     actions = ["activate", "test_print", "calibration_print", "check_status"]
+
+    def formfield_for_foreignkey(self, db_field, request, **kwargs):
+        if db_field.name == "loaded_medium":  # the printer's own labels
+            printer_id = request.resolver_match.kwargs.get("object_id")
+            kwargs["queryset"] = LabelMedium.objects.filter(printer_id=printer_id).order_by("name")
+        return super().formfield_for_foreignkey(db_field, request, **kwargs)
 
     @admin.display(description=_("reported details"))
     def reported(self, printer):
@@ -176,6 +183,8 @@ class PrinterAdmin(admin.ModelAdmin):
                 note = " " + gettext("Its print agent %(agent)s is not active yet.") % {"agent": printer.agent}
             if not printer.media.exists():
                 note += " " + gettext("Add the labels loaded in it.")
+            elif printer.language == Printer.Language.ZPL and not printer.loaded_medium_id:
+                note += " " + gettext("Set the labels loaded in it.")
             self.message_user(request, gettext("%(printer)s is active.") % {"printer": printer} + note)
 
     @admin.display(description=_("status"))

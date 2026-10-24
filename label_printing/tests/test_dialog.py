@@ -75,13 +75,15 @@ class LayoutTests(InventoryData, TestCase):
         again = layout.render(subject, canvas, self.labels)
         lid = LabelId.objects.get()
         self.assertEqual((first.label_code, again.label_code), (lid.code, lid.code))
-        self.assertEqual(lid.url, f"https://inv.zam.haus/item/{self.item.pk}?loc={self.part.pk}")
-        self.assertEqual(lid.batch, "print")
+        self.assertEqual((lid.item, lid.url or "", lid.batch), (self.item, "", "print"))  # the item's own ID
         self.assertEqual(first.snapshot["price"], "0.15 € / Stk")
-        self.assertEqual(first.snapshot["qr"], f"HTTPS://I.ZAM.HAUS/{lid.code}")
-        # Another location is another label.
-        layout.render(label_urls.ItemAt(self.item, self.other_part), canvas, self.labels)
-        self.assertEqual(LabelId.objects.count(), 2)
+        self.assertEqual(first.snapshot["qr"], f"HTTPS://I.ZAM.HAUS/{lid.code}/R303.A")  # alphanumeric
+        # Another location: the same ID, with that location
+        other = layout.render(label_urls.ItemAt(self.item, self.other_part), canvas, self.labels)
+        self.assertEqual((LabelId.objects.count(), other.label_code), (1, lid.code))
+        self.assertEqual(other.snapshot["qr"], f"HTTPS://I.ZAM.HAUS/{lid.code}/R303.B")
+        without = layout.render(label_urls.ItemAt(self.item, None), canvas, self.labels)
+        self.assertEqual(without.snapshot["qr"], f"HTTPS://I.ZAM.HAUS/{lid.code}")
 
     def test_zebra_raster_size(self):
         job = services.submit(printer=self.zebra, medium=self.labels, layout_key=f"design:{generated('location', '57x32').pk}",
@@ -111,12 +113,14 @@ class PrintDialogTests(SimulatedPrinters, InventoryData, TestCase):
 
     def test_location_page_offers_the_dialog(self):
         response = self.client.get(self.shelf.get_absolute_url())
-        self.assertContains(response, 'data-modal-open="label-print-modal"')
-        self.assertContains(response, 'id="label-print-modal"')
+        self.assertContains(response, 'data-modal-open="label-print-modal-location"')
+        self.assertContains(response, 'id="label-print-modal-location"')
         self.assertContains(response, '"printer": "Zebra Lager"')
         self.assertContains(response, f'"key": "design:{self.template.pk}@57x32"')
         self.assertContains(response, f'"key": "{outcome_key("location", "tape12")}"')
         self.assertContains(response, "Also its sub-locations (2)")
+        self.assertContains(response, "data-wait-note hidden")  # what waiting means, for labels no printer can print now
+        self.assertNotContains(response, 'name="wait"')
 
     def test_print_a_location_and_its_compartments(self):
         response = self.post("location", self.shelf, {"outcome": outcome_key("location", "tape12"), "copies": 1,
@@ -139,10 +143,48 @@ class PrintDialogTests(SimulatedPrinters, InventoryData, TestCase):
                          ("item", self.item.pk, 2, "standard"))  # the template's quality
         self.assertEqual(job.snapshot[0]["location"], "R303.a")
         self.assertEqual(job.label_code, LabelId.objects.get().code)
-        # The dialog says the QR code of each location now has its label ID
-        locations = dialog.options("item", self.item)["locations"]
-        self.assertEqual([(entry["code"], bool(entry["label_id"])) for entry in locations],
-                         [("R303.a", True), ("R303.b", False)])
+        # The dialog says the QR code holds the item's label ID now, with the location chosen
+        options = dialog.options("item", self.item)
+        self.assertEqual(options["label_id"], LabelId.objects.get().display)
+        self.assertEqual([entry["code"] for entry in options["locations"]], ["R303.a", "R303.b"])
+
+    def test_price_tags_of_the_bulk_items_at_a_location(self):
+        nuts = Item.objects.create(name="Muttern M4", measurement_unit=self.unit, for_sale=True, sale_price=Decimal("0.05"))
+        ItemLocation.objects.create(item=nuts, location=self.part, amount=50)
+        response = self.client.get(self.part.get_absolute_url())
+        self.assertContains(response, 'id="label-print-modal-items"')
+        self.assertContains(response, "A price tag for each of the 2 bulk items stored here.")
+        key = outcome_key("item", "57x32")
+        preview = self.client.get(reverse("print_preview", args=["items", self.part.pk]),
+                                  {"medium": self.labels.pk, "layout": key.split("@")[0]})
+        self.assertEqual(preview["Content-Type"], "image/png")
+        data = self.post("items", self.part, {"outcome": key, "copies": 1}).json()
+        job = PrintJob.objects.get(pk=data["job"]["id"])
+        self.assertEqual((job.subject_type, job.pages), ("item", 2))
+        self.assertEqual([(entry["name"], entry["location"]) for entry in job.snapshot],
+                         [("Muttern M4", "R303.a"), ("Schrauben M4", "R303.a")])
+        # Only those with a sale price
+        ItemLocation.objects.create(item=Item.objects.create(name="Kabelbinder", measurement_unit=self.unit),
+                                    location=self.part, amount=10)
+        data = self.post("items", self.part, {"outcome": key, "copies": 1, "priced": "on"}).json()
+        names = [entry["name"] for entry in PrintJob.objects.get(pk=data["job"]["id"]).snapshot]
+        self.assertEqual(names, ["Muttern M4", "Schrauben M4"])
+        self.assertEqual(dialog.options("items", self.part)["priced"], 2)
+        # Where no bulk items are stored, the button says so
+        self.assertContains(self.client.get(self.shelf.get_absolute_url()), "No bulk items are stored here.")
+
+    def test_many_labels_are_confirmed_and_at_most_50(self):
+        key = outcome_key("location", "tape12")
+        response = self.post("location", self.part, {"outcome": key, "copies": 11})
+        self.assertEqual(response.json()["errors"]["confirm"][0],
+                         {"message": "That is 11 labels. Print them all?", "code": "confirm"})
+        response = self.post("location", self.shelf, {"outcome": key, "copies": 20, "children": "on", "confirm": "on"})
+        self.assertEqual(response.json()["errors"]["copies"][0]["message"],
+                         "That would be 60 labels; at most 50 can be printed at once.")
+        self.assertFalse(PrintJob.objects.exists())
+        with patch("label_printing.tasks.process_job.delay"):
+            response = self.post("location", self.part, {"outcome": key, "copies": 11, "confirm": "on"})
+        self.assertEqual(PrintJob.objects.get(pk=response.json()["job"]["id"]).pages, 11)
 
     def test_errors_are_shown_in_the_dialog(self):
         cases = [
@@ -194,7 +236,7 @@ class PrintDialogTests(SimulatedPrinters, InventoryData, TestCase):
         self.assertEqual(self.client.get(reverse("print_labels", args=["location", self.part.pk])).status_code, 403)
         response = self.client.get(self.part.get_absolute_url())
         self.assertContains(response, 'aria-label="Print labels"')  # disabled, with the reason
-        self.assertNotContains(response, 'id="label-print-modal"')
+        self.assertNotContains(response, 'id="label-print-modal-location"')
         self.client.logout()
         self.assertNotContains(self.client.get(self.part.get_absolute_url()), "Print labels")
 
@@ -204,7 +246,7 @@ class PrintDialogTests(SimulatedPrinters, InventoryData, TestCase):
         type(self.zebra).objects.update(is_active=False)
         response = self.client.get(self.part.get_absolute_url())
         self.assertContains(response, "No printer is set up for these labels yet.")
-        self.assertNotContains(response, 'id="label-print-modal"')
+        self.assertNotContains(response, 'id="label-print-modal-location"')
 
     def test_item_page_with_location_from_the_label(self):
         response = self.client.get(self.item.get_absolute_url() + f"?loc={self.other_part.pk}")

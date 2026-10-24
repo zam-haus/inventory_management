@@ -39,4 +39,5 @@ def label_print_dialog(context, obj, subject_type):
         form = dialog.PrintForm(subject_type=subject_type, obj=obj)
     return {"user": context.get("user"), "request": context.get("request"), "csrf_token": context.get("csrf_token"),
             "object": obj, "subject_type": subject_type, "form": form, "print_options": options, "modal": True,
+            "options_id": f"label-print-options-{subject_type}",
             "print_title": dialog.title(subject_type, obj)}

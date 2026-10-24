@@ -3609,3 +3609,25 @@ msgstr ""
 
 msgid "unique item (ZAMid)"
 msgstr "Einzelobjekt (ZAMid)"
+
+msgid "active"
+msgstr "aktiv"
+
+msgid "Only active templates are offered and printed."
+msgstr "Nur aktive Vorlagen werden angeboten und gedruckt."
+
+msgid "Activate: offer for printing"
+msgstr "Aktivieren: zum Drucken anbieten"
+
+msgid "Deactivate: no longer offer for printing"
+msgstr "Deaktivieren: nicht mehr zum Drucken anbieten"
+
+msgid "%(count)d label template is active."
+msgid_plural "%(count)d label templates are active."
+msgstr[0] "%(count)d Etikettenvorlage ist aktiv."
+msgstr[1] "%(count)d Etikettenvorlagen sind aktiv."
+
+msgid "%(count)d label template is inactive."
+msgid_plural "%(count)d label templates are inactive."
+msgstr[0] "%(count)d Etikettenvorlage ist inaktiv."
+msgstr[1] "%(count)d Etikettenvorlagen sind inaktiv."

@@ -19,12 +19,14 @@ def _url_prefix():
 
 
 def strip_url(raw: str) -> str:
-    return re.sub(_url_prefix(), "", raw, flags=re.IGNORECASE).rstrip("/ \t\r\n")
+    """Typed or scanned input without the label host, arguments and trailing slashes."""
+    return re.sub(_url_prefix(), "", raw, flags=re.IGNORECASE).split("?", 1)[0].rstrip("/ \t\r\n")
 
 
 def code_from_scan(raw: str) -> str:
-    """Return the canonical ID for typed or scanned input, or raise core.InvalidLabelId."""
-    return core.normalize(strip_url(raw))
+    """Return the canonical ID for typed or scanned input, or raise core.InvalidLabelId. Item labels add the
+    location's code after the ID (K7R4XD/WH-1.R303.A)."""
+    return core.normalize(strip_url(raw).split("/", 1)[0])
 
 
 def suggestions_for_scan(raw: str) -> list[str]:

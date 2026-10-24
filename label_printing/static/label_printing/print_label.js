@@ -1,21 +1,29 @@
-// The print dialog (label_printing/print_dialog.html, also the fallback page): which label to print (the server
-// picks the printer), each with its preview; labels no printer can print now are greyed but may wait for one.
-// After printing the dialog follows the job until the printer reports back, or until a waiting job expires.
+// The print dialogs (label_printing/print_dialog.html, one per kind on a page; also the fallback page): which
+// label to print (the server picks the printer), each with its preview; labels no printer can print now are
+// greyed but may wait for one. Many labels at once must be confirmed. After printing the dialog follows the job
+// until the printer reports back, or until a waiting job expires.
 (() => {
-    const form = document.querySelector('[data-label-print-form]');
-    const data = document.getElementById('label-print-options');
-    if (!form || !data) return;
-    const options = JSON.parse(data.textContent);
+    if (window.labelPrintDialogs) return;  // each dialog includes this script
+    window.labelPrintDialogs = true;
+    document.querySelectorAll('[data-label-print-form]').forEach(form => {
+        const data = document.getElementById(form.dataset.options);
+        if (data) setUp(form, JSON.parse(data.textContent));
+    });
+})();
+
+function setUp(form, options) {
     const text = form.dataset;
     const modal = form.closest('.modal');
     const fields = {
-        location: form.elements.location, copies: form.elements.copies,
-        wait: form.elements.wait, requestId: form.elements.request_id,
+        location: form.elements.location, copies: form.elements.copies, requestId: form.elements.request_id,
+        children: form.elements.children, priced: form.elements.priced, confirm: form.elements.confirm,
     };
     const parts = {
         outcomes: [...form.querySelectorAll('[data-outcome]')],
         qrNote: form.querySelector('[data-qr-note]'),
-        wait: form.querySelector('[data-wait-option]'),
+        waitNote: form.querySelector('[data-wait-note]'),
+        confirm: form.querySelector('[data-confirm]'),
+        confirmText: form.querySelector('[data-error-for="confirm"]'),
         status: form.querySelector('[data-print-status]'),
         submit: form.querySelector('[data-print-submit]'),
     };
@@ -47,14 +55,33 @@
         update();
     }
 
-    // The button says what will happen: print on a printer, or wait for one.
+    // How many labels it will be: subjects × copies
+    function labels() {
+        const subjects = (fields.priced?.checked ? options.priced : options.labels)
+            + (fields.children?.checked ? options.children : 0);
+        return subjects * (parseInt(fields.copies.value, 10) || 1);
+    }
+
+    // More than confirm_labels labels must be confirmed; more than max_labels cannot be printed at once.
+    function count() {
+        const total = labels();
+        const ask = total > options.confirm_labels;
+        parts.confirm.hidden = !ask;
+        if (!ask) fields.confirm.checked = false;
+        parts.confirmText.textContent = (total > options.max_labels ? text.labelTooMany : text.labelConfirm)
+            .replace('{count}', total).replace('{max}', options.max_labels);
+        fields.confirm.disabled = total > options.max_labels;
+        return !ask || (total <= options.max_labels && fields.confirm.checked);
+    }
+
+    // The button says what will happen: print on a printer, or wait for one (the note says what waiting means).
     function update() {
         const current = chosen();
         parts.outcomes.forEach(card => card.classList.toggle('is-chosen', current && card.dataset.outcome === current.key));
         const waits = Boolean(current && !current.printer && current.can_wait);
-        parts.wait.hidden = !waits;
-        fields.wait.checked = waits;
-        parts.submit.disabled = pending || !current || (!current.printer && !current.can_wait);
+        parts.waitNote.hidden = !waits;
+        const counted = count();
+        parts.submit.disabled = pending || !current || (!current.printer && !current.can_wait) || !counted;
         if (!pending) {
             submitLabel.textContent = !current ? text.labelPrint
                 : current.printer ? text.labelPrintOn.replace('{printer}', current.printer)
@@ -74,22 +101,26 @@
         });
     }
 
-    // Item labels: where the QR code leads (each location has a label ID of its own)
+    // Item labels: where the QR code leads (the item's label ID, with the location as an argument)
     function qrNote() {
         if (!parts.qrNote || !fields.location) return;
         const location = options.locations.find(item => String(item.id) === fields.location.value);
         const fill = template => template.replace('{item}', options.item).replace('{location}', location?.code || '')
-            .replace('{id}', location?.label_id || options.label_id_without_location);
-        parts.qrNote.textContent = !location ? fill(text.labelQrNoLocation)
-            : fill(location.label_id ? text.labelQrExisting : text.labelQrNew);
+            .replace('{id}', options.label_id);
+        parts.qrNote.textContent = fill(options.label_id ? (location ? text.labelQrExisting : text.labelQrNoLocation)
+            : (location ? text.labelQrNew : text.labelQrNewNoLocation));
     }
 
     function remember() {
         if (chosen()) storage.set(`outcome:${text.subject}`, chosen().key);
     }
 
+    form.addEventListener('input', event => {
+        if (event.target === fields.copies) update();
+    });
+
     form.addEventListener('change', event => {
-        if (event.target.name === 'outcome') update();
+        if (['outcome', 'children', 'priced', 'confirm', 'copies'].includes(event.target.name)) update();
         if (event.target === fields.location) {
             previews();
             qrNote();
@@ -115,6 +146,7 @@
             if (target && form.elements[name]) {
                 if (form.elements[name].classList) form.elements[name].classList.add('is-invalid');
                 target.textContent = message;
+                if (name === 'confirm') parts.confirm.hidden = false;
             } else {
                 general.push(message);
             }
@@ -220,7 +252,7 @@
         modal.addEventListener('show.bs.modal', open);
         // After creating a location, its page opens the dialog right away (?print=1).
         const url = new URL(window.location.href);
-        if (url.searchParams.has('print')) {
+        if (url.searchParams.has('print') && text.subject === 'location') {
             url.searchParams.delete('print');
             window.history.replaceState(window.history.state, '', url);
             window.bootstrap.Modal.getOrCreateInstance(modal).show();
@@ -228,4 +260,4 @@
     } else {
         open();
     }
-})();
+}

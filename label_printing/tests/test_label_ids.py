@@ -21,14 +21,15 @@ class LabelIdLayoutTests(TestCase):
         cls.zebra, cls.labels, cls.brother, cls.tape = create_printers()
         cls.lid = make_id("K7R4X")
 
-    def names(self, printer, medium):
-        return [layout.name for layout in layouts_for("labelid", printer, medium)]
+    def keys(self, printer, medium):
+        return [layout.key for layout in layouts_for("labelid", printer, medium)]
 
     def test_zamid_templates_for_every_label(self):
-        self.assertEqual(self.names(self.brother, self.tape), ["ZAMid Band 12 mm", "ZAMid: QR + ID, Band 12 mm"])
-        self.assertEqual(self.names(self.zebra, self.labels), ["ZAMid 57x32", "ZAMid: QR + ID 57x32"])
+        for printer, medium, size in ((self.brother, self.tape, "tape12"), (self.zebra, self.labels, "57x32")):
+            self.assertEqual(self.keys(printer, medium), [f"design:{generated(kind, size).pk}"
+                                                          for kind in ("labelid", "labelid_plain")])
         wide = LabelMedium.objects.create(printer=self.brother, name="36", ptouch_tape=36)
-        self.assertEqual(self.names(self.brother, wide), [])  # the E550W has no 36 mm profile
+        self.assertEqual(self.keys(self.brother, wide), [])  # the E550W has no 36 mm profile
 
     def test_zamid_on_every_tape_width_with_a_margin(self):
         for tape in (9, 12, 18, 24, 36):
@@ -95,7 +96,7 @@ class LabelIdPrintingTests(SimulatedPrinters, TestCase):
             with self.subTest(url=url):
                 response = self.client.get(url)
                 self.assertContains(response, reverse("print_labels", args=["labelid", self.lid.code]))
-                self.assertContains(response, 'id="label-print-modal"')
+                self.assertContains(response, 'id="label-print-modal-labelid"')
                 self.assertContains(response, f'<span class="label-print-subject">{self.lid.display}</span>')
 
     def test_dialog_prints_and_goes_back(self):

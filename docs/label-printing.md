@@ -16,19 +16,24 @@ Brother gets P-touch raster data. The code is in the app `label_printing`.
 ## Printing
 
 * **Location pages:** the **Label** button in the header opens the print dialog. It offers
-  labels, not printers: each label template for labels the printers have, e.g.
-  "Preisschild 60x30" or "QR-Code, Kennung und Ort, Band 12 mm". Templates whose QR code would be
+  labels, not printers: each active label template, with its size, e.g. "Preisschild" on
+  60 × 30 mm labels or "QR-Code, Kennung und Ort" on 12 mm tape. Templates whose QR code would be
   too small to scan at a printer's resolution are not offered on it (9 mm tape on the E550W).
   * Each choice has a preview and either the printer it would print on or why no printer can
     print it now.
   * The server picks the printer: active, reachable, with these labels and, as far as it
     reported, with them loaded. The default printer comes first.
-  * Labels no printer can print now are greyed but can still be previewed. They can also wait for
-    a printer: the job waits up to five minutes (`PRINT_WAIT_MAX`) and is printed as soon as a
-    printer can (a print agent back online, the right tape loaded). Otherwise it expires
-    unprinted. The dialog follows the job as long as it waits.
+  * Labels no printer can print now are greyed but can still be previewed. Printing them puts the
+    job in a queue (the dialog says so beside the button **Wait for a printer**): it waits up to five
+    minutes (`PRINT_WAIT_MAX`) and is printed as soon as a printer can (a print agent back online,
+    the right tape loaded, labels of that size put into a printer). Otherwise it expires unprinted.
+    The dialog follows the job as long as it waits. Without any active printer nothing waits.
   * A location with sub-locations (e.g. a shelf with compartments) can print theirs in the same
     job. The dialog remembers the label chosen last for each kind.
+  * More than ten labels at once (`PRINT_CONFIRM_LABELS`, sub-locations and copies counted) must
+    be confirmed; more than 50 (`PRINT_MAX_LABELS`) are refused.
+* **Price tags** (location pages): a label of each bulk item stored at the location, with the item
+  templates; by default only of the items with a sale price.
 * **Item pages** (bulk items): the same, with the location the label is for. Item labels show
   name, price per unit (items for sale) and a QR code.
 * **Unique items (ZAMid):** the **Label** button on a unique item's page and on an ID's info page
@@ -36,8 +41,8 @@ Brother gets P-touch raster data. The code is in the app `label_printing`.
   Batches: the admin action **Print labels** on selected IDs, or `manage.py label_id_labels --batch
   NAME --print PRINTER [--tape 12]` (the printer's short name), with the medium's first ZAMid
   template; jobs of at most 20 labels. An ID's *printed at* is set once the printer reports the
-  label printed. The admin's label ID pages still offer the label as a PNG to download (pixel-exact
-  from `inventory/label_ids/labels`); unique item pages have no label section of their own.
+  label printed. The ID's info page and its admin page show its label drawn from a ZAMid template
+  (`label_printing.outcomes.preview_template`); unique item pages have no label section of their own.
 * **After creating** a box, carton, pallet, shelf or compartments, the new location's page opens
   the dialog right away (`?print=1`) for whoever may print.
 * The previews show the label as the printer gets it, in the tape's colours for Brother tapes
@@ -58,9 +63,13 @@ Brother gets P-touch raster data. The code is in the app `label_printing`.
   (alphanumeric mode): `HTTPS://I.ZAM.HAUS/WH-1.R303.A`. Codes stay with their location
   ([location structure](location-structure.md)); the resolver finds codes and former codes in
   any case ([label IDs](label-ids.md)). In label templates it is `{qr}`.
-* **Items:** a label ID (ZAMid) linked to the item's page for that location,
-  `/item/<id>?loc=<location>`. It is created when the first label is printed and reused for
-  later ones (previews use a placeholder). That page puts **Take out** first for this location.
+* **Items:** the item's own label ID (ZAMid), then the code of the location the label is for,
+  uppercase so the QR code stays alphanumeric: `HTTPS://I.ZAM.HAUS/K7R4XD/WH-1.R303.A`. The ID is
+  claimed for the item when its first label is printed and serves every location (previews use a
+  placeholder). The resolver passes the location on to the item's page (`?loc=`; a location code
+  that is unknown or fits several locations is left out), which puts **Take out** first there.
+  Item labels printed before held a label ID per location, linked to `/item/<id>?loc=<location>`;
+  they keep working.
 
 ### Taking stock out (item pages)
 
@@ -82,7 +91,12 @@ for removing. The location from the label (`?loc=`) comes first and is marked in
    P750W, P900, P900W, P950NW; sets the resolution), resolution (Zebra: 203/300/600 dpi), and the
    connection: *network* with host and port, or *print agent*. Leave *reports its status* on
    unless a printer cannot answer status requests. One printer is the default for the admin's
-   print actions. Brother printers also set the **cutting**:
+   print actions. A Zebra cannot tell which labels are in it: set its **loaded labels** (one of its
+   media) whenever labels are changed. Only those are printed on, and only while the label length
+   the printer measured (`~HS`, after calibration) matches their height within 2 mm; the width
+   cannot be checked. The check is made when the dialog lists the labels and again right before a
+   job is sent (also by print agents, version 3). Migration `0014` set each Zebra's default
+   medium as loaded. Brother printers report the tape themselves; they set the **cutting**:
    * half cut between the labels of a job (default), a full cut after each label, or no cut;
    * **continuous printing** (default on): the last label stays in the printer and the next job
      goes on from there, saving the tape's leading margin. Cut it off with the printer's cutter
@@ -98,13 +112,18 @@ for removing. The location from the label (`?loc=`) comes first and is marked in
 4. **Test label** (30 mm on tape) and **Check the printer status** are actions on the printer list.
 
 The location admin's print actions, its **Print label** button and printing after mass creation
-use the default printer and its default medium, with the location's own template or its type's
-if the medium offers it.
+use the default printer and its default medium (a Zebra: its loaded labels), with the location's
+own template or its type's if the medium offers it.
 
 ### Label templates and images
 
-**Label templates** (admin → Inventory) are for locations, items or label IDs:
+**Label templates** (admin → Inventory) are for locations, bulk items or unique items (ZAMid):
 * Each is written in the label description language: [label designs](label-designs.md).
+* The name says what is on the label; its size comes from the description and is shown beside the
+  name (migration `label_printing.0013` took the sizes out of the names and renamed the converted
+  ZPL templates: "Fester Standort" with or without arrow, "Mobil, mit Logo und Eigentum").
+* Templates can be **deactivated** (field or list action): they are then neither offered nor
+  printed, not even by waiting jobs or the admin's print actions.
 * The page shows the label beside the description while it is typed, with real records and with
   the printer it is for chosen or none. Mistakes are listed by line, and a template with mistakes
   is not saved.
@@ -132,8 +151,7 @@ unchanged. Fonts:
 * Roboto Condensed (narrow like Zebra's built-in font),
 * OCR-B.
 
-They are in `label_printing/design/fonts/` and `inventory/label_ids/labels/fonts/`, with their
-licences.
+They are in `label_printing/design/fonts/`, with their licences.
 
 ### Job log
 
@@ -256,6 +274,8 @@ The tests start the simulator on free ports (`label_printing/tests/helpers.py`).
 | `PRINT_JOB_LEASE` | 180 | seconds a job may be printing without a result |
 | `PRINT_AGENT_OFFLINE_AFTER` | 30 | seconds after an agent's last request that its printers count as offline |
 | `PRINT_MAX_COPIES` | 20 | most copies per job |
+| `PRINT_CONFIRM_LABELS` | 10 | more labels at once must be confirmed in the dialog |
+| `PRINT_MAX_LABELS` | 50 | most labels the dialog prints at once |
 | `PRINT_WAIT_MAX` | 300 | seconds a label no printer can print now may wait for one |
 | `PRINT_AGENT_MAX_PENDING` | 20 | agents that may wait for activation |
 | `PRINT_AGENT_MAX_PRINTERS` | 20 | printers an agent may register |

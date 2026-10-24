@@ -2,7 +2,7 @@ from urllib.parse import urlsplit
 
 from django.test import TestCase, override_settings
 
-from inventory.label_ids import services
+from inventory.label_ids import parsing, services
 
 from ..label_ids.testing import SETTINGS, InventoryFixture, make_id
 
@@ -54,6 +54,16 @@ class ResolverTests(InventoryFixture, TestCase):
         self.assertRedirect("K7R4XD", self.item.get_absolute_url())
         self.assertRedirect("123-45V", self.location.get_absolute_url())
         self.assertRedirect("ABCDEM", "https://wiki.zam.haus/Laser", inventory=False)
+
+    def test_item_labels_pass_the_location_on(self):
+        """Item labels hold the item's ID and the location's code (…/K7R4XD/WS); it reaches the item's page."""
+        item_url, loc = self.item.get_absolute_url(), self.location.pk
+        code = self.location.unique_identifier
+        self.assertRedirect(f"K7R4XD/{code.upper()}", f"{item_url}?loc={loc}")
+        self.assertRedirect(f"K7R4XD/{code.lower()}", f"{item_url}?loc={loc}")
+        self.assertRedirect("K7R4XD/NOWHERE", item_url)  # an unknown location is left out
+        self.assertRedirect(f"ABCDEM/{code}", "https://wiki.zam.haus/Laser", inventory=False)  # not elsewhere
+        self.assertEqual(parsing.code_from_scan(f"HTTPS://I.ZAM.HAUS/K7R4XD/{code}"), "K7R4XD")
 
     def test_reserved_redirects_to_claim(self):
         self.assertRedirect("5S8B24", "/id/5S8B24/claim/")

@@ -74,10 +74,11 @@ class LocationLabelTemplateAdmin(admin.ModelAdmin):
     preview the server renders while it is typed (label_printing/editor.py)."""
     model = models.LocationLabelTemplate
     form = LocationLabelTemplateForm
-    list_display = ("name", "subject_type", "size_text", "quality")
-    list_filter = ("subject_type", "quality")
+    list_display = ("name", "subject_type", "size_text", "quality", "is_active")
+    list_filter = ("is_active", "subject_type", "quality")
     search_fields = ("name", "description")
-    fields = ("name", "subject_type", "quality", "description", "fields_list", "fitting_media")
+    fields = ("name", "subject_type", "is_active", "quality", "description", "fields_list", "fitting_media")
+    actions = ["activate", "deactivate"]
     readonly_fields = ("fields_list", "fitting_media")
     change_form_template = "label_printing/admin/label_template_change_form.html"
 
@@ -91,6 +92,18 @@ class LocationLabelTemplateAdmin(admin.ModelAdmin):
         "    text {code}  font mono  bold  invert\n"
         "    text {path}  font condensed  lines 2\n"
     )
+
+    @admin.action(description=_("Activate: offer for printing"))
+    def activate(self, request, queryset):
+        count = queryset.update(is_active=True)
+        self.message_user(request, ngettext("%(count)d label template is active.", "%(count)d label templates are active.",
+                                            count) % {"count": count})
+
+    @admin.action(description=_("Deactivate: no longer offer for printing"))
+    def deactivate(self, request, queryset):
+        count = queryset.update(is_active=False)
+        self.message_user(request, ngettext("%(count)d label template is inactive.", "%(count)d label templates are inactive.",
+                                            count) % {"count": count})
 
     @admin.display(description=_("fields"))
     def fields_list(self, obj):

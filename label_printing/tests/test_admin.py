@@ -33,6 +33,13 @@ class PrinterValidationTests(TestCase):
             LabelMedium(printer=brother, name="x", ptouch_tape=36).clean()  # the E550W takes up to 24 mm
         self.assertIn("ptouch_tape", raised.exception.message_dict)
 
+    def test_loaded_labels_are_the_printers_own(self):
+        zebra, labels, brother, tape = create_printers()
+        zebra.loaded_medium = tape
+        with self.assertRaises(ValidationError) as raised:
+            zebra.clean()
+        self.assertIn("loaded_medium", raised.exception.message_dict)
+
     def test_one_default_printer_and_medium(self):
         zebra, labels, brother, tape = create_printers()
         brother.is_default = True
@@ -84,6 +91,11 @@ class PrinterAdminTests(SimulatedPrinters, TestCase):
         self.assertContains(response, "Zebra Lager")
         job = PrintJob.objects.get()
         self.assertEqual(self.client.get(reverse("admin:label_printing_printjob_change", args=[job.pk])).status_code, 200)
+
+    def test_loaded_labels_offer_the_printers_own(self):
+        response = self.client.get(reverse("admin:label_printing_printer_change", args=[self.zebra.pk]))
+        choices = list(response.context["adminform"].form.fields["loaded_medium"].queryset)
+        self.assertEqual(choices, [self.labels])
 
     def test_agent_token_is_shown_once(self):
         response = self.client.post(reverse("admin:label_printing_printagent_add"), {"name": "pi-lager"}, follow=True)

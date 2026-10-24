@@ -5,7 +5,6 @@ from django.utils.translation import gettext_lazy as _
 from ..forms import ItemOrNewField, NewItemAlongsideMixin
 from ..models import Item, Location, UniqueItem
 from ..widgets import AutocompleteSelect, ItemOrNewSelect
-from . import labels
 from .services import MAX_BATCH
 
 
@@ -63,20 +62,6 @@ class NewItemForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["name"].required = True
-
-
-class LabelForm(forms.Form):
-    printer = forms.ChoiceField(label=_("Printer"), choices=[(p, f"PT-{p}") for p in labels.PRINTERS])
-    tape = forms.TypedChoiceField(
-        label=_("Tape width"), coerce=int,
-        choices=[(t, f"{t} mm") for t in sorted({tape for _printer, tape in labels.PROFILES})],
-    )
-
-    def clean(self):
-        data = super().clean()
-        if (data.get("printer"), data.get("tape")) not in labels.PROFILES:
-            raise forms.ValidationError(_("This printer does not support this tape width."))
-        return data
 
 
 class GenerateForm(forms.Form):

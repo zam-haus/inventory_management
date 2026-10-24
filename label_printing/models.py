@@ -111,6 +111,13 @@ class Printer(models.Model):
         help_text=_("Brother: the last label stays in the printer and the next job goes on from there, which "
                     "saves tape; cut it off with the printer's cutter button. Off: the printer feeds and cuts "
                     "after every job."))
+    # Zebra: which of its media is loaded; a Zebra measures only the labels' length (checked), not their width
+    loaded_medium = models.ForeignKey(
+        "LabelMedium", verbose_name=_("loaded labels"), null=True, blank=True, on_delete=models.SET_NULL,
+        related_name="+",
+        help_text=_("Zebra: the labels in the printer now; set it when changing labels. Only these are printed, "
+                    "after comparing their height with the label length the printer measured (it cannot tell "
+                    "their width)."))
     is_active = models.BooleanField(_("active"), default=True)
     is_default = models.BooleanField(_("default printer"), default=False,
                                      help_text=_("Used by the print actions in the admin."))
@@ -131,6 +138,8 @@ class Printer(models.Model):
             errors["host"] = _("Network printers need a host.")
         if self.transport == self.Transport.AGENT and not self.agent_id:
             errors["agent"] = _("Choose the print agent the printer is connected to.")
+        if self.loaded_medium_id and (self.pk is None or self.loaded_medium.printer_id != self.pk):
+            errors["loaded_medium"] = _("Choose labels of this printer.")
         if errors:
             raise ValidationError(errors)
 

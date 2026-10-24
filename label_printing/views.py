@@ -21,7 +21,7 @@ from django.utils.formats import date_format
 from django.utils.translation import gettext
 from django.views.decorators.http import require_POST, require_safe
 
-from inventory.models import LocationLabelTemplate
+from inventory.models import LabelId, LocationLabelTemplate
 from . import dialog, editor, label_urls, services
 from .design import fields as design_fields
 from .render import coloured
@@ -62,8 +62,8 @@ def job_status(request, pk):
 
 @method_decorator(never_cache, name="dispatch")
 class PrintLabelsView(PermissionRequiredMixin, View):
-    """Print labels of a location or an item: the dialog's form as a page (without JavaScript), and where
-    the dialog posts to (JSON with the job, which the dialog then follows)."""
+    """Print labels of a location, an item, a label ID or the items at a location: the dialog's form as a page
+    (without JavaScript), and where the dialog posts to (JSON with the job, which the dialog then follows)."""
     permission_required = "label_printing.print_label"
 
     def setup(self, request, *args, **kwargs):
@@ -75,6 +75,7 @@ class PrintLabelsView(PermissionRequiredMixin, View):
         return render(self.request, "label_printing/print_page.html", {
             "form": form, "object": self.obj, "subject_type": self.subject_type,
             "print_options": dialog.options(self.subject_type, self.obj),
+            "options_id": f"label-print-options-{self.subject_type}",
             "print_title": dialog.title(self.subject_type, self.obj), "back_url": self.back_url(),
         }, status=status)
 
@@ -93,9 +94,10 @@ class PrintLabelsView(PermissionRequiredMixin, View):
         if form.is_valid():
             data = form.cleaned_data
             try:
-                job = services.submit_outcome(form.chosen, subject_type=subject_type, subjects=form.subjects(),
+                job = services.submit_outcome(form.chosen, subject_type=dialog.label_kind(subject_type),
+                                              subjects=form.subjects(),
                                               copies=data["copies"], user=request.user, request_id=data["request_id"],
-                                              wait=data["wait"])
+                                              wait=True)
             except services.PrintError as error:
                 form.add_error(None, str(error))
         if job is None:
@@ -121,11 +123,15 @@ def preview(request, subject_type, pk):
         layout = get_layout(request.GET.get("layout", ""))
     except ValueError:
         raise Http404 from None
-    if layout.subject_type != subject_type or not layout.supports(medium.printer, medium):
+    if layout.subject_type != dialog.label_kind(subject_type) or not layout.supports(medium.printer, medium):
         raise Http404
     if subject_type == "item":
         locations = {str(location.pk): location for location in dialog.item_locations(obj)}
         subject = dialog.ItemAt(obj, locations.get(request.GET.get("location", "")))
+    elif subject_type == "items":  # the first price tag
+        subject = dialog.sample_item(obj)
+        if subject is None:
+            raise Http404
     else:
         subject = obj
     try:
@@ -166,15 +172,18 @@ def template_subject(subject_type, pk):
 @require_safe
 def template_preview(request, pk, subject_type, subject_pk):
     """A template's label for one location, item or label ID, without a printer (editor.nominal_canvas). Location
-    labels are public like the location page that shows them; the others for who may print."""
-    if subject_type != "location" and not request.user.has_perm("label_printing.print_label"):
-        raise Http404
+    labels are public like the location page that shows them, and so are those of assigned label IDs: they only
+    show what is on the object anyway. The others for who may print (label IDs: or see them)."""
     template = get_object_or_404(LocationLabelTemplate, pk=pk, subject_type=subject_type)
-    _subject, values = template_subject(subject_type, subject_pk)
+    subject, values = template_subject(subject_type, subject_pk)
+    public = subject_type == "location" or (subject_type == "labelid" and subject.status == LabelId.Status.ASSIGNED)
+    if not (public or request.user.has_perm("label_printing.print_label")
+            or (subject_type == "labelid" and request.user.has_perm("inventory.view_labelid"))):
+        raise Http404
     image, _problems, canvas = editor.preview(template.description, subject_type, values)
     if image is None:
         raise Http404
-    return png_response(image, canvas.dpi, "public, max-age=300")
+    return png_response(image, canvas.dpi, f"{'public' if public else 'private'}, max-age=300")
 
 
 @login_required

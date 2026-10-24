@@ -1,8 +1,7 @@
-"""Inventory-side views for label IDs: info, claiming, QR images and labels."""
+"""Inventory-side views for label IDs: info, claiming and QR images (labels: label_printing)."""
 from dal import autocomplete
 from django.contrib import messages
 from django.contrib.auth.mixins import PermissionRequiredMixin
-from django.contrib.auth.views import redirect_to_login
 from django.core.exceptions import PermissionDenied
 from django.db import transaction
 from django.db.models import Q
@@ -16,10 +15,18 @@ from django.views.decorators.http import require_safe
 
 from ..models import Item, UniqueItem
 from ..models import LabelId
-from . import access, core, labels, parsing, qr, services
-from .forms import ClaimItemForm, ClaimLocationForm, ClaimUniqueItemForm, LabelForm, NewItemForm, NewUniqueItemForm
+from . import access, core, parsing, qr, services
+from .forms import ClaimItemForm, ClaimLocationForm, ClaimUniqueItemForm, NewItemForm, NewUniqueItemForm
 from .resolver_views import target_url
 from .targets import RELATED_TARGETS
+
+
+def label_preview_url(lid):
+    """The ID's label, drawn from a ZAMid label template (label_printing), or None if there is none."""
+    from label_printing.outcomes import preview_template
+
+    template = preview_template("labelid")
+    return reverse("label_template_preview", args=[template.pk, "labelid", lid.code]) if template else None
 
 
 def get_label_id(code):
@@ -38,8 +45,7 @@ class InfoView(PermissionRequiredMixin, View):
         return render(request, "inventory/label_id/info.html", {
             "lid": lid,
             "target_url": target_url(request, lid),
-            "label_profiles": sorted(labels.PROFILES),
-            "preview_printer": labels.PREVIEW[0], "preview_tape": labels.PREVIEW[1],
+            "label_url": label_preview_url(lid),
             "claimable": lid.status == LabelId.Status.RESERVED,
             "can_claim": request.user.has_perm("inventory.claim_labelid"),
             "accesses": access.latest(lid),
@@ -126,23 +132,3 @@ def qr_svg(request, code):
 @require_safe
 def qr_png(request, code):
     return _image(qr.png(get_label_id(code).code), "image/png")
-
-
-class LabelView(View):
-    """Labels of assigned IDs are public: they only show what is printed on the object anyway."""
-
-    def get(self, request, code):
-        lid = get_label_id(code)
-        public = lid.status == LabelId.Status.ASSIGNED
-        if not public and not request.user.has_perm("inventory.view_labelid"):
-            if not request.user.is_authenticated:
-                return redirect_to_login(request.get_full_path())
-            raise PermissionDenied
-        form = LabelForm(request.GET)
-        if not form.is_valid():
-            return HttpResponseBadRequest(form.errors.as_text())
-        printer, tape = form.cleaned_data["printer"], form.cleaned_data["tape"]
-        response = HttpResponse(labels.render(lid.code, printer, tape), content_type="image/png")
-        response["Content-Disposition"] = f'inline; filename="{labels.filename(lid.code, printer, tape)}"'
-        response["Cache-Control"] = f"{'public' if public else 'private'}, max-age=86400"
-        return response

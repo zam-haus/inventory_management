@@ -1,21 +1,20 @@
 from django import forms
 from django.contrib import admin, messages
 from django.core.exceptions import PermissionDenied
-from django.http import HttpResponse
 from django.shortcuts import redirect
 from django.template.loader import render_to_string
 from django.template.response import TemplateResponse
 from django.urls import path, reverse
-from django.utils import timezone
 from django.utils.html import format_html
 from django.utils.translation import gettext, gettext_lazy as _
 from label_printing import dialog as print_dialog, services as printing
 
 from ..icons import icon
 from ..models import LabelId
-from . import access, core, labels, naming, parsing, services
-from .forms import GenerateForm, LabelForm, RetireForm
+from . import access, core, naming, parsing, services
+from .forms import GenerateForm, RetireForm
 from .targets import RELATED_TARGETS, TARGET_FIELDS
+from .views import label_preview_url
 
 
 class ClaimOnAddMixin:
@@ -100,7 +99,7 @@ class LabelIdAdmin(admin.ModelAdmin):
     list_select_related = RELATED_TARGETS
     search_fields = ("code", "batch", "note", "url")
     date_hierarchy = "created_at"
-    actions = ["retire_action", "download_labels_action", "print_labels_action"]
+    actions = ["retire_action", "print_labels_action"]
     change_list_template = "admin/inventory/labelid/change_list.html"
     fieldsets = [
         (None, {"fields": ["label_preview", "display_code", "status", "id_link", "target_link", "url"]}),
@@ -198,8 +197,9 @@ class LabelIdAdmin(admin.ModelAdmin):
     def label_preview(self, obj):
         if invalid_reason(obj.code):
             return "–"
-        printer, tape = labels.PREVIEW
-        url = f"{reverse('label_id_label', args=[obj.code])}?printer={printer}&tape={tape}"
+        url = label_preview_url(obj)
+        if url is None:
+            return "–"
         return format_html('<a href="{}"><img src="{}" alt="{}" style="height: 160px; max-width: 100%; '
                            'object-fit: contain; outline: 1px solid var(--hairline-color)"></a>', url, url, obj.display)
 
@@ -276,18 +276,3 @@ class LabelIdAdmin(admin.ModelAdmin):
 
     def has_print_permission(self, request):
         return request.user.has_perm("label_printing.print_label")
-
-    @admin.action(description=_("Download labels (ZIP)"), permissions=["view"])
-    def download_labels_action(self, request, queryset):
-        form = LabelForm(request.POST if "apply" in request.POST else None)
-        if form.is_valid():
-            printer, tape = form.cleaned_data["printer"], form.cleaned_data["tape"]
-            codes = list(queryset.values_list("code", flat=True))
-            archive = labels.render_zip(codes, printer, tape)
-            services.mark_printed(codes)
-            response = HttpResponse(archive, content_type="application/zip")
-            stamp = timezone.localtime().strftime("%Y%m%d-%H%M")
-            response["Content-Disposition"] = f'attachment; filename="label-id-labels-{printer}-{tape}mm-{stamp}.zip"'
-            return response
-        return self._intermediate(request, queryset, form, "download_labels_action", gettext("Download labels"),
-                                  "admin/inventory/labelid/action_form.html")

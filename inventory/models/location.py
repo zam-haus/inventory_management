@@ -305,13 +305,14 @@ class LocationType(models.Model):
 
 
 class LocationLabelTemplate(models.Model):
-    """A label design (label_printing.design) for locations, items or label IDs; the name is kept from when
-    templates were ZPL for locations only. Its size comes from the design's first line."""
+    """A label design (label_printing.design) for locations, items or label IDs; the model's name is kept from
+    when templates were ZPL for locations only. Its size comes from the design's first line; names say what is
+    on the label, not its size."""
 
     class Meta:
         verbose_name = _("label template")
         verbose_name_plural = _("label templates")
-        ordering = ("name",)
+        ordering = ("name", "label_height", "label_width")
 
     class SubjectType(models.TextChoices):
         LOCATION = "location", _("location")
@@ -328,6 +329,8 @@ class LocationLabelTemplate(models.Model):
         choices=[("draft", _("draft (fast)")), ("standard", _("standard")), ("high", _("high quality (slower)"))],
         help_text=_("Its labels are printed in this quality. Brother: draft printing, or twice the resolution along "
                     "the tape; Zebra: print speed."))
+    is_active = models.BooleanField(_("active"), default=True,
+                                    help_text=_("Only active templates are offered and printed."))
     label_width = models.FloatField(_("width (mm)"), null=True, editable=False,
                                     help_text=_("Empty: as long as the content (Brother tape)."))
     label_height = models.FloatField(_("height (mm)"), null=True, editable=False)
@@ -351,7 +354,7 @@ class LocationLabelTemplate(models.Model):
         return f"{self.label_width:g} × {self.label_height:g} mm"
 
     def __str__(self):
-        return self.name
+        return f"{self.name} ({self.size_text})"
 
 
 class LocationAxis(models.Model):

@@ -308,9 +308,9 @@ class TemplateTests(InventoryData, TestCase):
         tapes = {width: LabelMedium.objects.create(printer=self.brother, name=f"{width} mm", ptouch_tape=width)
                  for width in (18, 24)}
         tapes[12] = self.tape
-        price_tags = [("Preisschild 60x30", card)] + [(f"Preisschild Band {width} mm", tapes[width]) for width in (12, 18, 24)]
-        for name, medium in price_tags:
-            template = Template.objects.get(name=name)
+        price_tags = [((60, 30), card)] + [((None, width), tapes[width]) for width in (12, 18, 24)]
+        for (width, height), medium in price_tags:
+            template = Template.objects.get(name="Preisschild", label_width=width, label_height=height)
             self.assertIn(f"design:{template.pk}", [layout.key for layout in layouts_for("item", medium.printer, medium)])
             rendered, = services.render(get_layout(f"design:{template.pk}"), [ItemAt(self.item, self.part)], medium,
                                         preview=True)
@@ -333,8 +333,8 @@ class TemplateTests(InventoryData, TestCase):
                 with self.subTest(kind=kind, size=size):
                     template = generated(kind, size)
                     self.assertEqual(problems_of(template)[1], [])
-                    self.assertIn(template.name, [str(layout) for layout in
-                                                  layouts_for(template.subject_type, medium.printer, medium)])
+                    self.assertIn(f"design:{template.pk}", [layout.key for layout in
+                                                            layouts_for(template.subject_type, medium.printer, medium)])
 
     def test_mistakes_and_too_small_labels_are_refused(self):
         broken = self.template("label 57 x 32\ntext {nope}")
@@ -438,13 +438,14 @@ class ZplTemplatesMigrationTests(TransactionTestCase):
                 executor.migrate(latest)
                 apps = executor.loader.project_state(latest).apps
                 Template = apps.get_model("inventory", "LocationLabelTemplate")
-                mobile, own = Template.objects.get(name="105x52 mobile"), Template.objects.get(name="Eigene")
+                # named by what is on them since 0013
+                mobile, own = Template.objects.get(name="Mobil, mit Logo und Eigentum"), Template.objects.get(name="Eigene")
                 self.assertIn('image "ZAM Logo"', mobile.description)
                 self.assertEqual(parse(mobile.description)[1], [])
                 self.assertTrue(own.description.startswith("# Converted from a ZPL template"))
                 self.assertIn("# ^XA^FD$url^FS^XZ", own.description)
                 self.assertEqual((parse(own.description)[0].width, parse(own.description)[0].height), (50, 25))
-                self.assertTrue(Template.objects.filter(name="ZAMid 70x32", subject_type="labelid").exists())
+                self.assertTrue(Template.objects.filter(name="ZAMid", label_width=70, subject_type="labelid").exists())
                 logo = apps.get_model("label_printing", "LabelImage").objects.get(name="ZAM Logo")
                 with Image.open(logo.image.path) as image:
                     self.assertEqual(image.size, (16, 4))

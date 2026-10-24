@@ -10,6 +10,8 @@ urlpatterns = [
     path("robots.txt", lambda request: HttpResponse("User-agent: *\nDisallow: /\n", content_type="text/plain")),
     path("favicon.ico", favicon, {"name": "favicon.ico"}),
     path("favicon.svg", favicon, {"name": "favicon.svg"}),
+    # Item labels: the item's ID and the location's code (HTTPS://I.ZAM.HAUS/K7R4XD/WH-1.R303.A)
+    path("<str:raw>/<path:at>", resolver_views.resolve_at),
     path("<str:raw>/", resolver_views.resolve),
     path("<str:raw>", resolver_views.resolve, name="label_id_resolve"),
 ]

@@ -1,6 +1,6 @@
 """
 What the print dialog offers: label outcomes instead of printer, labels and layout. An outcome is a layout on labels
-of one size, e.g. the template "Preisschild 60x30" on 60 × 30 mm labels, or "QR code, code and path" on 12 mm tape.
+of one size, e.g. the template "Preisschild" on 60 × 30 mm labels, or "QR-Code, Kennung und Ort" on 12 mm tape.
 The server picks a printer with these labels that can print now (Outcome.target); if none can, a job may wait for
 one (services.wait).
 """
@@ -10,12 +10,11 @@ from django.utils.translation import gettext as _
 
 from inventory.models import LocationLabelTemplate
 from . import messages
+from .devices.run import LENGTH_TOLERANCE_MM
 from .layouts import layouts_for
 from .layouts.designs import DesignLayout
-from .models import LabelMedium, loaded_text
+from .models import LabelMedium, Printer, loaded_text
 
-# How far the label length a Zebra reports may be off a medium's height
-LENGTH_TOLERANCE_MM = 2
 
 
 def size_key(medium):
@@ -32,17 +31,22 @@ def size_text(medium):
 
 
 def not_loaded(printer, medium):
-    """Why the medium is not in the printer as it last reported (Brother: the tape's width; Zebra: the labels'
-    length), or "" if it is or the printer does not tell."""
+    """Why the medium is not in the printer, or "" if it is (or the printer does not tell). Brother: the tape's
+    width as it last reported. Zebra: the labels set as loaded in the admin, whose height must match the label
+    length the printer measured (their width it cannot tell)."""
     status = printer.last_status or {}
     if medium.is_tape:
         width = status.get("media_width_mm")
         if width and width not in (medium.ptouch_tape, 3.5 if medium.ptouch_tape == 4 else None):
             return str(loaded_text(status))
-    else:
-        length = status.get("label_length_mm")
-        if length and medium.height_mm and abs(length - medium.height_mm) > LENGTH_TOLERANCE_MM:
-            return str(loaded_text(status))
+        return ""
+    if printer.loaded_medium_id is None:
+        return _("No labels are set as loaded in this printer (admin: its settings).")
+    if printer.loaded_medium_id != medium.pk:
+        return _("Loaded: %(media)s.") % {"media": printer.loaded_medium.name}
+    length = status.get("label_length_mm")
+    if length and medium.height_mm and abs(length - medium.height_mm) > LENGTH_TOLERANCE_MM:
+        return str(messages.describe("wrong_length", {"measured_mm": length, "expected_mm": medium.height_mm}))
     return ""
 
 
@@ -69,6 +73,7 @@ class Outcome:
     size: str
     targets: list = field(default_factory=list)  # printers with these labels, the default first
     reason: str = ""  # why there are none
+    waits_for_labels: bool = False  # no printer has these labels, but one may get them
 
     @property
     def name(self):
@@ -87,8 +92,9 @@ class Outcome:
 
     @property
     def can_wait(self):
-        """Whether a job may wait for a printer: there are printers with these labels."""
-        return bool(self.targets)
+        """Whether a job may wait for a printer: there are printers with these labels, or there are active
+        printers and the labels may be loaded into one."""
+        return bool(self.targets) or self.waits_for_labels
 
     def sample_medium(self):
         """Labels to preview it on: those it would print on, else any it fits."""
@@ -97,9 +103,9 @@ class Outcome:
 
 
 def outcomes(subject_type):
-    """The outcomes for subjects of this type: label templates (by name), then the built-in layouts."""
+    """The outcomes for subjects of this type: the active label templates by name and size."""
     found = {}
-    media = (LabelMedium.objects.filter(printer__is_active=True).select_related("printer", "stock")
+    media = (LabelMedium.objects.filter(printer__is_active=True).select_related("printer__loaded_medium", "stock")
              .order_by("-printer__is_default", "printer__name", "-is_default", "name"))
     for medium in media:
         reason = unavailable(medium.printer, medium)
@@ -107,15 +113,48 @@ def outcomes(subject_type):
             key = f"{layout.key}@{size_key(medium)}"
             found.setdefault(key, Outcome(key, layout, size_text(medium))).targets.append(
                 Target(medium.printer, medium, reason))
-    # Templates for labels no printer has: shown, but neither printable nor able to wait.
-    for template in LocationLabelTemplate.objects.filter(subject_type=subject_type):
+    # Templates for labels no printer has: shown, not printable now; jobs may wait for the labels to be put in
+    # (a Zebra: also set as loaded) while there are active printers.
+    printers = None
+    for template in LocationLabelTemplate.objects.filter(subject_type=subject_type, is_active=True):
         key = f"design:{template.pk}"
         if not any(outcome.layout.key == key for outcome in found.values()):
+            if printers is None:
+                printers = Printer.objects.filter(is_active=True).exists()
             found[key] = Outcome(key, DesignLayout(template), template.size_text,
-                                 reason=_("No printer has labels of this size."))
-    return sorted(found.values(), key=lambda outcome: (not outcome.layout.key.startswith("design:"), outcome.name,
-                                                       outcome.size))
+                                 reason=_("No printer has labels of this size."), waits_for_labels=printers)
+    return sorted(found.values(), key=lambda outcome: (outcome.name, size_order(outcome.layout)))
+
+
+def size_order(layout):
+    """Tape by width, then labels by width and height."""
+    template = getattr(layout, "template", None)
+    if template is None or template.label_height is None:
+        return (2, 0, 0)
+    if template.label_width is None:
+        return (0, template.label_height, 0)
+    return (1, template.label_width, template.label_height)
 
 
 def find(subject_type, key):
     return next((outcome for outcome in outcomes(subject_type) if outcome.key == key), None)
+
+
+def waited_for(found, job):
+    """The outcome a waiting job waits for, among `found` (by key): its own, or, for a template that no printer
+    had labels for when the job was queued, the template on the labels a printer has now (a template has one
+    size)."""
+    outcome = found.get(job.outcome)
+    if outcome is not None and outcome.target():
+        return outcome
+    return next((other for other in found.values() if other.layout.key == job.layout_key and other.target()),
+                outcome)
+
+
+def preview_template(subject_type):
+    """The template that shows a subject's label outside the print dialog (e.g. a label ID's page): the first
+    that can be printed now, else the first offered, else the first active one; None if there is none."""
+    found = outcomes(subject_type)
+    for outcome in [outcome for outcome in found if outcome.target()] + found:
+        return outcome.layout.template
+    return LocationLabelTemplate.objects.filter(subject_type=subject_type, is_active=True).first()

@@ -31,12 +31,22 @@ class Result:
         return cls(**{name: data[name] for name in cls.__dataclass_fields__ if name in data})
 
 
-def status_error(status, expected_tape_mm=None):
-    """The first reason why the printer cannot print now, as (code, detail), or None."""
+# How far the label length a Zebra measures may be off the loaded labels' height
+LENGTH_TOLERANCE_MM = 2
+
+
+def status_error(status, expected_tape_mm=None, expected_length=None):
+    """The first reason why the printer cannot print now, as (code, detail), or None.
+    expected_length: (mm, dpi) of the labels set as loaded in a Zebra, to compare with the length it measured."""
     if status["errors"]:
         return status["errors"][0], {}
     if expected_tape_mm and status.get("media_width_mm") not in (None, expected_tape_mm):
         return "wrong_tape", {"loaded_mm": status["media_width_mm"], "expected_mm": expected_tape_mm}
+    if expected_length and status.get("label_length_dots"):
+        expected_mm, dpi = expected_length
+        measured_mm = round(status["label_length_dots"] * 25.4 / dpi)
+        if abs(measured_mm - expected_mm) > LENGTH_TOLERANCE_MM:
+            return "wrong_length", {"measured_mm": measured_mm, "expected_mm": expected_mm}
     return None
 
 
@@ -52,11 +62,13 @@ def query_status(device, language):
     return Result(DONE, printer_status=status)
 
 
-def run_job(device, language, payload, *, expected_tape_mm=None, pages=1, check_status=True, timeout=None):
+def run_job(device, language, payload, *, expected_tape_mm=None, expected_length=None, pages=1, check_status=True,
+            timeout=None):
     """Print `payload` (printer-ready bytes in `language`) on `device`.
 
     With check_status, the printer's status is read first (no data is sent if it cannot print, e.g.
-    no paper or the wrong tape), and afterwards its notifications until all `pages` are printed."""
+    no paper, the wrong tape or labels of another length), and afterwards its notifications until all `pages`
+    are printed."""
     protocol = PROTOCOLS[language]
     timeout = timeout or 20 + 5 * pages
     try:
@@ -68,7 +80,7 @@ def run_job(device, language, payload, *, expected_tape_mm=None, pages=1, check_
             status = protocol.query(device)
             if status is None:
                 return Result(FAILED, "no_response", retryable=True)
-            if error := status_error(status, expected_tape_mm):
+            if error := status_error(status, expected_tape_mm, expected_length):
                 return Result(FAILED, error[0], error[1], status)
         try:
             device.write(payload)

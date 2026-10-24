@@ -1,8 +1,8 @@
 """
 Label templates (inventory's LocationLabelTemplate: a label design in the description language,
 label_printing.design) as layouts. A template is designed for a label size and prints only on labels of that
-size (fits), on any printer: it is drawn at the printer's resolution. Media offer the fitting templates; only
-those chosen for the medium or its label stock, if there are any of the kind.
+size (fits), on any printer: it is drawn at the printer's resolution. Media offer the fitting active templates;
+only those chosen for the medium or its label stock, if there are any of the kind.
 """
 import functools
 
@@ -43,7 +43,7 @@ def fits(template, medium):
 SAMPLES = {
     "location": {"code": "WH-1.R303.a", "qr": "HTTPS://I.ZAM.HAUS/WH-1.R303.A", "name": "Fach a", "path": "R303.a",
                  "purpose": "", "short": "R303.a"},
-    "item": {"name": "Artikel", "price": "0,15 € / Stk", "amount": "0,15", "qr": "HTTPS://I.ZAM.HAUS/K7R4XD",
+    "item": {"name": "Artikel", "price": "0,15 € / Stk", "amount": "0,15", "qr": "HTTPS://I.ZAM.HAUS/K7R4XD/WH-1.R303.A",
              "location": "R303.a", "id": "K7R-4XD", "unit": "Stk"},
     "labelid": {"id": "K7R-4XD", "id1": "K7R", "id2": "4XD", "qr": "HTTPS://I.ZAM.HAUS/K7R4XD", "idname": "ZAMid",
                 "target": ""},
@@ -75,9 +75,11 @@ def drawable(template, medium):
 
 
 def candidates(medium, subject_type):
-    """The templates a medium may offer for a kind of label: those chosen for it (or its stock), else all."""
-    chosen = medium.chosen_templates().filter(subject_type=subject_type)
-    return chosen if chosen.exists() else LocationLabelTemplate.objects.filter(subject_type=subject_type)
+    """The active templates a medium may offer for a kind of label: those chosen for it (or its stock), else
+    all."""
+    chosen = medium.chosen_templates().filter(subject_type=subject_type, is_active=True)
+    return chosen if chosen.exists() else LocationLabelTemplate.objects.filter(subject_type=subject_type,
+                                                                               is_active=True)
 
 
 def images():

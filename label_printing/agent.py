@@ -34,7 +34,7 @@ from .devices import usb, zebra
 from .devices.io import DeviceError, device_for
 from .devices.run import FAILED, Result, query_status, run_job
 
-VERSION = "2"
+VERSION = "3"
 CONFIG_PATHS = ("/boot/label-agent/config.json", "/boot/firmware/label-agent/config.json",
                 "/etc/label-agent/config.json")
 DEFAULTS = {"servers": [], "state_dir": None, "poll_interval": 2, "status_interval": 30,
@@ -282,7 +282,8 @@ class Link(threading.Thread):
             log.info("%s: job %s, %d bytes for %s", self.server, job["id"], len(payload), job["printer"])
             with self.printers.device_lock(job["printer"]):
                 outcome = run_job(device_for(printer["device"]), job["language"], payload,
-                                  expected_tape_mm=job.get("expected_tape_mm"), pages=job.get("pages", 1),
+                                  expected_tape_mm=job.get("expected_tape_mm"),
+                                  expected_length=job.get("expected_length"), pages=job.get("pages", 1),
                                   check_status=job.get("check_status", True))
             self.printers.remember(job["printer"], outcome.printer_status)
         log.info("%s: job %s %s %s", self.server, job["id"], outcome.status, outcome.code)

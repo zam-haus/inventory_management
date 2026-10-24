@@ -1,12 +1,12 @@
-{% load i18n static icons %}{# The print dialog of a location or item page, opened by label_print_button (data-modal-open). #}
+{% load i18n static icons %}{# A print dialog of a page (one per kind), opened by label_print_button (data-modal-open). #}
 {% if form %}
 <link rel="stylesheet" href="{% static 'label_printing/print_label.css' %}">
-{{ print_options|json_script:"label-print-options" }}
-<div class="modal fade" id="label-print-modal" tabindex="-1" aria-labelledby="label-print-title" aria-hidden="true">
+{{ print_options|json_script:options_id }}
+<div class="modal fade" id="label-print-modal-{{ subject_type }}" tabindex="-1" aria-labelledby="label-print-title-{{ subject_type }}" aria-hidden="true">
     <div class="modal-dialog modal-lg modal-dialog-scrollable">
         <form class="modal-content" method="post" {% include 'label_printing/form_attrs.html' %}>
             <div class="modal-header">
-                <h2 class="modal-title fs-5" id="label-print-title">{% icon "tag" %} {% trans "Print labels" %} · <span class="label-print-subject">{{ print_title }}</span></h2>
+                <h2 class="modal-title fs-5" id="label-print-title-{{ subject_type }}">{% icon "tag" %} {% trans "Print labels" %} · <span class="label-print-subject">{{ print_title }}</span></h2>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{% trans 'Close' %}"></button>
             </div>
             <div class="modal-body">

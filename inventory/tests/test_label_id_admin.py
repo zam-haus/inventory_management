@@ -1,12 +1,10 @@
-import io
-import zipfile
-
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Permission
 from django.test import TestCase, override_settings
 from django.urls import reverse
 
 from inventory.label_ids import services
+from inventory.label_ids.views import label_preview_url
 from inventory.models import Item, LabelId
 
 from ..label_ids.testing import SETTINGS, InventoryFixture, make_id
@@ -76,15 +74,6 @@ class AdminTests(InventoryFixture, TestCase):
         claimed = LabelId.objects.get(pk=self.claimed.pk)
         self.assertEqual((claimed.status, claimed.note, claimed.retired_by), ("retired", "peeled off", self.admin))
 
-    def test_download_labels_action(self):
-        response = self.action("download_labels_action", [self.lid.code], apply=1, printer="E550W", tape=12)
-        self.assertEqual(response["Content-Type"], "application/zip")
-        names = zipfile.ZipFile(io.BytesIO(response.content)).namelist()
-        self.assertEqual(names, ["K7R4XD_E550W_12mm.png"])
-        self.assertIsNotNone(LabelId.objects.get(pk=self.lid.pk).printed_at)
-        response = self.action("download_labels_action", [self.lid.code], apply=1, printer="E550W", tape=36)
-        self.assertContains(response, "does not support")
-
     def test_admin_hard_delete_of_item_retires_its_id(self):
         url = reverse("admin:inventory_item_delete", args=[self.item.pk])
         self.client.post(url, {"post": "yes"})  # first deletion is soft
@@ -115,9 +104,8 @@ class AdminTests(InventoryFixture, TestCase):
         self.assertEqual(LabelId.objects.get(pk=self.claimed.pk).retired_by, self.admin)
 
     def test_change_page_shows_label_and_link(self):
-        label = reverse("label_id_label", args=[self.lid.code]) + "?printer=P900&amp;tape=24"
         response = self.client.get(self.change_url(self.lid))
-        self.assertContains(response, label)
+        self.assertContains(response, label_preview_url(self.lid))  # drawn from a ZAMid label template
         self.assertContains(response, f'href="{reverse("label_id_claim", args=[self.lid.code])}"')
         response = self.client.get(self.change_url(self.claimed))
         self.assertContains(response, '<a href="/id/12345V">/id/12345V</a>', html=True)
@@ -129,13 +117,14 @@ class AdminTests(InventoryFixture, TestCase):
     def test_info_label_and_qr(self):
         response = self.client.get(reverse("label_id_info", args=["k7r-4xd"]))
         self.assertContains(response, "K7R-4XD")
-        self.assertContains(response, reverse("label_id_label", args=[self.lid.code]) + "?printer=P900&amp;tape=24")
+        label = label_preview_url(self.lid)
+        self.assertIn("/print/templates/", label)
+        self.assertContains(response, label)
         self.assertNotContains(response, "qr.svg")
-        response = self.client.get(reverse("label_id_label", args=[self.lid.code]), {"printer": "P900", "tape": 24})
-        self.assertEqual(response["Content-Type"], "image/png")
+        self.assertEqual(self.client.get(label)["Content-Type"], "image/png")
         self.client.logout()
         self.assertEqual(self.client.get(reverse("label_id_info", args=[self.lid.code])).status_code, 302)
-        self.assertEqual(self.client.get(reverse("label_id_label", args=[self.lid.code])).status_code, 302)
+        self.assertEqual(self.client.get(label).status_code, 404)  # a reserved ID's label is not public
         response = self.client.get(reverse("label_id_qr_svg", args=[self.lid.code]))
         self.assertEqual(response["Content-Type"], "image/svg+xml")
         self.assertEqual(self.client.get(reverse("label_id_qr_png", args=["YYYYYJ"])).status_code, 404)
@@ -180,7 +169,7 @@ class InvalidStoredCodeTests(InventoryFixture, TestCase):
                 response = self.client.get(reverse("admin:inventory_labelid_change", args=[code]))
                 self.assertContains(response, "Invalid label ID.")
                 self.assertContains(response, reason)
-                self.assertNotContains(response, reverse("label_id_label", args=[code]))
+                self.assertNotContains(response, "/print/templates/")
 
     def test_lookalike_of_a_valid_code_opens_itself_and_saves_only_itself(self):
         url = reverse("admin:inventory_labelid_change", args=["1Q0005"])
@@ -196,4 +185,4 @@ class InvalidStoredCodeTests(InventoryFixture, TestCase):
     def test_valid_codes_are_unaffected(self):
         response = self.client.get(reverse("admin:inventory_labelid_change", args=[self.valid.code]))
         self.assertNotContains(response, "Invalid label ID.")
-        self.assertContains(response, reverse("label_id_label", args=[self.valid.code]))
+        self.assertContains(response, label_preview_url(self.valid))

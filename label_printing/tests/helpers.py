@@ -6,7 +6,7 @@ from ..models import LabelMedium, Printer
 
 SETTINGS = dict(LANGUAGE_CODE="en", DEFAULT_URL="https://inv.zam.haus", LABEL_ID_BASE_URL="https://i.zam.haus/",
                 PRINT_JOB_MAX_AGE=120, PRINT_JOB_LEASE=180, PRINT_AGENT_OFFLINE_AFTER=30,
-                PRINT_MAX_COPIES=20, CELERY_TASK_ALWAYS_EAGER=True)
+                PRINT_MAX_COPIES=20, PRINT_CONFIRM_LABELS=10, PRINT_MAX_LABELS=50, CELERY_TASK_ALWAYS_EAGER=True)
 
 
 class SimulatedPrinters:
@@ -36,11 +36,13 @@ class SimulatedPrinters:
 
 
 def create_printers(zebra_port=9100, brother_port=9100):
-    """A Zebra with 57 × 32 mm labels and a Brother PT-E550W with 12 mm tape, both network printers."""
+    """A Zebra with 57 × 32 mm labels (loaded) and a Brother PT-E550W with 12 mm tape, both network printers."""
     zebra = Printer.objects.create(name="Zebra Lager", slug="zebra", language="zpl", dpi=203,
                                    host="127.0.0.1", port=zebra_port, is_default=True)
     zebra_labels = LabelMedium.objects.create(printer=zebra, name="57 × 32 mm", width_mm=57, height_mm=32,
                                               is_default=True)
+    zebra.loaded_medium = zebra_labels
+    zebra.save()
     brother = Printer.objects.create(name="P-touch Werkstatt", slug="ptouch", language="ptouch", model="E550W",
                                      dpi=180, host="127.0.0.1", port=brother_port)
     brother_tape = LabelMedium.objects.create(printer=brother, name="12 mm", ptouch_tape=12, is_default=True)
@@ -57,24 +59,22 @@ def create_user(username="printer-user", *permissions):
     return user
 
 
-# The label templates the migrations make for every label size (label_printing 0012): (labels, tape)
+# The label templates the migrations make for every label size (label_printing 0012, named in 0013)
 GENERATED = {
-    "location": ("QR-Code, Kennung und Ort {width}x{height}", "QR-Code, Kennung und Ort, Band {tape} mm"),
-    "item": ("Name, Preis und QR-Code {width}x{height}", "Name, Preis und QR-Code, Band {tape} mm"),
-    "labelid": ("ZAMid {width}x{height}", "ZAMid Band {tape} mm"),
-    "labelid_plain": ("ZAMid: QR + ID {width}x{height}", "ZAMid: QR + ID, Band {tape} mm"),
+    "location": "QR-Code, Kennung und Ort",
+    "item": "Name, Preis und QR-Code",
+    "labelid": "ZAMid",
+    "labelid_plain": "ZAMid: QR + ID",
 }
 
 
 def generated(kind, size):
     """A template of GENERATED for a size key, e.g. generated("location", "tape12") or ("item", "57x32")."""
-    labels, tape = GENERATED[kind]
     if size.startswith("tape"):
-        name = tape.format(tape=size.removeprefix("tape"))
+        width, height = None, float(size.removeprefix("tape"))
     else:
-        width, height = size.split("x")
-        name = labels.format(width=width, height=height)
-    return LocationLabelTemplate.objects.get(name=name)
+        width, height = (float(part) for part in size.split("x"))
+    return LocationLabelTemplate.objects.get(name=GENERATED[kind], label_width=width, label_height=height)
 
 
 def outcome_key(kind, size):

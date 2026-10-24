@@ -140,7 +140,7 @@ Which `{fields}` a template may use depends on what it is for; the template page
 | `{code}` WH-1.R303.a | `{name}` | `{id}` K7R-4XD |
 | `{qr}` the code via the label host | `{price}` 0,15 € / Stk (items for sale) | `{id1}` K7R, `{id2}` 4XD |
 | | `{amount}` 0,15 (just the price) | |
-| `{name}` | `{qr}` its label ID, leading to the item at the location | `{qr}` the ID via the label host |
+| `{name}` | `{qr}` its label ID and the location's code (`…/K7R4XD/WH-1.R303.A`), leading to the item there | `{qr}` the ID via the label host |
 | `{path}` where it is, with codes | `{location}` the location's code | `{idname}` ZAMid |
 | `{purpose}` | `{id}` the label ID as printed | `{target}` what the ID belongs to |
 | `{short}` code within its area | `{unit}` Stk | |
@@ -158,8 +158,8 @@ no resolution in a template):
 * and only where its QR codes come out big enough to scan at the printer's resolution, tried with a
   sample record of typical length: 9 mm tape templates, for example, are not offered on the E550W (180 dpi).
 
-Media offer the fitting templates of the kind being printed. If templates are chosen for a medium (or for
-its label stock), only those are offered.
+Media offer the fitting active templates of the kind being printed. If templates are chosen for a medium (or
+for its label stock), only those are offered. Deactivated templates are neither offered nor printed.
 
 ## Examples
 

@@ -61,13 +61,11 @@ setting (and the hosts below).
 * **Lookup:** `item.label_ids` / `location.label_ids` / `uniqueitem.label_ids` (indexed). `inventory.label_ids.lookup`
   provides `active_code(obj)` and `annotate_label_code(queryset)`, which add no
   extra queries per row.
-* **Labels:** `/id/<code>/label.png?printer=P900&tape=24` is public for assigned
-  IDs (the unique item's page shows it) and requires `inventory.view_labelid` otherwise.
-  For batches, use the admin action *Download labels (ZIP)*, or run
-  `manage.py label_id_labels --batch NAME --printer E550W --tape 12`. Print the PNGs
-  in **standard** resolution, without scaling. Printing them directly on a printer of the
-  inventory: the **Label** button on the unique item's and the ID's page, the admin action
-  *Print labels*, or `label_id_labels --batch NAME --print PRINTER` ([label printing](label-printing.md)). Fonts (OFL) are in
-  `inventory/label_ids/labels/fonts/`.
+* **Labels** are drawn from the ZAMid label templates and printed on a printer of the inventory: the
+  **Label** button on the unique item's and the ID's page, the admin action *Print labels*, or
+  `label_id_labels --batch NAME --print PRINTER [--tape 12]` ([label printing](label-printing.md)).
+  The ID's info and admin page show its label; the image is public for assigned IDs and needs
+  `inventory.view_labelid` or `label_printing.print_label` otherwise. (The pixel-exact PNG labels
+  of `idlabel.py` are gone.)
 * **Other commands:** `label_id_check <input>…`, `label_id_check --missing` and
   `label_id_retire <code>`.

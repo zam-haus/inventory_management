@@ -38,8 +38,10 @@ class PrinterState:
     """What the fake printer reports; errors are the codes of devices.brother / devices.zebra."""
 
     def __init__(self, errors=(), tape_mm=12, silent=False, state_file=None, name="", model_code=0x68,
-                 tape_color=0x01, text_color=0x08, inband_status=True):
+                 tape_color=0x01, text_color=0x08, inband_status=True, label_length_dots=245):
         self.errors, self.tape_mm, self.silent = list(errors), tape_mm, silent
+        # Zebra: the label length it measured (245 dots: 31 mm at 203 dpi)
+        self.label_length_dots = label_length_dots
         # Brother: what the status reports (model, tape and text colour codes: white tape, black print)
         self.model_code, self.tape_color, self.text_color = model_code, tape_color, text_color
         # Brother network printers like the PT-P900W answer status requests over SNMP only.
@@ -285,7 +287,7 @@ def zebra_identity(dpi):
 
 
 def zebra_status(state, formats=0, remaining=0):
-    first = ["030", "0", "0", "0245", f"{formats:03d}", "0", "0", "0", "000", "0", "0", "0"]
+    first = ["030", "0", "0", f"{state.label_length_dots:04d}", f"{formats:03d}", "0", "0", "0", "000", "0", "0", "0"]
     second = ["001", "0", "0", "0", "0", "2", "6", "0", f"{remaining:08d}", "1", "000"]
     for code in state.errors:
         if code in ZEBRA_ERROR_FIELDS:

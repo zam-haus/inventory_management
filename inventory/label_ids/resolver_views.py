@@ -8,7 +8,7 @@ get_absolute_url() and, optionally, is_deleted. The one exception: a location's 
 first (location labels hold HTTPS://I.ZAM.HAUS/<code>).
 """
 from contextlib import contextmanager
-from urllib.parse import urlencode
+from urllib.parse import parse_qsl, urlencode, urlsplit
 
 from django.conf import settings
 from django.http import HttpResponseRedirect
@@ -46,10 +46,27 @@ def inventory_url(request, build):
     return path
 
 
+# Arguments that go on to the target: loc, the location an item label is for (its number). The label holds the
+# location's code after the ID (resolve_at); between the inventory's own hops it travels as ?loc=.
+FORWARDED = ("loc",)
+
+
+def forwarded(request):
+    found = {name: request.GET[name] for name in FORWARDED if request.GET.get(name, "").isdigit()}
+    return {**found, **getattr(request, "label_id_forwarded", {})}
+
+
+def with_forwarded(request, url):
+    """An inventory URL with the scan's forwarded arguments, unless it has them already."""
+    extra = {name: value for name, value in forwarded(request).items()
+             if name not in dict(parse_qsl(urlsplit(url).query))}
+    return f"{url}{'&' if '?' in url else '?'}{urlencode(extra)}" if extra else url
+
+
 def access_url(request, code, method):
     """The inventory's /id/<code>, which records this access before resolving (see access.py)."""
     url = inventory_url(request, lambda: reverse("label_id_resolve", args=[code]))
-    return f"{url}?{urlencode({'via': method})}"
+    return f"{url}?{urlencode({'via': method, **forwarded(request)})}"
 
 
 def target_url(request, lid):
@@ -110,7 +127,8 @@ def _resolve(request, raw, *, from_lookup=False):
         return HttpResponseRedirect(inventory_url(request, lambda: reverse("label_id_claim", args=[code])))
     url = target_url(request, lid)
     if lid.status == LabelId.Status.ASSIGNED and url:
-        return HttpResponseRedirect(url)
+        # Arguments only go on to the inventory's pages, not to URLs elsewhere
+        return HttpResponseRedirect(url if lid.url else with_forwarded(request, url))
     if "via" in request.GET:  # show the page under its plain URL, so reloading it is no further access
         return HttpResponseRedirect(request.path)
     state = "retired" if lid.status == LabelId.Status.RETIRED else "deleted"
@@ -120,6 +138,16 @@ def _resolve(request, raw, *, from_lookup=False):
 
 @require_safe
 def resolve(request, raw):
+    return _resolve(request, raw)
+
+
+@require_safe
+def resolve_at(request, raw, at):
+    """An item label: the item's ID, then the code of the location it is stored at (uppercase, so the QR code
+    stays alphanumeric). The location goes on to the item's page; one that is unknown or ambiguous is left out."""
+    found = locations_by_code(at.strip("/"))
+    if len(found) == 1:
+        request.label_id_forwarded = {"loc": str(found[0].pk)}
     return _resolve(request, raw)
 
 

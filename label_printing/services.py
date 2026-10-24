@@ -156,7 +156,7 @@ def process(job_id, attempts=3, wait=2.0):
     for attempt in range(attempts):
         result = run_job(TcpDevice(printer.host, printer.port), printer.language, bytes(job.payload),
                          expected_tape_mm=job.medium.ptouch_tape if job.medium else None,
-                         pages=job.pages, check_status=printer.reports_status)
+                         expected_length=expected_length(job), pages=job.pages, check_status=printer.reports_status)
         if not result.retryable or attempt == attempts - 1 or timezone.now() + timedelta(seconds=wait) > deadline:
             break
         time.sleep(wait)
@@ -239,7 +239,8 @@ def queue_waiting(outcome, *, subject_type, subjects, copies, user, request_id, 
             user=user, layout_key=outcome.layout.key, subject_type=subject_type,
             subject_id=pk if isinstance(pk := getattr(subjects[0], "pk", None), int) else None,
             subject_label=label[:255], copies=copies, pages=len(subjects) * copies,
-            quality=quality or outcome.layout.quality or outcome.targets[0].medium.quality,
+            quality=quality or outcome.layout.quality or (outcome.targets[0].medium.quality if outcome.targets
+                                                          else Quality.STANDARD),
             status=PrintJob.Status.WAITING,
             outcome=outcome.key, request={"subjects": subject_refs(subjects)}, request_id=request_id,
             expires_at=timezone.now() + timedelta(seconds=settings.PRINT_WAIT_MAX),
@@ -297,12 +298,13 @@ def dispatch_waiting(refresh=True):
         return 0
     found = {kind: {outcome.key: outcome for outcome in outcomes.outcomes(kind)}
              for kind in {job.subject_type for job in waiting}}
+    layouts = {job.layout_key for job in waiting}
     if refresh and refresh_network_statuses(
-            [found[job.subject_type][job.outcome] for job in waiting if job.outcome in found[job.subject_type]]):
+            [outcome for kind in found.values() for outcome in kind.values() if outcome.layout.key in layouts]):
         found = {kind: {outcome.key: outcome for outcome in outcomes.outcomes(kind)} for kind in found}
     dispatched = 0
     for job in waiting:
-        outcome = found[job.subject_type].get(job.outcome)
+        outcome = outcomes.waited_for(found[job.subject_type], job)
         target = outcome.target() if outcome else None
         if target is None:
             continue
@@ -355,7 +357,17 @@ def check_status(printer):
 
 
 def default_medium(printer):
+    """The labels loaded in a Zebra, else the printer's default medium."""
+    if printer.language == Printer.Language.ZPL and printer.loaded_medium_id:
+        return printer.loaded_medium
     return printer.media.order_by("-is_default", "name").first()
+
+
+def expected_length(job):
+    """Zebra: (mm, dpi) of the job's labels, to compare with the label length the printer measured; else None."""
+    if job.printer.language != Printer.Language.ZPL or not job.medium or not job.medium.height_mm:
+        return None
+    return [job.medium.height_mm, job.printer.dpi]
 
 
 def default_target():

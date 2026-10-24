@@ -44,9 +44,9 @@ class OutcomeTests(InventoryData, TestCase):
         self.assertNotIn(self.on_labels, found)  # inactive printers offer nothing
         tape = found[self.on_tape]
         self.assertEqual((tape.target(), tape.why_not, tape.can_wait), (None, "Loaded: 24 mm tape.", True))
-        # A template for labels no printer has: shown, not printable, no printer to wait for
+        # A template for labels no printer has: shown, not printable now; it may wait for the labels to be put in
         template = found[f"design:{self.template.pk}"]
-        self.assertEqual((template.why_not, template.can_wait), ("No printer has labels of this size.", False))
+        self.assertEqual((template.why_not, template.can_wait), ("No printer has labels of this size.", True))
         options = dialog.options("location", self.part)
         item = next(item for item in options["outcomes"] if item["key"] == self.on_tape)
         self.assertEqual((item["printer"], item["reason"], item["can_wait"]), ("", "Loaded: 24 mm tape.", True))
@@ -62,6 +62,33 @@ class OutcomeTests(InventoryData, TestCase):
         self.assertEqual(self.found()[self.on_tape].target().printer, self.brother)
         Printer.objects.filter(pk=self.brother.pk).update(last_status={"ok": False, "errors": ["cover_open"]})
         self.assertEqual(self.found()[self.on_tape].why_not, "Loaded: 24 mm tape.")
+
+    def test_zebras_print_on_the_labels_set_as_loaded(self):
+        other = LabelMedium.objects.create(printer=self.zebra, name="60 × 30 mm", width_mm=60, height_mm=30)
+        on_other = outcome_key("location", "60x30")
+        found = self.found()
+        self.assertEqual(found[self.on_labels].target().printer, self.zebra)
+        self.assertEqual((found[on_other].why_not, found[on_other].can_wait), ("Loaded: 57 × 32 mm.", True))
+        # It measured labels of another length: those set as loaded are not in it.
+        self.zebra.remember_status({"ok": True, "errors": [], "label_length_dots": 200})  # 25 mm at 203 dpi
+        self.assertEqual(self.found()[self.on_labels].why_not,
+                         "The printer measures labels 25 mm long, but labels 32 mm high are set as loaded.")
+        Printer.objects.filter(pk=self.zebra.pk).update(loaded_medium=other)  # 60 × 30 mm put in
+        self.zebra.remember_status({"ok": True, "errors": [], "label_length_dots": 240})
+        self.assertEqual(self.found()[on_other].target().medium, other)
+        Printer.objects.filter(pk=self.zebra.pk).update(loaded_medium=None)
+        self.assertEqual(self.found()[self.on_labels].why_not,
+                         "No labels are set as loaded in this printer (admin: its settings).")
+        self.assertEqual(services.default_medium(Printer.objects.get(pk=self.zebra.pk)), self.labels)
+
+    def test_inactive_templates_are_neither_offered_nor_printed(self):
+        LocationLabelTemplate.objects.filter(pk=self.template.pk).update(is_active=False)
+        self.assertNotIn(f"design:{self.template.pk}@57x32", self.found())
+        with self.assertRaises(services.PrintError):
+            services.submit(printer=self.zebra, medium=self.labels, layout_key=f"design:{self.template.pk}",
+                            subject_type="location", subjects=[self.part])
+        LocationLabelTemplate.objects.update(is_active=False)
+        self.assertEqual(self.found(), {})
 
     def test_nothing_set_up(self):
         Printer.objects.all().delete()
@@ -95,9 +122,7 @@ class WaitingTests(InventoryData, TestCase):
 
     def test_waits_until_the_right_tape_is_loaded(self):
         self.brother.remember_status(TAPE_24)
-        response = self.post({"outcome": self.on_tape, "copies": 1})
-        self.assertEqual(response.json()["errors"]["outcome"][0]["message"], "Loaded: 24 mm tape.")
-        data = self.post({"outcome": self.on_tape, "copies": 1, "wait": "on"}).json()
+        data = self.post({"outcome": self.on_tape, "copies": 1}).json()  # no printer can print it now: it waits
         job = PrintJob.objects.get(pk=data["job"]["id"])
         self.assertEqual((job.status, job.printer, job.payload, job.outcome), ("waiting", None, None, self.on_tape))
         self.assertTrue(data["job"]["message"].startswith("Waiting for a printer that can print it, until "))
@@ -123,7 +148,8 @@ class WaitingTests(InventoryData, TestCase):
         agent.save()
         printer = Printer.objects.create(name="USB", slug="usb", uid="usb-1", language="zpl", dpi=203,
                                          transport="agent", agent=agent)
-        LabelMedium.objects.create(printer=printer, name="60 × 30", width_mm=60, height_mm=30)
+        printer.loaded_medium = LabelMedium.objects.create(printer=printer, name="60 × 30", width_mm=60, height_mm=30)
+        printer.save()
         found = {outcome.key: outcome for outcome in outcomes.outcomes("location")}
         on_usb = outcome_key("location", "60x30")
         self.assertEqual(found[on_usb].why_not, "The print agent of this printer is offline.")
@@ -146,9 +172,23 @@ class WaitingTests(InventoryData, TestCase):
         self.assertEqual((status["status"], status["finished"], status["message"]),
                          ("expired", True, "No printer could print it in time, so it was not printed."))
 
-    def test_waiting_needs_a_printer_with_the_labels(self):
+    def test_waits_for_labels_no_printer_has_yet(self):
         template = LocationLabelTemplate.objects.create(name="Groß", description="label 100 x 50\ntext {code}")
-        response = self.post({"outcome": f"design:{template.pk}", "copies": 1, "wait": "on"})
+        data = self.post({"outcome": f"design:{template.pk}", "copies": 1}).json()
+        job = PrintJob.objects.get(pk=data["job"]["id"])
+        self.assertEqual((job.status, job.outcome), ("waiting", f"design:{template.pk}"))
+        # The labels are put into the Zebra and set as loaded there
+        large = LabelMedium.objects.create(printer=self.zebra, name="100 × 50 mm", width_mm=100, height_mm=50)
+        Printer.objects.filter(pk=self.zebra.pk).update(loaded_medium=large, last_status=None)
+        with patch("label_printing.services.process"), self.captureOnCommitCallbacks(execute=True):
+            self.client.get(reverse("print_job_status", args=[job.pk]))
+        job.refresh_from_db()
+        self.assertEqual((job.status, job.printer, job.medium), ("pending", self.zebra, large))
+
+    def test_without_active_printers_nothing_waits(self):
+        template = LocationLabelTemplate.objects.create(name="Groß", description="label 100 x 50\ntext {code}")
+        Printer.objects.update(is_active=False)
+        response = self.post({"outcome": f"design:{template.pk}", "copies": 1})
         self.assertEqual(response.json()["errors"]["outcome"][0]["message"], "No printer has labels of this size.")
         self.assertFalse(PrintJob.objects.exists())
 
@@ -175,6 +215,6 @@ class WaitingTests(InventoryData, TestCase):
 
     def test_printable_labels_print_at_once(self):
         with patch("label_printing.services.process"):
-            data = self.post({"outcome": self.on_labels, "copies": 1, "wait": "on"}).json()
+            data = self.post({"outcome": self.on_labels, "copies": 1}).json()
         job = PrintJob.objects.get(pk=data["job"]["id"])
         self.assertEqual((job.status, job.printer), ("pending", self.zebra))

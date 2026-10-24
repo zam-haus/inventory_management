@@ -20,8 +20,8 @@
 <div class="label-print-options">
     {% if subject_type == "item" %}
     <div class="mb-3">
-        <label class="form-label" for="label-print-location">{% trans "Location on the label" %}</label>
-        <select class="form-select{% if form.location.errors %} is-invalid{% endif %}" id="label-print-location" name="location">
+        <label class="form-label" for="label-print-location-{{ subject_type }}">{% trans "Location on the label" %}</label>
+        <select class="form-select{% if form.location.errors %} is-invalid{% endif %}" id="label-print-location-{{ subject_type }}" name="location">
             {% for location in print_options.locations %}<option value="{{ location.id }}"{% if request.GET.loc == location.id|stringformat:"s" %} selected{% endif %}>{{ location.code }} {{ location.name }}</option>{% endfor %}
             <option value="">{% trans "None (the QR code opens the item)" %}</option>
         </select>
@@ -30,18 +30,27 @@
     </div>
     {% elif print_options.children %}
     <div class="form-check mb-3">
-        <input class="form-check-input" type="checkbox" name="children" id="label-print-children"{% if request.GET.print %} checked{% endif %}>
-        <label class="form-check-label" for="label-print-children">{% blocktrans count count=print_options.children %}Also its sub-location ({{ count }}){% plural %}Also its sub-locations ({{ count }}){% endblocktrans %}</label>
+        <input class="form-check-input" type="checkbox" name="children" id="label-print-children-{{ subject_type }}"{% if request.GET.print %} checked{% endif %}>
+        <label class="form-check-label" for="label-print-children-{{ subject_type }}">{% blocktrans count count=print_options.children %}Also its sub-location ({{ count }}){% plural %}Also its sub-locations ({{ count }}){% endblocktrans %}</label>
+    </div>
+    {% elif subject_type == "items" %}
+    <div class="mb-3">
+        <p class="mb-1">{% blocktrans count count=print_options.items %}A price tag for the bulk item stored here.{% plural %}A price tag for each of the {{ count }} bulk items stored here.{% endblocktrans %}</p>
+        <div class="form-check">
+            <input class="form-check-input" type="checkbox" name="priced" id="label-print-priced"{% if print_options.priced %} checked{% endif %}>
+            <label class="form-check-label" for="label-print-priced">{% blocktrans count count=print_options.priced %}Only the item with a sale price ({{ count }}){% plural %}Only items with a sale price ({{ count }}){% endblocktrans %}</label>
+        </div>
     </div>
     {% endif %}
     <div class="mb-3">
-        <label class="form-label" for="label-print-copies">{% trans "Copies" %}</label>
-        <input class="form-control label-print-copies{% if form.copies.errors %} is-invalid{% endif %}" type="number" id="label-print-copies" name="copies" value="1" min="1" max="{{ print_options.max_copies }}" inputmode="numeric" required>
+        <label class="form-label" for="label-print-copies-{{ subject_type }}">{% trans "Copies" %}</label>
+        <input class="form-control label-print-copies{% if form.copies.errors %} is-invalid{% endif %}" type="number" id="label-print-copies-{{ subject_type }}" name="copies" value="1" min="1" max="{{ print_options.max_copies }}" inputmode="numeric" required>
         <div class="invalid-feedback" data-error-for="copies">{{ form.copies.errors|join:" " }}</div>
     </div>
 </div>
-<div class="form-check mb-2" data-wait-option>
-    <input class="form-check-input" type="checkbox" name="wait" id="label-print-wait"{% if form.wait.value %} checked{% endif %}>
-    <label class="form-check-label" for="label-print-wait">{% blocktrans with minutes=print_options.wait_minutes %}If no printer can print it now: wait up to {{ minutes }} minutes for one (a printer coming back, the right labels loaded){% endblocktrans %}</label>
+<div class="form-check alert alert-warning mb-2" data-confirm{% if not form.confirm.errors %} hidden{% endif %}>
+    <input class="form-check-input ms-0 me-2" type="checkbox" name="confirm" id="label-print-confirm-{{ subject_type }}">
+    <label class="form-check-label" for="label-print-confirm-{{ subject_type }}" data-error-for="confirm">{{ form.confirm.errors|join:" " }}</label>
 </div>
+<div class="alert alert-warning small mb-2" data-wait-note hidden>{% blocktrans with minutes=print_options.wait_minutes %}No printer can print this label right now. If you go on, the job waits up to {{ minutes }} minutes and is printed as soon as a printer can: when it is back online or the right labels are loaded. Otherwise it is not printed.{% endblocktrans %}</div>
 <div class="label-print-status" role="status" aria-live="polite" data-print-status hidden></div>

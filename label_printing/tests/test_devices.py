@@ -105,6 +105,16 @@ class RunJobTests(SimulatedPrinters, SimpleTestCase):
         self.assertEqual((result.status, result.code), ("done", ""))
         self.assertEqual([name.rsplit(".", 1)[1] for name, _data in self.zebra_output.printed], ["zpl"])
 
+    def test_zebra_labels_of_another_length_print_nothing(self):
+        zebra = TcpDevice("127.0.0.1", self.zebra_server.port)
+        result = run_job(zebra, "zpl", b"^XA^XZ", expected_length=[32, 203], timeout=5)  # measured 31 mm
+        self.assertEqual((result.status, result.code), ("done", ""))
+        self.zebra_output.printed.clear()
+        result = run_job(zebra, "zpl", b"^XA^XZ", expected_length=[50, 203], timeout=5)
+        self.assertEqual((result.status, result.code, result.detail), ("failed", "wrong_length",
+                                                                       {"measured_mm": 31, "expected_mm": 50}))
+        self.assertEqual(self.zebra_output.printed, [])
+
     def test_zebra_paper_out(self):
         self.zebra_state.errors = ["paper_out"]
         result = run_job(TcpDevice("127.0.0.1", self.zebra_server.port), "zpl", b"^XA^XZ", timeout=5)
