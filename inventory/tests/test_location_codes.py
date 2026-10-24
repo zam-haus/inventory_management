@@ -1,11 +1,13 @@
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Permission
 from django.core.exceptions import ValidationError
+from django.db import IntegrityError, transaction
 from django.test import TestCase, override_settings
 from django.urls import reverse
 
 from ..location_lookup import resolve_location_reference
 from ..models import Location, LocationFormerCode, LocationNumberRange, LocationType
+from ..models.location import taken_location_codes
 
 
 class CodeTypesMixin:
@@ -122,6 +124,43 @@ class FormerCodeTests(CodeTypesMixin, TestCase):
                 self.client.post(url, data)
         self.assertEqual(Location.objects.get(pk=self.shelf.pk).short_name, "R301")
         self.assertFalse(LocationFormerCode.objects.exists())
+
+
+@override_settings(LANGUAGE_CODE="en")
+class CodesIgnoringCaseTests(CodeTypesMixin, TestCase):
+    """Labels hold codes in capitals: codes differ in more than capital and small letters, in the model (clean)
+    and in the database."""
+    EXCLUDE = ["unique_identifier", "locatable_identifier", "descriptive_identifier"]
+
+    def assertRefused(self, location, message):
+        with self.assertRaisesMessage(ValidationError, message):
+            location.full_clean(exclude=self.EXCLUDE)
+
+    def test_codes_that_differ_only_in_case_are_refused(self):
+        self.assertRefused(Location(type=self.compartment, name="Fach A", short_name="A", parent_location=self.shelf),
+                           "unique among all sibling locations")
+        self.assertRefused(Location(type=self.shelf_type, name="Regal", short_name="r301", parent_location=self.room),
+                           "Short name must be unique")
+        self.assertRefused(Location(type=self.room_type, name="Ecke", short_name="r301.A"),
+                           "The code r301.A is too close to R301.a")
+        with self.assertRaises(IntegrityError), transaction.atomic():
+            Location.objects.create(type=self.compartment, name="Fach A", short_name="A", parent_location=self.shelf)
+
+    def test_former_codes_ignore_case_too(self):
+        self.rename(self.shelf, "R399")
+        self.assertRefused(Location(type=self.shelf_type, name="Regal 301", short_name="r301", parent_location=self.room),
+                           "was used before")
+        self.assertEqual(taken_location_codes(["r301", "R302", "r399"]), {"r301", "r399"})
+        with self.assertRaises(ValidationError):
+            LocationFormerCode(code="r399").full_clean()  # the shelf's current code
+        with self.assertRaises(IntegrityError), transaction.atomic():
+            LocationFormerCode.objects.create(code="r301")
+
+    def test_a_change_of_case_only_keeps_no_former_code(self):
+        self.rename(self.shelf, "r301")
+        self.assertEqual(Location.objects.get(pk=self.shelf.pk).unique_identifier, "r301")
+        self.assertFalse(LocationFormerCode.objects.exists())
+        self.assertEqual(resolve_location_reference("R301.A"), self.shelf.children.get(short_name="a"))
 
 
 @override_settings(LANGUAGE_CODE="en")

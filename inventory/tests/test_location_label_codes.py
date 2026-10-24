@@ -1,6 +1,7 @@
 """Location labels hold the location's code via the label host (HTTPS://I.ZAM.HAUS/WH-1.R303.A)."""
 from unittest import mock
 
+from django.db import IntegrityError, transaction
 from django.test import TestCase, override_settings
 
 from ..label_ids import core, qr, services
@@ -40,12 +41,11 @@ class LocationCodeResolverTests(InventoryFixture, TestCase):
         LocationFormerCode.objects.create(code="R0303.a", location=self.part)
         self.assertEqual(self.scan("/R0303.A")["Location"], BASE + self.part.get_absolute_url())
 
-    def test_codes_that_differ_only_in_case_offer_a_choice(self):
-        Location.objects.create(name="Fach A", short_name="A", type=self.part.type, parent_location=self.shelf)
-        response = self.scan("/R303.A")
-        self.assertContains(response, "Several locations")
-        self.assertContains(response, "R303.a")
-        self.assertEqual(len(locations_by_code("r303.a")), 2)
+    def test_codes_never_differ_only_in_case(self):
+        """So a code in capitals (as on labels) always leads to exactly one location."""
+        with self.assertRaises(IntegrityError), transaction.atomic():
+            Location.objects.create(name="Fach A", short_name="A", type=self.part.type, parent_location=self.shelf)
+        self.assertEqual(locations_by_code("R303.A"), [self.part])
 
     def test_unknown_code(self):
         self.assertContains(self.scan("/R999.Q"), "Invalid ID", status_code=404)

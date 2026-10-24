@@ -104,8 +104,14 @@ are in [Standortregeln](standortregeln.md) (German).
   find their location (`location_lookup`, location search, the location details list them); a
   location that gets one of its own former codes back uses it again. Admins edit them inline on
   the location and in their own list (filter: without location); removing one frees the code. The
-  local group gets no permissions for them. Not yet: resolving codes via `i.zam.haus`, which must
-  include former codes.
+  local group gets no permissions for them.
+* **Capital and small letters:** codes are found ignoring case (labels hold them in capitals), so
+  codes and former codes must differ in more than that: `R301.A` always leads to `R301.a`.
+  `Location.clean` refuses a short name whose code (or a code of the parts that change with it)
+  differs from another location's code or a former code only in case, and so do sibling and
+  unique-type short names; unique indexes on the uppercase codes (`inventory.0048`) make sure in
+  the database. Changing only the case of a code keeps no former code. Migration `0048` stops with
+  a list if codes differ only in case; rename them first.
 * **Team** got a *code* (shown as a badge, never resolved as an ID; unique when set; any
   characters but spaces, e.g. `⌂`), a *colour*
   (`#rrggbb`) and a *parent team*. `Team.badge_color` falls back to the parent's colour,

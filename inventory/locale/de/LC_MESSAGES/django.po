@@ -3631,3 +3631,6 @@ msgid "%(count)d label template is inactive."
 msgid_plural "%(count)d label templates are inactive."
 msgstr[0] "%(count)d Etikettenvorlage ist inaktiv."
 msgstr[1] "%(count)d Etikettenvorlagen sind inaktiv."
+
+msgid "The code %(code)s is too close to %(other)s: codes must differ in more than capital and small letters."
+msgstr "Die Kennung %(code)s ist zu nah an %(other)s: Kennungen müssen sich in mehr als Groß- und Kleinschreibung unterscheiden."

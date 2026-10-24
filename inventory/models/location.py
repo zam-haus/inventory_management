@@ -7,6 +7,7 @@ from django.conf import settings
 from django.core import validators
 from django.core.exceptions import ValidationError
 from django.db import models, router, transaction
+from django.db.models.functions import Upper
 from django.db.models.signals import pre_delete
 from django.dispatch import receiver
 from django.urls import reverse
@@ -495,10 +496,15 @@ class LocationNumberRange(models.Model):
 
 
 def taken_location_codes(codes):
-    """Those of `codes` that are the unique identifier of a location (deleted ones included) or a former code."""
+    """Those of `codes` that are the unique identifier of a location (deleted ones included) or a former code,
+    ignoring case (codes differ in more than capital and small letters)."""
     codes = list(codes)
-    return (set(Location.objects.filter(unique_identifier__in=codes).values_list("unique_identifier", flat=True))
-            | set(LocationFormerCode.objects.filter(code__in=codes).values_list("code", flat=True)))
+    upper = {code.upper() for code in codes}
+    taken = set(Location.objects.annotate(upper=Upper("unique_identifier")).filter(upper__in=upper)
+                .values_list("upper", flat=True))
+    taken |= set(LocationFormerCode.objects.annotate(upper=Upper("code")).filter(upper__in=upper)
+                 .values_list("upper", flat=True))
+    return {code for code in codes if code.upper() in taken}
 
 
 def get_location_overview_upload_path(instance, filename):
@@ -513,6 +519,9 @@ class Location(SoftDeleteModel, ComputedFieldsModel):
         ordering = ("locatable_identifier",)
         # The printable inventory is for members of the local group (granted by migration 0023).
         permissions = [("print_inventory", _("Can print the inventory of locations"))]
+        # Codes are found ignoring case (labels hold them in capitals), so they differ in more than that;
+        # clean() says so in words (_validate_codes), the database makes sure.
+        constraints = [models.UniqueConstraint(Upper("unique_identifier"), name="location_code_unique_ignoring_case")]
 
     type = models.ForeignKey(LocationType, on_delete=models.PROTECT, verbose_name=_("type"))
 
@@ -635,11 +644,12 @@ class Location(SoftDeleteModel, ComputedFieldsModel):
         after = dict(type(self).objects.using(using).filter(pk__in=codes_before).values_list("pk", "unique_identifier"))
         former = LocationFormerCode.objects.using(using)
         for pk, code in codes_before.items():
-            if after.get(pk) != code:
-                former.get_or_create(code=code, defaults={"location_id": pk})
+            if after.get(pk, "").upper() != code.upper():  # not when only capital and small letters change
+                former.get_or_create(code__iexact=code, defaults={"code": code, "location_id": pk})
         # A location that gets one of its former codes back uses it again.
-        for entry in former.filter(code__in=after.values(), location_id__in=after):
-            if after[entry.location_id] == entry.code:
+        for entry in former.annotate(upper=Upper("code")).filter(
+                upper__in=[code.upper() for code in after.values()], location_id__in=after):
+            if after[entry.location_id].upper() == entry.upper:
                 entry.delete()
 
     def _rename_default_sublocations(self, old_name, using):
@@ -658,8 +668,10 @@ class Location(SoftDeleteModel, ComputedFieldsModel):
             return self.short_name
         return self.parent_location.unique_identifier + "." + self.short_name
 
-    def _validate_former_codes(self):
-        """Codes that were used before stay with their location: nobody else gets them (LocationFormerCode)."""
+    def _validate_codes(self):
+        """The location's code (and those of its parts, which change with it) must differ from every other
+        location's code in more than capital and small letters. Codes that were used before stay with their
+        location: nobody else gets them (LocationFormerCode)."""
         if not self.type.unique and self.parent_location is None:
             return  # reported below
         codes = {self.pk: self.prospective_unique_identifier()}
@@ -672,9 +684,16 @@ class Location(SoftDeleteModel, ComputedFieldsModel):
                 for child in Location.objects.filter(parent_location_id=pk, type__unique=False).exclude(pk__in=codes):
                     codes[child.pk] = f"{code}.{child.short_name}"
                     pending.append((child.pk, codes[child.pk]))
-        owners = {code: pk for pk, code in codes.items()}
-        for entry in LocationFormerCode.objects.filter(code__in=owners):
-            if entry.location_id is None or entry.location_id != owners[entry.code]:
+        owners = {code.upper(): pk for pk, code in codes.items()}
+        other = (Location.objects.exclude(pk__in=[pk for pk in codes if pk is not None])
+                 .annotate(upper=Upper("unique_identifier")).filter(upper__in=owners).first())
+        if other is not None:
+            raise ValidationError({"short_name": _(
+                "The code %(code)s is too close to %(other)s: codes must differ in more than capital and small "
+                "letters.") % {"code": next(code for code in codes.values() if code.upper() == other.upper),
+                               "other": other.unique_identifier}})
+        for entry in LocationFormerCode.objects.annotate(upper=Upper("code")).filter(upper__in=owners):
+            if entry.location_id is None or entry.location_id != owners[entry.upper]:
                 raise ValidationError({"short_name": _("The code %(code)s was used before and stays blocked.") % {
                     "code": entry.code}})
 
@@ -699,7 +718,7 @@ class Location(SoftDeleteModel, ComputedFieldsModel):
         if self.type.unique:
             # get all locations with a LocType defined as unique
             unique_locs = Location.objects.exclude(pk=self.pk).filter(type__unique=True)
-            if self.short_name in unique_locs.values_list("short_name", flat=True):
+            if unique_locs.filter(short_name__iexact=self.short_name).exists():
                 raise ValidationError(
                     {"short_name": _("Short name must be unique, as defined by type.")}
                 )
@@ -714,7 +733,7 @@ class Location(SoftDeleteModel, ComputedFieldsModel):
             sibling_locs = Location.objects.exclude(pk=self.pk).filter(
                 parent_location=self.parent_location
             )
-            if self.short_name in sibling_locs.values_list("short_name", flat=True):
+            if sibling_locs.filter(short_name__iexact=self.short_name).exists():
                 raise ValidationError(
                     {
                         "short_name": _("Short name must be unique among all sibling locations.")
@@ -738,7 +757,7 @@ class Location(SoftDeleteModel, ComputedFieldsModel):
             raise ValidationError({"parent_location": _(
                 "Locations of type “%(type)s” stand in a level, room or area, or on a pallet.") % {"type": self.type}})
 
-        self._validate_former_codes()
+        self._validate_codes()
 
     @property
     def ancestors(self):
@@ -936,6 +955,7 @@ class LocationFormerCode(models.Model):
         verbose_name = _("former code")
         verbose_name_plural = _("former codes")
         ordering = ("code",)
+        constraints = [models.UniqueConstraint(Upper("code"), name="former_code_unique_ignoring_case")]
 
     code = models.CharField(_("code"), max_length=64, unique=True)
     location = models.ForeignKey(
@@ -946,7 +966,7 @@ class LocationFormerCode(models.Model):
     note = models.CharField(_("note"), max_length=200, blank=True)
 
     def clean(self):
-        if self.code and Location.objects.filter(unique_identifier=self.code).exists():
+        if self.code and Location.objects.filter(unique_identifier__iexact=self.code).exists():
             raise ValidationError({"code": _("%(code)s is the current code of a location.") % {"code": self.code}})
 
     def __str__(self):
@@ -957,7 +977,8 @@ class LocationFormerCode(models.Model):
 def block_code_of_deleted_location(sender, instance, using, **kwargs):
     """Deleting a location for good keeps its code blocked (soft deletion keeps the location and its code)."""
     LocationFormerCode.objects.using(using).update_or_create(
-        code=instance.unique_identifier, defaults={"location": None, "note": gettext("deleted")})
+        code__iexact=instance.unique_identifier,
+        defaults={"code": instance.unique_identifier, "location": None, "note": gettext("deleted")})
 
 
 class LocationHistory(models.Model):

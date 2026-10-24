@@ -47,8 +47,22 @@ def create(apps, schema_editor):
             "subject_type": "item", "description": description, "label_width": width, "label_height": height})
 
 
+def delete_templates(apps, schema_editor, templates):
+    """By ids and without Django's cascade: rolled back across apps, the related models may be of an older state."""
+    ids = list(templates.values_list("pk", flat=True))
+    apps.get_model("inventory", "LocationType").objects.filter(default_label_template_id__in=ids).update(
+        default_label_template=None)
+    apps.get_model("inventory", "Location").objects.filter(label_template_id__in=ids).update(label_template=None)
+    for model in ("LabelStock", "LabelMedium"):
+        for field in apps.get_model("label_printing", model)._meta.many_to_many:
+            if field.related_model._meta.model_name == "locationlabeltemplate":
+                field.remote_field.through.objects.filter(locationlabeltemplate_id__in=ids).delete()
+    templates._raw_delete(schema_editor.connection.alias)
+
+
 def remove(apps, schema_editor):
-    apps.get_model("inventory", "LocationLabelTemplate").objects.filter(name__in=[name for name, *_rest in TEMPLATES]).delete()
+    delete_templates(apps, schema_editor, apps.get_model("inventory", "LocationLabelTemplate").objects.filter(
+        name__in=[name for name, *_rest in TEMPLATES]))
 
 
 class Migration(migrations.Migration):
