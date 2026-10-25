@@ -262,7 +262,7 @@ def queue_waiting(outcome, *, subject_type, subjects, copies, user, request_id, 
 def schedule_dispatch():
     """With a broker, look for printers for waiting jobs again in a few seconds (tasks.dispatch_waiting_jobs);
     once at a time."""
-    if getattr(settings, "CELERY_TASK_ALWAYS_EAGER", False):
+    if not with_broker():
         return  # no broker: the print dialog and the agents' requests look (job_status, api.poll)
     if cache.add("label_printing:dispatch_scheduled", True, timeout=DISPATCH_EVERY):
         from .tasks import dispatch_waiting_jobs
@@ -274,6 +274,45 @@ DISPATCH_EVERY = 10  # seconds between looks for printers for waiting jobs (with
 STATUS_FRESH = 20  # seconds a network printer's status counts as current for waiting jobs
 
 
+def with_broker():
+    """Whether a Celery worker does the network printers' work (jobs, status checks); without, requests do."""
+    return not getattr(settings, "CELERY_TASK_ALWAYS_EAGER", False)
+
+
+def printing_now(printers):
+    """The pks of these printers that have a job being printed: nothing else is sent to them meanwhile (a Brother
+    is reset before its status is read)."""
+    return set(PrintJob.objects.filter(status=PrintJob.Status.PROCESSING, printer__in=printers)
+               .values_list("printer_id", flat=True))
+
+
+def ask_network_printers(printers):
+    """Ask these network printers for their status, all at once, and keep it (an unanswered question as the
+    error): whether they are online and what is loaded. Printers printing now are left alone. Returns those asked."""
+    busy = printing_now(printers)
+    printers = [printer for printer in printers if printer.pk not in busy]
+    if not printers:
+        return []
+    with ThreadPoolExecutor(max_workers=len(printers)) as pool:
+        results = list(pool.map(lambda printer: query_status(TcpDevice(printer.host, printer.port), printer.language),
+                                printers))
+    for printer, result in zip(printers, results):
+        printer.remember_status(result.printer_status or {"ok": False, "errors": [result.code or "no_response"]})
+    return printers
+
+
+def check_network_printers(now=None):
+    """Ask the network printers due for it (tasks.check_network_printers, Celery beat): active ones that report
+    their status, whose last status (from a job, the dialog, the admin or the last check) is older than their
+    status_interval. Returns those asked."""
+    now = now or timezone.now()
+    due = [printer for printer in Printer.objects.filter(transport=Printer.Transport.NETWORK, is_active=True,
+                                                         reports_status=True, status_interval__gt=0)
+           if printer.last_status_at is None
+           or printer.last_status_at <= now - timedelta(seconds=printer.status_interval)]
+    return ask_network_printers(due)
+
+
 def refresh_network_statuses(outcomes_):
     """Ask the network printers of these outcomes for their status if it is older than STATUS_FRESH: a job
     waits for a tape to be changed or paper to be loaded."""
@@ -282,20 +321,14 @@ def refresh_network_statuses(outcomes_):
                 if target.printer.transport == Printer.Transport.NETWORK and target.printer.reports_status
                 and not target.printer.unavailable_code()
                 and (target.printer.last_status_at is None or target.printer.last_status_at < stale)}
-    if not printers:
-        return False
-    with ThreadPoolExecutor(max_workers=len(printers)) as pool:
-        results = list(pool.map(lambda printer: query_status(TcpDevice(printer.host, printer.port), printer.language),
-                                printers.values()))
-    for printer, result in zip(printers.values(), results):
-        printer.remember_status(result.printer_status or {"ok": False, "errors": [result.code or "no_response"]})
-    return True
+    return bool(ask_network_printers(list(printers.values())))
 
 
 def dispatch_waiting(refresh=True):
     """Print waiting jobs whose label a printer can print now (rendered for that printer, then queued as usual).
-    refresh: ask network printers for their status first (not while answering a print agent). Returns the
-    number of jobs dispatched; reschedules itself while jobs wait (with a broker)."""
+    refresh: ask network printers for their status first (not while answering a print agent, nor in requests
+    when a worker does it). Returns the number of jobs dispatched; reschedules itself while jobs wait (with a
+    broker)."""
     from . import outcomes
 
     expire_stale()
@@ -351,9 +384,11 @@ def dispatch(job, outcome, target):
 
 
 def check_status(printer):
-    """The printer's current status as a Result. Network printers are asked now; printers on an agent
-    report it with the agent's requests, so their last status is returned."""
+    """The printer's current status as a Result. Network printers are asked now, unless they are printing;
+    printers on an agent report it with the agent's requests, so their last status is returned."""
     if printer.transport == Printer.Transport.NETWORK:
+        if printing_now([printer]):
+            return Result(FAILED, "printing")
         result = query_status(TcpDevice(printer.host, printer.port), printer.language)
         printer.remember_status(result.printer_status)
         return result

@@ -95,6 +95,11 @@ class Printer(models.Model):
         help_text=_("Check paper, tape and errors before printing and wait until the printer reports the "
                     "labels printed. Turn off only for printers that cannot answer."),
     )
+    status_interval = models.PositiveIntegerField(
+        _("ask for its status every (seconds)"), default=60,
+        help_text=_("Network printers, with the print worker (Celery): whether it is online and what is loaded, "
+                    "asked unless a job or the print dialog just did; never while it prints. 0: never."),
+    )
     # Brother: how labels are cut (drivers.ptouch_job)
     class Cut(models.TextChoices):
         HALF = "half", _("half cut between labels")

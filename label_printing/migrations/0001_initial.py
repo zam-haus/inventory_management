@@ -491,6 +491,14 @@ class Migration(migrations.Migration):
                     ),
                 ),
                 (
+                    "status_interval",
+                    models.PositiveIntegerField(
+                        default=60,
+                        help_text="Network printers, with the print worker (Celery): whether it is online and what is loaded, asked unless a job or the print dialog just did; never while it prints. 0: never.",
+                        verbose_name="ask for its status every (seconds)",
+                    ),
+                ),
+                (
                     "cut",
                     models.CharField(
                         choices=[

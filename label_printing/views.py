@@ -57,7 +57,7 @@ def job_status(request, pk):
     if job.user_id != request.user.pk and not request.user.has_perm("label_printing.view_printjob"):
         raise Http404
     if job.status == PrintJob.Status.WAITING:
-        services.dispatch_waiting()
+        services.dispatch_waiting(refresh=not services.with_broker())  # else the worker asks the printers
         job.refresh_from_db()
     return JsonResponse(job_data(job))
 
@@ -88,7 +88,7 @@ def batch_status(request, batch):
     if not jobs:
         raise Http404
     if any(job.status == PrintJob.Status.WAITING for job in jobs):
-        services.dispatch_waiting()
+        services.dispatch_waiting(refresh=not services.with_broker())  # else the worker asks the printers
     return JsonResponse(batch_data(batch, list(jobs.all())))
 
 

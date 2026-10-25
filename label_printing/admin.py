@@ -148,7 +148,7 @@ class PrinterAdmin(admin.ModelAdmin):
     readonly_fields = ("status", "last_status_at", "uid", "reported", "discovered_at")
     fieldsets = (
         (None, {"fields": ("name", "slug", ("language", "model", "dpi"), ("is_active", "is_default"))}),
-        (_("Connection"), {"fields": ("transport", ("host", "port"), "agent", "reports_status")}),
+        (_("Connection"), {"fields": ("transport", ("host", "port"), "agent", ("reports_status", "status_interval"))}),
         (_("Zebra"), {"fields": ("loaded_medium",)}),
         (_("Brother P-touch"), {"fields": ("cut", "chain_printing")}),
         (_("Status"), {"fields": ("status", "last_status_at")}),

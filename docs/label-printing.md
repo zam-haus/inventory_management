@@ -74,9 +74,9 @@ Brother gets P-touch raster data. The code is in the app `label_printing`.
 * **Waiting jobs** have no printer and no printer data yet. They are drawn for the printer that
   turns out able to print them. Who looks for one:
   * every request of a print agent, for the printers on it;
-  * the dialog, while it follows the job; this also asks network printers for their status, at
-    most every 20 seconds;
-  * with a broker, a Celery task every ten seconds while jobs wait.
+  * the dialog, while it follows the job; without a broker it also asks network printers for their
+    status, at most every 20 seconds;
+  * with a broker, a Celery task every ten seconds while jobs wait, which asks the network printers.
 * Printing labels is a privilege: it requires `label_printing.print_label`, which migration
   `label_printing.0002` grants to the local group (for now only to it). That holds everywhere: the print
   dialogs and their previews, and in the admin the location actions and **Print label** link, printing
@@ -116,7 +116,8 @@ for removing. The location from the label (`?loc=`) comes first and is marked in
 2. **Printers:** name, short name (used by the print agent), language, model (Brother: E550W,
    P750W, P900, P900W, P950NW; sets the resolution), resolution (Zebra: 203/300/600 dpi), and the
    connection: *network* with host and port, or *print agent*. Leave *reports its status* on
-   unless a printer cannot answer status requests. One printer is the default for the admin's
+   unless a printer cannot answer status requests. *Ask for its status every* (seconds, default
+   60, 0: never): how often the worker checks a network printer between jobs. One printer is the default for the admin's
    print actions. A Zebra cannot tell which labels are in it: set its **loaded labels** (one of its
    media) whenever labels are changed. Only those are printed on, and only while the label length
    the printer measured (`~HS`, after calibration) matches their height within 2 mm; the width
@@ -243,14 +244,28 @@ both: devices.run.run_job(): status first, then the data, then wait for "printed
   tried again a few times; anything else is never repeated, so nothing is printed twice. The
   dialog's request ID makes a repeated submission return the same job.
 * The printer's last status is kept and shown in the dialog; for a Brother, the medium with the
-  loaded tape width is preselected.
+  loaded tape width is preselected. It comes from each job, from the print agents (every 30
+  seconds), from **Check the printer status** in the admin and, for network printers, from the
+  worker's regular check (below).
 
 ### Network printers: Celery
 
 `docker-compose.yml` runs Redis as broker and a `worker` service
-(`celery -A imzam worker --queues label_printing --concurrency 1`), one job at a time. The
+(`celery -A imzam worker --queues label_printing --concurrency 1 --beat …`), one job at a time. The
 worker must reach the printers on port 9100. Without `CELERY_BROKER_URL` (development), the
 task runs right away in the request.
+
+**Regular status checks** (with a broker only): the worker's beat starts
+`label_printing.tasks.check_network_printers` every `PRINT_STATUS_TICK` seconds (15). It asks
+the active network printers that report their status and whose last status is older than their
+*ask for its status every* (60 s by default, per printer): whether they answer, their errors and
+what is loaded. So a printer switched off, out of labels or with other tape shows as such in the
+dialog before anyone prints. A status that a job, the dialog or the admin brought in counts too, so
+busy printers are rarely asked. It never gets in the way of printing: the check runs in the
+worker's queue, which prints one job at a time; printers with a job being printed are skipped (a
+Brother is reset before it is asked), also by the admin's **Check the printer status**; and
+with a broker, web requests leave asking the printers to the worker. A tick the worker could not
+take in time is dropped, not piled up.
 
 ### USB printers: the print agent
 
@@ -332,6 +347,7 @@ The tests start the simulator on free ports (`label_printing/tests/helpers.py`).
 | `PRINT_MAX_COPIES` | 20 | most copies per job |
 | `PRINT_WAIT_MAX` | 300 | seconds a label no printer can print now may wait for one |
 | `PRINT_AGENT_MAX_PRINTERS` | 20 | new printers an agent may report |
+| `PRINT_STATUS_TICK` | 15 | seconds between looks for network printers due for a status check (with a broker) |
 
 ## Personal data
 

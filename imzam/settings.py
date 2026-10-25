@@ -297,6 +297,13 @@ CELERY_BROKER_URL = os.getenv("CELERY_BROKER_URL", "")
 CELERY_TASK_DEFAULT_QUEUE = "default"
 CELERY_TASK_ROUTES = {"label_printing.tasks.*": {"queue": "label_printing"}}
 CELERY_WORKER_HIJACK_ROOT_LOGGER = False
+# Celery beat (the worker's --beat): every this many seconds, network printers due for a status check are asked
+# (Printer.status_interval). A tick the worker could not take in time (printing, stopped) is dropped, not piled up.
+PRINT_STATUS_TICK = int(os.getenv("PRINT_STATUS_TICK", "15"))
+CELERY_BEAT_SCHEDULE = {
+    "label-printing-printer-status": {"task": "label_printing.tasks.check_network_printers",
+                                      "schedule": PRINT_STATUS_TICK, "options": {"expires": PRINT_STATUS_TICK}},
+}
 # A job not picked up within this many seconds is not printed any more (the user has moved on).
 PRINT_JOB_MAX_AGE = int(os.getenv("PRINT_JOB_MAX_AGE", "120"))
 # A job being printed for longer than this without a result counts as failed.

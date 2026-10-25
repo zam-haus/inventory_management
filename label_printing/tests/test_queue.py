@@ -221,6 +221,72 @@ class NetworkPrintingTests(SimulatedPrinters, TestCase):
 
 
 @override_settings(**SETTINGS)
+class StatusCheckTests(SimulatedPrinters, TestCase):
+    """Network printers due for it are asked for their status (Celery beat), never while they print."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.zebra, cls.labels, cls.brother, cls.tape = create_printers(cls.zebra_server.port, cls.brother_server.port)
+
+    def checked(self, now=None):
+        return sorted(printer.slug for printer in services.check_network_printers(now))
+
+    def test_due_printers_are_asked(self):
+        self.zebra_state.errors = ["paper_out"]
+        self.brother_state.tape_mm = 24
+        self.assertEqual(self.checked(), ["ptouch", "zebra"])  # never asked yet
+        self.zebra.refresh_from_db()
+        self.brother.refresh_from_db()
+        self.assertEqual(self.zebra.status_text, "The printer is out of labels.")
+        self.assertEqual(self.brother.last_status["media_width_mm"], 24)
+        self.assertEqual(self.checked(), [])  # just asked, also when a job or the dialog did
+        later = timezone.now() + timedelta(seconds=61)
+        self.assertEqual(self.checked(later), ["ptouch", "zebra"])
+        Printer.objects.filter(pk=self.zebra.pk).update(status_interval=300)
+        Printer.objects.filter(pk=self.brother.pk).update(status_interval=0)  # never
+        self.assertEqual(self.checked(later), [])
+        self.assertEqual(self.checked(timezone.now() + timedelta(seconds=301)), ["zebra"])
+
+    def test_offline_printer_is_marked(self):
+        Printer.objects.filter(pk=self.zebra.pk).update(port=1)
+        Printer.objects.filter(pk=self.brother.pk).update(is_active=False)  # not asked
+        self.assertEqual(self.checked(), ["zebra"])
+        self.zebra.refresh_from_db()
+        self.assertEqual(self.zebra.status_text, "The printer cannot be reached.")
+
+    def test_printers_printing_now_are_left_alone(self):
+        PrintJob.objects.create(printer=self.brother, medium=self.tape, layout_key="test", subject_type="printer",
+                                status=PrintJob.Status.PROCESSING, claimed_at=timezone.now())
+        self.assertEqual(self.checked(), ["zebra"])
+        self.assertEqual(services.check_status(self.brother).code, "printing")  # the admin's action too
+        self.brother.refresh_from_db()
+        self.assertIsNone(self.brother.last_status_at)
+
+    def test_the_task_runs_on_a_schedule_in_the_print_queue(self):
+        from django.conf import settings
+
+        from ..tasks import check_network_printers
+        entry = settings.CELERY_BEAT_SCHEDULE["label-printing-printer-status"]
+        self.assertEqual((entry["task"], entry["schedule"]), (check_network_printers.name, settings.PRINT_STATUS_TICK))
+        self.assertEqual(settings.CELERY_TASK_ROUTES["label_printing.tasks.*"]["queue"], "label_printing")
+        check_network_printers.delay()  # eager here
+        self.assertEqual(Printer.objects.filter(last_status_at__isnull=False).count(), 2)
+
+    def test_with_a_worker_requests_leave_the_printers_to_it(self):
+        with patch("label_printing.services.ask_network_printers") as ask:
+            with override_settings(CELERY_TASK_ALWAYS_EAGER=False):
+                self.assertTrue(services.with_broker())
+                user = create_user("waiting")
+                job = PrintJob.objects.create(printer=None, layout_key="x", subject_type="printer", user=user,
+                                              status=PrintJob.Status.WAITING,
+                                              expires_at=timezone.now() + timedelta(minutes=5))
+                self.client.force_login(user)
+                with patch("label_printing.services.schedule_dispatch"):
+                    self.client.get(reverse("print_job_status", args=[job.pk]))
+        ask.assert_not_called()
+
+
+@override_settings(**SETTINGS)
 class JobStatusViewTests(TestCase):
     @classmethod
     def setUpTestData(cls):

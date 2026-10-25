@@ -30,6 +30,7 @@ MESSAGES = {
     "write_failed": _("Sending to the printer failed."),
     "connection_lost": _("The connection to the printer broke off."),
     "no_confirmation": _("The printer took the job but did not confirm it was printed."),
+    "printing": _("The printer is printing just now; ask again in a moment."),
     # Queue
     "expired": _("Nobody picked up the job in time, so it was not printed."),
     "lease_expired": _("The print worker or agent did not report back."),

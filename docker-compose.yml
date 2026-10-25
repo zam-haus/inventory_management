@@ -73,9 +73,10 @@ services:
       - default
 
   # Prints on network printers (docs/label-printing.md), one job at a time; needs to reach them on port 9100.
+  # --beat: asks them for their status between jobs (Printer.status_interval, PRINT_STATUS_TICK).
   worker:
     build: .
-    command: celery -A imzam worker --queues label_printing --concurrency 1 --loglevel INFO
+    command: celery -A imzam worker --queues label_printing --concurrency 1 --beat --schedule /tmp/celerybeat-schedule --loglevel INFO
     env_file:
       - ".env"
     environment:

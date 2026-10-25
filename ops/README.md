@@ -15,7 +15,7 @@ installed, or `COMPOSE="..."`).
 | `python` | Django app (gunicorn); collects static files and applies migrations on every start (`web-entrypoint.sh`) | `data/media/`, `data/static/`, `exports/` |
 | `web` | nginx on port 80, serves `data/static/` and `data/media/`, proxies the rest (`nginx.conf`) | |
 | `redis` | broker for Celery: hands label print jobs to the worker | |
-| `worker` | Celery worker printing on network label printers, one job at a time; needs to reach them on port 9100 ([label printing](../docs/label-printing.md)) | |
+| `worker` | Celery worker printing on network label printers, one job at a time, and asking them for their status between jobs (beat); needs to reach them on port 9100 ([label printing](../docs/label-printing.md)) | |
 
 The app's code is built into its image (`Dockerfile`), with the configuration from `.env`.
 Changing files in the checkout therefore has no effect until the image is rebuilt:
