@@ -1,10 +1,15 @@
 /* Levels and axes (structure_overview.html): a table of levels (rows) by axes (columns) that scrolls
    sideways; the level column stays in view. Builds on location_detail.css. */
 .structure-overview { display: grid; gap: 1.5rem; }
+/* The title with the print button at its right; the intro below spans the page. */
+.structure-title-row { flex-wrap: nowrap; margin-bottom: .4rem; }
+.structure-title-row h1 { margin: 0; }
 .structure-overview { --structure-area: #f1f3f5; --structure-outdoor: #e3f0f9; --structure-fire: #b42318; }
 
 .structure-legend { padding: 1rem 1.2rem; }
 .structure-legend-list { display: flex; flex-wrap: wrap; align-items: center; gap: .6rem 1.25rem; margin: 0; padding: 0; list-style: none; font-size: .875rem; }
+/* The teams below the kinds of places, under their own heading. */
+.structure-legend-heading { margin: .9rem 0 .5rem; padding-top: .75rem; border-top: 1px solid var(--location-border); font-size: .75rem; }
 .structure-sample { display: inline-block; padding: .15rem .6rem; }
 
 .structure-scroll { overflow-x: auto; border-radius: .65rem; }
@@ -62,4 +67,35 @@
     .structure-level { min-width: 4.25rem !important; max-width: 4.25rem !important; padding-inline: .3rem; }
     .structure-level-number { font-size: 1.25rem; }
     .structure-level-word { font-size: .6rem; letter-spacing: .02em; }
+}
+
+/* Printing (the Print button or the browser's): the whole table on landscape pages (A3 fits a building, A4 gets
+   tight), no scrolling, nothing sticky, colours kept, the axes repeated on every page. */
+@media print {
+    @page { size: landscape; margin: 8mm; }
+    /* Everything in rem gets smaller with the root size. */
+    html { font-size: 7pt; }
+    body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .app-navbar, .structure-print, .alert { display: none !important; }
+    .container { max-width: none; width: auto; margin: 0; padding: 0; }
+    .location-header { padding: 0 0 3mm; }
+    .location-heading h1 { font-size: 14pt; margin: 0; }
+    .structure-overview { gap: 3mm; }
+    .structure-legend, .structure-panel { border: 0; box-shadow: none; padding: 0; }
+    .structure-legend-list { gap: 1mm 4mm; }
+    .structure-legend-heading { margin: 1.5mm 0 1mm; padding-top: 1.5mm; }
+    .structure-scroll { overflow: visible; border-radius: 0; }
+    /* Columns as wide as their contents need, within the page: wide axes get more. */
+    .structure-table { width: 100%; table-layout: auto; hyphens: manual; }
+    .structure-table th,
+    .structure-table td,
+    .structure-table .structure-wide { min-width: 0; max-width: none; padding: 1mm; }
+    .structure-corner,
+    .structure-level { position: static; width: 11mm; min-width: 0 !important; max-width: none !important; }
+    .structure-level-number { font-size: 11pt; }
+    .structure-table thead { display: table-header-group; }
+    .structure-table tr,
+    .structure-node { break-inside: avoid; }
+    .structure-table a { color: inherit; text-decoration: none; }
+    .structure-fire-mark { letter-spacing: 0; }
 }

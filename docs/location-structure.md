@@ -141,11 +141,17 @@ properties yet; the admin shows and filters the new fields.
 
 *Levels and axes* (`/loc/structure/`, `StructureOverviewView`, linked from the location list,
 public like the other location pages) draws the structure from the database: levels across, axes
-down, grouped by house. Each level, room and area shows its code (linked to its page), purpose
-(or name), description, team badges and the fire-load mark; rooms, areas and outdoor places are
-told apart by their frame. Numbered parts are listed with their code relative to their room
-(`.1`). A level's main area is drawn in its axis. Containers are left out. The table scrolls
+down, grouped by house. Each level, room and area shows its purpose (or name), then its code
+(linked to its page), description, team badges and the fire-load mark; rooms, areas and outdoor
+places are told apart by their frame. Numbered parts are listed with their code relative to their
+room (`.1`). A level's main area is drawn in its axis. Containers are left out. The table scrolls
 sideways, the level column stays in view.
 
-Code: `inventory/structure_overview.py`, `inventory/templates/inventory/structure_overview.html`;
+**Printing** (the **Print** button, or the browser's): landscape pages with the whole table, its
+columns as wide as their contents need, a smaller font, colours kept, the axes repeated on every
+page; navigation and buttons are left out (`@media print` in `structure_overview.css`). A3 fits
+the building on two pages, A4 on about four.
+
+Code: `inventory/structure_overview.py`, `inventory/templates/inventory/structure_overview.html`,
+`inventory/static/inventory/structure_overview.css` and `.js`;
 tests: `inventory/tests/test_building_structure.py`.

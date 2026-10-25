@@ -3775,3 +3775,6 @@ msgstr ""
 "Optional, um es von anderen Exemplaren der Sache zu unterscheiden, z. B. „blau“ "
 "oder „Ersatz für die Werkstatt“. Er steht zwischen dem Namen der Sache und "
 "ihrer ZAMid."
+
+msgid "Teams"
+msgstr "Teams"

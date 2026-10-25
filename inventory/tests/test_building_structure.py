@@ -75,6 +75,8 @@ class StructureTests(TestCase):
         self.assertIn('Abzug <span class="loc-code">.1</span>', page)  # numbered parts relative to their room
         self.assertIn("Werkhaus <span class=\"structure-house-code\">WH</span>", page)  # without the level number
         self.assertIn("--team-bg: #7d3a2d", page)
+        self.assertIn("data-print-page", page)  # printing fits the table to the page (structure_overview.css)
+        self.assertIn("structure_overview.js", page)
         self.assertNotIn("Kiste 2", page)  # boxes and shelves are left out
         self.assertLess(page.index(">+0<"), page.index(">-1<"))  # upper levels first
         self.assertIn(reverse("structure_overview"), self.client.get(reverse("index_locations")).content.decode())
