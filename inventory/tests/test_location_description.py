@@ -3,7 +3,7 @@ from django.contrib.auth.models import Permission
 from django.test import TestCase, override_settings
 from django.urls import reverse
 
-from ..models import Location, LocationHistory, LocationType
+from ..models import ChangeLog, Location, LocationType
 
 
 @override_settings(LANGUAGE_CODE="en")
@@ -21,7 +21,7 @@ class LocationDescriptionTests(TestCase):
                                             parent_location=cls.room, physical_description="Holz, 4 Böden")
         cls.member = get_user_model().objects.create_user(username="member")
         cls.member.user_permissions.add(*Permission.objects.filter(
-            content_type__app_label="inventory", codename__in=["change_location", "view_locationhistory"]))
+            content_type__app_label="inventory", codename__in=["change_location", "view_changelog"]))
         cls.viewer = get_user_model().objects.create_user(username="viewer")
 
     def url(self, location):
@@ -35,11 +35,11 @@ class LocationDescriptionTests(TestCase):
         response = self.client.post(self.url(self.shelf), {"physical_description": "Holz, 5 Böden\nblau lackiert"})
         self.assertRedirects(response, self.shelf.get_absolute_url(), fetch_redirect_response=False)
         self.assertEqual(Location.objects.get(pk=self.shelf.pk).physical_description, "Holz, 5 Böden\nblau lackiert")
-        event = LocationHistory.objects.get(location=self.shelf)
-        self.assertEqual((event.actor, event.before["physical_description"]), (self.member, "Holz, 4 Böden"))
-        history = self.client.get(reverse("location_history", args=[self.shelf.pk])).content.decode()
-        self.assertIn("Physical description", history)
-        self.assertIn("Holz, 5 Böden<br>blau lackiert", history)
+        event = ChangeLog.objects.get(location=self.shelf, action=ChangeLog.Action.CHANGED)
+        self.assertEqual((event.actor, event.changes[0]["before"]), (self.member, "Holz, 4 Böden"))
+        page = self.client.get(self.shelf.get_absolute_url()).content.decode()
+        self.assertIn("physical description:", page)
+        self.assertIn("<ins>Holz, 5 Böden\nblau lackiert</ins>", page)
 
     def test_the_dialog_saves_as_json(self):
         self.client.force_login(self.member)

@@ -3778,3 +3778,108 @@ msgstr ""
 
 msgid "Teams"
 msgstr "Teams"
+
+msgid "subject"
+msgstr "Betrifft"
+
+msgid "subject type"
+msgstr "Art (betrifft)"
+
+msgid "subject ID"
+msgstr "ID (betrifft)"
+
+msgid "Website"
+msgstr "Website"
+
+msgid "Can see who made a change in the change log"
+msgstr "Kann im Änderungsprotokoll sehen, wer etwas geändert hat"
+
+msgid "Can remove and add stock in the stock dialog"
+msgstr "Kann im Bestandsdialog Bestand entnehmen und hinzufügen"
+
+msgid "All changes in the admin"
+msgstr "Alle Änderungen im Admin"
+
+msgid "becomes"
+msgstr "wird zu"
+
+#, python-format
+msgid "%(count)d copy"
+msgid_plural "%(count)d copies"
+msgstr[0] "%(count)d Stück"
+msgstr[1] "%(count)d Stück"
+
+msgid "changes"
+msgstr "Änderungen"
+
+msgid "changed (internal)"
+msgstr "geändert (intern)"
+
+msgid "change log"
+msgstr "Änderungsprotokoll"
+
+msgid "change log entry"
+msgstr "Eintrag im Änderungsprotokoll"
+
+msgid "location page"
+msgstr "Standortseite"
+
+msgid "Created"
+msgstr "Angelegt"
+
+msgid "Changed"
+msgstr "Geändert"
+
+msgid "Restored"
+msgstr "Wiederhergestellt"
+
+msgid "Stock changed"
+msgstr "Bestand geändert"
+
+msgid "Attachment added"
+msgstr "Anhang hinzugefügt"
+
+msgid "Attachment removed"
+msgstr "Anhang entfernt"
+
+msgid "Label ID"
+msgstr "Label-ID"
+
+msgid "Label printed"
+msgstr "Etikett gedruckt"
+
+msgid "Label printing"
+msgstr "Etikettendruck"
+
+msgid "action"
+msgstr "Aktion"
+
+msgid "other location"
+msgstr "anderer Standort"
+
+msgid "details"
+msgstr "Details"
+
+msgid "Changes"
+msgstr "Änderungen"
+
+msgid "The last change."
+msgid_plural "The last %(counter)s changes."
+msgstr[0] "Die letzte Änderung."
+msgstr[1] "Die letzten %(counter)s Änderungen."
+
+#, python-format
+msgid "Stored here: %(amount)s"
+msgstr "Eingelagert: %(amount)s"
+
+#, python-format
+msgid "%(amount)s, removed from the location"
+msgstr "%(amount)s, vom Standort entfernt"
+
+#, python-format
+msgid "%(code)s assigned"
+msgstr "%(code)s zugeordnet"
+
+#, python-format
+msgid "%(code)s retired"
+msgstr "%(code)s stillgelegt"

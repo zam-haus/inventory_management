@@ -37,15 +37,16 @@ but images are missing.
 ## What is left out or replaced
 
 Kept is what the website shows to visitors who are not logged in, plus internal data
-that is not personal, such as stock changes without their notes or location types.
+that is not personal, such as the change log without who acted, or location types.
 
 | Data | In the export |
 |---|---|
 | User accounts (names, emails, directory data, passwords) | left out; developers create their own |
-| Who did something (stock changes, location history, unique item events, label IDs) | cleared; recorded names become `[redacted]` |
+| Who did something (change log, label IDs) | cleared; recorded names become `[redacted]` |
 | Owners of unique items | account and contact cleared; the first name becomes `[redacted]`, so "not ZAM property" stays visible |
 | Responsible person of unique items | cleared (responsible team kept) |
-| Notes on stock changes, unique item events and label IDs | emptied |
+| Notes in the change log and on label IDs | emptied |
+| Owners and internal values in the change log, names of internal documents there | left out, `[redacted]` |
 | Purchase prices (internal) | cleared |
 | Internal documents | left out, with their files |
 | Label scans, admin log, sessions, thumbnail cache | left out |

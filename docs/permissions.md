@@ -60,7 +60,8 @@ otherwise is for admins. See [Building structure](location-structure.md).
 
 Of a location's own details, the inventory pages change the purpose, the physical description and the
 overview photo (`change_location`, each in its own dialog), except for admin-only types (the building
-structure); changes of all three are recorded in the location history. Name and short name are
+structure); changes of all three are recorded in the [change log](change-log.md), which the local
+group sees without who made them (`view_changelog`). Name and short name are
 changed in the admin. Short names stay fixed: a changed one is kept as a **former code**
 (`LocationFormerCode`), which only admins add or remove; the local group gets no permissions for
 them.

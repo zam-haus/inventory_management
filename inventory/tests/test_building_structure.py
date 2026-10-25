@@ -327,7 +327,7 @@ class NumberRangeTests(TestCase):
         self.assertRedirects(self.client.post(purposes, {"codes": "a,b", fields["a"]: "Schrauben M4", fields["b"]: ""}),
                              shelf.get_absolute_url(), fetch_redirect_response=False)
         self.assertEqual(shelf.children.get(short_name="a").purpose, "Schrauben M4")
-        self.assertEqual(shelf.children.get(short_name="a").history.count(), 1)
+        self.assertEqual(shelf.children.get(short_name="a").change_log.filter(action="changed").count(), 1)
 
     def test_creating_needs_the_add_permission(self):
         from django.contrib.auth import get_user_model

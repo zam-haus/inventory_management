@@ -5,8 +5,8 @@ from django.core.exceptions import PermissionDenied
 from django.db import transaction
 from django.utils.translation import gettext as _
 
-from .models import StockChange
-from .stock_log import stock_changes
+from .change_log import change_context
+from .models import ChangeLog
 
 
 # Anyone who may create items may manage quick-items while they stay quick-items.
@@ -119,6 +119,5 @@ class ItemEditorPermissionMixin(PermissionRequiredMixin):
                 if not self.request.user.has_perm(model_permission(formset.model, action)):
                     raise PermissionDenied
         # Changing an amount here corrects the count; it is logged as a recount.
-        with stock_changes(actor=self.request.user, source=StockChange.Source.ITEM_FORM,
-                           decrease_reason=StockChange.Reason.RECOUNT_LOST):
+        with change_context(decrease_reason=ChangeLog.Reason.RECOUNT_LOST):
             return super().forms_valid(form, inlines)

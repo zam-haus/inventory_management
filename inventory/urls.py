@@ -10,7 +10,7 @@ from django.views.generic.base import TemplateView
 from . import attachment_views, unique_item_views, views
 from .dissolve_views import DissolveLocationView
 from .location_overview_views import (
-    LocationDescriptionUpdateView, LocationHistoryView, LocationOverviewUpdateView, LocationPurposeUpdateView,
+    LocationDescriptionUpdateView, LocationOverviewUpdateView, LocationPurposeUpdateView,
 )
 from .numbered_location_views import (
     ContainerCreateView, NumberedLocationCreateView, SublocationAddView, SublocationPurposeView,
@@ -26,7 +26,6 @@ urlpatterns = [
     path("loc/<int:pk>/overview/", LocationOverviewUpdateView.as_view(), name="location_overview_update"),
     path("loc/<int:pk>/purpose/", LocationPurposeUpdateView.as_view(), name="location_purpose_update"),
     path("loc/<int:pk>/description/", LocationDescriptionUpdateView.as_view(), name="location_description_update"),
-    path("loc/<int:pk>/history/", LocationHistoryView.as_view(), name="location_history"),
     path("loc/<int:pk>/new-shelf/", NumberedLocationCreateView.as_view(), name="numbered_location_create"),
     path("loc/<int:pk>/new-container/", ContainerCreateView.as_view(), name="container_create"),
     path("loc/<int:pk>/add-sublocations/", SublocationAddView.as_view(), name="sublocation_add"),

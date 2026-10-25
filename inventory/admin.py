@@ -5,10 +5,11 @@ from dal import autocomplete
 from django import forms
 from django.contrib import admin, messages
 from django.contrib.admin.views.decorators import staff_member_required
+from django.contrib.auth.models import AnonymousUser
 from django.contrib.auth.mixins import PermissionRequiredMixin
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.db import transaction
-from django.db.models import CharField, FileField, TextField
+from django.db.models import CharField, FileField, Q, TextField
 from django.forms.models import _get_foreign_key
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import path, reverse
@@ -28,7 +29,9 @@ from .icons import icon
 from .forms import AdminItemLocationForm, AdminLocationForm
 from .soft_delete import SoftDeleteModel
 from .soft_delete_admin import DeletedObjectFilter, SoftDeleteAdminMixin
-from .stock_log import stock_changes
+from .actor import current_request
+from .change_log import change_context
+from .templatetags import change_log as change_log_tags
 from .label_ids import core as label_id_core, naming as label_id_naming, parsing as label_id_parsing, services as label_id_services
 from .label_ids.admin import ClaimOnAddMixin  # also registers LabelIdAdmin
 from .label_ids.lookup import annotate_label_code
@@ -294,6 +297,112 @@ class CappedInlineMixin:
         })
 
 
+class ChangeLogDisplayMixin:
+    """Read-only presentation shared by the change log and its inlines. Internal values (and the raw changes)
+    need inventory.view_internal_details, as on the unique item."""
+
+    @admin.display(description=_("changes"))
+    def summary(self, obj):
+        request = current_request()
+        shown = change_log_tags.describe(obj, None, request.user if request is not None else AnonymousUser())
+        parts = []
+        if "move" in shown:
+            parts.append(format_html("{} → {}", *shown["move"]))
+        parts.extend(format_html("{}", line) for line in shown["lines"])
+        parts.extend(format_html("{}: {}", change["field"], _("changed (internal)")) if change["internal"]
+                     else format_html("{}: {} → {}", change["field"], change["before"], change["after"])
+                     for change in shown["changes"])
+        return format_html_join("", "<div>{}</div>", ((part,) for part in parts)) or "–"
+
+    @admin.display(description=_("sale value"), ordering="sale_value")
+    def sale_value_text(self, obj):
+        if obj.sale_value is None:
+            return "–"
+        return ("~" if obj.details.get("estimated") else "") + f"{obj.sale_value} €"
+
+
+class ChangeLogInline(CappedInlineMixin, ChangeLogDisplayMixin, admin.TabularInline):
+    model = models.ChangeLog
+    extra = 0
+    can_delete = False
+    fields = ("created_at", "action", "subject_label", "summary", "reason", "sale_value_text", "actor")
+    readonly_fields = fields
+    verbose_name_plural = _("change log")
+
+    def has_add_permission(self, request, obj=None):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+
+class ItemChangeLogInline(ChangeLogInline):
+    fk_name = "item"
+
+
+class UniqueItemChangeLogInline(ChangeLogInline):
+    fk_name = "unique_item"
+
+
+class LocationChangeLogInline(ChangeLogInline):
+    fk_name = "location"
+
+
+class ShownOnLocationFilter(admin.SimpleListFilter):
+    """The entries a location's page shows: about it, or with it as the other location (link from the page)."""
+    title = _("location page")
+    parameter_name = "shown_on_location"
+
+    def lookups(self, request, model_admin):
+        location = models.Location.objects.filter(pk=self.value()).first() if (self.value() or "").isdigit() else None
+        return [(str(location.pk), location.title_with_code)] if location else []
+
+    def queryset(self, request, queryset):
+        if (self.value() or "").isdigit():
+            return queryset.filter(Q(location=self.value()) | Q(other_location=self.value()))
+        return queryset
+
+
+@admin.register(models.ChangeLog)
+class ChangeLogAdmin(ChangeLogDisplayMixin, admin.ModelAdmin):
+    list_display = ("created_at", "action", "subject_link", "summary", "reason", "sale_value_text", "actor_name",
+                    "source")
+    list_filter = ("action", "source", "reason", "subject_type", "created_at", ShownOnLocationFilter)
+    date_hierarchy = "created_at"
+    search_fields = ("subject_label", "actor_name", "actor__username", "note")
+    fields = ("created_at", "actor", "actor_name", "source", "action", "subject_type", "subject_id", "subject_link",
+              "item", "unique_item", "location", "other_location", "summary", "reason", "sale_value_text", "note",
+              "changes", "details")
+    readonly_fields = fields
+    INTERNAL_FIELDS = ("changes", "details")
+
+    def get_fields(self, request, obj=None):
+        if request.user.has_perm("inventory.view_internal_details"):
+            return self.fields
+        return [field for field in self.fields if field not in self.INTERNAL_FIELDS]
+
+    @admin.display(description=_("subject"), ordering="subject_label")
+    def subject_link(self, obj):
+        target = {"item": obj.item, "uniqueitem": obj.unique_item, "location": obj.location}.get(obj.subject_type)
+        if target is None or target.pk != obj.subject_id:
+            return obj.subject_label
+        return format_html('<a href="{}">{}</a>', target.get_absolute_url(), obj.subject_label)
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related(
+            "actor", "item", "unique_item__item", "location", "other_location")
+
+    # The log is append-only; entries are written by the inventory itself.
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+
 class LocationInlineFormSet(forms.BaseInlineFormSet):
     def clean(self):
         super().clean()
@@ -386,18 +495,8 @@ class LocationAdmin(ClaimOnAddMixin, SoftDeleteAdminMixin, admin.ModelAdmin):
     list_filter = (DeletedObjectFilter, "type__structure", "axis", "fire_load_free", "outdoor", "responsible_teams")
     autocomplete_fields = ("responsible_teams",)
     actions = ["send_to_printer_action", "send_to_printer_twice_action"]
-    inlines = [LocationInline, LocationNumberRangeInline, LocationFormerCodeInline]
+    inlines = [LocationInline, LocationNumberRangeInline, LocationFormerCodeInline, LocationChangeLogInline]
     form = AdminLocationForm
-
-    def save_model(self, request, obj, form, change):
-        obj._history_actor = request.user
-        super().save_model(request, obj, form, change)
-
-    def save_formset(self, request, form, formset, change):
-        if formset.model is models.Location:
-            for inline_form in formset.forms:
-                inline_form.instance._history_actor = request.user
-        super().save_formset(request, form, formset, change)
 
     def get_form(self, request, obj=None, **kwargs):
         form = super().get_form(request, obj, **kwargs)
@@ -636,59 +735,18 @@ class ItemFileInline(DocumentInlineMixin, admin.TabularInline):
     extra = 0
 
 
-class StockChangeDisplayMixin:
-    """Read-only presentation shared by the stock log and its item inline."""
-
-    @admin.display(description=_("change"), ordering="amount")
-    def change(self, obj):
-        sign, arrow, color = ("+", "arrow-up", "#198754") if obj.is_increase else ("−", "arrow-down", "#dc3545")
-        if obj.amount is None:
-            amount = _("everything (amount unknown)") if obj.entry_removed else _("unknown amount")
-        else:
-            amount = ("~" if obj.is_estimate else "") + obj.amount_text(obj.amount)
-        return format_html('<span style="color: {}; font-weight: 600">{} {}{}</span>', color, icon(arrow), sign, amount)
-
-    @admin.display(description=_("stock"))
-    def stock(self, obj):
-        after = _("removed from location") if obj.entry_removed else obj.amount_text(obj.amount_after)
-        return f"{obj.amount_text(obj.amount_before)} → {after}"
-
-    @admin.display(description=_("sale value"), ordering="sale_value")
-    def sale_value_text(self, obj):
-        if obj.sale_value is None:
-            return _("unknown")
-        return ("~" if obj.is_estimate else "") + f"{obj.sale_value} €"
-
-
-class StockChangeInline(CappedInlineMixin, StockChangeDisplayMixin, admin.TabularInline):
-    model = models.StockChange
-    fk_name = "item"
-    extra = 0
-    can_delete = False
-    fields = ("created_at", "location_name", "change", "stock", "reason", "note", "sale_value_text", "actor")
-    readonly_fields = fields
-    verbose_name_plural = _("stock changes")
-
-    def has_add_permission(self, request, obj=None):
-        return False
-
-    def has_change_permission(self, request, obj=None):
-        return False
-
-
 class ItemAdmin(ClaimOnAddMixin, SoftDeleteAdminMixin, admin.ModelAdmin):
     list_display = ("name", "kind", "deleted_status")
     list_filter = (*SoftDeleteAdminMixin.list_filter, "kind")
     search_fields = ("name", "description")
-    inlines = [ItemBarcodeInline, ItemImageInline, ItemFileInline, ItemLocationInline, StockChangeInline]
+    inlines = [ItemBarcodeInline, ItemImageInline, ItemFileInline, ItemLocationInline, ItemChangeLogInline]
     formfield_overrides = {
         TextField: {"widget": forms.Textarea(attrs={"rows": 3, "cols": 60})},
     }
 
     def stock_change_context(self, request):
         # Amounts edited here are corrections; they are logged as recounts.
-        return stock_changes(actor=request.user, source=models.StockChange.Source.ADMIN,
-                             decrease_reason=models.StockChange.Reason.RECOUNT_LOST)
+        return change_context(decrease_reason=models.ChangeLog.Reason.RECOUNT_LOST)
 
     def save_formset(self, request, form, formset, change):
         with self.stock_change_context(request):
@@ -706,44 +764,6 @@ class ItemAdmin(ClaimOnAddMixin, SoftDeleteAdminMixin, admin.ModelAdmin):
 admin.site.register(models.Item, ItemAdmin)
 
 
-@admin.register(models.StockChange)
-class StockChangeAdmin(StockChangeDisplayMixin, admin.ModelAdmin):
-    list_display = ("created_at", "item_link", "location_name", "change", "reason", "sale_value_text", "actor", "source")
-    list_filter = ("direction", "reason", "source", "entry_removed", "created_at")
-    date_hierarchy = "created_at"
-    search_fields = ("item_name", "location_name", "note", "actor__username")
-    fields = (
-        "created_at", "actor", "direction", "reason", "note", "source", "item_link", "location_link",
-        "change", "stock", "unit_price", "sale_value_text",
-    )
-    readonly_fields = fields
-
-    @admin.display(description=_("item"), ordering="item_name")
-    def item_link(self, obj):
-        if obj.item_id is None:
-            return obj.item_name
-        return format_html('<a href="{}">{}</a>', obj.item.get_admin_url(), obj.item_name)
-
-    @admin.display(description=_("location"), ordering="location_name")
-    def location_link(self, obj):
-        if obj.location_id is None:
-            return obj.location_name
-        return format_html('<a href="{}">{}</a>', obj.location.get_admin_url(), obj.location_name)
-
-    def get_queryset(self, request):
-        return super().get_queryset(request).select_related("item", "location", "actor")
-
-    # The log is append-only; entries are created by the inventory itself.
-    def has_add_permission(self, request):
-        return False
-
-    def has_change_permission(self, request, obj=None):
-        return False
-
-    def has_delete_permission(self, request, obj=None):
-        return False
-
-
 class UniqueItemFileInline(DocumentInlineMixin, admin.TabularInline):
     """Files of this unique item only; general ones are on the item."""
     model = models.ItemFile
@@ -759,22 +779,6 @@ class UniqueItemImageInline(admin.TabularInline):
     extra = 0
 
 
-class UniqueItemEventInline(CappedInlineMixin, admin.TabularInline):
-    model = models.UniqueItemEvent
-    extra = 0
-    can_delete = False
-    fields = ("created_at", "type", "from_location_name", "to_location_name", "from_owner_name", "to_owner_name",
-              "reason", "note", "actor")
-    readonly_fields = fields
-    verbose_name_plural = _("history")
-
-    def has_add_permission(self, request, obj=None):
-        return False
-
-    def has_change_permission(self, request, obj=None):
-        return False
-
-
 @admin.register(models.UniqueItem)
 class UniqueItemAdmin(admin.ModelAdmin):
     list_display = ("__str__", "label_code_display", "location", "responsible_team", "disposed_at")
@@ -782,7 +786,7 @@ class UniqueItemAdmin(admin.ModelAdmin):
     search_fields = ("item__name", "name", "notes", "owner_first_name")
     autocomplete_fields = ("item", "location", "responsible_user", "owner_user")
     readonly_fields = ("label_code_display",)
-    inlines = [UniqueItemImageInline, UniqueItemFileInline, UniqueItemEventInline]
+    inlines = [UniqueItemImageInline, UniqueItemFileInline, UniqueItemChangeLogInline]
 
     INTERNAL_FIELDS = ("owner_user", "responsible_user", "owner_contact", "purchase_price")
 
@@ -834,30 +838,4 @@ class UniqueItemAdmin(admin.ModelAdmin):
 
     def has_delete_permission(self, request, obj=None):
         # Unique items leave the inventory by being disposed; their history stays.
-        return False
-
-
-@admin.register(models.UniqueItemEvent)
-class UniqueItemEventAdmin(admin.ModelAdmin):
-    list_display = ("created_at", "unique_item", "type", "from_location_name", "to_location_name", "reason", "actor")
-    list_filter = ("type", "reason", "created_at")
-    date_hierarchy = "created_at"
-    search_fields = ("unique_item__item__name", "from_location_name", "to_location_name", "note", "actor__username")
-    readonly_fields = [field.name for field in models.UniqueItemEvent._meta.fields]
-    INTERNAL_FIELDS = ("from_owner_user", "from_owner_contact", "to_owner_user", "to_owner_contact")
-
-    def get_fields(self, request, obj=None):
-        # Owner accounts and contacts are internal details, as on the unique item.
-        fields = super().get_fields(request, obj)
-        if request.user.has_perm("inventory.view_internal_details"):
-            return fields
-        return [field for field in fields if field not in self.INTERNAL_FIELDS]
-
-    def has_add_permission(self, request):
-        return False
-
-    def has_change_permission(self, request, obj=None):
-        return False
-
-    def has_delete_permission(self, request, obj=None):
         return False

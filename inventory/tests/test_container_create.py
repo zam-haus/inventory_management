@@ -7,7 +7,7 @@ from django.db import IntegrityError
 from django.test import TestCase, override_settings
 from django.urls import reverse
 
-from ..models import Location, LocationFormerCode, LocationHistory, LocationNumberRange, LocationType
+from ..models import ChangeLog, Location, LocationFormerCode, LocationNumberRange, LocationType
 
 
 @override_settings(LANGUAGE_CODE="en")
@@ -68,7 +68,7 @@ class ContainerCreateTests(TestCase):
         self.assertRedirects(response, box.get_absolute_url(), fetch_redirect_response=False)
         self.assertEqual((box.name, box.parent_location, box.purpose, box.physical_description),
                          ("Kiste 525", self.hall, "Karpfenprojekt", "blaue Eurobox 60×40"))
-        self.assertTrue(LocationHistory.objects.filter(location=box, actor=self.member).exists())
+        self.assertTrue(ChangeLog.objects.filter(location=box, other_location=self.hall, action="created", actor=self.member).exists())
         self.client.post(self.url(self.hall), {"type": self.box_type.pk})
         self.assertTrue(Location.objects.filter(short_name="K0526").exists())
 

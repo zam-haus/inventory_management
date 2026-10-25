@@ -45,7 +45,6 @@ class DetailUniqueItemView(DetailView):
             general_files=list(self.object.item.itemfile_set.filter(unique_item__isnull=True)),
             general_files_count=self.object.item.itemfile_set.filter(unique_item__isnull=True).count(),
             can_view_internal=self.request.user.has_perm(forms.INTERNAL_DETAILS_PERMISSION),
-            events=self.object.events.select_related("from_owner_user", "to_owner_user")[:50],
         )
         if not self.object.is_disposed and self.request.user.has_perm("inventory.change_uniqueitem"):
             context["move_form"] = forms.MoveUniqueItemForm(instance=self.object)

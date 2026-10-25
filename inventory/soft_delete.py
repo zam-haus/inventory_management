@@ -2,7 +2,12 @@ from collections import Counter
 
 from django.core.exceptions import ValidationError
 from django.db import models, router, transaction
+from django.dispatch import Signal
 from django.utils.translation import gettext_lazy as _
+
+
+# Sent after a record was marked deleted (the update sends no post_save), with sender, instance and using.
+soft_deleted = Signal()
 
 
 class SoftDeleteQuerySet(models.QuerySet):
@@ -67,4 +72,5 @@ class SoftDeleteModel(models.Model):
                 return result
             type(self).objects.using(using).filter(pk=self.pk).update(is_deleted=True)
             self.is_deleted = True
+            soft_deleted.send(sender=type(self), instance=self, using=using)
             return 1, {self._meta.label: 1}

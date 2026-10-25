@@ -5,8 +5,8 @@ from django.contrib.auth import get_user_model
 from django.test import TestCase, override_settings
 from django.urls import reverse
 
-from ..admin import LocationInline, StockChangeInline
-from ..models import Item, Location, LocationType, MeasurementUnit, StockChange
+from ..admin import ItemChangeLogInline, LocationInline
+from ..models import ChangeLog, Item, Location, LocationType, MeasurementUnit
 
 
 class FormData(HTMLParser):
@@ -126,18 +126,16 @@ class CappedInlineTests(TestCase):
         self.assertIn("children-0-name", form_data(response))
         self.assertNotContains(response, "capped-inline-note")
 
-    def test_stock_log_shows_newest_changes_and_links_to_the_log(self):
+    def test_change_log_shows_newest_changes_and_links_to_the_log(self):
         unit = MeasurementUnit.objects.create(name="Piece", short="pc")
-        item = Item.objects.create(name="Screws", measurement_unit=unit)
-        for note in ("old", "middle", "new"):
-            StockChange.objects.create(
-                item=item, item_name=item.name, location_name="Storage", unit="pc",
-                direction=StockChange.Direction.INCREASE, reason=StockChange.Reason.choices[0][0], note=note,
-            )
-        with mock.patch.object(StockChangeInline, "max_rows", 2):
+        item = Item.objects.create(name="Screws", measurement_unit=unit)  # logged as created
+        for name in ("middle", "new"):
+            item.name = name
+            item.save()
+        with mock.patch.object(ItemChangeLogInline, "max_rows", 2):
             response = self.client.get(self.change_url(item))
 
-        formset = next(f for f in response.context["inline_admin_formsets"] if f.opts.model is StockChange)
-        self.assertEqual([form.instance.note for form in formset.formset.forms], ["new", "middle"])
+        formset = next(f for f in response.context["inline_admin_formsets"] if f.opts.model is ChangeLog)
+        self.assertEqual([form.instance.subject_label for form in formset.formset.forms], ["new", "middle"])
         response = self.client.get(formset.formset.full_list_url)
         self.assertEqual(response.context["cl"].result_count, 3)

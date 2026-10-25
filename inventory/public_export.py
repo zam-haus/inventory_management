@@ -86,7 +86,6 @@ EXPORTED_MODELS = {
     "inventory.locationnumberrange": {},
     # Codes are public like the locations' own; the note is free text from the admin.
     "inventory.locationformercode": {"replace": {"note": emptied}},
-    "inventory.locationhistory": {"replace": {"actor": cleared, "actor_name": redacted_if("actor", "actor_name")}},
     "inventory.item": {"replace": {"last_purchase_price": cleared}},  # internal
     "inventory.itemlocation": {},
     "inventory.itembarcode": {},
@@ -95,7 +94,6 @@ EXPORTED_MODELS = {
         "replace": {},
         "filter": {"internal": False},  # internal documents: invoices, anything with personal data
     },
-    "inventory.stockchange": {"replace": {"actor": cleared, "note": emptied}},
     "inventory.uniqueitem": {
         "public": "notes disposal_note",  # shown on the unique item's page
         "replace": {
@@ -106,16 +104,15 @@ EXPORTED_MODELS = {
             "owner_contact": emptied,
         },
     },
-    "inventory.uniqueitemevent": {
+    # Who changed something, owners and internal values stay out; so does the name of an internal file.
+    "inventory.changelog": {
         "replace": {
             "actor": cleared,
+            "actor_name": redacted_if("actor", "actor_name"),
             "note": emptied,
-            "from_owner_user": cleared,
-            "from_owner_name": redacted_if("from_owner_user", "from_owner_name", "from_owner_contact"),
-            "from_owner_contact": emptied,
-            "to_owner_user": cleared,
-            "to_owner_name": redacted_if("to_owner_user", "to_owner_name", "to_owner_contact"),
-            "to_owner_contact": emptied,
+            "changes": lambda row: [change for change in row["changes"]
+                                    if not change.get("internal") and not change["field"].startswith("owner")],
+            "subject_label": lambda row: REDACTED if row["details"].get("internal") else row["subject_label"],
         },
     },
     "inventory.labelid": {
@@ -205,9 +202,6 @@ def media_names(rows):
     for row in rows:
         fields = row["fields"]
         names.update(fields[name] for name in file_fields[row["model"]] if fields[name])
-        if row["model"] == "inventory.locationhistory":
-            names.update(snapshot.get("overview_photo") for snapshot in (fields["before"], fields["after"])
-                         if snapshot.get("overview_photo"))
     return sorted(names)
 
 

@@ -27,15 +27,14 @@ one; another location brings its stock, keeping direction and amount (`take_choi
 * After saving, the page reloads in place. Each dialog submission carries an ID,
   so a retry after a lost connection is applied only once.
 
-Every change of stock is logged: the user account, date, direction, reason,
-note, amounts before and after, changed amount, unit price and sale value.
-Changes made elsewhere are logged as well: amounts edited in the item form or
-admin as a recount (increases as "found") and stock deleted while dissolving a
-location as "other". Moving stock between locations and creating new stock
-entries are not logged. Quick-items are not stock yet and never logged: they
-have no cart button and are only deleted from their list or given an (estimated)
-amount, which turns them into regular items. The log is append-only and
-visible only in the admin (**Stock changes**, and on each item's admin page),
-which requires `inventory.view_stockchange`. Using the dialog requires
-`inventory.add_stockchange`, which migration `inventory.0020_stock_change` grants
-to the local group.
+Every change of stock is logged in the [change log](change-log.md) ("Stock changed"): the user
+account, date, direction, reason, note, amounts before and after, changed amount, unit price and
+sale value. Changes made elsewhere are logged as well: amounts edited in the item form or admin as a
+recount (increases as "found") and stock deleted while dissolving a location as "other". New stock
+entries are logged as stored there, moves of stock between locations as moves. Quick-items are not
+stock yet: they have no cart button and are only deleted from their list or given an (estimated)
+amount, which turns them into regular items; both are logged without a reason or sale value. The item
+and location pages show the last changes to those allowed to see them; the admin (**Change log**,
+filtered by action "Stock changed" or reason) shows all, with the sale value. Using the dialog
+requires `inventory.change_stock`, which migration `inventory.0046_change_log` grants to the local
+group (and to everyone who had the former `add_stockchange`).

@@ -4,7 +4,7 @@
   single objects with their own label ID (see [Unique items](unique-items.md))
 * Bulk items can be at multiple locations
 * Item images are the main source of truth during data collection
-* Stock changes are logged (see [Stock changes](stock-changes.md))
+* Every change is logged (see [Change log](change-log.md)), stock changes with their reason (see [Stock changes](stock-changes.md))
 * Item descriptions and notes of unique items support Markdown (links, lists, emphasis);
   raw HTML is removed
 * Locations are hierarchically structured (tree)

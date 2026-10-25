@@ -1,9 +1,8 @@
-"""Storage locations, their types, label templates and change history."""
+"""Storage locations, their types and label templates."""
 from pathlib import Path
 from uuid import uuid4
 
 from computedfields.models import ComputedFieldsModel, computed
-from django.conf import settings
 from django.core import validators
 from django.core.exceptions import ValidationError
 from django.db import models, router, transaction
@@ -15,6 +14,7 @@ from django.utils import timezone
 from django.utils.html import format_html
 from django.utils.translation import gettext, gettext_lazy as _
 
+from ..actor import acting_as
 from ..soft_delete import SoftDeleteModel
 
 
@@ -622,19 +622,18 @@ class Location(SoftDeleteModel, ComputedFieldsModel):
     )
 
     def save(self, *args, actor=None, **kwargs):
+        """Saves; the change log records it with `actor` or the current user as who acted."""
         using = kwargs.get("using") or router.db_for_write(type(self), instance=self)
-        fields = ("purpose", "overview_photo", "physical_description")
-        actor = actor or getattr(self, "_history_actor", None)
         update_fields = kwargs.get("update_fields")
 
         def saves(*names):
             return update_fields is None or any(name in update_fields for name in names)
 
-        with transaction.atomic(using=using):
+        with transaction.atomic(using=using), acting_as(actor):
             stored = None
             if self.pk:
                 stored = type(self).objects.using(using).select_for_update().filter(pk=self.pk).values(
-                    *fields, "name", "short_name", "parent_location_id").first()
+                    "name", "short_name", "parent_location_id").first()
             # A new short name or parent gives this location (and parts that include its code) new codes;
             # the old ones stay blocked as former codes.
             codes_before = None
@@ -646,18 +645,6 @@ class Location(SoftDeleteModel, ComputedFieldsModel):
                 self._keep_former_codes(codes_before, using)
             if stored and saves("name") and stored["name"] != self.name:
                 self._rename_default_sublocations(stored["name"], using)
-            previous = {field: stored[field] for field in fields} if stored else None
-            current = type(self).objects.using(using).values(*fields).get(pk=self.pk)
-            # Capture edits from every model save; authored creation also records
-            # an initial overview. Unattributed imports keep their existing data.
-            if previous is None and actor is not None:
-                previous = dict.fromkeys(fields, "")
-            if previous is not None and previous != current:
-                LocationHistory.objects.using(using).create(
-                    location=self, actor=actor,
-                    actor_name=actor.get_username() if actor is not None else "",
-                    before=previous, after=current,
-                )
             return result
 
     def _subtree_codes(self, using):
@@ -1036,35 +1023,3 @@ def block_code_of_deleted_location(sender, instance, using, **kwargs):
     LocationFormerCode.objects.using(using).update_or_create(
         code__iexact=instance.unique_identifier,
         defaults={"code": instance.unique_identifier, "location": None, "note": gettext("deleted")})
-
-
-class LocationHistory(models.Model):
-    class EventType(models.TextChoices):
-        OVERVIEW_UPDATED = "overview_updated", _("Overview updated")
-
-    location = models.ForeignKey(Location, on_delete=models.CASCADE, related_name="history", verbose_name=_("location"))
-    actor = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL,
-                              verbose_name=_("user"))
-    actor_name = models.CharField(_("user name"), max_length=150, blank=True)
-    created_at = models.DateTimeField(_("date"), default=timezone.now, db_index=True)
-    event_type = models.CharField(_("event"), max_length=40, choices=EventType.choices, default=EventType.OVERVIEW_UPDATED)
-    before = models.JSONField(_("before"), default=dict)
-    after = models.JSONField(_("after"), default=dict)
-
-    class Meta:
-        ordering = ("-created_at", "-pk")
-        default_permissions = ("view",)
-        verbose_name = _("location history entry")
-        verbose_name_plural = _("location history entries")
-
-    def _photo_url(self, snapshot):
-        name = snapshot.get("overview_photo")
-        return Location._meta.get_field("overview_photo").storage.url(name) if name else ""
-
-    @property
-    def before_photo_url(self):
-        return self._photo_url(self.before)
-
-    @property
-    def after_photo_url(self):
-        return self._photo_url(self.after)

@@ -331,6 +331,11 @@ LOCAL_NETWORK_NAME = os.getenv("LOCAL_NETWORK_NAME", "ZAM")
 # The locally managed group of members (existing databases have "ZAM-local").
 LOCAL_GROUP_NAME = os.getenv("LOCAL_GROUP_NAME", "ZAM-local")
 
+# Change log (docs/change-log.md): how many of the last changes item, unique item and location pages show, and
+# the group that also sees who made them (given inventory.view_changelog_actor by migration inventory.0046).
+CHANGE_LOG_SHOWN = int(os.getenv("CHANGE_LOG_SHOWN", "5"))
+CHANGE_LOG_ACTOR_GROUP = os.getenv("CHANGE_LOG_ACTOR_GROUP", "Aktive")
+
 
 # Overwrite default settings with local_settings.py configuration
 if not os.getenv("IGNORE_LOCAL_SETTINGS", False):

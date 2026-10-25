@@ -1,11 +1,12 @@
 {% extends 'base.html' %}
-{% load i18n static thumbnail mytemplatetags actions icons label_printing locations %}
+{% load i18n static thumbnail mytemplatetags actions icons label_printing locations change_log %}
 
 {% block bootstrap5_extra_head %}
     {{ block.super }}
     <link rel="stylesheet" href="{% static 'inventory/photo_lightbox.css' %}">
     <link rel="stylesheet" href="{% static 'inventory/item_detail.css' %}">
     <link rel="stylesheet" href="{% static 'inventory/unique_item.css' %}">
+    <link rel="stylesheet" href="{% static 'inventory/change_log.css' %}">
     <link rel="stylesheet" href="{% static 'inventory/media_gallery.css' %}">
     <link rel="stylesheet" href="{% static 'inventory/stock_change.css' %}">
 {% endblock %}
@@ -198,6 +199,7 @@
                 </ul>
             </section>
             {% endif %}
+            {% change_log_panel object %}
         </div>
     </div>
     {% endwith %}

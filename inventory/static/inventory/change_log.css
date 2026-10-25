@@ -1,0 +1,17 @@
+/* The last changes on item, unique item and location pages (change_log_panel.html). */
+.change-log-muted,
+.change-log-meta,
+.change-log-field { color: #59636e; font-size: .875rem; }
+.change-log-list { list-style: none; margin: 0; padding: 0 1.2rem 1.2rem; }
+.change-log-list > li { padding: .65rem 0; border-top: 1px solid #dee2e6; }
+.change-log-list > li:first-child { border-top: 0; padding-top: 0; }
+.change-log-list p { margin: 0; }
+.change-log-changes { list-style: none; margin: .2rem 0 0; padding: 0; }
+.change-log-changes del { color: #59636e; }
+.change-log-changes ins { text-decoration: none; }
+.location-detail > .change-log { margin-top: 1.5rem; }
+
+@media (max-width: 575.98px) {
+    .change-log-list { padding: 0 1rem 1rem; }
+    .location-detail > .change-log { margin-top: 1rem; }
+}

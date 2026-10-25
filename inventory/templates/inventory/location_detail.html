@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% load i18n static thumbnail mytemplatetags actions icons label_printing locations %}
+{% load i18n static thumbnail mytemplatetags actions icons label_printing locations change_log %}
 
 {% block bootstrap5_extra_head %}
     {{ block.super }}
@@ -9,6 +9,7 @@
     <link rel="stylesheet" href="{% static 'inventory/list_collapse.css' %}">
     <link rel="stylesheet" href="{% static 'inventory/location_quick_items.css' %}">
     <link rel="stylesheet" href="{% static 'inventory/unique_item.css' %}">
+    <link rel="stylesheet" href="{% static 'inventory/change_log.css' %}">
     <link rel="stylesheet" href="{% static 'inventory/stock_change.css' %}">
     {% if move_form %}{{ move_form.media.css }}{% endif %}
 {% endblock %}
@@ -272,6 +273,7 @@
                 {% include "inventory/location_children_panel.html" with anchor="location-children" title=children_title %}
             {% endif %}
         </div>
+        {% change_log_panel object %}
     </div>
     {% endwith %}
     {% include 'inventory/location_metadata.html' %}

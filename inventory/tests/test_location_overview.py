@@ -14,7 +14,7 @@ from django.test.html import parse_html
 from django.urls import reverse
 from PIL import Image
 
-from ..models import Item, ItemLocation, Location, LocationHistory, LocationType, MeasurementUnit
+from ..models import ChangeLog, Item, ItemLocation, Location, LocationType, MeasurementUnit
 
 
 def html_elements(element):
@@ -30,6 +30,7 @@ def html_elements(element):
         "django.middleware.csrf.CsrfViewMiddleware",
         "django.contrib.auth.middleware.AuthenticationMiddleware",
         "django.contrib.messages.middleware.MessageMiddleware",
+        "inventory.actor.CurrentActorMiddleware",
     ],
     LANGUAGE_CODE="en",
 )
@@ -49,8 +50,8 @@ class LocationOverviewTests(TestCase):
         ))
         cls.user.groups.add(cls.group)
         cls.history_viewer = get_user_model().objects.create_user(username="history-viewer")
-        cls.history_viewer.user_permissions.add(Permission.objects.get(
-            content_type__app_label="inventory", codename="view_locationhistory",
+        cls.history_viewer.user_permissions.add(*Permission.objects.filter(
+            content_type__app_label="inventory", codename__in=["view_changelog", "view_changelog_actor"],
         ))
 
     def setUp(self):
@@ -63,7 +64,6 @@ class LocationOverviewTests(TestCase):
         self.client.force_login(self.user)
         self.url = reverse("location_overview_update", args=[self.location.pk])
         self.purpose_url = reverse("location_purpose_update", args=[self.location.pk])
-        self.history_url = reverse("location_history", args=[self.location.pk])
 
     @staticmethod
     def photo(name="overview.png", color="blue"):
@@ -80,7 +80,13 @@ class LocationOverviewTests(TestCase):
         return (client or self.client).post(self.purpose_url, {"purpose": purpose, **extra.pop("data", {})}, **extra)
 
     def events(self):
-        return LocationHistory.objects.filter(location=self.location).order_by("created_at", "pk")
+        """Changes of the location itself after it was created."""
+        return ChangeLog.objects.filter(location=self.location, subject_type="location").exclude(
+            action=ChangeLog.Action.CREATED).order_by("created_at", "pk")
+
+    @staticmethod
+    def changed(event, field):
+        return next((change["before"], change["after"]) for change in event.changes if change["field"] == field)
 
     def history_client(self):
         client = Client()
@@ -99,12 +105,13 @@ class LocationOverviewTests(TestCase):
         for event in (purpose_event, photo_event):
             self.assertEqual(event.actor_id, self.user.pk)
             self.assertTrue(event.actor_name)
-            self.assertEqual(event.event_type, "overview_updated")
-        description = {"physical_description": self.location.physical_description}
-        self.assertEqual(purpose_event.before, {"purpose": "Tools", "overview_photo": "", **description})
-        self.assertEqual(purpose_event.after, {"purpose": "Hand tools", "overview_photo": "", **description})
-        self.assertEqual(photo_event.after, {"purpose": "Hand tools", "overview_photo": self.location.overview_photo.name,
-                                             **description})
+            self.assertEqual(event.action, ChangeLog.Action.CHANGED)
+            self.assertEqual(event.source, ChangeLog.Source.WEB)
+        self.assertEqual(purpose_event.changes, [
+            {"field": "purpose", "before": "Tools", "after": "Hand tools", "internal": False}])
+        self.assertEqual([change["field"] for change in photo_event.changes], ["overview_photo"])
+        self.assertEqual(self.changed(photo_event, "overview_photo"),
+                         ("", Path(self.location.overview_photo.name).name))
 
     def test_photo_replacement_and_removal_keep_original_files_in_history(self):
         self.client.post(self.url, self.data(overview_photo=self.photo()))
@@ -115,15 +122,13 @@ class LocationOverviewTests(TestCase):
         second_name = self.location.overview_photo.name
         self.assertNotEqual(first_name, second_name)
         replacement = self.events().last()
-        self.assertEqual(replacement.before["overview_photo"], first_name)
-        self.assertEqual(replacement.after["overview_photo"], second_name)
+        self.assertEqual(self.changed(replacement, "overview_photo"), (Path(first_name).name, Path(second_name).name))
         response = self.client.post(self.url, self.data(remove_photo="on"))
         self.assertEqual(response.status_code, 302)
         self.location.refresh_from_db()
         self.assertFalse(self.location.overview_photo)
         removal = self.events().last()
-        self.assertEqual(removal.before["overview_photo"], second_name)
-        self.assertEqual(removal.after["overview_photo"], "")
+        self.assertEqual(self.changed(removal, "overview_photo"), (Path(second_name).name, ""))
         storage = self.location.overview_photo.storage
         self.assertTrue(storage.exists(first_name))
         self.assertTrue(storage.exists(second_name))
@@ -215,7 +220,7 @@ class LocationOverviewTests(TestCase):
         self.client.post(self.url, self.data(overview_photo=self.photo()))
         self.location.refresh_from_db()
         original_photo = self.location.overview_photo.name
-        with patch.object(LocationHistory, "save", side_effect=IntegrityError("History unavailable")):
+        with patch.object(ChangeLog, "save", side_effect=IntegrityError("History unavailable")):
             with self.assertRaisesMessage(IntegrityError, "History unavailable"):
                 self.client.post(self.url, self.data(overview_photo=self.photo(color="red")))
             with self.assertRaisesMessage(IntegrityError, "History unavailable"):
@@ -266,7 +271,7 @@ class LocationOverviewTests(TestCase):
         detail = self.client.get(self.location.get_absolute_url())
         self.assertContains(detail, "Visible to everyone")
         self.assertContains(detail, self.location.physical_description)
-        self.assertNotContains(detail, self.history_url)
+        self.assertNotContains(detail, "change-log-heading")
         self.assertNotContains(detail, self.url)
         self.assertNotContains(detail, self.purpose_url)
 
@@ -283,25 +288,24 @@ class LocationOverviewTests(TestCase):
         self.assertNotEqual(image.group(1), link)
         self.assertEqual((image.group(2), image.group(3)), ("1536", "768"))
 
-    def test_history_requires_view_permission_because_it_names_actors(self):
+    def test_changes_need_the_permission_and_name_actors_only_for_those_allowed(self):
         self.post_purpose("Recorded change")
-        actor_name = self.events().get().actor_name
-        # The editor may change the purpose, but seeing who changed it is separate.
-        self.assertEqual(self.client.get(self.history_url).status_code, 403)
+        self.assertEqual(self.events().get().actor_name, "overview-editor")
+        # The editor may change the purpose, but seeing the changes is separate.
+        self.assertNotContains(self.client.get(self.location.get_absolute_url()), "change-log-heading")
         self.client.logout()
-        anonymous = self.client.get(self.history_url)
-        self.assertEqual(anonymous.status_code, 302)
-        self.assertNotContains(anonymous, actor_name, status_code=302)
+        self.assertNotContains(self.client.get(self.location.get_absolute_url()), "change-log-heading")
         reader = get_user_model().objects.create_user(username="reader")
+        reader.user_permissions.add(Permission.objects.get(codename="view_changelog"))
         self.client.force_login(reader)
-        session = self.client.session
-        session["is_local_visit"] = True
-        session.save()
-        self.assertEqual(self.client.get(self.history_url).status_code, 403)
-        history = self.history_client().get(self.history_url)
-        self.assertContains(history, "Recorded change")
-        self.assertContains(history, "Tools")
-        self.assertContains(history, actor_name)
+        detail = self.client.get(self.location.get_absolute_url())
+        self.assertContains(detail, "change-log-heading")
+        self.assertContains(detail, "Recorded change")
+        self.assertNotContains(detail, "overview-editor")
+        detail = self.history_client().get(self.location.get_absolute_url())
+        self.assertContains(detail, "Recorded change")
+        self.assertContains(detail, "Tools")
+        self.assertContains(detail, "overview-editor")
 
     def test_item_list_remains_expanded_and_keeps_every_item(self):
         unit = MeasurementUnit.objects.create(name="Piece", short="pc")
@@ -508,9 +512,9 @@ class LocationOverviewTests(TestCase):
     def test_purpose_html_is_escaped(self):
         self.post_purpose('<img src=x onerror="alert(1)">')
         self.client.logout()
-        for url, client in ((self.location.get_absolute_url(), self.client), (self.history_url, self.history_client())):
-            with self.subTest(url=url):
-                response = client.get(url)
+        for client in (self.client, self.history_client()):
+            with self.subTest(client=client):
+                response = client.get(self.location.get_absolute_url())
                 self.assertContains(response, "&lt;img src=x onerror=&quot;alert(1)&quot;&gt;")
                 self.assertNotContains(response, '<img src=x onerror="alert(1)">')
 
@@ -523,26 +527,21 @@ class LocationOverviewTests(TestCase):
         event.refresh_from_db()
         self.assertIsNone(event.actor_id)
         self.assertEqual(event.actor_name, actor_name)
-        self.assertContains(self.history_client().get(self.history_url), actor_name)
+        self.assertContains(self.history_client().get(self.location.get_absolute_url()), actor_name)
 
-    def test_history_is_paginated_and_newest_first(self):
-        events = LocationHistory.objects.bulk_create([
-            LocationHistory(
-                location=self.location, actor=self.user, actor_name=self.user.username,
-                before={"purpose": "Previous"}, after={"purpose": f"Change {index}"},
-            )
-            for index in range(26)
-        ])
+    def test_the_page_shows_the_last_changes_newest_first(self):
+        for index in range(7):
+            self.post_purpose(f"Change {index}")
         client = self.history_client()
-        first_page = client.get(self.history_url)
-        self.assertEqual(first_page.status_code, 200)
-        self.assertEqual(first_page.context["paginator"].num_pages, 2)
-        self.assertEqual([event.pk for event in first_page.context["page_obj"]], [event.pk for event in reversed(events[1:])])
-        self.assertContains(first_page, "?page=2")
-        second_page = client.get(self.history_url, {"page": 2})
-        self.assertEqual(list(second_page.context["page_obj"]), [events[0]])
-        self.assertContains(second_page, "Change 0")
-        self.assertEqual(client.get(self.history_url, {"page": 3}).status_code, 404)
+        shown = [entry["entry"].changes[0]["after"] for entry in
+                 client.get(self.location.get_absolute_url()).context["change_log_entries"]]
+        self.assertEqual(shown, [f"Change {index}" for index in (6, 5, 4, 3, 2)])
+        with override_settings(CHANGE_LOG_SHOWN=2):
+            response = client.get(self.location.get_absolute_url())
+            self.assertEqual(len(response.context["change_log_entries"]), 2)
+            self.assertContains(response, "The last 2 changes.")
+        with override_settings(CHANGE_LOG_SHOWN=0):
+            self.assertNotContains(client.get(self.location.get_absolute_url()), "change-log-heading")
 
     def test_admin_changes_record_parent_and_inline_overview_history(self):
         self.user.is_staff = True
@@ -560,6 +559,7 @@ class LocationOverviewTests(TestCase):
             "children-MIN_NUM_FORMS": "0", "children-MAX_NUM_FORMS": "1000",
             "number_ranges-TOTAL_FORMS": "0", "number_ranges-INITIAL_FORMS": "0",
             "former_codes-TOTAL_FORMS": "0", "former_codes-INITIAL_FORMS": "0",
+            "change_log-TOTAL_FORMS": "0", "change_log-INITIAL_FORMS": "0",
             "children-0-id": child.pk, "children-0-parent_location": self.location.pk,
             "children-0-type": child.type_id, "children-0-name": child.name,
             "children-0-short_name": child.short_name, "children-0-purpose": "Updated child",
@@ -571,18 +571,16 @@ class LocationOverviewTests(TestCase):
         self.assertEqual(self.location.purpose, "Admin overview")
         self.assertEqual(child.purpose, "Updated child")
         parent_event = self.events().get()
-        child_event = LocationHistory.objects.get(location=child)
-        self.assertEqual(parent_event.before["purpose"], "Tools")
-        self.assertEqual(parent_event.after["purpose"], "Admin overview")
-        self.assertEqual(child_event.before["purpose"], "Original child")
-        self.assertEqual(child_event.after["purpose"], "Updated child")
+        child_event = ChangeLog.objects.get(location=child, action=ChangeLog.Action.CHANGED)
+        self.assertEqual(self.changed(parent_event, "purpose"), ("Tools", "Admin overview"))
+        self.assertEqual(self.changed(child_event, "purpose"), ("Original child", "Updated child"))
         self.assertEqual(parent_event.actor_id, self.user.pk)
         self.assertEqual(child_event.actor_id, self.user.pk)
+        self.assertEqual({parent_event.source, child_event.source}, {ChangeLog.Source.ADMIN})
 
     def test_deleted_locations_cannot_be_viewed_or_updated(self):
         Location.objects.filter(pk=self.location.pk).update(is_deleted=True)
         self.assertEqual(self.client.get(self.location.get_absolute_url()).status_code, 404)
-        self.assertEqual(self.history_client().get(self.history_url).status_code, 404)
         self.assertEqual(self.post_purpose("Archived edit").status_code, 404)
         self.assertEqual(self.client.post(self.url, self.data(remove_photo="on")).status_code, 404)
         self.assertFalse(self.events().exists())
@@ -634,24 +632,6 @@ class LocationOverviewMigrationTests(TransactionTestCase):
             self.assertFalse(hasattr(location, "description"))
             self.assertEqual(location.purpose, "")
             self.assertFalse(location.overview_photo)
-            self.assertFalse(apps.get_model("inventory", "LocationHistory").objects.exists())
+            self.assertFalse(apps.get_model("inventory", "ChangeLog").objects.exists())
         finally:
             MigrationExecutor(connection).migrate(latest)
-
-    def test_history_from_before_the_rename_keeps_its_texts(self):
-        from importlib import import_module
-        migration = import_module("inventory.migrations.0035_location_purpose")
-        executor = MigrationExecutor(connection)
-        latest = executor.loader.graph.leaf_nodes()
-        apps = executor.loader.project_state(latest).apps
-        kind = apps.get_model("inventory", "LocationType").objects.create(name="Room", unique=True)
-        location = apps.get_model("inventory", "Location").objects.create(
-            type=kind, name="Shelf", short_name="S", unique_identifier="S", locatable_identifier="S",
-            descriptive_identifier="Shelf [S]")
-        History = apps.get_model("inventory", "LocationHistory")
-        entry = History.objects.create(location=location, before={"summary": "Old", "overview_photo": ""},
-                                       after={"summary": "New", "overview_photo": ""})
-        migration.rename_history_keys(apps, None)
-        entry.refresh_from_db()
-        self.assertEqual((entry.before, entry.after),
-                         ({"purpose": "Old", "overview_photo": ""}, {"purpose": "New", "overview_photo": ""}))

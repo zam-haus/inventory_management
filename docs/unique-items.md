@@ -61,11 +61,10 @@ stock entries and unique items; its kind can only change while it has neither.
   `/item/file/<pk>`; `nginx.conf` denies `/media/documents/` so they cannot be
   fetched directly. Formats that could run in the browser (e.g. HTML, SVG) are
   always downloaded. Migration `inventory.0023` moved existing files there.
-* **History:** creation, moves, owner changes and removal are logged
-  append-only (`UniqueItemEvent`), including who acted; the user is shown only in
-  the admin. Owner entries keep the owner before and after: first names are
-  public, accounts and contact details internal, like on the unique item. An
-  account that owns a unique item cannot be deleted (`PROTECT`); change the owner
+* **History:** creation, moves, changes (owner included), label IDs, printed labels and removal
+  are recorded in the [change log](change-log.md), which the page shows to those allowed to see
+  it. Owner accounts and contact details are internal there as on the unique item; first names
+  are not. An account that owns a unique item cannot be deleted (`PROTECT`); change the owner
   first, so the hand-over is recorded.
 * `manage.py label_id_check --missing` lists unique items whose ID was retired and
   that need a replacement label.

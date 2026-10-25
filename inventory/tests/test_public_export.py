@@ -14,7 +14,8 @@ from django.test import TestCase, TransactionTestCase, override_settings
 
 from .. import public_export
 from ..label_ids.testing import SETTINGS, InventoryFixture, make_id
-from ..models import (Item, ItemFile, LabelId, Location, LocationHistory, StockChange, UniqueItem, UniqueItemEvent)
+from ..actor import acting_as
+from ..models import ChangeLog, Item, ItemFile, LabelId, Location, UniqueItem
 
 
 class ExportFixture(InventoryFixture):
@@ -26,21 +27,23 @@ class ExportFixture(InventoryFixture):
                                               email="robin@example.org")
         self.unique_type = Item.objects.create(name="Fire extinguisher", kind=Item.Kind.UNIQUE,
                                                measurement_unit=self.unit)
-        self.unique_item = UniqueItem.objects.create(
-            item=self.unique_type, location=self.location, notes="Checked yearly", owner_user=self.owner,
-            owner_first_name="Robin", owner_contact="+49 170 0000000", responsible_user=self.owner)
+        with acting_as(self.owner):  # logged as who made the changes
+            self.unique_item = UniqueItem.objects.create(
+                item=self.unique_type, location=self.location, notes="Checked yearly", owner_first_name="Robin")
+            self.unique_item.owner_first_name = ""
+            self.unique_item.owner_user, self.unique_item.responsible_user = self.owner, self.owner
+            self.unique_item.owner_contact = "+49 170 0000000"
+            self.unique_item.save()
+            self.location.purpose = "Drills"
+            self.location.save()
+            ItemFile.objects.create(item=self.item, description="Manual",
+                                    file=ContentFile(b"%PDF-1.4 manual", name="manual.pdf"))
+            ItemFile.objects.create(item=self.item, description="Invoice of Robin Private", internal=True,
+                                    file=ContentFile(b"%PDF-1.4 invoice", name="invoice.pdf"))
         self.zam_item = UniqueItem.objects.create(item=self.unique_type, location=self.location)
-        UniqueItemEvent.objects.create(unique_item=self.unique_item, type=UniqueItemEvent.Type.CREATED,
-                                       actor=self.owner, to_owner_user=self.owner, to_owner_name="Robin",
-                                       to_owner_contact="robin@example.org", note="Lent by Robin Private")
-        StockChange.objects.create(actor=self.owner, direction="out", reason="sold", note="sold to Robin",
-                                   item=self.item, item_name="Drill", location=self.location,
-                                   location_name="Workshop", unit="pc")
-        LocationHistory.objects.create(location=self.location, actor=self.owner, actor_name="Robin Private")
-        ItemFile.objects.create(item=self.item, description="Manual",
-                                file=ContentFile(b"%PDF-1.4 manual", name="manual.pdf"))
-        ItemFile.objects.create(item=self.item, description="Invoice", internal=True,
-                                file=ContentFile(b"%PDF-1.4 invoice", name="invoice.pdf"))
+        ChangeLog.objects.create(actor=self.owner, actor_name="robinprivate", action=ChangeLog.Action.STOCK,
+                                 reason="sale", note="sold to Robin", subject_type="itemlocation",
+                                 subject_label="Drill", item=self.item, location=self.location)
 
     def setUp(self):
         super().setUp()
@@ -73,17 +76,17 @@ class PublicExportTests(ExportFixture, TestCase):
         public_export.check_review()
 
     def test_personal_looking_field_stops_the_export(self):
-        spec = public_export.EXPORTED_MODELS["inventory.stockchange"]
-        exported = dict(public_export.EXPORTED_MODELS, **{"inventory.stockchange": {"replace": {"note": spec["replace"]["note"]}}})
+        spec = public_export.EXPORTED_MODELS["inventory.changelog"]
+        exported = dict(public_export.EXPORTED_MODELS, **{"inventory.changelog": {"replace": {"note": spec["replace"]["note"]}}})
         with mock.patch.object(public_export, "EXPORTED_MODELS", exported), \
-                self.assertRaisesMessage(CommandError, "field inventory.stockchange.actor looks personal"):
+                self.assertRaisesMessage(CommandError, "field inventory.changelog.actor looks personal"):
             self.export(str(self.out / "export"))
 
     def test_other_fields_are_kept_without_listing_them(self):
         self.assertEqual(public_export.EXPORTED_MODELS["inventory.location"], {})
         self.assertFalse(public_export.looks_personal(Item, "description"))
         self.assertFalse(public_export.looks_personal(Item, "last_purchase_price"))  # internal, so replaced anyway
-        for model, name in ((StockChange, "actor"), (UniqueItem, "owner_contact"), (LabelId, "created_by")):
+        for model, name in ((ChangeLog, "actor"), (UniqueItem, "owner_contact"), (LabelId, "created_by")):
             self.assertTrue(public_export.looks_personal(model, name), name)
 
     def test_new_model_stops_the_export(self):
@@ -109,8 +112,14 @@ class PublicExportTests(ExportFixture, TestCase):
                          (public_export.REDACTED, "", None))
         self.assertEqual(rows[("inventory.uniqueitem", self.zam_item.pk)]["owner_first_name"], "")
         self.assertEqual(owned["notes"], "Checked yearly")  # public on the website
-        history = next(f for (model, _pk), f in rows.items() if model == "inventory.locationhistory")
-        self.assertEqual((history["actor"], history["actor_name"]), (None, public_export.REDACTED))
+        log = [fields for (model, _pk), fields in rows.items() if model == "inventory.changelog"]
+        self.assertEqual({(fields["actor"], fields["actor_name"], fields["note"]) for fields in log},
+                         {(None, public_export.REDACTED, ""), (None, "", "")})
+        changes = {change["field"]: change for fields in log for change in fields["changes"]}
+        self.assertEqual(set(changes), {"purpose"})  # owners and internal values left out
+        self.assertEqual(changes["purpose"]["after"], "Drills")
+        attached = {fields["subject_label"] for fields in log if fields["action"] == "attached"}
+        self.assertEqual(attached, {"Manual", public_export.REDACTED})  # the internal file's name is left out
 
     def test_internal_documents_are_left_out(self):
         self.export(str(self.out / "export"))
@@ -125,7 +134,9 @@ class PublicExportTests(ExportFixture, TestCase):
         self.item.save()
         stdout, stderr = self.export(str(self.out / "export"))
         self.assertIn(f"check inventory.item {self.item.pk} description: contains 'Robin Private'", stderr)
-        self.assertIn("1 kept texts contain", stdout)
+        # Also in the change log, which holds the new description.
+        self.assertIn("check inventory.changelog", stderr)
+        self.assertIn("2 kept texts contain", stdout)
 
     def test_archive(self):
         self.export(str(self.out / "export.tar"))

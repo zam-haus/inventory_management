@@ -54,12 +54,10 @@ them over), the type, former codes, physical description, and the type's rules f
 on small screens.
 
 Editing requires `inventory.change_location`; purpose and photo are public.
-The history page requires `inventory.view_locationhistory`, because it shows who
-made each change. Its link is currently hidden on the detail page. History
-records the changed fields, their previous and new values, the time, and the
-user responsible, including changes through the admin.
-Replaced and removed photos remain in media storage so historical entries can
-still display them. The history format supports additional event types in future.
+Every change of a location, including those through the admin, is recorded in the
+[change log](change-log.md); the page shows the last ones, together with those of what is stored
+there and of the locations inside it, to those allowed to see them. Replaced and removed photos remain
+in media storage.
 
 ## Long lists
 

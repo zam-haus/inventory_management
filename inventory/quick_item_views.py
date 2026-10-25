@@ -132,8 +132,8 @@ class QuickItemUpdateView(QuickItemView):
             hard_delete(entry)
             return entry.location, {"deleted": True}, _("Quick-item “%(name)s” deleted.") % {"name": entry.item.name}
         if name != entry.item.name:
-            Item.objects.filter(pk=entry.item_id).update(name=name)
             entry.item.name = name
+            entry.item.save(update_fields=["name"])
         return entry.location, {"entry": self.serialize(entry)}, None
 
 

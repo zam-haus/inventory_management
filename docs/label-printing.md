@@ -363,7 +363,7 @@ The tests start the simulator on free ports (`label_printing/tests/helpers.py`).
 
 ## Personal data
 
-Labels show only location and item data. The job log records who printed (like the actor of a
-stock change) and is visible in the admin only; print jobs, printers, agents and label stock
+Labels show only location and item data. The job log records who printed and is visible in the admin
+only; printed labels are also entries of the [change log](change-log.md); print jobs, printers, agents and label stock
 are left out of the [data export](data-export.md); label templates and images are exported. Only the
 simulator sends anything to labelary.com (what it prints, in development).

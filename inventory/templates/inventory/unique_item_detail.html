@@ -1,11 +1,12 @@
 {% extends 'base.html' %}
-{% load i18n static thumbnail mytemplatetags actions icons label_printing locations %}
+{% load i18n static thumbnail mytemplatetags actions icons label_printing locations change_log %}
 
 {% block bootstrap5_extra_head %}
     {{ block.super }}
     <link rel="stylesheet" href="{% static 'inventory/photo_lightbox.css' %}">
     <link rel="stylesheet" href="{% static 'inventory/item_detail.css' %}">
     <link rel="stylesheet" href="{% static 'inventory/unique_item.css' %}">
+    <link rel="stylesheet" href="{% static 'inventory/change_log.css' %}">
     <link rel="stylesheet" href="{% static 'inventory/media_gallery.css' %}">
     {% if move_form %}{{ move_form.media.css }}{% endif %}
 {% endblock %}
@@ -136,23 +137,7 @@
             </div>
 
             <div class="item-main">
-                <section class="item-panel" aria-labelledby="unique-item-history-heading">
-                    <div class="item-panel-heading"><h2 id="unique-item-history-heading">{% trans "History" %}</h2></div>
-                    <ul class="item-panel-body unique-item-history">
-                        {% for event in events %}
-                            <li>
-                                <time datetime="{{ event.created_at|date:'c' }}" class="item-muted">{{ event.created_at|date:"SHORT_DATE_FORMAT" }}</time>
-                                {{ event.get_type_display }}{% if event.type == 'moved' %}: {{ event.from_location_name }} {% icon "arrow-right" %}<span class="visually-hidden">→</span> {{ event.to_location_name }}{% elif event.type == 'created' and event.to_location_name %}: {{ event.to_location_name }}{% elif event.type == 'disposed' and event.reason %}: {{ event.get_reason_display }}{% elif event.type == 'owner' %}: {{ event.from_owner_label }} → {{ event.to_owner_label }}{% endif %}
-                                {% if event.type == 'created' and event.has_to_owner %}<br>{% trans "Owner" %}: {{ event.to_owner_label }}{% endif %}
-                                {% if event.type == 'owner' or event.type == 'created' and event.has_to_owner %}
-                                    {% include 'inventory/unique_item_owner_event.html' %}
-                                {% endif %}
-                            </li>
-                        {% empty %}
-                            <li class="item-muted">{% trans "No history yet." %}</li>
-                        {% endfor %}
-                    </ul>
-                </section>
+                {% change_log_panel object %}
             </div>
         </div>
     </div>

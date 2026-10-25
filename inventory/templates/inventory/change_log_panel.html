@@ -1,0 +1,27 @@
+{% load i18n icons %}{# The last changes, from change_log_panel (templatetags/change_log.py); nothing without entries. #}
+{% if change_log_entries %}
+<section class="{{ panel }}-panel change-log" aria-labelledby="change-log-heading">
+    <div class="{{ panel }}-panel-heading">
+        <h2 id="change-log-heading"{% if panel == "location" %} class="fs-4"{% endif %}>{% trans "Changes" %}</h2>
+        <p class="change-log-muted">{% blocktrans count counter=change_log_entries|length %}The last change.{% plural %}The last {{ counter }} changes.{% endblocktrans %}{% if admin_url %} <a href="{{ admin_url }}">{% trans "All changes in the admin" %}</a>{% endif %}</p>
+    </div>
+    <ol class="change-log-list">
+        {% for shown in change_log_entries %}{% with entry=shown.entry %}
+            <li>
+                <p class="change-log-meta"><time datetime="{{ entry.created_at|date:'c' }}">{{ entry.created_at|date:"SHORT_DATETIME_FORMAT" }}</time>{% if shown.actor %} · {{ shown.actor }}{% endif %}</p>
+                <p class="change-log-what"><strong>{{ shown.action }}</strong>{% if shown.subject %}: {{ shown.subject }}{% endif %}</p>
+                {% if shown.move %}<p class="change-log-move">{{ shown.move.0 }} {% icon "arrow-right" %}<span class="visually-hidden">→</span> {{ shown.move.1 }}</p>{% endif %}
+                {% for line in shown.lines %}<p class="change-log-line">{{ line }}</p>{% endfor %}
+                {% if shown.changes %}
+                    <ul class="change-log-changes">
+                        {% for change in shown.changes %}
+                            <li><span class="change-log-field">{{ change.field }}:</span>
+                                {% if change.internal %}{% trans "changed" %} {% include 'inventory/internal_chip.html' %}{% else %}<del>{{ change.before }}</del> <span aria-hidden="true">→</span><span class="visually-hidden">{% trans "becomes" %}</span> <ins>{{ change.after }}</ins>{% endif %}</li>
+                        {% endfor %}
+                    </ul>
+                {% endif %}
+            </li>
+        {% endwith %}{% endfor %}
+    </ol>
+</section>
+{% endif %}

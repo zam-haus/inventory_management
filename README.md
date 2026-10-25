@@ -12,8 +12,8 @@ items: photograph and count what is on a shelf first, annotate later.
 * **Label IDs** are short, permanent IDs on labels (`K7R-4XD`) whose QR codes lead
   to the item, location or unique item they are attached to. Users see them as
   *ZAMid*; another organization sets its own name with `LABEL_ID_NAME`.
-* **Stock changes** (sales, purchases, recounts) are logged with who, when and
-  why.
+* **Every change** of items, stock and locations, and every printed label, is
+  logged; stock changes (sales, purchases, recounts) with why.
 * Viewing is public; editing needs an account with the right permissions,
   granted automatically to members who log in on the ZAM network.
 

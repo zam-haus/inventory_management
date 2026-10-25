@@ -28,6 +28,10 @@ class CurrentActorMiddleware:
 
 @contextmanager
 def acting_as(user):
+    """`user` acts inside; None keeps who acts already."""
+    if user is None:
+        yield
+        return
     token = _user.set(user)
     try:
         yield
@@ -41,3 +45,8 @@ def current_actor():
     if user is None:
         user = getattr(_request.get(), "user", None)  # request.user stays lazy until needed here
     return user if user is not None and user.is_authenticated else None
+
+
+def current_request():
+    """The request being handled, or None (management commands, Celery tasks)."""
+    return _request.get()

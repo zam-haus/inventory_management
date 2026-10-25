@@ -219,7 +219,6 @@ class TargetDeletionTests(InventoryFixture, TestCase):
         unique_item = UniqueItem.objects.create(item=Item.objects.create(name="Saw", kind=Item.Kind.UNIQUE, measurement_unit=self.unit),
                                      location=self.location)
         lid = services.claim(make_id("ABCDE").code, unique_item, None)
-        unique_item.events.all()._raw_delete(unique_item.events.db)  # the history protects unique items otherwise
         unique_item.delete()
         lid = LabelId.objects.get(pk=lid.pk)
         self.assertEqual((lid.status, lid.target), (LabelId.Status.RETIRED, None))

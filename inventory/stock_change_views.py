@@ -1,7 +1,7 @@
 """Remove or add stock of one item at one location, e.g. after a sale or purchase.
 
 The dialog on the item and location pages posts here; without JavaScript, the
-same form is shown as a page. Every change is logged as a `StockChange`.
+same form is shown as a page. Every change is logged in the change log, with its reason.
 Removing the last stock of an item soft-deletes the item.
 """
 
@@ -20,9 +20,9 @@ from django.utils.http import url_has_allowed_host_and_scheme
 from django.utils.translation import gettext as _
 from django.views import View
 
+from .change_log import change_context, record_stock
 from .forms import StockChangeForm
-from .models import FEW, Item, ItemLocation, StockChange, format_amount
-from .stock_log import stock_changes
+from .models import FEW, ChangeLog, Item, ItemLocation, format_amount
 
 
 def has_other_stock(entry):
@@ -40,12 +40,13 @@ def mark_last_stock(entries):
     return entries
 
 
-def change_stock(entry, data, actor):
+def change_stock(entry, data):
     """Apply a validated `StockChangeForm`; return the log entry and whether the item was deleted."""
     before = after = entry.amount
-    increase = data["direction"] == StockChange.Direction.INCREASE
-    # The change is logged below, with the reason the user chose.
-    with stock_changes(actor=actor, source=StockChange.Source.DIALOG, log=False):
+    pk = entry.pk  # gone once the entry is deleted
+    increase = data["direction"] == ChangeLog.Direction.INCREASE
+    # The change is logged below, with the reason and amount the user chose.
+    with change_context(source=ChangeLog.Source.DIALOG, log_stock=False):
         if data["complete"]:
             entry.delete()
             after = None
@@ -59,20 +60,19 @@ def change_stock(entry, data, actor):
             estimate = -before + data["amount"] if increase else -before - data["amount"]
             entry.amount = after = -estimate if estimate > 0 else FEW
             entry.save(update_fields=["amount"])
+        log = record_stock(
+            ("itemlocation", pk), item=entry.item, location=entry.location, before=before, after=after, removed=data["complete"],
+            change=(data["direction"], data["amount"], data["estimated"]), reason=data["reason"], note=data["note"],
+            request_id=data["request_id"], force=True,
+        )
         item_deleted = data["complete"] and not has_other_stock(entry)
         if item_deleted:
             entry.item.delete()
-    log = StockChange.record(
-        entry, direction=data["direction"], actor=actor, reason=data["reason"], note=data["note"],
-        source=StockChange.Source.DIALOG, amount_before=before, amount_after=after,
-        entry_removed=data["complete"], amount=data["amount"], is_estimate=data["estimated"],
-        request_id=data["request_id"],
-    )
     return log, item_deleted
 
 
 class StockChangeView(PermissionRequiredMixin, View):
-    permission_required = "inventory.add_stockchange"
+    permission_required = "inventory.change_stock"
 
     @staticmethod
     def get_entry(pk, lock=False):
@@ -137,16 +137,16 @@ class StockChangeView(PermissionRequiredMixin, View):
             request_id = StockChangeForm.base_fields["request_id"].clean(request.POST.get("request_id"))
         except ValidationError:
             request_id = None  # Reported by the form.
-        if request_id and StockChange.objects.filter(request_id=request_id).exists():
+        if request_id and ChangeLog.objects.filter(request_id=request_id).exists():
             return self.already_saved(request, pk, wants_json)
         try:
             with transaction.atomic():
                 entry = self.get_entry(pk, lock=True)
                 form = StockChangeForm(request.POST, entry=entry)
                 if form.is_valid():
-                    log, item_deleted = change_stock(entry, form.cleaned_data, request.user)
+                    log, item_deleted = change_stock(entry, form.cleaned_data)
         except IntegrityError:
-            if request_id and StockChange.objects.filter(request_id=request_id).exists():
+            if request_id and ChangeLog.objects.filter(request_id=request_id).exists():
                 return self.already_saved(request, pk, wants_json)
             raise
         if not form.is_valid():
@@ -154,11 +154,12 @@ class StockChangeView(PermissionRequiredMixin, View):
                 return JsonResponse({"ok": False, "errors": form.errors.get_json_data()}, status=400)
             return self.render_page(request, entry, form, status=400)
 
-        names = {"item": log.item_name, "location": entry.location.title_with_code}
-        if log.amount is None:
+        names = {"item": log.subject_label, "location": entry.location.title_with_code}
+        amount = form.cleaned_data["amount"]
+        if amount is None:
             message = _("Removed everything of “%(item)s” from %(location)s.") % names
         else:
-            names["amount"] = ("~" if log.is_estimate else "") + format_amount(log.amount, log.unit)
+            names["amount"] = ("~" if form.cleaned_data["estimated"] else "") + format_amount(amount, log.details["unit"])
             if log.is_increase:
                 message = _("Added %(amount)s of “%(item)s” to %(location)s.") % names
             else:

@@ -8,6 +8,7 @@ from django.db import IntegrityError, transaction
 from django.utils import timezone
 from django.utils.translation import gettext as _
 
+from .. import change_log
 from ..models import LabelId, Location, LocationFormerCode
 from . import core
 from .targets import CLAIMABLE_FIELDS
@@ -70,6 +71,7 @@ def _assign(lid, field, value, user):
     except IntegrityError:
         # Another ID was assigned to the same target concurrently.
         raise LabelIdError(_("This already has an ID. Retire it first."))
+    change_log.record_label_id(lid, "assigned")
     return lid
 
 
@@ -123,6 +125,7 @@ def retire(code, user, note=""):
         if note:
             lid.note = f"{lid.note}\n{note}".strip()
         lid.save()
+        change_log.record_label_id(lid, "retired")
         return lid
 
 

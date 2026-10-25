@@ -4,12 +4,13 @@ How the ZAM inventory works, feature by feature. Setup is covered in the
 [project README](../README.md), running the production server in [ops/README.md](../ops/README.md).
 
 * [Concepts](concepts.md): bulk items vs. unique items, locations, initial data collection
-* [Location purpose and photo](locations.md): how locations are shown (purpose or name first, code chip after it), overview photo and change history
+* [Location purpose and photo](locations.md): how locations are shown (purpose or name first, code chip after it), overview photo
 * [Building structure](location-structure.md): levels, rooms and areas, axes, fire load, responsible teams, categories, number ranges; overview command
 * [Standortregeln](standortregeln.md) (deutsch): wie das ZAM Häuser, Ebenen, Räume und Bereiche codiert und benennt
 * [Quick-items](quick-items.md): items known only by name, edited in the location list
-* [Stock changes](stock-changes.md): the stock change (cart) dialog and the stock change log
-* [Unique items](unique-items.md): single objects (*Einzelobjekte*) with their own label ID, owner and history
+* [Stock changes](stock-changes.md): the stock change (cart) dialog
+* [Change log](change-log.md): every change of items, unique items, stock and locations, and printed labels; who sees what
+* [Unique items](unique-items.md): single objects (*Einzelobjekte*) with their own label ID and owner
 * [Label IDs](label-ids.md): permanent IDs on labels (shown as *ZAMid*), resolver, lifecycle and label PNGs
 * [Camera scanning](camera-scanning.md): QR and barcode scanning in the browser
 * [Permissions](permissions.md): model permissions, the local group and network detection

@@ -15,6 +15,7 @@ from django.db import IntegrityError, transaction
 from django.utils import timezone
 from django.utils.translation import gettext as _
 
+from inventory import change_log
 from inventory.label_ids import services as label_ids
 from inventory.models import Item, LabelId, Location, UniqueItem
 from . import drivers, label_urls, messages, selection
@@ -133,7 +134,7 @@ def claim(job_id, by, agent=None):
 
 def finish(job, result):
     """Record the result of a job that was being printed; returns the job, reloaded."""
-    PrintJob.objects.filter(pk=job.pk, status=PrintJob.Status.PROCESSING).update(
+    finished = PrintJob.objects.filter(pk=job.pk, status=PrintJob.Status.PROCESSING).update(
         status=RESULT_STATUS[result.status], code=result.code, detail=result.detail or {},
         printer_status=result.printer_status, finished_at=timezone.now(), payload=None,
     )
@@ -143,7 +144,16 @@ def finish(job, result):
         if job.subject_type in ("labelid", "uniqueitem"):
             label_ids.mark_printed(entry["code"] for entry in job.snapshot if entry.get("code"))
         selection.remember_job(job)
+        if finished:  # once, also if a result is reported twice
+            change_log.record_print(job, layout_name(job))
     return job
+
+
+def layout_name(job):
+    try:
+        return get_layout(job.layout_key).name
+    except ValueError:
+        return job.layout_key
 
 
 def process(job_id, attempts=3, wait=2.0):

@@ -165,7 +165,7 @@ class DetailLocationView(DetailView):
         context["unique_items"] = annotate_label_code(
             self.object.unique_items.select_related("item").prefetch_related("images", "item__itemimage_set")
         ).order_by("item__name", "pk")
-        if self.request.user.has_perm("inventory.add_stockchange"):
+        if self.request.user.has_perm("inventory.change_stock"):
             mark_last_stock(context["entries"])
             context["stock_change_form"] = forms.StockChangeForm()
         if not context["edit_denied"]:
@@ -331,7 +331,7 @@ class DetailItemView(DetailView):
             context["disposed_count"] = self.object.unique_items.filter(disposed_at__isnull=False).count()
             return context
         context["entries"] = list(self.object.itemlocation_set.all())
-        if self.request.user.has_perm("inventory.add_stockchange"):
+        if self.request.user.has_perm("inventory.change_stock"):
             mark_last_stock(context["entries"])
             context["stock_change_form"] = forms.StockChangeForm()
         # Item labels lead here with ?loc=<location>: that location comes first and is marked.

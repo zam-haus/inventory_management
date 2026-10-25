@@ -11,6 +11,8 @@ from ..forms import DissolveLocationForm, ItemLocationForm, LocationMoveForm, Pr
 from ..dissolution import DissolutionPlan
 from ..location_lookup import resolve_location_reference
 from ..models import Item, ItemLocation, Location, LocationType, MeasurementUnit
+from .helpers import without_change_log
+
 
 
 @override_settings(
@@ -86,9 +88,9 @@ class LocationSoftDeletionTests(TestCase):
 
     def test_lists_children_and_autocomplete_hide_archived_records(self):
         for url in (reverse("index_locations"), self.parent.get_absolute_url()):
-            response = self.client.get(url)
-            self.assertNotContains(response, "Archived room")
-            self.assertContains(response, "Live room")
+            content = without_change_log(self.client.get(url))
+            self.assertNotIn("Archived room", content)
+            self.assertIn("Live room", content)
         for name in ("location-autocomplete", "parent_location_autocomplete"):
             response = self.client.get(reverse(name), {"q": "Archived"})
             self.assertEqual(response.json()["results"], [])
@@ -115,7 +117,7 @@ class LocationSoftDeletionTests(TestCase):
         for url in (reverse("index_items"), self.item.get_absolute_url(), reverse("update_item", args=[self.item.pk])):
             response = self.client.get(url)
             self.assertEqual(response.status_code, 200)
-            self.assertNotContains(response, "Archived room")
+            self.assertNotIn("Archived room", without_change_log(response))
         report = self.client.get(reverse("print_inventory"), {"locations": self.parent.pk, "include_children": "1"})
         self.assertNotContains(report, "Supply")
 
@@ -187,6 +189,7 @@ class LocationSoftDeletionTests(TestCase):
             "children-MIN_NUM_FORMS": "0", "children-MAX_NUM_FORMS": "1000",
             "number_ranges-TOTAL_FORMS": "0", "number_ranges-INITIAL_FORMS": "0",
             "former_codes-TOTAL_FORMS": "0", "former_codes-INITIAL_FORMS": "0",
+            "change_log-TOTAL_FORMS": "0", "change_log-INITIAL_FORMS": "0",
             "_save": "Save",
         }
 

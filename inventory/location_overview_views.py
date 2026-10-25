@@ -6,7 +6,6 @@ from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect
 from django.utils.translation import gettext_lazy as _
 from django.views import View
-from django.views.generic import ListView
 
 from .forms import LocationDescriptionForm, LocationOverviewForm, LocationPurposeForm
 from .models import Location
@@ -70,19 +69,3 @@ class LocationPurposeUpdateView(LocationEditView):
     denied = staticmethod(location_purpose_denied)
     success_message = _("Purpose saved.")
     context_name = "purpose"
-
-
-class LocationHistoryView(PermissionRequiredMixin, ListView):
-    # History exposes who changed what, so it is not public like the purpose and photo.
-    permission_required = "inventory.view_locationhistory"
-    template_name = "inventory/location_history.html"
-    paginate_by = 25
-
-    def get_queryset(self):
-        self.location = get_object_or_404(Location.active, pk=self.kwargs["pk"])
-        return self.location.history.select_related("actor")
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context["object"] = self.location
-        return context

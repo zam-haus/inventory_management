@@ -16,7 +16,7 @@ from django.urls import reverse
 
 from accounts.models import Team
 from ..actor import acting_as
-from ..models import Item, ItemLocation, LabelId, Location, LocationType, UniqueItem, UniqueItemEvent, UsageLevel
+from ..models import ChangeLog, Item, ItemLocation, LabelId, Location, LocationType, UniqueItem, UsageLevel
 from ..label_ids import services
 from ..label_ids.views import label_preview_url
 from ..label_ids.testing import SETTINGS, InventoryFixture, make_id, local_group
@@ -110,13 +110,15 @@ class UniqueItemModelTests(UniqueItemFixture, TestCase):
             unique_item.save()
         with acting_as(self.insider):
             unique_item.dispose(UniqueItem.DisposalReason.SCRAPPED, "pressure lost")
-        disposed, moved, created = unique_item.events.all()
-        self.assertEqual((created.type, created.actor, created.to_location_name),
-                         (UniqueItemEvent.Type.CREATED, self.member, str(self.location)))
-        self.assertEqual((moved.type, moved.from_location, moved.to_location),
-                         (UniqueItemEvent.Type.MOVED, self.location, self.shelf))
-        self.assertEqual((disposed.type, disposed.actor, disposed.from_location, disposed.reason, disposed.note),
-                         (UniqueItemEvent.Type.DISPOSED, self.insider, self.shelf, "scrapped", "pressure lost"))
+        disposed, moved, created = unique_item.change_log.all()
+        self.assertEqual((created.action, created.actor, created.location),
+                         (ChangeLog.Action.CREATED, self.member, self.location))
+        self.assertEqual((moved.action, moved.other_location, moved.location),
+                         (ChangeLog.Action.MOVED, self.location, self.shelf))
+        self.assertEqual((disposed.action, disposed.actor, disposed.location, disposed.reason, disposed.note),
+                         (ChangeLog.Action.DISPOSED, self.insider, self.shelf, "scrapped", "pressure lost"))
+        # Shown on the pages of both locations.
+        self.assertEqual(list(ChangeLog.objects.filter(other_location=self.location, subject_type="uniqueitem")), [moved])
         self.assertIsNone(UniqueItem.objects.get(pk=unique_item.pk).location)
         self.assertFalse(UniqueItem.active.filter(pk=unique_item.pk).exists())
 
@@ -171,22 +173,22 @@ class UniqueItemViewTests(UniqueItemFixture, TestCase):
     def test_hidden_internal_details_are_marked(self):
         chip = '<span class="unique-item-internal" title="Only visible with the permission for internal details.">internal</span>'
         content = self.client.get(self.unique_item.get_absolute_url()).content.decode()
-        # Responsible person, owner details (also in the history) and purchase price are recorded but internal.
-        self.assertEqual(content.count(chip), 4)
+        # Responsible person, owner details and purchase price are recorded but internal.
+        self.assertEqual(content.count(chip), 3)
         self.assertInHTML(f"<dt>Purchase price</dt><dd>{chip}</dd>", content)
         self.assertInHTML(f"<dd>{chip}</dd>", self.client.get(self.extinguisher.get_absolute_url()).content.decode())
         self.client.force_login(self.insider)
         content = self.client.get(self.unique_item.get_absolute_url()).content.decode()
         self.assertInHTML(f"<dt>Purchase price</dt><dd>123.45 € {chip}</dd>", content)
         self.assertEqual(content.count(chip), 1)
-        # Nothing internal recorded: no chip, except for the earlier owner account in the history.
+        # Nothing internal recorded: no chip, except for the changes of internal values.
         self.unique_item.responsible_user = self.unique_item.owner_user = self.unique_item.purchase_price = None
         self.unique_item.save()
-        self.client.logout()
+        self.client.force_login(self.member)
         content = self.client.get(self.unique_item.get_absolute_url()).content.decode()
-        details, history = content.split('id="unique-item-history-heading"')
+        details, history = content.split('id="change-log-heading"')
         self.assertNotIn(chip, details)
-        self.assertIn("Owner changed: Robin → ZAM", history)
+        self.assertIn(chip, history)
 
     def test_internal_details_with_permission(self):
         self.client.force_login(self.insider)
@@ -217,7 +219,7 @@ class UniqueItemViewTests(UniqueItemFixture, TestCase):
         self.assertEqual(LabelId.objects.count(), before + 1)
         lid = LabelId.objects.get(unique_item=unique_item)
         self.assertEqual((lid.status, lid.assigned_by, lid.batch), (LabelId.Status.ASSIGNED, self.member, "unique_item"))
-        self.assertEqual(unique_item.events.get().actor, self.member)
+        self.assertEqual(unique_item.change_log.get(action="created").actor, self.member)
         self.assertEqual(unique_item.owner_first_name, "Kim")
 
     def test_create_with_a_reserved_label(self):
@@ -251,7 +253,7 @@ class UniqueItemViewTests(UniqueItemFixture, TestCase):
         response = self.client.post(reverse("create_unique_item"), self.create_data(label_choice="reserved", label_code=reserved.code))
         self.assertEqual(response.status_code, 302)
         self.assertEqual(UniqueItem.objects.count(), count)
-        self.assertEqual(UniqueItemEvent.objects.filter(unique_item__pk__gt=self.unique_item.pk).count(), 0)
+        self.assertFalse(ChangeLog.objects.filter(subject_type="uniqueitem", subject_id__gt=self.unique_item.pk).exists())
 
     def test_creating_needs_claim_permission(self):
         user = get_user_model().objects.create_user(username="adder")
@@ -272,8 +274,8 @@ class UniqueItemViewTests(UniqueItemFixture, TestCase):
         self.assertEqual(response.status_code, 302)
         unique_item = UniqueItem.objects.get(pk=self.unique_item.pk)
         self.assertEqual((unique_item.location, unique_item.purchase_price, unique_item.owner_user), (self.shelf, Decimal("123.45"), self.owner))
-        moved = unique_item.events.get(type=UniqueItemEvent.Type.MOVED)
-        self.assertEqual((moved.actor, moved.to_location), (self.member, self.shelf))
+        moved = unique_item.change_log.get(action=ChangeLog.Action.MOVED)
+        self.assertEqual((moved.actor, moved.location), (self.member, self.shelf))
 
     def test_an_optional_name_between_item_and_label_id(self):
         self.assertEqual(str(self.unique_item), "Fire extinguisher K7R-4XD")  # without a name
@@ -417,7 +419,7 @@ class UniqueItemViewTests(UniqueItemFixture, TestCase):
         first = saw.unique_items.get()
         self.assertRedirects(response, first.get_absolute_url(), fetch_redirect_response=False)
         self.assertEqual((first.location, LabelId.objects.get(unique_item=first).status), (self.shelf, LabelId.Status.ASSIGNED))
-        self.assertEqual(first.events.get().actor, self.member)
+        self.assertEqual(first.change_log.get(action="created").actor, self.member)
 
     def test_new_item_needs_a_location_and_a_valid_label(self):
         self.client.force_login(self.member)
@@ -532,7 +534,7 @@ class UniqueItemAdminTests(UniqueItemFixture, TestCase):
         self.client.force_login(self.admin)
         data = {"item": self.extinguisher.pk, "location": self.location.pk, "usage_level": "",
                 "files-TOTAL_FORMS": "0", "files-INITIAL_FORMS": "0", "images-TOTAL_FORMS": "0", "images-INITIAL_FORMS": "0",
-                "events-TOTAL_FORMS": "0", "events-INITIAL_FORMS": "0"}
+                "change_log-TOTAL_FORMS": "0", "change_log-INITIAL_FORMS": "0"}
         response = self.client.post(reverse("admin:inventory_uniqueitem_add") + query, data)
         self.assertEqual(response.status_code, 302, response.context and response.context.get("errors"))
         return UniqueItem.objects.latest("pk")
@@ -604,39 +606,34 @@ class OwnerChangeTests(UniqueItemFixture, TestCase):
         self.assertEqual((self.unique_item.owner_first_name, self.unique_item.owner_user), ("", self.owner))
 
     def test_owner_changes_are_recorded(self):
-        # Owner accounts are internal details.
+        # Owner accounts and contacts are internal details.
         grant(self.insider, "change_uniqueitem_owner", "change_uniqueitem")
         self.update(self.insider, owner_first_name="", owner_user=self.owner.pk, notes="handed over")
         self.update(self.insider, owner_user="", notes="donated to the ZAM")
-        to_zam, to_account, initial = self.unique_item.events.filter(type=UniqueItemEvent.Type.OWNER_CHANGED)
-        self.assertEqual((to_account.actor, to_account.from_owner_name, to_account.from_owner_user,
-                          to_account.to_owner_name, to_account.to_owner_user),
-                         (self.insider, "Robin", None, "Robin", self.owner))
-        self.assertEqual((to_zam.from_owner_user, to_zam.from_owner_label, to_zam.to_owner_label),
-                         (self.owner, "Robin", "ZAM"))
-        # Set in setUpTestData, without an actor.
-        self.assertEqual((initial.from_owner_label, initial.to_owner_label, initial.actor), ("ZAM", "Robin", None))
-        # Edits without an owner change add no owner entry.
-        self.update(self.insider, notes="just notes")
-        self.assertEqual(self.unique_item.events.filter(type=UniqueItemEvent.Type.OWNER_CHANGED).count(), 3)
+        to_zam, to_account = self.unique_item.change_log.filter(action=ChangeLog.Action.CHANGED)[:2]
+        self.assertEqual(to_account.actor, self.insider)
+        self.assertIn({"field": "owner_user", "before": "", "after": "owner", "internal": True}, to_account.changes)
+        self.assertIn({"field": "owner_first_name", "before": "Robin", "after": "", "internal": False}, to_account.changes)
+        self.assertIn({"field": "owner_user", "before": "owner", "after": "", "internal": True}, to_zam.changes)
 
     def test_owner_history_on_the_page(self):
         self.unique_item.owner_first_name, self.unique_item.owner_contact = "", "Kim Sample, kim@example.org"
         self.unique_item.save()
+        self.assertNotContains(self.client.get(self.unique_item.get_absolute_url()), "change-log-heading")
+        self.client.force_login(self.member)  # local group: sees changes, not internal ones
         page = self.client.get(self.unique_item.get_absolute_url()).content.decode()
-        self.assertIn("Owner changed: Robin → someone else", page)
+        history = page.split('id="change-log-heading"')[1]
+        self.assertIn("owner&#x27;s first name:</span>", history)
+        self.assertIn("<del>Robin</del>", history)
         self.assertNotIn("kim@example.org", page)
-        self.assertIn('class="unique-item-internal"', page)
+        self.assertIn('class="unique-item-internal"', history)
         self.client.force_login(self.insider)
-        self.assertContains(self.client.get(self.unique_item.get_absolute_url()), "after: Kim Sample, kim@example.org")
+        self.assertContains(self.client.get(self.unique_item.get_absolute_url()), "<ins>Kim Sample, kim@example.org</ins>")
 
-    def test_initial_owner_is_part_of_the_creation_entry(self):
+    def test_creation_is_logged_with_its_location(self):
         unique_item = UniqueItem.objects.create(item=self.extinguisher, location=self.location, owner_user=self.owner)
-        created = unique_item.events.get()
-        self.assertEqual((created.type, created.to_owner_user, created.to_owner_name),
-                         (UniqueItemEvent.Type.CREATED, self.owner, "Robin"))
-        self.assertContains(self.client.get(unique_item.get_absolute_url()), "Owner: Robin")
-        self.assertFalse(self.unique_item.events.get(type=UniqueItemEvent.Type.CREATED).has_to_owner)
+        created = unique_item.change_log.get()
+        self.assertEqual((created.action, created.location, created.changes), (ChangeLog.Action.CREATED, self.location, []))
 
     def test_owner_accounts_cannot_be_deleted_silently(self):
         self.unique_item.owner_first_name, self.unique_item.owner_user = "", self.owner

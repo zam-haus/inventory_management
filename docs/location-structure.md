@@ -81,7 +81,7 @@ are in [Standortregeln](standortregeln.md) (German).
   asks for the purpose and the physical description. The physical description of everything but the
   building structure can be changed later on the location page like the purpose
   (`LocationDescriptionUpdateView`, `location_field_editor.js`).
-* **Breadcrumbs** of location pages (the location and its sub-pages: move, history, dissolve, adding
+* **Breadcrumbs** of location pages (the location and its sub-pages: move, dissolve, adding
   shelves, containers or compartments) show the location's full path from its top-level location,
   without a “Locations” root (`inventory/location_breadcrumb.html`). Item pages have none for now:
   theirs would follow the categories. A unique item's heading links to its item.

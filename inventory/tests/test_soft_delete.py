@@ -10,6 +10,7 @@ from django.urls import reverse
 
 from ..forms import BulkItemForm
 from ..models import Item, ItemBarcode, ItemFile, ItemImage, ItemLocation, Location, LocationType, MeasurementUnit
+from .helpers import without_change_log
 
 
 @override_settings(
@@ -90,7 +91,7 @@ class SoftDeleteTests(TestCase):
             url = reverse(name, args=[pk])
             self.assertEqual(self.client.get(url).status_code, 404)
         for url in (reverse("index_items"), self.location.get_absolute_url()):
-            self.assertNotContains(self.client.get(url), "Archived supply")
+            self.assertNotIn("Archived supply", without_change_log(self.client.get(url)))
         response = self.client.get(reverse("print_inventory"), {"locations": self.location.pk})
         self.assertNotContains(response, "Archived supply")
         self.assertNotIn("is_deleted", BulkItemForm().fields)

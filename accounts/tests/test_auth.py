@@ -31,8 +31,6 @@ class LocalMembershipTests(TestCase):
             content_type__app_label="inventory",
             codename__regex=r"^(add|change)_",
         ).exclude(content_type__model="labelid").values_list("content_type__app_label", "codename"))
-        # Unique item events are written by the inventory itself (inventory/models/unique_item.py).
-        expected.discard(("inventory", "add_uniqueitemevent"))
         # Changing a unique item's owner after creation is for admins (inventory/models/unique_item.py).
         expected.discard(("inventory", "change_uniqueitem_owner"))
         # Axes and number ranges belong to the building structure, which admins maintain (docs/location-structure.md).
@@ -46,6 +44,8 @@ class LocalMembershipTests(TestCase):
         expected.add(("inventory", "print_inventory"))
         # ZAM IDs: only claiming (inventory/migrations/0022_zamid_triggers_and_claim)
         expected.add(("inventory", "claim_labelid"))
+        # The change log, without who made the changes (inventory/migrations/0046_change_log)
+        expected.add(("inventory", "view_changelog"))
         # Label printing: printing only (label_printing/migrations/0002_grant_print_label)
         expected.add(("label_printing", "print_label"))
         self.assertEqual(actual, expected)

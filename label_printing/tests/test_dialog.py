@@ -102,7 +102,7 @@ class PrintDialogTests(SimulatedPrinters, InventoryData, TestCase):
         # On the Zebra's labels only this location template
         LocationLabelTemplate.objects.filter(subject_type="location", label_width=57).exclude(pk=cls.template.pk).update(
             is_active=False)
-        cls.user = create_user("printing", "label_printing.print_label", "inventory.add_stockchange")
+        cls.user = create_user("printing", "label_printing.print_label", "inventory.change_stock")
 
     def setUp(self):
         super().setUp()

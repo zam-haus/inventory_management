@@ -126,7 +126,8 @@ class UniqueItemClaimTests(InventoryFixture, TestCase):
         unique_item = UniqueItem.objects.get()
         self.assertRedirects(response, reverse("update_unique_item", args=[unique_item.pk]), fetch_redirect_response=False)
         self.assertEqual(LabelId.objects.get(pk=self.lid.pk).unique_item, unique_item)
-        self.assertEqual(unique_item.events.get().actor, self.member)
+        self.assertEqual(unique_item.change_log.get(action="created").actor, self.member)
+        self.assertEqual(unique_item.change_log.get(action="label_id").details["event"], "assigned")
         # The resolver leads to the unique item from now on.
         response = self.client.get(reverse("label_id_resolve", args=[self.lid.code]))
         self.assertRedirects(response, unique_item.get_absolute_url(), fetch_redirect_response=False)

@@ -2,20 +2,20 @@
 Unique items: single physical objects of an item tracked as unique items (an
 Item with kind "unique"), such as one particular fire extinguisher. Each one is
 at exactly one location and identified by its label ID. Unique items are never
-deleted: they leave the inventory by being disposed, and UniqueItemEvent keeps
-their history.
+deleted: they leave the inventory by being disposed; the change log keeps their
+history.
 """
 from pathlib import Path
 from uuid import uuid4
 
 from django.conf import settings
 from django.core.exceptions import ValidationError
-from django.db import models, router, transaction
+from django.db import models
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
-from ..actor import current_actor
+from ..actor import acting_as
 from .item import UsageLevel
 
 
@@ -171,47 +171,10 @@ class UniqueItem(models.Model):
         if errors:
             raise ValidationError(errors)
 
-    OWNER_FIELDS = ("owner_user_id", "owner_first_name", "owner_contact")
-
-    def owner_snapshot(self, side):
-        """The current owner as event fields for the given side ("from" or "to")."""
-        return {
-            f"{side}_owner_user_id": self.owner_user_id,
-            f"{side}_owner_name": self.owner_first_name_display or "",
-            f"{side}_owner_contact": self.owner_contact,
-        }
-
     def save(self, *args, actor=None, **kwargs):
-        """Saves and records creation, moves, owner changes and disposal in the unique item's history."""
-        using = kwargs.get("using") or router.db_for_write(type(self), instance=self)
-        actor = actor or current_actor()
-        with transaction.atomic(using=using):
-            previous = None
-            if self.pk:
-                previous = type(self).objects.using(using).select_for_update().filter(pk=self.pk).first()
-            result = super().save(*args, **kwargs)
-            events = UniqueItemEvent.objects.using(using)
-            event = {"unique_item": self, "actor": actor}
-            if previous is None:
-                owner = self.owner_snapshot("to") if self.has_owner else {}
-                events.create(**event, type=UniqueItemEvent.Type.CREATED, to_location=self.location, **owner)
-                return result
-            if any(getattr(previous, field) != getattr(self, field) for field in self.OWNER_FIELDS):
-                events.create(
-                    **event, type=UniqueItemEvent.Type.OWNER_CHANGED,
-                    **previous.owner_snapshot("from"), **self.owner_snapshot("to"),
-                )
-            if previous.disposed_at is None and self.disposed_at is not None:
-                events.create(
-                    **event, type=UniqueItemEvent.Type.DISPOSED, from_location_id=previous.location_id,
-                    reason=self.disposal_reason, note=self.disposal_note,
-                )
-            elif previous.location_id != self.location_id:
-                events.create(
-                    **event, type=UniqueItemEvent.Type.MOVED, from_location_id=previous.location_id,
-                    to_location=self.location,
-                )
-            return result
+        """Saves; the change log records it with `actor` or the current user as who acted."""
+        with acting_as(actor):
+            super().save(*args, **kwargs)
 
     def dispose(self, reason, note="", actor=None):
         """Remove the unique item from the inventory. Its label ID stays assigned."""
@@ -225,90 +188,3 @@ class UniqueItem(models.Model):
 def get_unique_item_upload_path(instance, filename):
     # Only referenced by migrations: unique item photos and files are now ItemImage and ItemFile rows.
     return f"unique_items/{instance.unique_item.id}/{uuid4().hex}{Path(filename).suffix.lower()}"
-
-
-class UniqueItemEvent(models.Model):
-    """One entry in a unique item's history. The log is append-only; only staff see who acted, in the admin."""
-
-    class Type(models.TextChoices):
-        CREATED = "created", _("Added to the inventory")
-        MOVED = "moved", _("Moved")
-        DISPOSED = "disposed", _("Removed from the inventory")
-        OWNER_CHANGED = "owner", _("Owner changed")
-
-    created_at = models.DateTimeField(_("date"), default=timezone.now, db_index=True)
-    actor = models.ForeignKey(
-        settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="+",
-        verbose_name=_("user"),
-    )
-    type = models.CharField(_("event"), max_length=12, choices=Type.choices)
-    unique_item = models.ForeignKey(UniqueItem, on_delete=models.PROTECT, related_name="events", verbose_name=_("unique item"))
-    # Names are kept so entries stay readable after a location is gone.
-    from_location = models.ForeignKey(
-        "Location", null=True, blank=True, on_delete=models.SET_NULL, related_name="+", verbose_name=_("from"),
-    )
-    from_location_name = models.CharField(_("from"), max_length=512, blank=True)
-    to_location = models.ForeignKey(
-        "Location", null=True, blank=True, on_delete=models.SET_NULL, related_name="+", verbose_name=_("to"),
-    )
-    to_location_name = models.CharField(_("to"), max_length=512, blank=True)
-    # Owner before and after: first names are public, account and contact are internal.
-    # No owner on both sides means the ZAM.
-    from_owner_user = models.ForeignKey(
-        settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="+",
-        verbose_name=_("previous owner (account)"),
-    )
-    from_owner_name = models.CharField(_("previous owner's first name"), max_length=150, blank=True)
-    from_owner_contact = models.TextField(_("previous owner's name and contact"), blank=True)
-    to_owner_user = models.ForeignKey(
-        settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="+",
-        verbose_name=_("new owner (account)"),
-    )
-    to_owner_name = models.CharField(_("new owner's first name"), max_length=150, blank=True)
-    to_owner_contact = models.TextField(_("new owner's name and contact"), blank=True)
-    reason = models.CharField(_("reason"), max_length=12, choices=UniqueItem.DisposalReason.choices, blank=True)
-    note = models.TextField(_("note"), blank=True)
-
-    class Meta:
-        ordering = ("-created_at", "-pk")
-        default_permissions = ("add", "view")
-        verbose_name = _("unique item event")
-        verbose_name_plural = _("unique item events")
-
-    def save(self, *args, **kwargs):
-        if self.from_location_id and not self.from_location_name:
-            self.from_location_name = str(self.from_location)
-        if self.to_location_id and not self.to_location_name:
-            self.to_location_name = str(self.to_location)
-        super().save(*args, **kwargs)
-
-    def __str__(self):
-        return f"{self.get_type_display()}: {self.unique_item}"
-
-    def _owner_label(self, side):
-        name = getattr(self, f"{side}_owner_name")
-        if name:
-            return name
-        if getattr(self, f"{side}_owner_user_id") or getattr(self, f"{side}_owner_contact"):
-            return _("someone else")  # an owner without a public first name
-        return _("ZAM")
-
-    @property
-    def from_owner_label(self):
-        return self._owner_label("from")
-
-    @property
-    def to_owner_label(self):
-        return self._owner_label("to")
-
-    @property
-    def owner_details(self):
-        """Internal: (account, contact, label) of the owner before and after."""
-        if self.type != self.Type.OWNER_CHANGED:
-            return [(self.to_owner_user, self.to_owner_contact, "")]
-        return [(self.from_owner_user, self.from_owner_contact, _("before")),
-                (self.to_owner_user, self.to_owner_contact, _("after"))]
-
-    @property
-    def has_to_owner(self):
-        return bool(self.to_owner_name or self.to_owner_user_id or self.to_owner_contact)

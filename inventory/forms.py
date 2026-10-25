@@ -20,7 +20,7 @@ from .keyboard_layouts import layout_corrections
 from .location_lookup import scan_prefixes
 from .permissions import location_deletion_denied
 from .models import (
-    USAGE_LEVEL_DESCRIPTIONS, BarcodeType, Item, ItemBarcode, ItemFile, ItemImage, ItemLocation, Location, LocationType, StockChange,
+    USAGE_LEVEL_DESCRIPTIONS, BarcodeType, Item, ItemBarcode, ItemFile, ItemImage, ItemLocation, Location, LocationType, ChangeLog,
     UniqueItem, UsageLevel, LabelId,
 )
 from .widgets import NEW_ITEM_PREFIX, AutocompleteSelect, ItemOrNewSelect, LocationSelect
@@ -902,7 +902,7 @@ class StockChangeForm(Form):
     """Remove or add stock at one location; `entry` is the stock entry, locked by the view."""
 
     direction = ChoiceField(
-        label=_("Change"), choices=StockChange.Direction.choices,
+        label=_("Change"), choices=ChangeLog.Direction.choices,
         widget=RadioSelect(attrs={"class": "btn-check"}),
     )
     amount = DecimalField(
@@ -913,7 +913,8 @@ class StockChangeForm(Form):
         label=_("Remove everything stored at this location"), required=False,
         widget=CheckboxInput(attrs={"class": "form-check-input"}),
     )
-    reason = ChoiceField(label=_("Reason"), choices=StockChange.Reason.choices)
+    reason = ChoiceField(label=_("Reason"), choices=[(reason.value, reason.label) for reasons in ChangeLog.REASONS.values()
+                                                    for reason in reasons])
     note = CharField(
         label=_("Note (optional)"), required=False, max_length=500,
         widget=Textarea(attrs={"class": "form-control", "rows": 2, "maxlength": 500}),
@@ -930,23 +931,23 @@ class StockChangeForm(Form):
         return [
             {"direction": direction, "choices": [
                 {"value": reason.value, "label": reason.label, "id": f"id_reason_{reason.value}", "checked": value == reason}
-                for reason in StockChange.REASONS[direction]
+                for reason in ChangeLog.REASONS[direction]
             ]}
-            for direction in StockChange.Direction
+            for direction in ChangeLog.Direction
         ]
 
     def clean(self):
         cleaned = super().clean()
         direction, reason = cleaned.get("direction"), cleaned.get("reason")
-        if direction and reason and reason not in StockChange.REASONS[direction]:
+        if direction and reason and reason not in ChangeLog.REASONS[direction]:
             self.add_error("reason", _("Choose a reason that fits the change."))
         if self.entry is None or not direction or "amount" in self.errors:
             return cleaned
         stock, kind = self.entry.amount, self.entry.amount_kind
         amount = cleaned.get("amount")
-        complete = bool(cleaned.get("complete")) and direction == StockChange.Direction.DECREASE
+        complete = bool(cleaned.get("complete")) and direction == ChangeLog.Direction.DECREASE
         cleaned["estimated"] = False
-        if direction == StockChange.Direction.DECREASE and kind == "precise":
+        if direction == ChangeLog.Direction.DECREASE and kind == "precise":
             if complete:
                 # "Everything" is unambiguous, even if the stock changed meanwhile.
                 amount = stock
