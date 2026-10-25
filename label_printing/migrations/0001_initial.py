@@ -87,22 +87,10 @@ class Migration(migrations.Migration):
                     models.CharField(max_length=64, unique=True, verbose_name="name"),
                 ),
                 (
-                    "uid",
-                    models.CharField(
-                        blank=True,
-                        editable=False,
-                        help_text="Reported by an agent that registered itself.",
-                        max_length=128,
-                        null=True,
-                        unique=True,
-                        verbose_name="agent ID",
-                    ),
-                ),
-                (
                     "is_active",
                     models.BooleanField(
                         default=True,
-                        help_text="Only active agents get jobs; agents that register themselves start inactive.",
+                        help_text="Only active agents are let in; deactivate one to lock it out.",
                         verbose_name="active",
                     ),
                 ),
@@ -123,15 +111,6 @@ class Migration(migrations.Migration):
                     "address",
                     models.GenericIPAddressField(
                         blank=True, editable=False, null=True, verbose_name="address"
-                    ),
-                ),
-                (
-                    "registered_at",
-                    models.DateTimeField(
-                        blank=True,
-                        editable=False,
-                        null=True,
-                        verbose_name="registered at",
                     ),
                 ),
                 (

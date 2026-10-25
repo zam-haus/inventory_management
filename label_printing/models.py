@@ -19,22 +19,19 @@ def token_hash(token):
 
 
 class PrintAgent(models.Model):
-    """A program next to USB printers that fetches their jobs (label_printing/agent.py). Agents register
-    themselves (api.register) and get jobs once an admin activates them."""
+    """A program next to USB printers that fetches their jobs (label_printing/agent.py). An admin creates it and
+    gives its token to the agent, in its configuration next to the server's address; nothing registers itself."""
 
     class Meta:
         verbose_name = _("print agent")
         verbose_name_plural = _("print agents")
 
     name = models.CharField(_("name"), max_length=64, unique=True)
-    uid = models.CharField(_("agent ID"), max_length=128, unique=True, null=True, blank=True, editable=False,
-                           help_text=_("Reported by an agent that registered itself."))
     is_active = models.BooleanField(_("active"), default=True,
-                                    help_text=_("Only active agents get jobs; agents that register themselves start inactive."))
+                                    help_text=_("Only active agents are let in; deactivate one to lock it out."))
     token_hash = models.CharField(max_length=64, unique=True, editable=False)
     hostname = models.CharField(_("host name"), max_length=255, blank=True, editable=False)
     address = models.GenericIPAddressField(_("address"), null=True, blank=True, editable=False)
-    registered_at = models.DateTimeField(_("registered at"), null=True, blank=True, editable=False)
     last_seen = models.DateTimeField(_("last seen"), null=True, blank=True, editable=False)
     version = models.CharField(_("version"), max_length=32, blank=True, editable=False)
 

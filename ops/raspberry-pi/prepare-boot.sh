@@ -2,14 +2,16 @@
 # Prepare the boot partition of a Raspberry Pi OS SD card (mounted on this computer) to run the label
 # print agent: copies the agent and the service there and lets the Pi install it on its next boot.
 #
-#   ops/raspberry-pi/prepare-boot.sh /Volumes/boot [SERVER ...]
+#   ops/raspberry-pi/prepare-boot.sh /Volumes/boot [SERVER TOKEN ...]
 #
-# SERVERs (e.g. https://inventar.zam.haus http://192.0.2.10:8000) go into label-agent/config.json;
-# without them an existing config.json is kept. Running it again updates the code; the agent picks
-# it up when it restarts (sudo systemctl restart label-agent, or reboot).
+# Each SERVER (e.g. https://inventar.zam.haus) with the agent's TOKEN from that inventory's admin
+# (Label printing → Print agents → add) goes into label-agent/config.json; without them an existing
+# config.json is kept. Running it again updates the code; the agent picks it up when it restarts
+# (sudo systemctl restart label-agent, or reboot).
 set -e
-boot=${1:?usage: prepare-boot.sh BOOT_PARTITION [SERVER ...]}
+boot=${1:?usage: prepare-boot.sh BOOT_PARTITION [SERVER TOKEN ...]}
 shift
+[ $(($# % 2)) -eq 0 ] || { echo "give a TOKEN after each SERVER (from the inventory's admin)" >&2; exit 1; }
 [ -f "$boot/cmdline.txt" ] || { echo "$boot has no cmdline.txt: not a Raspberry Pi boot partition" >&2; exit 1; }
 here=$(cd "$(dirname "$0")" && pwd)
 repo=$(cd "$here/../.." && pwd)
@@ -19,8 +21,9 @@ cp "$repo/label_printing/__init__.py" "$repo/label_printing/agent.py" "$dest/lab
 cp "$repo"/label_printing/devices/*.py "$dest/label_printing/devices/"
 cp "$here/install.sh" "$here/update.sh" "$here/label-agent.service" "$dest/"
 if [ $# -gt 0 ]; then
-    servers=$(printf '"%s", ' "$@"); servers=${servers%, }
-    sed "s|\"servers\": \[[^]]*\]|\"servers\": [$servers]|" "$here/config.json" > "$dest/config.json"
+    servers=$(printf '{"url": "%s", "token": "%s"}, ' "$@"); servers=${servers%, }
+    tr '\n' '\r' < "$here/config.json" | sed "s|\"servers\": \[[^]]*\]|\"servers\": [$servers]|" | tr '\r' '\n' \
+        > "$dest/config.json"
 elif [ ! -f "$dest/config.json" ]; then
     cp "$here/config.json" "$dest/config.json"
 fi
@@ -37,4 +40,4 @@ case "$cmdline" in
 esac
 # macOS keeps extended attributes on FAT as ._ files; the Pi does not need them.
 find "$dest" -name '._*' -delete
-echo "Prepared $boot: agent in label-agent/, servers: $(grep '"servers"' "$dest/config.json")"
+echo "Prepared $boot: agent in label-agent/, servers: $(grep -o '"url": "[^"]*"' "$dest/config.json" | tr '\n' ' ')"

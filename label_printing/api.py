@@ -1,10 +1,12 @@
 """
 API for print agents (label_printing/agent.py).
 
-An agent registers itself with its own ID and a token it made up (register); an admin activates it.
-Its requests carry the token (Authorization: Bearer …). With every poll it reports the printers it
-found, which appear in the admin as inactive printers until activated and named, and their status;
-active agents get the next job of their active printers and report how it went (result).
+An admin creates each agent and gives its token to it (in its configuration, next to the server's address);
+nothing registers itself. Every request carries the token (Authorization: Bearer …): unknown tokens get 401,
+deactivated agents 403. With every poll an agent reports its host and the printers it found: new ones are
+created inactive for an admin to check and activate; a known one stays as it is, also when it has moved to
+another agent (it moves along). Agents get the next job of their active printers and report how it went
+(result).
 """
 import base64
 import json
@@ -22,7 +24,7 @@ from ipware import get_client_ip
 
 from . import drivers, services
 from .devices.run import DONE, FAILED, SENT, Result
-from .models import PrintAgent, Printer, PrintJob, token_hash
+from .models import PrintAgent, Printer, PrintJob
 
 ID_PATTERN = re.compile(r"^[A-Za-z0-9._:-]{1,128}$")
 
@@ -41,13 +43,17 @@ def json_body(request):
 
 
 def agent_api(view):
-    """POST only, JSON body, the agent as second argument; 401 without a valid token."""
+    """POST only, JSON body, the agent as second argument; 401 without a known token, 403 for a deactivated
+    agent."""
     @csrf_exempt
     @require_POST
     def wrapper(request, *args, **kwargs):
         agent = authenticated_agent(request)
         if agent is None:
-            return JsonResponse({"error": "invalid token"}, status=401)
+            return JsonResponse({"error": "unknown token: create the agent in the admin and give it its token"},
+                                status=401)
+        if not agent.is_active:
+            return JsonResponse({"error": "this agent is deactivated in the admin"}, status=403)
         data = json_body(request)
         if data is None:
             return JsonResponse({"error": "invalid JSON"}, status=400)
@@ -65,45 +71,10 @@ def unique(model, field, base, max_length):
     return candidate
 
 
-@csrf_exempt
-@require_POST
-def register(request):
-    """A new agent: {uid, token, hostname, version}. It is created inactive; registering again with the
-    same token is fine (200), with another token refused (409) until an admin deletes the agent."""
-    data = json_body(request)
-    if data is None:
-        return JsonResponse({"error": "invalid JSON"}, status=400)
-    uid, token = str(data.get("uid", "")), str(data.get("token", ""))
-    if not ID_PATTERN.match(uid) or len(token) < 32:
-        return JsonResponse({"error": "uid (letters, digits, ._:-) and a token of 32+ characters needed"}, status=400)
-    existing = PrintAgent.objects.filter(uid=uid).first()
-    if existing is None:
-        # An agent created in the admin, whose token was put into the agent's state.json: now it has an ID.
-        existing = PrintAgent.objects.filter(token_hash=token_hash(token), uid=None).first()
-        if existing is not None:
-            existing.uid = uid
-            existing.save(update_fields=["uid"])
-    if existing is not None:
-        if existing.token_hash != token_hash(token):
-            return JsonResponse({"error": "registered with another token; an admin can delete the agent"}, status=409)
-        return JsonResponse({"active": existing.is_active, "name": existing.name})
-    if PrintAgent.objects.filter(is_active=False).count() >= settings.PRINT_AGENT_MAX_PENDING:
-        return JsonResponse({"error": "too many agents wait for activation"}, status=429)
-    hostname = str(data.get("hostname", ""))[:255]
-    try:
-        with transaction.atomic():
-            agent = PrintAgent.objects.create(
-                name=unique(PrintAgent, "name", hostname or uid, 64), uid=uid, token_hash=token_hash(token),
-                is_active=False, hostname=hostname, address=get_client_ip(request)[0],
-                version=str(data.get("version", ""))[:32], registered_at=timezone.now(), last_seen=timezone.now(),
-            )
-    except IntegrityError:
-        return JsonResponse({"error": "registered with another token; an admin can delete the agent"}, status=409)
-    return JsonResponse({"active": False, "name": agent.name}, status=201)
-
-
 def discovered(agent, uid, report):
-    """The printer with this ID, created inactive if it is new (named and activated in the admin)."""
+    """The printer with this ID: created inactive if it is new (an admin checks, names and activates it); a known
+    one is kept as it is, active or not, also when it is found again after being unplugged or the agent's restart,
+    and moves along if it is now on another agent."""
     info = report.get("info") if isinstance(report.get("info"), dict) else {}
     printer = Printer.objects.filter(uid=uid).first()
     if printer is None:
@@ -136,8 +107,8 @@ def discovered(agent, uid, report):
 
 @agent_api
 def poll(request, agent, data):
-    """Heartbeat with the printers found and their status. Answers whether the agent is active, its active
-    printers, and for active agents the next job, now claimed for the agent, or none."""
+    """Heartbeat with the printers found and their status. Answers the agent's active printers and the next job,
+    now claimed for the agent, or none."""
     agent.last_seen = timezone.now()
     agent.version = str(data.get("version", ""))[:32]
     agent.hostname = str(data.get("hostname", agent.hostname))[:255]
@@ -154,8 +125,8 @@ def poll(request, agent, data):
     printers = {printer.uid or printer.slug: {"language": printer.language, "check_status": printer.reports_status}
                 for printer in agent.printers.filter(is_active=True)}
     services.dispatch_waiting(refresh=False)  # the agent's printers may just have come back or got other tape
-    job = services.next_for_agent(agent) if agent.is_active else None
-    return JsonResponse({"active": agent.is_active, "printers": printers, "job": job and {
+    job = services.next_for_agent(agent)
+    return JsonResponse({"printers": printers, "job": job and {
         "id": job.pk,
         "printer": job.printer.uid or job.printer.slug,
         "language": job.printer.language,

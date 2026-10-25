@@ -5,7 +5,6 @@ from . import api, views
 urlpatterns = [
     path("jobs/<int:pk>.json", views.job_status, name="print_job_status"),
     path("batches/<uuid:batch>.json", views.batch_status, name="print_batch_status"),
-    path("api/agent/register", api.register, name="print_agent_register"),
     path("api/agent/poll", api.poll, name="print_agent_poll"),
     path("api/agent/jobs/<int:pk>/result", api.result, name="print_agent_result"),
     path("templates/preview", views.design_preview, name="label_design_preview"),

@@ -1,3 +1,5 @@
+import json
+
 from django import forms
 from django.contrib import admin, messages
 from django.core.exceptions import PermissionDenied, ValidationError
@@ -231,14 +233,14 @@ class PrinterAdmin(admin.ModelAdmin):
 class PrintAgentAdmin(admin.ModelAdmin):
     list_display = ("name", "is_active", "online", "hostname", "address", "last_seen", "version", "printer_list")
     list_filter = ("is_active",)
-    readonly_fields = ("uid", "hostname", "address", "registered_at", "last_seen", "version")
-    fields = ("name", "is_active", "uid", "hostname", "address", "registered_at", "last_seen", "version")
+    readonly_fields = ("hostname", "address", "last_seen", "version")
+    fields = ("name", "is_active", "hostname", "address", "last_seen", "version")
     actions = ["activate", "new_token"]
 
     @admin.action(description=_("Activate"))
     def activate(self, request, queryset):
         count = queryset.update(is_active=True)
-        self.message_user(request, gettext("%(count)d print agents active. Activate their printers, too.") % {"count": count})
+        self.message_user(request, gettext("%(count)d print agents active.") % {"count": count})
 
     @admin.display(description=_("online"), boolean=True)
     def online(self, agent):
@@ -255,18 +257,15 @@ class PrintAgentAdmin(admin.ModelAdmin):
             self.show_token(request, obj, token)
 
     def show_token(self, request, agent, token):
+        """The token, once: as the entry of the agent's configuration for this server."""
+        entry = json.dumps({"url": request.build_absolute_uri("/").rstrip("/"), "token": token})
         self.message_user(request, format_html(
-            _("Token of {agent}, shown only now: <code>{token}</code>. Put it into the agent's token file."),
-            agent=agent, token=token), messages.WARNING)
+            _("Token of {agent}, shown only now. Put this into the agent's configuration (config.json, "
+              "\"servers\"): <code>{entry}</code>"), agent=agent, entry=entry), messages.WARNING)
 
     @admin.action(description=_("Give a new token (the old one stops working)"))
     def new_token(self, request, queryset):
         for agent in queryset:
-            if agent.uid:
-                self.message_user(request, gettext(
-                    "%(agent)s registered itself and keeps its own token; delete it to let it register again.")
-                    % {"agent": agent}, messages.WARNING)
-                continue
             token = agent.new_token()
             agent.save(update_fields=["token_hash"])
             self.show_token(request, agent, token)

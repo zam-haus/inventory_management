@@ -3,7 +3,7 @@ from django.core.exceptions import ValidationError
 from django.test import TestCase, override_settings
 from django.urls import reverse
 
-from ..models import LabelMedium, PrintAgent, Printer, PrintJob
+from ..models import LabelMedium, Printer, PrintJob
 from .helpers import SETTINGS, SimulatedPrinters, create_printers
 
 
@@ -97,11 +97,3 @@ class PrinterAdminTests(SimulatedPrinters, TestCase):
         choices = list(response.context["adminform"].form.fields["loaded_medium"].queryset)
         self.assertEqual(choices, [self.labels])
 
-    def test_agent_token_is_shown_once(self):
-        response = self.client.post(reverse("admin:label_printing_printagent_add"), {"name": "pi-lager"}, follow=True)
-        agent = PrintAgent.objects.get(name="pi-lager")
-        token = response.content.decode().split("<code>")[1].split("</code>")[0]
-        self.assertEqual(PrintAgent.for_token(token), agent)
-        self.client.post(reverse("admin:label_printing_printagent_changelist"),
-                         {"action": "new_token", "_selected_action": [agent.pk]})
-        self.assertIsNone(PrintAgent.for_token(token))

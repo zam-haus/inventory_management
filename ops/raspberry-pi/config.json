@@ -1,6 +1,6 @@
 {
  "servers": [
-  "https://inventar.zam.haus"
+  {"url": "https://inventar.zam.haus", "token": "TOKEN FROM THE ADMIN"}
  ],
  "poll_interval": 2,
  "status_interval": 30,

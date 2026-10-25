@@ -306,8 +306,7 @@ PRINT_AGENT_OFFLINE_AFTER = int(os.getenv("PRINT_AGENT_OFFLINE_AFTER", "30"))
 PRINT_MAX_COPIES = int(os.getenv("PRINT_MAX_COPIES", "20"))
 # A label asked for while no printer can print it waits this many seconds for one (printer back, tape changed).
 PRINT_WAIT_MAX = int(os.getenv("PRINT_WAIT_MAX", "300"))
-# Print agents register themselves; at most this many may wait for activation, each with this many printers.
-PRINT_AGENT_MAX_PENDING = int(os.getenv("PRINT_AGENT_MAX_PENDING", "20"))
+# Printers a print agent may report (new ones are created inactive, for an admin to check).
 PRINT_AGENT_MAX_PRINTERS = int(os.getenv("PRINT_AGENT_MAX_PRINTERS", "20"))
 
 # Local network: requests from these sources make logged-in users members of LOCAL_GROUP_NAME

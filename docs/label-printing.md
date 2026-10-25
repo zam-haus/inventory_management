@@ -258,47 +258,46 @@ task runs right away in the request.
 one up: [ops/raspberry-pi/](../ops/raspberry-pi/README.md)). It needs Python 3.9+ and only
 `label_printing/agent.py` and `label_printing/devices/`: no Django, no database. One agent serves
 several inventories at the same time (e.g. production and a development server), each with
-its own registration; jobs of different servers never reach a printer at the same time.
+its own token; jobs of different servers never reach a printer at the same time.
 
-1. **Registration:** the agent makes up its ID (from the computer's machine-id) and one token per
-   server, and registers (`POST /print/api/agent/register`). It appears in **admin → Print
-   agents**, inactive, named after its host. **Activate** it (and rename it if you like).
-   Waiting agents are limited (`PRINT_AGENT_MAX_PENDING`); an agent that registered again with
-   another token (e.g. a new SD card) is refused until its old entry is deleted.
+1. **Created by an admin:** **admin → Print agents → add** gives the agent a token, shown once as
+   the entry for its configuration (`{"url": …, "token": …}`); **Give a new token** replaces it
+   (the old one stops working). Nothing registers itself: every request of an agent carries its
+   token, unknown tokens are refused (401), and so are deactivated agents (403), which locks a lost
+   Pi out. With each request the agent reports its host name; the admin shows it with its address,
+   version and whether it is online.
 2. **Printers find themselves:** the agent looks for USB printers of Brother and Zebra every
    10 seconds (kernel driver `usblp`, `/dev/usb/lpN`) and reports them with a stable ID from
    USB vendor, product and serial number (`usb-04f9-2085-A2B3C4D5E6`), so a printer keeps its
    settings on another port or Pi. They appear in **admin → Printers**, inactive, with language,
    model and resolution filled in where known (Brother by USB ID, Zebra by asking it, `~HI`).
-   Name them, check the model, **Activate** them and add their labels (media).
+   Name them, check the model, **Activate** them and add their labels (media). A printer found
+   again (unplugged and plugged in, the agent restarted) stays as it is, active or not; one that
+   has moved to another agent moves along and stays active if it was. An agent may report at
+   most `PRINT_AGENT_MAX_PRINTERS` new printers.
 3. **Status:** every 30 seconds, and after each job, the agent reports what the printers say:
    errors, and what is loaded: Brother tape width, tape and print colour; Zebra label length and
    direct thermal or thermal transfer. The admin and the print dialog show it; for a Brother,
    the dialog preselects the medium of the loaded tape (width and colours).
-4. **Jobs:** active agents get the jobs of their active printers (`POST /print/api/agent/poll`,
+4. **Jobs:** agents get the jobs of their active printers (`POST /print/api/agent/poll`,
    every 2 seconds) and report each result. A printer whose agent has not asked for 30 seconds
-   (`PRINT_AGENT_OFFLINE_AFTER`), or whose agent is inactive, is offline: the dialog says so.
+   (`PRINT_AGENT_OFFLINE_AFTER`), or whose agent is deactivated, is offline: the dialog says so.
 
 Configuration: a JSON file, by default `label-agent/config.json` on the Pi's boot partition, else
 `/etc/label-agent/config.json`:
 
 ```json
-{"servers": ["https://inventar.zam.haus", "http://192.0.2.10:8000"],
+{"servers": [{"url": "https://inventar.zam.haus", "token": "…"},
+             {"url": "http://192.0.2.10:8000", "token": "…"}],
  "poll_interval": 2, "status_interval": 30, "scan_interval": 10,
  "static_printers": [{"uid": "zebra-lan", "device": "tcp://192.0.2.10:9100", "language": "zpl"}]}
 ```
 
 `static_printers` adds printers the agent reaches otherwise (e.g. on the network, or a fake
-printer); they register like USB printers under their `uid`. The agent keeps its ID and tokens
-in `state.json` (readable by it only) in its state directory: as a service the one systemd gives
-it (`/var/lib/label-agent`), else `~/.local/state/label-agent`; `--state-dir` or `"state_dir"` in
-the configuration choose another. Trying it out on a laptop:
-`python3 -m label_printing.agent --server http://localhost:8000` (with `static_printers`, e.g.
-the simulator's, in a `--config` file). A server that redirects (e.g. another domain to
+printer); they are reported like USB printers under their `uid`. Trying it out on a laptop:
+`python3 -m label_printing.agent --server http://localhost:8000 --token …` (with
+`static_printers`, e.g. the simulator's, in a `--config` file). A server that redirects (e.g. another domain to
 `DEFAULT_URL`) is followed. The agent logs job numbers and sizes, not the labels' content.
-
-Admin-created agents still work: **Give a new token** shows a token once, for the agent's
-`state.json` (`"tokens": {"<server>": "<token>"}`).
 
 ## Fake printers for development
 
@@ -332,8 +331,7 @@ The tests start the simulator on free ports (`label_printing/tests/helpers.py`).
 | `PRINT_AGENT_OFFLINE_AFTER` | 30 | seconds after an agent's last request that its printers count as offline |
 | `PRINT_MAX_COPIES` | 20 | most copies per job |
 | `PRINT_WAIT_MAX` | 300 | seconds a label no printer can print now may wait for one |
-| `PRINT_AGENT_MAX_PENDING` | 20 | agents that may wait for activation |
-| `PRINT_AGENT_MAX_PRINTERS` | 20 | printers an agent may register |
+| `PRINT_AGENT_MAX_PRINTERS` | 20 | new printers an agent may report |
 
 ## Personal data
 

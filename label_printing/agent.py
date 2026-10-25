@@ -4,13 +4,14 @@ finds USB printers by itself and serves one or more inventories at the same time
 
     python3 -m label_printing.agent [--config /etc/label-agent/config.json]
 
-With each inventory it registers once with its own ID and a token it makes up, then waits until an
-admin activates it. It reports the printers it finds (they appear in the admin, inactive until
-activated and named) and their status (errors, loaded tape and its colours, label length), fetches
-the jobs of its active printers, prints them and reports how they went.
+An admin creates the agent in each inventory (admin → Label printing → Print agents) and gives it its
+token, which goes into the configuration next to the inventory's address. The agent reports the printers
+it finds (new ones appear in the admin, inactive until checked, named and activated) and their status
+(errors, loaded tape and its colours, label length), fetches the jobs of its active printers, prints them
+and reports how they went.
 
-The configuration (JSON, see ops/raspberry-pi/label-agent/config.json):
-    {"servers": ["https://inventar.zam.haus"],
+The configuration (JSON, see ops/raspberry-pi/config.json):
+    {"servers": [{"url": "https://inventar.zam.haus", "token": "…"}],
      "poll_interval": 2, "status_interval": 30, "scan_interval": 10,
      "static_printers": [{"uid": "zebra-lan", "device": "tcp://192.0.2.10:9100", "language": "zpl"}]}
 
@@ -18,11 +19,9 @@ Needs only Python 3.9+ and label_printing/devices; no Django, no database.
 """
 import argparse
 import base64
-import hashlib
 import json
 import logging
 import os
-import secrets
 import socket
 import threading
 import time
@@ -34,68 +33,12 @@ from .devices import usb, zebra
 from .devices.io import DeviceError, device_for
 from .devices.run import FAILED, Result, query_status, run_job
 
-VERSION = "3"
+VERSION = "4"
 CONFIG_PATHS = ("/boot/label-agent/config.json", "/boot/firmware/label-agent/config.json",
                 "/etc/label-agent/config.json")
-DEFAULTS = {"servers": [], "state_dir": None, "poll_interval": 2, "status_interval": 30,
+DEFAULTS = {"servers": [], "poll_interval": 2, "status_interval": 30,
             "scan_interval": 10, "report_interval": 60, "static_printers": []}
 log = logging.getLogger("label_printing.agent")
-
-
-def default_state_dir():
-    """Where the agent keeps its ID and tokens: the service's state directory (systemd StateDirectory=,
-    /var/lib/label-agent), else ~/.local/state/label-agent, e.g. when trying it out on a laptop."""
-    if os.environ.get("STATE_DIRECTORY"):
-        return os.environ["STATE_DIRECTORY"].split(":")[0]
-    return os.path.join(os.path.expanduser("~"), ".local", "state", "label-agent")
-
-
-def machine_uid():
-    """A stable ID of this computer, not revealing its machine-id."""
-    for path in ("/etc/machine-id", "/var/lib/dbus/machine-id"):
-        try:
-            with open(path) as file:
-                machine = file.read().strip()
-        except OSError:
-            continue
-        if machine:
-            return "agent-" + hashlib.sha256(("label-agent:" + machine).encode()).hexdigest()[:20]
-    return None
-
-
-class State:
-    """What the agent keeps: its ID and one token per server (state_dir/state.json, readable by it only)."""
-
-    def __init__(self, directory):
-        self.path = os.path.join(directory, "state.json")
-        self.lock = threading.Lock()
-        try:
-            with open(self.path) as file:
-                self.data = json.load(file)
-        except (OSError, ValueError):
-            self.data = {}
-        if not self.data.get("uid"):
-            self.data["uid"] = machine_uid() or "agent-" + secrets.token_hex(10)
-            self.save()
-
-    @property
-    def uid(self):
-        return self.data["uid"]
-
-    def token(self, server):
-        with self.lock:
-            tokens = self.data.setdefault("tokens", {})
-            if server not in tokens:
-                tokens[server] = secrets.token_urlsafe(32)
-                self.save()
-            return tokens[server]
-
-    def save(self):
-        os.makedirs(os.path.dirname(self.path), exist_ok=True)
-        temporary = self.path + ".tmp"
-        with open(os.open(temporary, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600), "w") as file:
-            json.dump(self.data, file, indent=1)
-        os.replace(temporary, self.path)
 
 
 class Printers:
@@ -192,28 +135,26 @@ class NoRedirect(urllib.request.HTTPRedirectHandler):
         return None
 
 
-class Unauthorized(Exception):
-    pass
+class Refused(Exception):
+    """The server does not let the agent in: unknown token (401) or the agent is deactivated (403)."""
 
 
 class Link(threading.Thread):
-    """One inventory: registration, polling, jobs."""
+    """One inventory: polling, jobs."""
 
-    def __init__(self, server, state, printers, config, hostname):
-        super().__init__(name=f"link {server}", daemon=True)
-        self.server = server.rstrip("/")
+    def __init__(self, server, printers, config, hostname):
+        super().__init__(name=f"link {server['url']}", daemon=True)
+        self.server = server["url"].rstrip("/")
+        self.token = server["token"]
         self.base = self.server
-        self.state, self.printers, self.config, self.hostname = state, printers, config, hostname
+        self.printers, self.config, self.hostname = printers, config, hostname
         self.opener = urllib.request.build_opener(NoRedirect)
-        self.registered = False
-        self.active = None
         self.last_report, self.last_full_report = None, 0.0
 
-    def request(self, path, data, token=True, redirects=3):
+    def request(self, path, data, redirects=3):
         """POST JSON; (status code, decoded JSON or None). Follows redirects to another address."""
-        headers = {"Content-Type": "application/json", "User-Agent": f"label-printing-agent/{VERSION}"}
-        if token:
-            headers["Authorization"] = f"Bearer {self.state.token(self.server)}"
+        headers = {"Content-Type": "application/json", "User-Agent": f"label-printing-agent/{VERSION}",
+                   "Authorization": f"Bearer {self.token}"}
         request = urllib.request.Request(f"{self.base}/print/api/agent/{path}", data=json.dumps(data).encode(),
                                          headers=headers, method="POST")
         try:
@@ -227,24 +168,14 @@ class Link(threading.Thread):
                 if new_base != self.base:
                     log.warning("%s redirects to %s; using that address", self.base, new_base)
                     self.base = new_base
-                    return self.request(path, data, token, redirects - 1)
-            if error.code == 401 and token:
-                raise Unauthorized from error
+                    return self.request(path, data, redirects - 1)
             try:
-                return error.code, json.loads(error.read() or b"null")
+                answer = json.loads(error.read() or b"null")
             except ValueError:
-                return error.code, None
-
-    def register(self):
-        status, answer = self.request("register", {"uid": self.state.uid, "token": self.state.token(self.server),
-                                                   "hostname": self.hostname, "version": VERSION}, token=False)
-        if status in (200, 201):
-            self.registered = True
-            log.info("%s: registered as %s%s", self.server, (answer or {}).get("name", self.state.uid),
-                     "" if (answer or {}).get("active") else ", waiting to be activated in the admin")
-            return True
-        log.warning("%s: registration refused (%s): %s", self.server, status, (answer or {}).get("error", ""))
-        return False
+                answer = None
+            if error.code in (401, 403):
+                raise Refused((answer or {}).get("error") or f"refused ({error.code})") from error
+            return error.code, answer
 
     def printer_reports(self):
         """All printers with their status when something changed, else once every report_interval."""
@@ -257,16 +188,11 @@ class Link(threading.Thread):
 
     def poll_once(self):
         """Report, fetch one job and print it; True if there was a job."""
-        if not self.registered and not self.register():
-            raise ConnectionError("not registered")
         status, answer = self.request("poll", {"version": VERSION, "hostname": self.hostname,
                                                "printers": self.printer_reports()})
         if status != 200 or answer is None:
             self.last_report = None  # send everything again next time
             raise ConnectionError(f"poll answered {status}")
-        if answer.get("active") != self.active:
-            self.active = answer.get("active")
-            log.info("%s: %s", self.server, "active" if self.active else "waiting to be activated in the admin")
         job = answer.get("job")
         if not job:
             return False
@@ -297,10 +223,9 @@ class Link(threading.Thread):
                 if not self.poll_once():
                     time.sleep(interval)
                 backoff = interval
-            except Unauthorized:
-                log.warning("%s: token not known (agent deleted?); registering again", self.server)
-                self.registered = False
-                time.sleep(5)
+            except Refused as error:
+                log.warning("%s: %s; next try in 60 s", self.server, error)
+                time.sleep(60)
             except (OSError, ValueError, ConnectionError) as error:  # URLError is an OSError
                 backoff = min(backoff * 2, 60)
                 log.warning("%s: %s; next try in %d s", self.server, error, backoff)
@@ -331,30 +256,40 @@ def load_config(path=None):
     return config
 
 
+def servers_of(config, urls=(), tokens=()):
+    """[{"url", "token"}]: the configuration's servers and those given on the command line, each once."""
+    if len(urls) != len(tokens):
+        raise ValueError("give a --token for each --server")
+    servers = {}
+    for entry in list(config["servers"]) + [{"url": url, "token": token} for url, token in zip(urls, tokens)]:
+        if not isinstance(entry, dict) or not entry.get("url") or not entry.get("token"):
+            raise ValueError(f"a server needs its url and the agent's token from the admin: {entry!r}")
+        servers[entry["url"].rstrip("/")] = {"url": entry["url"].rstrip("/"), "token": entry["token"]}
+    return list(servers.values())
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--config", help=f"JSON file (default: the first of {', '.join(CONFIG_PATHS)})")
     parser.add_argument("--server", action="append", default=[], help="inventory address (adds to the configuration)")
-    parser.add_argument("--state-dir", help="where the agent keeps its ID and tokens "
-                                            "(default: the service's state directory, else ~/.local/state/label-agent)")
+    parser.add_argument("--token", action="append", default=[],
+                        help="the agent's token from that inventory's admin, one per --server")
     args = parser.parse_args()
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
     config = load_config(args.config)
-    servers = list(dict.fromkeys(config["servers"] + args.server))
+    try:
+        servers = servers_of(config, args.server, args.token)
+    except ValueError as error:
+        parser.error(str(error))
     if not servers:
-        parser.error("no server: give --server or set servers in the configuration")
+        parser.error("no server: give --server and --token or set servers in the configuration")
     for printer in config["static_printers"]:
         device_for(printer["device"])  # validates
-    state_dir = args.state_dir or config["state_dir"] or default_state_dir()
-    try:
-        state = State(state_dir)
-    except OSError as error:
-        parser.error(f"cannot keep the agent's state in {state_dir} ({error.strerror}); give --state-dir")
     printers = Printers(config["static_printers"])
     hostname = socket.gethostname()
-    log.info("print agent %s (%s) on %s for %s", VERSION, state.uid, hostname, ", ".join(servers))
+    log.info("print agent %s on %s for %s", VERSION, hostname, ", ".join(server["url"] for server in servers))
     threading.Thread(target=monitor, args=(printers, config), name="monitor", daemon=True).start()
-    links = [Link(server, state, printers, config, hostname) for server in servers]
+    links = [Link(server, printers, config, hostname) for server in servers]
     for link in links:
         link.start()
     try:

@@ -11,10 +11,9 @@ ExecStartPre=+/bin/sh /opt/label-agent/update.sh
 WorkingDirectory=/opt/label-agent
 ExecStart=/usr/bin/python3 -m label_printing.agent
 Environment=PYTHONUNBUFFERED=1 PYTHONDONTWRITEBYTECODE=1
-# An unprivileged user of its own; group lp may use /dev/usb/lp*. Its ID and tokens: /var/lib/label-agent.
+# An unprivileged user of its own; group lp may use /dev/usb/lp*. Its tokens are in config.json.
 DynamicUser=yes
 SupplementaryGroups=lp
-StateDirectory=label-agent
 Restart=always
 RestartSec=10
 
