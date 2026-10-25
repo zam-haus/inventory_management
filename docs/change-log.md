@@ -15,7 +15,8 @@ read them (names of related records, dates and prices formatted, choices by thei
 
 | Action | When |
 |---|---|
-| Created | an item, unique item or location is created |
+| Created | an item, unique item or location is created (also a reserved container, in the admin only) |
+| Activated | a reserved container is taken into use; also shown on the page of the location it is in |
 | Changed | fields change, e.g. name, description, price, purpose, responsible teams, owner |
 | Moved | a location gets another parent, a unique item or a stock entry another location |
 | Deleted / restored | an item or location is deleted (also permanently) or restored in the admin |

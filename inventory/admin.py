@@ -1,7 +1,6 @@
 import hashlib
 import json
 
-from dal import autocomplete
 from django import forms
 from django.contrib import admin, messages
 from django.contrib.admin.views.decorators import staff_member_required
@@ -18,14 +17,14 @@ from django.utils.html import format_html, format_html_join
 from django.utils.http import urlencode
 from django.utils.translation import gettext_lazy as _, ngettext
 from django.views.generic import FormView
-from label_printing import editor as label_editor, selection as label_selection, services as label_printing
+from label_printing import admin_printing, editor as label_editor, selection as label_selection
+from label_printing.dialog import BatchPrintForm
 from label_printing.design import variables as label_variables
 from label_printing.layouts import designs as label_designs
 from label_printing.models import LabelMedium
-from label_printing.selection import remember_label
 
 from . import models
-from .icons import icon
+from .numbered_location_views import create_numbered_container
 from .forms import AdminItemLocationForm, AdminLocationForm
 from .soft_delete import SoftDeleteModel
 from .soft_delete_admin import DeletedObjectFilter, SoftDeleteAdminMixin
@@ -488,13 +487,14 @@ class LocationFormerCodeAdmin(admin.ModelAdmin):
 
 
 class LocationAdmin(ClaimOnAddMixin, SoftDeleteAdminMixin, admin.ModelAdmin):
-    list_display = ("locatable_identifier", "name", "descriptive_identifier", "deleted_status")
+    list_display = ("locatable_identifier", "name", "descriptive_identifier", "is_reserved", "deleted_status")
     ordering = ("locatable_identifier",)
     readonly_fields = ("label_image_tag",)
     search_fields = ('locatable_identifier', 'name', 'purpose', 'physical_description', 'former_codes__code')
-    list_filter = (DeletedObjectFilter, "type__structure", "axis", "fire_load_free", "outdoor", "responsible_teams")
+    list_filter = (DeletedObjectFilter, "is_reserved", "type__structure", "axis", "fire_load_free", "outdoor",
+                   "responsible_teams")
     autocomplete_fields = ("responsible_teams",)
-    actions = ["send_to_printer_action", "send_to_printer_twice_action"]
+    actions = ["print_labels_action"]
     inlines = [LocationInline, LocationNumberRangeInline, LocationFormerCodeInline, LocationChangeLogInline]
     form = AdminLocationForm
 
@@ -513,43 +513,29 @@ class LocationAdmin(ClaimOnAddMixin, SoftDeleteAdminMixin, admin.ModelAdmin):
         info = self.model._meta.app_label, self.model._meta.model_name
         my_urls = [
             path(
-                "<path:object_id>/massadd/",
-                MassAddLocationsAdminView.as_view(),
-                name="%s_%s_massadd" % info,
-            ),
-            path(
-                "massadd/",
-                MassAddLocationsAdminView.as_view(),
-                name="%s_%s_massadd" % info,
+                "reserve/",
+                ReserveContainersAdminView.as_view(),
+                name="%s_%s_reserve" % info,
             ),
             path(
                 "<path:object_id>/print-label/",
-                self.send_to_printer_view,
+                self.print_label_view,
                 name="%s_%s_print-label" % info,
             ),
         ]
         return my_urls + urls
 
     @method_decorator(staff_member_required)
-    def send_to_printer_view(self, request, object_id=None):
+    def print_label_view(self, request, object_id=None):
         if not may_print_labels(request.user):
             raise PermissionDenied
-        print_location_labels(request, [get_object_or_404(models.Location, pk=object_id)])
-        return redirect(
-            reverse(
-                "admin:%s_%s_change"
-                % (self.model._meta.app_label, self.model._meta.model_name),
-                args=[object_id],
-            )
-        )
+        location = get_object_or_404(models.Location, pk=object_id)
+        page = admin_printing.print_page(self, request, [location], "location", title=_("Print label"))
+        return page or redirect("admin:inventory_location_change", object_id)
 
     @admin.action(description=_("Print location labels"), permissions=["print_label"])
-    def send_to_printer_action(self, request, queryset):
-        print_location_labels(request, queryset, copies=1)
-
-    @admin.action(description=_("Print location labels twice (2x)"), permissions=["print_label"])
-    def send_to_printer_twice_action(self, request, queryset):
-        print_location_labels(request, queryset, copies=2)
+    def print_labels_action(self, request, queryset):
+        return admin_printing.print_page(self, request, list(queryset), "location", action="print_labels_action")
 
     def has_print_label_permission(self, request):
         return may_print_labels(request.user)
@@ -561,143 +547,62 @@ def may_print_labels(user):
     return user.has_perm("label_printing.print_label")
 
 
-def print_location_labels(request, locations, copies=1):
-    """Queue labels on the default printer (label_printing) and say how it went."""
-    try:
-        jobs = label_printing.print_locations(list(locations), copies=copies, user=request.user)
-    except label_printing.PrintError as error:
-        messages.error(request, _("Failed sending label to printer: %(error)s") % {"error": error})
-        return
-    count = sum(job.pages for job in jobs)
-    messages.info(request, ngettext("Sent %(count)d label to printer.", "Sent %(count)d labels to printer.",
-                                    count) % {"count": count})
-
-
 admin.site.register(models.Location, LocationAdmin)
 
 
-class MassAddLocationsForm(forms.Form):
-    parent_location = forms.ModelChoiceField(
-        label=_("Parent location"),
-        queryset=models.Location.active.all(),
-        widget=autocomplete.ModelSelect2(
-            url='parent_location_autocomplete',
-            forward=['id'],
-            attrs={
-                'data-placeholder': '---------',
-                'data-allow-clear': 1,
-            },
-        ),
-        blank=True,
-        required=False,
-    )
-    location_type = forms.ModelChoiceField(
-        label=_("Location type"), required=True, queryset=models.LocationType.objects.all()
-    )
-    label_template = forms.ModelChoiceField(
-        label=_("Label template"), required=False,
-        queryset=models.LocationLabelTemplate.objects.filter(subject_type="location", is_active=True),
-        help_text=_("Preselected for these locations from now on; empty: by the templates' rules."),
-    )
-    sequence_start = forms.CharField(label=_("Sequence start"), max_length=32)
-    count = forms.IntegerField(label=_("Count"))
-    physical_description = forms.CharField(label=_("Physical description"), required=False)
-    print = forms.BooleanField(label=_("Print location labels"), required=False)
-    print_multiple = forms.IntegerField(label=_("Copies per label"), required=False)
+class ReserveContainersForm(forms.Form):
+    type = forms.ModelChoiceField(label=_("Container type"), queryset=models.LocationType.objects.none(),
+                                  widget=forms.RadioSelect)
+    count = forms.IntegerField(label=_("Count"), min_value=1, max_value=200, initial=10)
+    print = forms.BooleanField(label=_("Print their labels"), required=False, initial=True,
+                               help_text=_("On a printer that has the labels, as in the print dialog."))
 
-    sub_type = forms.ModelChoiceField(
-        label=_("Sub-location type"),
-        required=False,
-        queryset=models.LocationType.objects.all(),
-    )
-    sub_label_template = forms.ModelChoiceField(
-        label=_("Sub-location label template"), required=False,
-        queryset=models.LocationLabelTemplate.objects.filter(subject_type="location", is_active=True),
-        help_text=_("Preselected for these locations from now on; empty: by the templates' rules."),
-    )
-    sub_count = forms.IntegerField(label=_("Sub-location count"), required=False)
-    sub_print = forms.BooleanField(label=_("Print sub-location labels"), required=False)
-
-    def clean(self):
-        cleaned = super().clean()
-        kind, start = cleaned.get("location_type"), cleaned.get("sequence_start")
-        if kind and start and not kind.is_valid_start(start):
-            self.add_error("sequence_start", _("Use only characters of the sequence of “%(type)s”.") % {"type": kind})
-        return cleaned
-
-    def clean_sub_type(self):
-        sub_type = self.cleaned_data["sub_type"]
-        if sub_type and sub_type.unique and self.cleaned_data["sub_count"]:
-            raise ValidationError(
-                _("The sub-location type must not be unique if sub-locations are created.")
-            )
-        return sub_type
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields.update(BatchPrintForm(subject_type="location").fields)  # label and copies
+        self.fields["type"].queryset = models.LocationType.numbered_containers()
+        # Each type with the code its next container gets, as on the inventory pages.
+        self.fields["type"].label_from_instance = lambda kind: f"{kind.name} · {kind.next_free_number()[2]}"
 
 
-class MassAddLocationsAdminView(PermissionRequiredMixin, FormView):
+class ReserveContainersAdminView(PermissionRequiredMixin, FormView):
+    """Containers (boxes, cartons, pallets) with the next numbers, reserved and hidden until activated on first
+    use (ContainerActivateView), and their labels printed in advance."""
     permission_required = "inventory.add_location"
-    form_class = MassAddLocationsForm
-    template_name = "admin/inventory/location_massadd.html"
-    success_url = "/admin/inventory/location"
+    form_class = ReserveContainersForm
+    template_name = "admin/inventory/location_reserve.html"
 
     @method_decorator(staff_member_required)
     def dispatch(self, *args, **kwargs):
         return super().dispatch(*args, **kwargs)
 
-    def get(self, request, *args, **kwargs):
-        context = self.get_context_data(**kwargs)
-        context.update(admin.site.each_context(request))
-        return self.render_to_response(context)
+    def get_context_data(self, **kwargs):
+        return {**super().get_context_data(**kwargs), **admin.site.each_context(self.request),
+                "opts": models.Location._meta, "title": _("Reserve containers")}
 
     def get_form(self, form_class=None):
         form = super().get_form(form_class)
         if not may_print_labels(self.request.user):  # printing labels is for who may
-            for name in ("print", "print_multiple", "sub_print"):
-                del form.fields[name]
+            del form.fields["print"], form.fields["label"], form.fields["copies"]
         return form
 
-    @transaction.atomic
     def form_valid(self, form):
         data = form.cleaned_data
-        loc_type = data["location_type"]
-        sub_type = data["sub_type"]
-
-        # create locations; codes of unique types that are taken (e.g. older codes of another sequence) are skipped
-        to_print, children_to_print = [], []
-        generate = loc_type.free_names if loc_type.unique else loc_type.generate_names
-        for name, short_name in generate(data["count"], start=data["sequence_start"]):
-            location = models.Location.objects.create(
-                name=name,
-                short_name=short_name,
-                type=loc_type,
-                parent_location=data["parent_location"],
-                physical_description=data["physical_description"] or "",
-            )
-            if data["label_template"]:
-                remember_label(location, data["label_template"])
-            if data.get("print"):
-                to_print.append(location)
-
-            # create sub-locations
-            if sub_type is not None:
-                for name, short_name in sub_type.free_sublocation_names(location, data["sub_count"]):
-                    child = models.Location.objects.create(
-                        name=name,
-                        short_name=short_name,
-                        type=sub_type,
-                        parent_location=location,
-                    )
-                    if data["sub_label_template"]:
-                        remember_label(child, data["sub_label_template"])
-                    if data.get("sub_print"):
-                        children_to_print.append(child)
-
-        # Printed once the locations are saved (the jobs start after the commit).
-        if to_print:
-            print_location_labels(self.request, to_print, copies=data.get("print_multiple") or 1)
-        if children_to_print:
-            print_location_labels(self.request, children_to_print)
-        return super().form_valid(form)
+        try:
+            with transaction.atomic():
+                reserved = [create_numbered_container(data["type"], reserved=True, actor=self.request.user)
+                            for _index in range(data["count"])]
+        except ValidationError as error:
+            form.add_error(None, " ".join(error.messages))
+            return self.form_invalid(form)
+        messages.success(self.request, _("%(count)s × %(type)s reserved: %(codes)s.") % {
+            "count": len(reserved), "type": data["type"].name,
+            "codes": ", ".join(location.short_name for location in reserved)})
+        if data.get("print"):
+            admin_printing.print_and_report(self.request, "location", reserved, outcome_key=data["label"],
+                                            copies=data["copies"])
+        url = reverse("admin:inventory_location_changelist")
+        return redirect(f"{url}?{urlencode({'id__in': ','.join(str(location.pk) for location in reserved)})}")
 
 
 class ItemLocationInline(admin.TabularInline):

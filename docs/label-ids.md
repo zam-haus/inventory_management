@@ -53,6 +53,8 @@ setting (and the hosts below).
     resolver opens the claim page, which links it to an existing or new item,
     location or unique item. Migration `inventory.0022` grants this permission to the local group.
   * Only the admin (`assign_url_labelid`) can link an ID to an arbitrary URL.
+  * The resolver also takes location codes; that of a reserved container (labels printed in advance,
+    see [Building structure](location-structure.md)) opens its activation.
   * A claimed ID is never relinked or deleted. Retiring keeps the link.
   * Soft-deleting an item or location leaves its ID assigned; the resolver then
     says it is no longer in the inventory. Deleting it permanently retires its

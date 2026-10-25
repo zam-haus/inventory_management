@@ -10,7 +10,11 @@
         try {
             const response = await fetch(`${data.lookupUrl}?q=${encodeURIComponent(value)}`, {credentials: 'same-origin'});
             const result = await response.json();
-            if (!response.ok) throw new Error(result.error);
+            if (!response.ok) {
+                const error = new Error(result.error);
+                error.activate = result.activate_url && {url: result.activate_url, label: result.activate_label};
+                throw error;
+            }
             select.querySelectorAll(`option[value="${CSS.escape(String(result.id))}"]`).forEach(option => option.remove());
             // The field shows its options as HTML (widgets.LocationSelect: title, name, code chip).
             const option = new Option(result.html || result.text, result.id, true, true);
@@ -25,6 +29,15 @@
         } catch (error) {
             status.textContent = error.message || String(error);
             status.classList.add('text-danger');
+            if (error.activate) {
+                // A reserved container: activated in a new tab, so this form keeps what was entered.
+                const link = document.createElement('a');
+                link.href = error.activate.url;
+                link.target = '_blank';
+                link.rel = 'noopener';
+                link.textContent = error.activate.label;
+                status.append(' ', link);
+            }
         }
     }
 

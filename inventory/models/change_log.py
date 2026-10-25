@@ -16,6 +16,7 @@ from .stock import format_amount
 class ChangeLog(models.Model):
     class Action(models.TextChoices):
         CREATED = "created", _("Created")
+        ACTIVATED = "activated", _("Activated")
         CHANGED = "changed", _("Changed")
         MOVED = "moved", _("Moved")
         DELETED = "deleted", _("Deleted")

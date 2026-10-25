@@ -1,0 +1,29 @@
+{% extends "admin/base_site.html" %}
+{% load i18n admin_urls %}
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+    <a href="{% url 'admin:index' %}">{% translate 'Home' %}</a> ›
+    <a href="{% url opts|admin_urlname:'changelist' %}">{{ opts.verbose_name_plural|capfirst }}</a> ›
+    {{ title }}
+</div>
+{% endblock %}
+{% block content %}
+<form method="post">
+    {% csrf_token %}
+    <p>{% blocktranslate count counter=subjects|length %}{{ counter }} label:{% plural %}{{ counter }} labels:{% endblocktranslate %}
+        {% for subject in subjects %}{{ subject }}{% if not forloop.last %}, {% endif %}{% endfor %}</p>
+    {% if action %}
+        {% for subject in subjects %}<input type="hidden" name="{{ action_checkbox_name }}" value="{{ subject.pk }}">{% endfor %}
+        <input type="hidden" name="action" value="{{ action }}">
+    {% endif %}
+    <input type="hidden" name="apply" value="1">
+    <fieldset class="module aligned">
+        {% for field in form %}
+            <div class="form-row">{{ field.errors }}{{ field.label_tag }} {{ field }}</div>
+        {% endfor %}
+        {{ form.non_field_errors }}
+        <div class="form-row help">{% translate "Each label prints on a printer that has its labels and can print now; otherwise it waits for one, as in the print dialog." %}</div>
+    </fieldset>
+    <div class="submit-row"><input type="submit" class="default" value="{{ title }}"></div>
+</form>
+{% endblock %}

@@ -1,25 +1,22 @@
 from io import StringIO
 import json
-from unittest.mock import Mock, patch
+from unittest.mock import patch
 
-from django.contrib import admin
 from django.contrib.auth import get_user_model
-from django.contrib.messages import get_messages
-from django.contrib.messages.storage.fallback import FallbackStorage
 from django.core.management import call_command
-from django.test import RequestFactory, SimpleTestCase, TestCase, override_settings
+from django.test import TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone, translation
 from django.templatetags.static import static
 
-from ..admin import LocationAdmin
 from label_printing.models import LabelMedium, Printer, PrintJob
-from ..models import Item, ItemImage, ItemLocation, Location, LocationLabelTemplate, LocationType, MeasurementUnit
+from ..models import Item, ItemImage, Location, LocationLabelTemplate, LocationType, MeasurementUnit
 
 
 @override_settings(LANGUAGE_CODE="en", LABEL_ID_BASE_URL="https://i.zam.haus/", CELERY_TASK_ALWAYS_EAGER=True)
 class LabelPrintingTests(TestCase):
-    """The admin's print actions queue jobs on the default printer (label_printing)."""
+    """The admin prints labels as the print dialog does: the label (or each its preselected one) decides the
+    printer (label_printing.admin_printing)."""
 
     @classmethod
     def setUpTestData(cls):
@@ -27,30 +24,54 @@ class LabelPrintingTests(TestCase):
             name="Box", description="label 57 x 32\ntext {{ location.unique_identifier }}")
         kind = LocationType.objects.create(name="Room", unique=True)
         cls.locations = [Location.objects.create(name=f"Room {n}", short_name=f"R{n}", type=kind) for n in (1, 2)]
-        cls.printer = Printer.objects.create(name="Zebra", slug="zebra", language="zpl", host="192.0.2.1",
-                                             is_default=True)
+        cls.printer = Printer.objects.create(name="Zebra", slug="zebra", language="zpl", host="192.0.2.1")
         cls.medium = LabelMedium.objects.create(printer=cls.printer, name="57 × 32", width_mm=57, height_mm=32)
+        cls.printer.loaded_medium = cls.medium
+        cls.printer.save()
         LocationLabelTemplate.objects.exclude(pk=template.pk).update(is_active=False)
+        cls.admin = get_user_model().objects.create_superuser(username="admin")
 
-    def run_action(self, action):
-        request = RequestFactory().post("/")
-        request.session = {}
-        request._messages = FallbackStorage(request)
-        request.user = get_user_model().objects.create_superuser(username=f"admin-{action.__name__}")
+    def print_selected(self, **data):
+        self.client.force_login(self.admin)
         with translation.override("en"), patch("label_printing.tasks.process_job.delay"):
-            action(request, Location.objects.filter(pk__in=[location.pk for location in self.locations]))
-        return [str(message) for message in get_messages(request)]
+            response = self.client.post(reverse("admin:inventory_location_changelist"), {
+                "action": "print_labels_action", "_selected_action": [location.pk for location in self.locations],
+                **data}, follow=True)
+        return [str(message) for message in response.context["messages"]]
 
-    def test_print_actions_queue_jobs_with_their_copies(self):
-        model_admin = LocationAdmin(Location, admin.site)
-        for copies, action in ((1, model_admin.send_to_printer_action), (2, model_admin.send_to_printer_twice_action)):
-            with self.subTest(copies=copies):
-                self.assertEqual(self.run_action(action), [f"Sent {2 * copies} labels to printer."])
-                job = PrintJob.objects.latest("pk")
-                self.assertEqual((job.copies, job.pages, job.printer), (copies, 2 * copies, self.printer))
-                payload = bytes(job.payload).decode()
-                self.assertEqual((payload.count("^XA"), payload.count(f"^PQ{copies}"), payload.count("^GFA")), (2, 2, 2))
-                self.assertEqual(job.layout_key, f"design:{self.template.pk}")
+    def test_the_action_asks_for_the_label_and_its_copies(self):
+        self.client.force_login(self.admin)
+        page = self.client.post(reverse("admin:inventory_location_changelist"), {
+            "action": "print_labels_action", "_selected_action": [location.pk for location in self.locations]})
+        self.assertContains(page, "Each the one preselected for it")
+        self.assertContains(page, "Box · 57 × 32 mm labels · Zebra")
+        self.assertEqual(self.print_selected(apply="1", label="", copies="2"),
+                         ["2 labels (Room 1 [R1] (+1)): on Zebra."])
+        job = PrintJob.objects.get()
+        self.assertEqual((job.copies, job.pages, job.printer, job.layout_key),
+                         (2, 4, self.printer, f"design:{self.template.pk}"))
+        payload = bytes(job.payload).decode()
+        self.assertEqual((payload.count("^XA"), payload.count("^PQ2"), payload.count("^GFA")), (2, 2, 2))
+
+    def test_a_chosen_label_and_labels_that_wait(self):
+        label = f"design:{self.template.pk}@57x32"
+        Printer.objects.update(loaded_medium=None)  # nothing loaded: the jobs wait for the labels
+        self.assertEqual(self.print_selected(apply="1", label=label, copies="1"),
+                         ["2 labels (Room 1 [R1] (+1)) wait for a printer with their labels."])
+        self.assertEqual(PrintJob.objects.get().status, PrintJob.Status.WAITING)
+        Printer.objects.update(is_active=False)  # no printer at all
+        self.assertEqual(self.print_selected(apply="1", label="", copies="1"),
+                         ["The labels could not be printed: No printer has labels of this size."])
+
+    def test_the_change_page_prints_one_label(self):
+        self.client.force_login(self.admin)
+        url = reverse("admin:inventory_location_print-label", args=[self.locations[0].pk])
+        self.assertContains(self.client.get(url), "Room 1")
+        with patch("label_printing.tasks.process_job.delay"):
+            response = self.client.post(url, {"apply": "1", "label": "", "copies": "1"})
+        self.assertRedirects(response, reverse("admin:inventory_location_change", args=[self.locations[0].pk]),
+                             fetch_redirect_response=False)
+        self.assertEqual(PrintJob.objects.get().subject_label, "Room 1 [R1]")
 
     def test_printing_labels_is_for_who_may(self):
         """Printing labels is a privilege (label_printing.print_label, the local group), also in the admin."""
@@ -64,7 +85,7 @@ class LabelPrintingTests(TestCase):
             form = self.client.get(url).context["action_form"]  # none without any action
             return set(dict(form.fields["action"].choices)) if form else set()
         pages = {
-            reverse("admin:inventory_location_changelist"): {"send_to_printer_action", "send_to_printer_twice_action"},
+            reverse("admin:inventory_location_changelist"): {"print_labels_action"},
             reverse("admin:label_printing_printer_changelist"): {"test_print", "calibration_print"},
             reverse("admin:label_printing_printjob_changelist"): {"reprint"},
         }
@@ -75,8 +96,8 @@ class LabelPrintingTests(TestCase):
         self.assertNotContains(self.client.get(change), "Print label")
         self.assertEqual(self.client.get(reverse("admin:inventory_location_print-label", args=[location.pk])).status_code,
                          403)
-        mass_add = self.client.get(reverse("admin:inventory_location_massadd")).context["form"]
-        self.assertFalse({"print", "print_multiple", "sub_print"} & set(mass_add.fields))
+        self.assertFalse({"print", "label"} & set(self.client.get(reverse("admin:inventory_location_reserve"))
+                                                  .context["form"].fields))
         # With the permission, all of it
         staff.user_permissions.add(Permission.objects.get(codename="print_label"))
         staff = get_user_model().objects.get(pk=staff.pk)
@@ -85,13 +106,7 @@ class LabelPrintingTests(TestCase):
             with self.subTest(url=url, permitted=True):
                 self.assertEqual(printing & actions(url), printing)
         self.assertContains(self.client.get(change), "Print label")
-        self.assertIn("print", self.client.get(reverse("admin:inventory_location_massadd")).context["form"].fields)
-
-    def test_without_default_printer(self):
-        Printer.objects.update(is_default=False)
-        self.assertEqual(self.run_action(LocationAdmin(Location, admin.site).send_to_printer_action), [
-            "Failed sending label to printer: No default printer is set up (admin: Label printing → Printers).",
-        ])
+        self.assertIn("label", self.client.get(reverse("admin:inventory_location_reserve")).context["form"].fields)
 
 
 @override_settings(
@@ -106,25 +121,6 @@ class MaintenanceRegressionTests(TestCase):
     def setUp(self):
         self.user = get_user_model().objects.create_superuser(username="maintainer")
         self.client.force_login(self.user)
-
-    def test_admin_mass_creation_keeps_children_and_computed_identifiers(self):
-        room_type = LocationType.objects.create(
-            name="Room", unique=True, auto_sequence="0123456789",
-            auto_name_prefix="Room", auto_short_name_prefix="R",
-        )
-        box_type = LocationType.objects.create(
-            name="Box", auto_sequence="0123456789",
-            auto_name_prefix="Box", auto_short_name_prefix="B",
-        )
-        response = self.client.post(reverse("admin:inventory_location_massadd"), {
-            "location_type": room_type.pk, "sequence_start": "1", "count": "2",
-            "sub_type": box_type.pk, "sub_count": "2", "physical_description": "Storage",
-        })
-        self.assertEqual(response.status_code, 302)
-        self.assertEqual(set(Location.objects.values_list("unique_identifier", flat=True)), {
-            "R1", "R2", "R1.B0", "R1.B1", "R2.B0", "R2.B1",
-        })
-        self.assertEqual(Location.objects.filter(parent_location=None, physical_description="Storage").count(), 2)
 
     def test_pages_link_the_favicon(self):
         svg = static("inventory/favicon/favicon.svg")  # with its version (?v=)

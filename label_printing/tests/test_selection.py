@@ -58,8 +58,10 @@ class RuleTests(InventoryData, TestCase):
         PrintJob.objects.filter(pk=job.pk).update(status=PrintJob.Status.DONE)
         selection.remember_job(PrintJob.objects.get(pk=job.pk))
         self.assertEqual(LastLabel.objects.get(subject_pk=str(self.box.pk)).layout_key, f"design:{self.plain.pk}")
-        # The admin's print actions take it too
-        self.assertEqual(services.location_layout(self.box, self.zebra, self.labels).template, self.plain)
+        # The admin's printing takes it too
+        with patch("label_printing.services.process"), patch("label_printing.tasks.process_job.delay"):
+            jobs, skipped = services.print_batch("location", [self.box])
+        self.assertEqual(([job.layout_key for job in jobs], skipped), ([f"design:{self.plain.pk}"], []))
 
     def test_printable_templates_first_among_equals(self):
         on_tape = self.template("Schlicht", [("", 1)], size="height 12")

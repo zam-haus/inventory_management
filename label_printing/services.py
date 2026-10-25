@@ -5,6 +5,7 @@ Network printers are served by the Celery task label_printing.tasks.process_job 
 request without a broker), printers on a print agent by the agent fetching its jobs (api.py).
 """
 import time
+import uuid
 from concurrent.futures import ThreadPoolExecutor
 from datetime import timedelta
 
@@ -432,23 +433,37 @@ def default_target():
     return printer, medium
 
 
-def location_layout(location, printer, medium):
-    """The template for a location on the medium: its last one, else by the templates' rules (selection.py)."""
-    layout = selection.best_layout("location", location, layouts_for("location", printer, medium))
-    if layout is None:
-        raise PrintError(_("No location label fits %(medium)s.") % {"medium": medium})
-    return layout
+def print_batch(subject_type, subjects, *, outcome_key="", copies=1, user=None, chunk=20):
+    """Labels for many subjects of one kind (the admin), printed like the print dialog's overviews: each with the
+    label `outcome_key` (a template on labels of one size, outcomes.py) if that template is meant for it, else, without
+    one, with the label the dialog preselects for it (its last one, else by the templates' rules). Each label prints on
+    a printer that has its labels and can print now, else its job waits for one (submit_outcome). One batch, jobs of at
+    most `chunk` labels, so long runs are not taken for stuck jobs. Returns (jobs, the subjects no label is meant
+    for)."""
+    from . import outcomes
 
-
-def print_locations(locations, copies=1, user=None, printer=None, medium=None):
-    """Labels for locations on the default printer (or the given one); one job per layout used."""
-    if printer is None:
-        printer, medium = default_target()
-    groups = {}
-    for location in locations:
-        groups.setdefault(location_layout(location, printer, medium).key, []).append(location)
-    return [submit(printer=printer, medium=medium, layout_key=key, subject_type="location", subjects=group,
-                   copies=copies, user=user) for key, group in groups.items()]
+    found = {outcome.key: outcome for kind in selection.KINDS[subject_type]
+             for outcome in outcomes.outcomes(kind)}
+    chosen = found.get(outcome_key) if outcome_key else None
+    if outcome_key and chosen is None:
+        raise PrintError(_("This label cannot be printed any more; choose another one."))
+    meant = {id(subject) for subject in selection.meant_for(chosen.layout.template, subjects)} if chosen else set()
+    groups, skipped = {}, []
+    for subject in subjects:
+        if chosen is not None:
+            outcome = chosen if id(subject) in meant else None
+        else:
+            ranked = selection.rank(list(found.values()), subject_type, subject)
+            outcome = ranked[0].outcome if ranked else None
+        if outcome is None:
+            skipped.append(subject)
+        else:
+            groups.setdefault(outcome.key, []).append(subject)
+    batch = uuid.uuid4()
+    jobs = [submit_outcome(found[key], subject_type=subject_type, subjects=group[start:start + chunk],
+                           copies=copies, user=user, wait=True, batch=batch)
+            for key, group in groups.items() for start in range(0, len(group), chunk)]
+    return jobs, skipped
 
 
 def outdated_reasons(job):

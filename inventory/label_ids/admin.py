@@ -7,7 +7,7 @@ from django.template.response import TemplateResponse
 from django.urls import path, reverse
 from django.utils.html import format_html
 from django.utils.translation import gettext, gettext_lazy as _
-from label_printing import dialog as print_dialog, services as printing
+from label_printing import admin_printing
 
 from ..icons import icon
 from ..models import LabelId
@@ -257,22 +257,9 @@ class LabelIdAdmin(admin.ModelAdmin):
 
     @admin.action(description=_("Print labels"), permissions=["print"])
     def print_labels_action(self, request, queryset):
-        form = print_dialog.LabelIdPrintForm(request.POST if "apply" in request.POST else None)
-        if form.is_valid():
-            medium = form.cleaned_data["medium"]
-            try:
-                jobs = printing.print_label_ids(queryset.order_by("code"), request.user, medium.printer, medium,
-                                                form.cleaned_data["copies"])
-            except printing.PrintError as error:
-                self.message_user(request, str(error), messages.ERROR)
-                return None
-            for job in jobs:
-                job.refresh_from_db()
-                self.message_user(request, f"{job.subject_label}: {job.message}",
-                                  messages.ERROR if job.status == job.Status.FAILED else messages.INFO)
-            return None
-        return self._intermediate(request, queryset, form, "print_labels_action", gettext("Print labels"),
-                                  "admin/inventory/labelid/action_form.html")
+        # As in the print dialog: the label (or each its preselected one); the printer follows from it.
+        return admin_printing.print_page(self, request, list(queryset.order_by("code")), "labelid",
+                                         action="print_labels_action")
 
     def has_print_permission(self, request):
         return request.user.has_perm("label_printing.print_label")

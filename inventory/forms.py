@@ -866,6 +866,32 @@ class LocationsMoveHereForm(Form):
         return identifiers
 
 
+class ContainerActivationForm(ModelForm):
+    """Taking a reserved container into use (ContainerActivateView): where it is now (required), what it is for,
+    what it looks like and a photo."""
+
+    class Meta:
+        model = Location
+        fields = ["parent_location", "purpose", "physical_description", "overview_photo"]
+        widgets = {
+            "purpose": TextInput(attrs={"maxlength": 50}),
+            "physical_description": Textarea(attrs={"rows": 3}),
+            "overview_photo": FileInput(attrs={"accept": "image/*", "capture": "environment"}),
+        }
+
+    parent_location = ModelChoiceField(
+        label=_("Where is it now?"),
+        help_text=_("Search by location name or code, or scan the label of the location it is in."),
+        queryset=Location.active.filter(type__no_sublocations=False),
+        widget=LocationSelect(url="parent_location_autocomplete",
+                              attrs={"data-placeholder": _("Search for a location…")}),
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.instance.is_reserved = False  # validated as activated (Location.clean)
+
+
 class LocationMoveForm(ModelForm):
     class Meta:
         model = Location

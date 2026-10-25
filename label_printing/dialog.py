@@ -9,6 +9,7 @@ import uuid
 
 from django import forms
 from django.conf import settings
+from django.core.validators import MaxValueValidator
 from django.http import Http404
 from django.urls import reverse
 from django.utils.http import urlencode
@@ -21,8 +22,6 @@ from inventory import location_display
 from inventory.models import Item, LabelId, Location, UniqueItem
 from . import label_urls, outcomes, selection
 from .label_urls import ItemAt
-from .layouts import layouts_for
-from .models import LabelMedium
 
 SUBJECT_TYPES = ("location", "item", "uniqueitem", "labelid", "items")
 
@@ -311,27 +310,26 @@ class PrintForm(forms.Form):
         return found
 
 
-def label_id_media():
-    """Media of active printers that a label ID layout fits, best layout first per medium."""
-    media = []
-    for medium in LabelMedium.objects.filter(printer__is_active=True).select_related("printer", "stock"):
-        if layouts_for("labelid", medium.printer, medium):
-            media.append(medium.pk)
-    return LabelMedium.objects.filter(pk__in=media).select_related("printer").order_by("printer__name", "name")
+class BatchPrintForm(forms.Form):
+    """Printing many labels in the admin (services.print_batch): which label, or each its preselected one, and how
+    often. The printer follows from the label: one that has its labels and can print now, else it waits."""
+    label = forms.ChoiceField(label=_("Label"), required=False)
+    copies = forms.IntegerField(label=_("Copies per label"), min_value=1, initial=1)
 
-
-class LabelIdPrintForm(forms.Form):
-    """Printing label IDs in the admin: where, and how often."""
-    medium = forms.ModelChoiceField(LabelMedium.objects.none(), label=_("Printer and labels"))
-    copies = forms.IntegerField(label=_("Copies"), min_value=1, initial=1)
-
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, subject_type, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields["medium"].queryset = label_id_media()
-        self.fields["medium"].label_from_instance = lambda medium: f"{medium.printer}: {medium.name}"
+        self.subject_type = subject_type
+        self.fields["copies"].widget.attrs["max"] = settings.PRINT_MAX_COPIES
+        self.fields["copies"].validators.append(MaxValueValidator(settings.PRINT_MAX_COPIES))
+        found = [outcome for kind in selection.KINDS[subject_type] for outcome in outcomes.outcomes(kind)]
+        self.fields["label"].choices = [("", _("Each the one preselected for it, as in the print dialog"))] + [
+            (outcome.key, choice_label({"name": outcome.name, "size": outcome.size, "reason": outcome.why_not,
+                                        "printer": str(target.printer) if (target := outcome.target()) else ""}))
+            for outcome in found]
 
-    def clean_copies(self):
-        copies = self.cleaned_data["copies"]
-        if copies > settings.PRINT_MAX_COPIES:
-            raise forms.ValidationError(_("At most %(max)d copies.") % {"max": settings.PRINT_MAX_COPIES})
-        return copies
+    def print(self, subjects, user):
+        """(jobs, the subjects no label is meant for); raises services.PrintError."""
+        from . import services
+
+        return services.print_batch(self.subject_type, list(subjects), outcome_key=self.cleaned_data["label"],
+                                    copies=self.cleaned_data["copies"], user=user)

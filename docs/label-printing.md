@@ -59,9 +59,10 @@ Brother gets P-touch raster data. The code is in the app `label_printing`.
   for unique items ("ZAMid mit Eigentum" for items of another owner) and the label ID templates by its ID
   ("ZAMid"). A unique item without a label ID gets one when it is first printed.
 * **Label IDs (ZAMid):** the **Label** button on an ID's info page (`/id/<code>/info/`) prints the ID's
-  label. Batches of reserved IDs: the admin action **Print labels** on selected IDs, or `manage.py
-  label_id_labels --batch NAME --print PRINTER [--tape 12]` (the printer's short name), with the label
-  ID template its rules put first on that medium; jobs of at most 20 labels. An ID's *printed at* is set
+  label. Batches of reserved IDs: the admin action **Print labels** on selected IDs (as above: the label
+  decides the printer), or `manage.py label_id_labels --batch NAME --print PRINTER [--tape 12]` (the
+  printer's short name), with the label ID template its rules put first on that medium; jobs of at most
+  20 labels. An ID's *printed at* is set
   once the printer reports the label printed. The ID's info page and its admin page show its label
   (`label_printing.selection.preferred_template`).
 * **After creating** a box, carton, pallet, shelf or compartments (after their purposes, if asked
@@ -80,7 +81,7 @@ Brother gets P-touch raster data. The code is in the app `label_printing`.
 * Printing labels is a privilege: it requires `label_printing.print_label`, which migration
   `label_printing.0002` grants to the local group (for now only to it). That holds everywhere: the print
   dialogs and their previews, and in the admin the location actions and **Print label** link, printing
-  after mass creation, the printers' test and calibration labels, reprinting jobs and printing label IDs.
+  after reserving containers, the printers' test and calibration labels, reprinting jobs and printing label IDs.
   Without it, logged-in users see the dialog's button disabled; guests do not see it; the admin leaves
   out the actions and fields. With no suitable or reachable printer, the button is disabled with the
   reason.
@@ -141,10 +142,13 @@ right, so taking out stays visible longest.
    stock, material and colours if a template names them (see [label designs](label-designs.md#where-templates-are-offered)).
 4. **Test label** (30 mm on tape) and **Check the printer status** are actions on the printer list.
 
-The location admin's print actions, its **Print label** button and printing after mass creation
-use the default printer and its default medium (a Zebra: its loaded labels), with the template the
-location was printed with last, else the one its rules put first. Mass creation may preselect a
-template for the new locations and their sub-locations.
+The admin prints as the print dialog does (`label_printing/admin_printing.py`, `services.print_batch`): the
+action **Print location labels**, a location's **Print label** button and the label IDs' **Print labels** ask
+for the label (a template on labels of one size, with the printer it would print on or why none can) or
+**each the one preselected for it** (as in the dialog: its last one, else by the rules), and the copies.
+The server picks the printer as in the dialog; labels no printer can print now wait for one. Subjects no
+label is meant for are named and left out; jobs hold at most 20 labels, all in one batch. Printing after
+reserving containers works the same way.
 
 ### Label templates and images
 

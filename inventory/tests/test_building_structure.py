@@ -334,17 +334,3 @@ class NumberRangeTests(TestCase):
         from django.urls import reverse
         self.client.force_login(get_user_model().objects.create_user(username="guest"))
         self.assertEqual(self.client.get(reverse("numbered_location_create", args=[self.stage.pk])).status_code, 403)
-
-
-class MassAddTests(TestCase):
-    """Generated codes skip taken ones, e.g. older hexadecimal box codes that look decimal."""
-
-    def test_free_names_skip_taken_codes(self):
-        box = LocationType.objects.create(name="Kiste", unique=True, moveable=True, auto_name_prefix="Kiste",
-                                          auto_short_name_prefix="K", auto_short_name_padding_length=4,
-                                          auto_sequence="0123456789")
-        Location.objects.create(type=box, name="Kiste 0100", short_name="K0100")
-        Location.objects.create(type=box, name="Kiste 034c", short_name="K034c")
-        self.assertEqual([short for _name, short in box.free_names(3, "99")], ["K0099", "K0101", "K0102"])
-        self.assertTrue(box.is_valid_start("0525"))
-        self.assertFalse(box.is_valid_start("034c"))

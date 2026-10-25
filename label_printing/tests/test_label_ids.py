@@ -118,11 +118,12 @@ class LabelIdPrintingTests(SimulatedPrinters, TestCase):
         changelist = reverse("admin:inventory_labelid_changelist")
         selected = {"action": "print_labels_action", "_selected_action": [lid.code for lid in reserved]}
         form = self.client.post(changelist, selected)
-        self.assertContains(form, "P-touch Werkstatt: 12 mm")
+        # As in the print dialog: a label, and the printer that has it
+        self.assertContains(form, "· 12 mm tape · P-touch Werkstatt")
         with self.captureOnCommitCallbacks(execute=True):
-            response = self.client.post(changelist, {**selected, "apply": "1", "medium": self.tape.pk, "copies": 1},
-                                        follow=True)
-        self.assertContains(response, "(+1): waiting")
+            response = self.client.post(changelist, {**selected, "apply": "1", "copies": 1,
+                                                     "label": outcome_key("labelid", "tape12")}, follow=True)
+        self.assertContains(response, "(+1)): on P-touch Werkstatt.")
         self.assertEqual(len(self.brother_output.printed), 2)
         self.assertFalse(LabelId.objects.filter(pk__in=[lid.pk for lid in reserved], printed_at=None).exists())
 
@@ -137,3 +138,4 @@ class LabelIdPrintingTests(SimulatedPrinters, TestCase):
             call_command("label_id_labels", "--batch", "regal", "--print", "ptouch", stdout=out)
         with self.assertRaisesMessage(CommandError, "no printer 'nope'"):
             call_command("label_id_labels", "--batch", "regal", "--print", "nope", "--all", stdout=out)
+

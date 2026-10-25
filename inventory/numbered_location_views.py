@@ -10,15 +10,18 @@ Containers (boxes, cartons, pallets) simply get the next number of their type (C
 from django import forms
 from django.contrib import messages
 from django.contrib.auth.mixins import PermissionRequiredMixin
+from django.contrib.auth.views import redirect_to_login
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.core.validators import MaxValueValidator
 from django.db import IntegrityError, transaction
 from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse
+from django.utils.http import url_has_allowed_host_and_scheme
 from django.utils.translation import gettext_lazy as _
 from django.views.generic import FormView
 
+from .forms import ContainerActivationForm
 from .models import Location, LocationNumberRange, LocationType
 
 COMPUTED = ["unique_identifier", "locatable_identifier", "descriptive_identifier"]
@@ -253,19 +256,74 @@ class ContainerCreateView(PermissionRequiredMixin, FormView):
         return redirect(with_print_dialog(self.request, self.parent, created))
 
     def create_container(self, kind, data):
-        """The next container of `kind`, with the next free number."""
-        for _attempt in range(3):
-            try:
-                with transaction.atomic():
-                    _number, name, short = kind.next_free_number()
-                    location = Location(type=kind, name=name, short_name=short, parent_location=self.parent,
-                                        purpose=data["purpose"], physical_description=data["physical_description"])
-                    location.full_clean(exclude=COMPUTED + ["overview_photo"])
-                    location.save(actor=self.request.user)
-                return location
-            except IntegrityError:
-                continue  # someone took the number in the meantime: take the next one
-        raise ValidationError(_("The number was taken in the meantime. Try again."))
+        return create_numbered_container(kind, parent=self.parent, purpose=data["purpose"],
+                                         physical_description=data["physical_description"], actor=self.request.user)
+
+
+def create_numbered_container(kind, *, parent=None, reserved=False, purpose="", physical_description="", actor=None):
+    """The next container of `kind`, with the next free number; reserved ones (no parent) wait for activation."""
+    for _attempt in range(3):
+        try:
+            with transaction.atomic():
+                _number, name, short = kind.next_free_number()
+                location = Location(type=kind, name=name, short_name=short, parent_location=parent,
+                                    is_reserved=reserved, purpose=purpose, physical_description=physical_description)
+                location.full_clean(exclude=COMPUTED + ["overview_photo"])
+                location.save(actor=actor)
+            return location
+        except IntegrityError:
+            continue  # someone took the number in the meantime: take the next one
+    raise ValidationError(_("The number was taken in the meantime. Try again."))
+
+
+class ContainerActivateView(FormView):
+    """A reserved container (preprinted label, ReserveContainersAdminView) taken into use: whoever may create
+    locations says where it is; until then it is hidden. Its label and code searches lead here."""
+    template_name = "inventory/container_activate.html"
+    form_class = ContainerActivationForm
+    permission = "inventory.add_location"
+
+    def dispatch(self, request, *args, **kwargs):
+        self.object = get_object_or_404(Location.objects.select_related("type"), pk=kwargs["pk"], is_deleted=False)
+        if not self.object.is_reserved:
+            return redirect(self.object)
+        return super().dispatch(request, *args, **kwargs)
+
+    def can_activate(self):
+        return self.request.user.has_perm(self.permission)
+
+    def next_url(self):
+        url = self.request.POST.get("next") or self.request.GET.get("next")
+        if url and url_has_allowed_host_and_scheme(url, {self.request.get_host()}, require_https=self.request.is_secure()):
+            return url
+        return None
+
+    def get_form_kwargs(self):
+        return {**super().get_form_kwargs(), "instance": self.object}
+
+    def get_context_data(self, **kwargs):
+        return super().get_context_data(object=self.object, can_activate=self.can_activate(),
+                                        next=self.next_url() or "", **kwargs)
+
+    def post(self, request, *args, **kwargs):
+        if not self.can_activate():
+            if not request.user.is_authenticated:
+                return redirect_to_login(request.get_full_path())
+            raise PermissionDenied
+        return super().post(request, *args, **kwargs)
+
+    def form_valid(self, form):
+        with transaction.atomic():
+            # Two people scanning the same label: the first one activates it.
+            if not Location.objects.select_for_update().filter(pk=self.object.pk, is_reserved=True).exists():
+                messages.info(self.request, _("%(name)s has been activated in the meantime.") % {"name": self.object.name})
+                return redirect(self.object)
+            location = form.save(commit=False)
+            location.is_reserved = False
+            location.save(actor=self.request.user)
+        messages.success(self.request, _("%(name)s (%(code)s) is now in use, at %(location)s.") % {
+            "name": location.name, "code": location.short_name, "location": location.parent_location.title_with_code})
+        return redirect(self.next_url() or location.get_absolute_url())
 
 
 class SublocationAddForm(forms.Form):

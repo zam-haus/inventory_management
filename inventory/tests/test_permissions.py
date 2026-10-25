@@ -251,9 +251,9 @@ class InventoryPermissionTests(TestCase):
         self.user.is_staff = True
         self.user.save()
         self.grant("change_item", "change_location")
-        massadd = reverse("admin:inventory_location_massadd")
-        self.assertEqual(self.client.get(massadd).status_code, 403)
-        self.assertEqual(self.client.post(massadd, {}).status_code, 403)
+        reserve = reverse("admin:inventory_location_reserve")
+        self.assertEqual(self.client.get(reserve).status_code, 403)
+        self.assertEqual(self.client.post(reserve, {}).status_code, 403)
         item_url = reverse("admin:inventory_item_change", args=[self.item.pk])
         response = self.client.get(item_url)
         self.assertNotContains(response, 'name="is_deleted"')

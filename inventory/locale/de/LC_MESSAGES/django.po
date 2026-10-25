@@ -3883,3 +3883,83 @@ msgstr "%(code)s zugeordnet"
 #, python-format
 msgid "%(code)s retired"
 msgstr "%(code)s stillgelegt"
+
+msgid "Container type"
+msgstr "Behältertyp"
+
+msgid "Print their labels"
+msgstr "Etiketten drucken"
+
+msgid "On the default printer, with the template its rules choose."
+msgstr "Auf dem Standarddrucker, mit der Vorlage, die ihre Regeln wählen."
+
+msgid "Reserve containers"
+msgstr "Behälter reservieren"
+
+msgid "Reserve"
+msgstr "Reservieren"
+
+#, python-format
+msgid "%(count)s × %(type)s reserved: %(codes)s."
+msgstr "%(count)s × %(type)s reserviert: %(codes)s."
+
+msgid "The containers get the next numbers of their type and stay hidden until someone scans their label (or enters their code) and says where they are. Their numbers are taken from now on."
+msgstr "Die Behälter bekommen die nächsten Nummern ihres Typs und bleiben verborgen, bis jemand ihr Etikett scannt (oder ihren Code eingibt) und angibt, wo sie sind. Ihre Nummern sind ab jetzt vergeben."
+
+msgid "reserved (not activated yet)"
+msgstr "reserviert (noch nicht aktiviert)"
+
+msgid "A container whose label was printed in advance. It is hidden until someone scans its label and enters where it is."
+msgstr "Ein Behälter, dessen Etikett vorab gedruckt wurde. Er ist verborgen, bis jemand sein Etikett scannt und angibt, wo er ist."
+
+msgid "Reserved containers are activated before anything goes into them."
+msgstr "Reservierte Behälter werden aktiviert, bevor etwas hineinkommt."
+
+msgid "Reserved containers are nowhere until activated."
+msgstr "Reservierte Behälter haben bis zur Aktivierung keinen Standort."
+
+msgid "Only numbered containers (boxes, cartons, pallets) can be reserved."
+msgstr "Nur nummerierte Behälter (Kisten, Kartons, Paletten) können reserviert werden."
+
+#, python-format
+msgid "%(code)s is not activated yet: scan its label or open it to say where it is."
+msgstr "%(code)s ist noch nicht aktiviert: Etikett scannen oder öffnen und angeben, wo er ist."
+
+msgid "Activate it now"
+msgstr "Jetzt aktivieren"
+
+msgid "Where is it now?"
+msgstr "Wo ist er jetzt?"
+
+msgid "Search by location name or code, or scan the label of the location it is in."
+msgstr "Nach Standortname oder Kennung suchen oder das Etikett des Standorts scannen, in dem er ist."
+
+#, python-format
+msgid "%(name)s has been activated in the meantime."
+msgstr "%(name)s wurde inzwischen aktiviert."
+
+#, python-format
+msgid "%(name)s (%(code)s) is now in use, at %(location)s."
+msgstr "%(name)s (%(code)s) ist jetzt in Gebrauch, in %(location)s."
+
+msgid "Activated"
+msgstr "Aktiviert"
+
+msgid "Activate container"
+msgstr "Behälter aktivieren"
+
+msgid "Not in use yet"
+msgstr "Noch nicht in Gebrauch"
+
+msgid "Activate"
+msgstr "Aktivieren"
+
+msgid "Its label was printed in advance. Say where it is now to take it into use; it shows in the inventory from then on."
+msgstr "Sein Etikett wurde vorab gedruckt. Gib an, wo er jetzt ist, um ihn in Gebrauch zu nehmen; ab dann erscheint er im Inventar."
+
+#, python-format
+msgid "<a href=\"%(url)s?next=%(next)s\">Log in</a> to activate it."
+msgstr "<a href=\"%(url)s?next=%(next)s\">Anmelden</a>, um ihn zu aktivieren."
+
+msgid "On a printer that has the labels, as in the print dialog."
+msgstr "Auf einem Drucker, der die Etiketten hat, wie im Druckdialog."

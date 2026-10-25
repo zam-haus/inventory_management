@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-25 20:21+0100\n"
+"POT-Creation-Date: 2026-10-25 22:45+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -206,6 +206,40 @@ msgstr "Diese Etiketten neu drucken, wie sie jetzt sind"
 #, python-format
 msgid "Job %(old)s printed again as job %(new)s."
 msgstr "Auftrag %(old)s als Auftrag %(new)s neu gedruckt."
+
+#: admin_printing.py:17
+#, python-format
+msgid "%(count)d label"
+msgid_plural "%(count)d labels"
+msgstr[0] "%(count)d Etikett"
+msgstr[1] "%(count)d Etiketten"
+
+#: admin_printing.py:19
+#, python-format
+msgid "%(labels)s (%(subjects)s): on %(printer)s."
+msgstr "%(labels)s (%(subjects)s): auf %(printer)s."
+
+#: admin_printing.py:22
+#, python-format
+msgid "%(labels)s (%(subjects)s) wait for a printer with their labels."
+msgstr "%(labels)s (%(subjects)s) warten auf einen Drucker mit ihren Etiketten."
+
+#: admin_printing.py:25
+#, python-format
+msgid "No label is meant for: %(subjects)s."
+msgstr "Kein Etikett ist vorgesehen für: %(subjects)s."
+
+#: admin_printing.py:35
+#, python-format
+msgid "The labels could not be printed: %(error)s"
+msgstr "Die Etiketten ließen sich nicht drucken: %(error)s"
+
+#: admin_printing.py:51 templates/label_printing/print_button.html:1
+#: templates/label_printing/print_dialog.html:9
+#: templates/label_printing/print_page.html:9
+#: templates/label_printing/print_page.html:12
+msgid "Print labels"
+msgstr "Etiketten drucken"
 
 #: apps.py:8
 msgid "Label printing"
@@ -455,57 +489,61 @@ msgstr "wozu sie gehört"
 msgid "what label IDs are called, e.g. ZAMid"
 msgstr "wie Label-IDs heißen, z. B. ZAMid"
 
-#: dialog.py:62 dialog.py:71
+#: dialog.py:61 dialog.py:70
 #, python-format
 msgid "Price tags at %(location)s"
 msgstr "Preisschilder an %(location)s"
 
-#: dialog.py:226
+#: dialog.py:225
 msgid "No bulk items are stored here."
 msgstr "Hier lagern keine Mengenartikel."
 
-#: dialog.py:230 templates/label_printing/print_fields.html:54
+#: dialog.py:229 templates/label_printing/print_fields.html:54
 msgid "No label template is meant for this."
 msgstr "Dafür ist keine Etikettenvorlage vorgesehen."
 
-#: dialog.py:232
+#: dialog.py:231
 msgid "No printer is set up for these labels yet."
 msgstr "Für diese Etiketten ist noch kein Drucker eingerichtet."
 
-#: dialog.py:238 templates/label_printing/print_button.html:1
+#: dialog.py:237 dialog.py:316 templates/label_printing/print_button.html:1
 #: templates/label_printing/print_fields.html:7
 #: templates/label_printing/print_fields.html:45
 msgid "Label"
 msgstr "Etikett"
 
-#: dialog.py:239 dialog.py:326
+#: dialog.py:238
 msgid "Copies"
 msgstr "Anzahl"
 
-#: dialog.py:240
+#: dialog.py:239
 msgid "Location"
 msgstr "Standort"
 
-#: dialog.py:241
+#: dialog.py:240
 msgid "Also the sub-locations"
 msgstr "Auch die Unterorte"
 
-#: dialog.py:264 dialog.py:336
+#: dialog.py:263
 #, python-format
 msgid "At most %(max)d copies."
 msgstr "Höchstens %(max)d Stück."
 
-#: dialog.py:281
+#: dialog.py:280
 msgid "There is nothing to print."
 msgstr "Es gibt nichts zu drucken."
 
-#: dialog.py:289
+#: dialog.py:288
 msgid "These labels cannot be printed here."
 msgstr "Diese Etiketten lassen sich hier nicht drucken."
 
+#: dialog.py:317 templates/label_printing/print_fields.html:80
+msgid "Copies per label"
+msgstr "Kopien pro Etikett"
+
 #: dialog.py:325
-msgid "Printer and labels"
-msgstr "Drucker und Etiketten"
+msgid "Each the one preselected for it, as in the print dialog"
+msgstr "Jeweils das vorausgewählte, wie im Druckdialog"
 
 #: image_import.py:46
 msgid "not a ZIP archive"
@@ -1331,92 +1369,105 @@ msgstr "Kein passender Drucker online: %(reason)s"
 msgid "No printer has labels of this size."
 msgstr "Kein Drucker hat Etiketten dieser Größe."
 
-#: services.py:52
+#: services.py:54
 #, python-format
 msgid "The content does not fit on %(medium)s; choose a larger label."
 msgstr "Der Inhalt passt nicht auf %(medium)s; wähle ein größeres Etikett."
 
-#: services.py:54
+#: services.py:56
 #, python-format
 msgid "The label template has a mistake: %(error)s"
 msgstr "Die Etikettenvorlage hat einen Fehler: %(error)s"
 
-#: services.py:67
+#: services.py:69
 msgid "Choose a label medium of this printer."
 msgstr "Wähle ein Etikettenmaterial dieses Druckers."
 
-#: services.py:71 services.py:238
+#: services.py:73 services.py:249
 #, python-format
 msgid "Print between 1 and %(max)d copies."
 msgstr "Drucke zwischen 1 und %(max)d Stück."
 
-#: services.py:73
+#: services.py:75
 msgid "Nothing to print."
 msgstr "Nichts zu drucken."
 
-#: services.py:77
+#: services.py:79
 msgid "Unknown layout."
 msgstr "Unbekanntes Layout."
 
-#: services.py:79
+#: services.py:81
 msgid "This layout does not fit the chosen printer and medium."
 msgstr "Dieses Layout passt nicht zu Drucker und Etiketten."
 
-#: services.py:82 services.py:240
+#: services.py:84 services.py:251
 msgid "Unknown print quality."
 msgstr "Unbekannte Druckqualität."
 
-#: services.py:231
+#: services.py:242
 msgid "No printer can print this label now."
 msgstr "Gerade kann kein Drucker dieses Etikett drucken."
 
-#: services.py:418
+#: services.py:429
 msgid "No default printer is set up (admin: Label printing → Printers)."
 msgstr ""
 "Es ist kein Standarddrucker eingerichtet (Admin: Etikettendruck → Drucker)."
 
-#: services.py:421
+#: services.py:432
 #, python-format
 msgid "The printer %(printer)s has no label medium."
 msgstr "Der Drucker %(printer)s hat kein Etikettenmaterial."
 
-#: services.py:429
-#, python-format
-msgid "No location label fits %(medium)s."
-msgstr "Kein Standortetikett passt auf %(medium)s."
+#: services.py:449
+msgid "This label cannot be printed any more; choose another one."
+msgstr "Dieses Etikett lässt sich nicht mehr drucken; wähle ein anderes."
 
-#: services.py:454
+#: services.py:479
 #, python-format
 msgid "%(old)s is now %(new)s"
 msgstr "%(old)s heißt jetzt %(new)s"
 
-#: services.py:457
+#: services.py:482
 #, python-format
 msgid "%(name)s: price now %(price)s"
 msgstr "%(name)s: Preis jetzt %(price)s"
 
-#: services.py:458
+#: services.py:483
 msgid "none"
 msgstr "keiner"
 
-#: services.py:460
+#: services.py:485
 #, python-format
 msgid "%(old)s is now called %(new)s"
 msgstr "%(old)s heißt jetzt %(new)s"
 
-#: services.py:488
+#: services.py:513
 #, python-format
 msgid "Nothing of job %(job)s can be printed again."
 msgstr "Von Auftrag %(job)s lässt sich nichts neu drucken."
 
-#: services.py:501
+#: services.py:526
 #, python-format
 msgid "No label ID label fits %(medium)s."
 msgstr "Kein ID-Etikett passt auf %(medium)s."
 
+#: templates/admin/label_printing/print_labels.html:5
 #: templates/label_printing/admin/image_import.html:5
 msgid "Home"
 msgstr "Start"
+
+#: templates/admin/label_printing/print_labels.html:13
+#, python-format
+msgid "%(counter)s label:"
+msgid_plural "%(counter)s labels:"
+msgstr[0] "%(counter)s Etikett:"
+msgstr[1] "%(counter)s Etiketten:"
+
+#: templates/admin/label_printing/print_labels.html:25
+msgid ""
+"Each label prints on a printer that has its labels and can print now; "
+"otherwise it waits for one, as in the print dialog."
+msgstr "Jedes Etikett druckt auf einem Drucker, der seine Etiketten hat und jetzt drucken kann; sonst wartet es auf einen, wie im Druckdialog."
 
 #: templates/label_printing/admin/image_import.html:23
 msgid ""
@@ -1586,13 +1637,6 @@ msgstr "Preisschilder der Mengenartikel hier drucken"
 msgid "Price tags"
 msgstr "Preisschilder"
 
-#: templates/label_printing/print_button.html:1
-#: templates/label_printing/print_dialog.html:9
-#: templates/label_printing/print_page.html:9
-#: templates/label_printing/print_page.html:12
-msgid "Print labels"
-msgstr "Etiketten drucken"
-
 #: templates/label_printing/print_dialog.html:10
 #: templates/label_printing/print_dialog.html:16
 msgid "Close"
@@ -1648,10 +1692,6 @@ msgid_plural "Also its sub-locations (%(count)s)"
 msgstr[0] "Auch sein Unterort (%(count)s)"
 msgstr[1] "Auch seine Unterorte (%(count)s)"
 
-#: templates/label_printing/print_fields.html:80
-msgid "Copies per label"
-msgstr "Kopien pro Etikett"
-
 #: templates/label_printing/print_fields.html:86
 #, python-format
 msgid ""
@@ -1696,6 +1736,13 @@ msgid ""
 msgstr ""
 "%(width)s × %(height)s Punkte bei %(dpi)s dpi: %(width_mm).1f × "
 "%(height_mm).1f mm"
+
+#~ msgid "Printer and labels"
+#~ msgstr "Drucker und Etiketten"
+
+#, python-format
+#~ msgid "No location label fits %(medium)s."
+#~ msgstr "Kein Standortetikett passt auf %(medium)s."
 
 #, python-format
 #~ msgid ""

@@ -27,6 +27,23 @@ def locations_by_code(code):
     return found
 
 
+def reserved_by_code(code):
+    """The reserved container (not activated yet, see ContainerActivateView) with this code, ignoring case, or None."""
+    code = (code or "").strip()
+    if not code:
+        return None
+    return Location.objects.filter(is_reserved=True, is_deleted=False, unique_identifier__iexact=code).first()
+
+
+class NotActivated(ValidationError):
+    """The reference names a reserved container; `location` is it, to offer activating it."""
+
+    def __init__(self, location):
+        super().__init__(_("%(code)s is not activated yet: scan its label or open it to say where it is.")
+                         % {"code": location.unique_identifier})
+        self.location = location
+
+
 def location_by_code(code):
     """The one location with this code (see locations_by_code); raises Location.DoesNotExist or
     Location.MultipleObjectsReturned."""
@@ -79,6 +96,9 @@ def resolve_location_reference(value):
             raise ValidationError(_("Ambiguous scan; check the keyboard layout of the scanner."))
         if locations:
             return locations.pop()
+        reserved = reserved_by_code(label_id_parsing.strip_url(value) if "/" in value else value)
+        if reserved is not None:
+            raise NotActivated(reserved)
         raise error
 
 

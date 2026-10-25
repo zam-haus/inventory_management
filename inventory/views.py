@@ -24,7 +24,7 @@ from django.views import View
 from django.views.generic import DetailView, ListView, TemplateView, UpdateView
 
 from . import forms, location_display, models
-from .location_lookup import resolve_location_reference
+from .location_lookup import reserved_by_code, resolve_location_reference
 from .permissions import (
     QUICK_ITEM_PERMISSIONS, UNIQUE_ITEM_CREATE_PERMISSIONS, ItemEditorPermissionMixin, location_deletion_denied,
     location_edit_denied, location_purpose_denied,
@@ -126,6 +126,7 @@ class PrintableInventoryView(PermissionRequiredMixin, View):
 
 class DetailLocationView(DetailView):
     model = models.Location
+
     queryset = models.Location.active.prefetch_related(
         Prefetch("children", queryset=models.Location.active.select_related("type")),
         Prefetch("itemlocation_set", queryset=models.ItemLocation.objects.filter(item__is_deleted=False).select_related("item__measurement_unit").prefetch_related("item__itemimage_set")),
@@ -181,6 +182,9 @@ class DetailLocationView(DetailView):
         return context
 
     def get(self, request, *args, **kwargs):
+        # Reserved containers have no page until activated; links to them lead there.
+        if models.Location.objects.filter(pk=kwargs["pk"], is_reserved=True, is_deleted=False).exists():
+            return redirect("container_activate", pk=kwargs["pk"])
         self.object = self.get_object()
         if "unique_identifier" in kwargs and self.object.unique_identifier != kwargs["unique_identifier"]:
             return redirect(self.object)
@@ -561,6 +565,12 @@ class SearchableLocationListView(
         "itemlocation_set", queryset=models.ItemLocation.objects.filter(item__is_deleted=False),
     ))
     paginate_by = 100
+
+    def get(self, request, *args, **kwargs):
+        # The code of a container whose label was printed in advance: take it into use.
+        if reserved := reserved_by_code(request.GET.get("q", "")):
+            return redirect("container_activate", pk=reserved.pk)
+        return super().get(request, *args, **kwargs)
 
 
 class StructureOverviewView(TemplateView):

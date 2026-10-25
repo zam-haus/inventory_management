@@ -71,9 +71,8 @@ class FormerCodeTests(CodeTypesMixin, TestCase):
 
     def test_blocked_codes_are_not_given_again(self):
         self.rename(self.shelf, "R399")
-        # Neither as a reserved number, nor by mass add, nor as a new short name.
+        # Neither as a reserved number nor as a new short name.
         self.assertNotIn("R301", [short for _n, _name, short in self.room.free_numbers(self.shelf_type)])
-        self.assertNotIn("R301", [short for _name, short in self.shelf_type.free_names(3, "300")])
         self.assertIn(301, LocationNumberRange.unavailable(self.shelf_type, 301, 301))
         new = Location(type=self.shelf_type, name="Regal 301", short_name="R301", parent_location=self.room)
         with self.assertRaisesMessage(ValidationError, "R301"):
@@ -105,7 +104,7 @@ class FormerCodeTests(CodeTypesMixin, TestCase):
         self.assertFalse(LocationFormerCode.objects.exists())  # soft deletion keeps the location and its code
         Location.objects.get(pk=box.pk).delete()
         self.assertTrue(LocationFormerCode.objects.filter(code="K0001", location=None).exists())
-        self.assertEqual(box_type.free_names(1, "1"), [("Kiste 2", "K0002")])
+        self.assertEqual(box_type.next_free_number(), (2, "Kiste 2", "K0002"))
 
     def test_a_current_code_cannot_be_added_as_former_code(self):
         with self.assertRaises(ValidationError):
@@ -208,13 +207,3 @@ class CompartmentNameTests(CodeTypesMixin, TestCase):
         self.assertEqual(self.shelf.children.get(short_name="a").descriptive_identifier,
                          "Halle [HAL] Regal 301 Leim [R301] Regal 301 Leim Fach a [a]")
         self.assertEqual(self.shelf.children.get(short_name="b").name, "Ebene B")
-
-    def test_mass_add_in_the_admin_names_compartments_the_same_way(self):
-        self.client.force_login(get_user_model().objects.create_superuser(username="admin"))
-        self.client.post(reverse("admin:inventory_location_massadd"), {
-            "parent_location": self.room.pk, "location_type": self.cabinet_type.pk, "sequence_start": "310",
-            "count": 1, "sub_type": self.compartment.pk, "sub_count": 2,
-        })
-        cabinet = Location.objects.get(short_name="S310")
-        self.assertEqual(sorted(cabinet.children.values_list("name", flat=True)),
-                         ["Schrank 310 Fach a", "Schrank 310 Fach b"])

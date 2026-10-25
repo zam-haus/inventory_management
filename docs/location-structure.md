@@ -68,6 +68,20 @@ are in [Standortregeln](standortregeln.md) (German).
   on it; the count fields say so too). Only the fields of the chosen way count
   (`NumberedLocationForm.FIELDS_FOR`; `numbered_location.js` hides and disables the others), and
   the wish field shows the type's prefix in front.
+* **Reserved containers** (preprinted labels): in the admin, **Reserve containers** on the location
+  list (`ReserveContainersAdminView`, staff with `add_location`) creates up to 200 containers of a type
+  with the next numbers and prints their labels as the admin prints labels (a label or each its preselected
+  one; the printer follows from it, see [label printing](label-printing.md)). They are
+  reserved (`Location.is_reserved`, no parent location) and hidden like deleted locations
+  (`Location.active` leaves them out): no list, search, choice, overview or page shows them, but their
+  numbers are taken. Scanning the label (also with the navbar scanner), entering the code in the
+  resolver lookup (`/id/?q=`) or the location search, or opening its page leads to **Activate container**
+  (`ContainerActivateView`, `/loc/<pk>/activate/`): who may add locations says where it is now
+  (required) and may add the purpose, physical description and overview photo; guests are asked to log
+  in. A location field that scans or looks up a reserved code says it is not activated yet and links
+  the activation (new tab). The change log records **Activated**, also on the page of the location it
+  went into. The admin's location list filters by *reserved*; deleting a reservation keeps its code
+  blocked like any other.
 * **Creating containers** (`ContainerCreateView` in `inventory/numbered_location_views.py`, permission
   `add_location`, on every location that takes sub-locations, `Location.container_types()`): boxes,
   cartons and pallets (`LocationType.numbered_containers`: containers with building-wide codes, a
@@ -100,8 +114,7 @@ are in [Standortregeln](standortregeln.md) (German).
   the drawing; skipping it leaves them empty.
 * **Sequences** (`LocationType.auto_sequence`) are digits only or letters only. Migration
   `inventory.0037` moved types with a mixed sequence (hexadecimal boxes, alphanumeric pallets) to
-  digits; their existing codes stay. Creating several locations in the admin skips codes that are
-  taken (`LocationType.free_names`) and accepts only start values from the type's sequence.
+  digits; their existing codes stay.
 * **Former codes** (`LocationFormerCode`: *code*, *location*, *note*). Codes are meant to stay, so
   that labels and links can name a location by its code for good. Only the admin changes a short
   name. When a location's `unique_identifier` changes (a new short name, or a new parent of a part

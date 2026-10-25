@@ -13,7 +13,7 @@ from .location_overview_views import (
     LocationDescriptionUpdateView, LocationOverviewUpdateView, LocationPurposeUpdateView,
 )
 from .numbered_location_views import (
-    ContainerCreateView, NumberedLocationCreateView, SublocationAddView, SublocationPurposeView,
+    ContainerActivateView, ContainerCreateView, NumberedLocationCreateView, SublocationAddView, SublocationPurposeView,
 )
 from .quick_item_views import QuickItemCreateView, QuickItemDeleteView, QuickItemPhotoView, QuickItemUpdateView
 from .stock_change_views import StockChangeView
@@ -28,6 +28,7 @@ urlpatterns = [
     path("loc/<int:pk>/description/", LocationDescriptionUpdateView.as_view(), name="location_description_update"),
     path("loc/<int:pk>/new-shelf/", NumberedLocationCreateView.as_view(), name="numbered_location_create"),
     path("loc/<int:pk>/new-container/", ContainerCreateView.as_view(), name="container_create"),
+    path("loc/<int:pk>/activate/", ContainerActivateView.as_view(), name="container_activate"),
     path("loc/<int:pk>/add-sublocations/", SublocationAddView.as_view(), name="sublocation_add"),
     path("loc/<int:pk>/sublocation-purposes/", SublocationPurposeView.as_view(), name="sublocation_purposes"),
     path("loc/<int:pk>/quick-items/", QuickItemCreateView.as_view(), name="quick_item_create"),

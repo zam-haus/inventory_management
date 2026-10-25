@@ -5,11 +5,12 @@ from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect
+from django.urls import reverse
 from django.utils.translation import gettext as _
 from django.views import View
 
 from . import forms, location_display
-from .location_lookup import location_from_label_id, resolve_location_reference
+from .location_lookup import NotActivated, location_from_label_id, resolve_location_reference
 from .models import Item, ItemImage, Location, UniqueItem
 
 
@@ -87,6 +88,9 @@ def location_lookup(request):
     if location is None:
         try:
             location = resolve_location_reference(raw)
+        except NotActivated as error:
+            return JsonResponse({"error": " ".join(error.messages), "activate_label": _("Activate it now"),
+                                 "activate_url": reverse("container_activate", args=[error.location.pk])}, status=404)
         except ValidationError as error:
             return JsonResponse({"error": " ".join(error.messages)}, status=404)
     return JsonResponse({"id": location.pk, "text": location.title_with_code,

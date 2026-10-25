@@ -16,7 +16,7 @@ from django.shortcuts import render
 from django.urls import get_urlconf, reverse, set_urlconf
 from django.views.decorators.http import require_safe
 
-from ..location_lookup import locations_by_code
+from ..location_lookup import locations_by_code, reserved_by_code
 from ..models import LabelId, LabelIdAccess
 from . import access, core, parsing, throttle
 from .targets import RELATED_TARGETS
@@ -83,9 +83,13 @@ def _page(request, state, status, **context):
 
 def _location(request, raw):
     """For a location's code (or former code, in any case; codes differ in more than that): its page."""
-    found = locations_by_code(parsing.strip_url(raw))
+    code = parsing.strip_url(raw)
+    found = locations_by_code(code)
     if len(found) == 1:
         return HttpResponseRedirect(inventory_url(request, found[0].get_absolute_url))
+    # A container whose label was printed in advance: taken into use on its first scan.
+    if not found and (reserved := reserved_by_code(code)):
+        return HttpResponseRedirect(inventory_url(request, lambda: reverse("container_activate", args=[reserved.pk])))
     return None
 
 

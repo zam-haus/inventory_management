@@ -1,0 +1,61 @@
+{% extends 'base.html' %}
+{% load django_bootstrap5 i18n static icons locations actions %}
+
+{% block bootstrap5_extra_head %}
+    {{ block.super }}
+    {{ form.media.css }}
+    <link rel="stylesheet" href="{% static 'inventory/location_detail.css' %}">
+{% endblock %}
+
+{% block title %}{% trans "Activate container" %}: {{ object.name }} · {{ object.unique_identifier }}{% endblock %}
+{% block admin_url %}{{ object.get_admin_url }}{% endblock %}
+
+{% block page_header %}
+    <header class="location-header">
+        <div class="location-heading">
+            <div class="location-heading-text">
+                <p class="location-eyebrow">{% trans "Activate container" %} · {{ object.type.name }}</p>
+                <h1>{% location_label object %}</h1>
+            </div>
+        </div>
+    </header>
+{% endblock %}
+
+{% block content %}
+    <div class="location-detail location-move">
+        <section class="location-panel" aria-labelledby="activate-heading">
+            <div class="location-panel-heading">
+                <h2 id="activate-heading">{% trans "Not in use yet" %}</h2>
+                <p class="location-muted">{% trans "Its label was printed in advance. Say where it is now to take it into use; it shows in the inventory from then on." %}</p>
+            </div>
+            {% if not user.is_authenticated %}
+                {% if oidc_enabled %}{% url 'oidc_authentication_init' as login_url %}{% else %}{% url 'login' as login_url %}{% endif %}
+                <p class="location-move-form">{% blocktrans with url=login_url next=request.get_full_path|urlencode %}<a href="{{ url }}?next={{ next }}">Log in</a> to activate it.{% endblocktrans %}</p>
+            {% else %}
+            <form method="post" enctype="multipart/form-data" novalidate class="location-move-form location-narrow-form">
+                {% csrf_token %}
+                {% if next %}<input type="hidden" name="next" value="{{ next }}">{% endif %}
+                {% bootstrap_form_errors form type="non_fields" %}
+                {% bootstrap_field form.parent_location %}
+                {% bootstrap_field form.purpose %}
+                {% bootstrap_field form.physical_description %}
+                {% bootstrap_field form.overview_photo %}
+                <div class="location-actions mt-3">
+                    {% if can_activate %}
+                        <button class="btn btn-success" type="submit">{% icon "check-lg" %} {% trans "Activate" %}</button>
+                    {% else %}
+                        {% icon "check-lg" as check_icon %}{% disabled_action check_icon label=_("Activate") classes="btn btn-success" %}
+                    {% endif %}
+                </div>
+            </form>
+            {% endif %}
+        </section>
+    </div>
+{% endblock %}
+
+{% block bootstrap5_extra_script %}
+    {{ block.super }}
+    <script src="{% static 'static_jquery/js/jquery.min.js' %}"></script>
+    {{ form.media.js }}
+    <script src="{% static 'inventory/location_detail.js' %}"></script>
+{% endblock %}

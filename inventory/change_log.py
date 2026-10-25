@@ -131,14 +131,14 @@ TRACKED = {
                     "purchase_price", "procurement_source", "disposed_at", "disposal_reason", "disposal_note"),
                    {"responsible_user", "owner_user", "owner_contact", "purchase_price"}),
     "location": (("type", "name", "short_name", "purpose", "physical_description", "overview_photo",
-                  "parent_location", "axis", "fire_load_free", "outdoor", "is_deleted"), set()),
+                  "parent_location", "axis", "fire_load_free", "outdoor", "is_deleted", "is_reserved"), set()),
     "itemlocation": (("item", "location", "amount"), set()),
     "itemimage": (("image", "description", "is_primary", "unique_item"), set()),
     "itemfile": (("file", "description", "internal", "unique_item"), set()),
     "itembarcode": (("data", "type"), set()),
 }
 # Shown by the action instead of as changed fields.
-NOT_LISTED = {"is_deleted", "disposed_at", "disposal_reason", "disposal_note"}
+NOT_LISTED = {"is_deleted", "is_reserved", "disposed_at", "disposal_reason", "disposal_note"}
 TEXT_LIMIT = 2000
 # Labels of fields that older entries name but the models no longer have: {(model name, field): label}.
 FORMER_FIELDS = {
@@ -305,6 +305,12 @@ def _location_saved(instance, before, after, links, using):
         action = ChangeLog.Action.DELETED if after["is_deleted"] else ChangeLog.Action.RESTORED
         return record(action, instance, changes=changes, other_location=_location(after["parent_location_id"], using),
                       using=using, **links)
+    if before["is_reserved"] and not after["is_reserved"]:
+        # A reserved container taken into use: also shown on the page of the location it is in now.
+        instance._change_log_entry = record(
+            ChangeLog.Action.ACTIVATED, instance, changes=changes, using=using,
+            other_location=_location(after["parent_location_id"], using), **links)
+        return instance._change_log_entry
     if before["parent_location_id"] != after["parent_location_id"]:
         # Shown on the page of the location it left as well.
         instance._change_log_entry = record(

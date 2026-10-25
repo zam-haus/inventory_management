@@ -15,7 +15,7 @@ from django.utils.html import format_html
 from django.utils.translation import gettext, gettext_lazy as _
 
 from ..actor import acting_as
-from ..soft_delete import SoftDeleteModel
+from ..soft_delete import ActiveManager, SoftDeleteModel
 
 
 class LocationType(models.Model):
@@ -214,20 +214,6 @@ class LocationType(models.Model):
                 break
             if code not in taken:
                 names.append((self.sublocation_name(parent.name, code), code))
-        return names
-
-    def is_valid_start(self, start):
-        return bool(self.auto_sequence) and bool(start) and all(char in self.auto_sequence for char in start)
-
-    def free_names(self, count, start):
-        """Like generate_names, but skips short names that are taken (by any location of a unique type) or were
-        used before (LocationFormerCode)."""
-        names, number = [], self.str2int(start)
-        while len(names) < count:
-            batch = self.generate_names(count - len(names), start=self.int2str(number))
-            taken = taken_location_codes(short for _name, short in batch)
-            names += [(name, short) for name, short in batch if short not in taken]
-            number += len(batch)
         return names
 
     @property
@@ -551,6 +537,14 @@ def get_location_overview_upload_path(instance, filename):
     return f"locations/{instance.pk}/overview/{uuid4().hex}{Path(filename).suffix.lower()}"
 
 
+class ActiveLocationManager(ActiveManager):
+    """Locations shown in the inventory: neither deleted nor reserved (containers whose labels were printed in
+    advance and that are not in use yet, see ContainerActivateView)."""
+
+    def get_queryset(self):
+        return super().get_queryset().filter(is_reserved=False)
+
+
 class Location(SoftDeleteModel, ComputedFieldsModel):
     class Meta:
         verbose_name = _("location")
@@ -558,9 +552,16 @@ class Location(SoftDeleteModel, ComputedFieldsModel):
         ordering = ("locatable_identifier",)
         # The printable inventory is for members of the local group (granted by migration 0023).
         permissions = [("print_inventory", _("Can print the inventory of locations"))]
+        # `active` is declared here (ActiveLocationManager); `objects` stays the one for relations and the admin.
+        default_manager_name = "objects"
         # Codes are found ignoring case (labels hold them in capitals), so they differ in more than that;
         # clean() says so in words (_validate_codes), the database makes sure.
-        constraints = [models.UniqueConstraint(Upper("unique_identifier"), name="location_code_unique_ignoring_case")]
+        constraints = [
+            models.UniqueConstraint(Upper("unique_identifier"), name="location_code_unique_ignoring_case"),
+            # Reserved containers are nowhere until they are activated.
+            models.CheckConstraint(name="location_reserved_has_no_parent",
+                                   condition=models.Q(is_reserved=False) | models.Q(parent_location__isnull=True)),
+        ]
 
     type = models.ForeignKey(LocationType, on_delete=models.PROTECT, verbose_name=_("type"))
 
@@ -620,6 +621,14 @@ class Location(SoftDeleteModel, ComputedFieldsModel):
     responsible_teams = models.ManyToManyField(
         "accounts.Team", blank=True, related_name="locations", verbose_name=_("responsible teams"),
     )
+    # Reserved in the admin with a preprinted label; hidden (not `active`) until activated on first use.
+    is_reserved = models.BooleanField(
+        _("reserved"), default=False, db_index=True,
+        help_text=_("A container whose label was printed in advance. It is hidden until someone scans its label "
+                    "and enters where it is."),
+    )
+
+    active = ActiveLocationManager()
 
     def save(self, *args, actor=None, **kwargs):
         """Saves; the change log records it with `actor` or the current user as who acted."""
@@ -723,6 +732,15 @@ class Location(SoftDeleteModel, ComputedFieldsModel):
             raise ValidationError({"is_deleted": _("The location is not empty and cannot be deleted.")})
         if not self.is_deleted and self.parent_location and self.parent_location.is_deleted:
             raise ValidationError({"parent_location": _("Deleted locations cannot be used as destinations.")})
+        if self.parent_location and self.parent_location.is_reserved:
+            raise ValidationError({"parent_location": _("Reserved containers are activated before anything goes "
+                                                        "into them.")})
+        if self.is_reserved:
+            if self.parent_location_id:
+                raise ValidationError({"parent_location": _("Reserved containers are nowhere until activated.")})
+            if not LocationType.numbered_containers().filter(pk=self.type_id).exists():
+                raise ValidationError({"is_reserved": _("Only numbered containers (boxes, cartons, pallets) can "
+                                                        "be reserved.")})
         # ensure cycle-free tree
         cur = self
         while cur.parent_location:
