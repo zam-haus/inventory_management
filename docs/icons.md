@@ -49,6 +49,10 @@ when they are first used:
 | Label ID, QR code | `qr-code` | reserved |
 | History | `clock-history` | reserved |
 
+Every change of where something is, a location, a unique item, stock or the contents of a location, is
+called **Move** (German **Bewegen**: „Bewegen“, „Hierher bewegen“, „Inhalt bewegen“), never „verschieben“ or
+„verlegen“.
+
 ## Action buttons
 
 Colours say what a button does. They follow Bootstrap's semantic button variants
@@ -83,11 +87,14 @@ actions menu. `{% disabled_action icon label=_("…") %}` adds the text to unava
 buttons; the tooltip can keep the longer name.
 
 Where actions share a row with a title (`data-action-row` on the row,
-`data-action-group` on the buttons; the title comes first), `actions.js` moves
-them into an **actions menu** (three dots) beside the title as soon as they would
-not fit beside the title on one line, on narrow screens or with a long title. The
-menu lists each action with its icon and name; unavailable ones are greyed out
-with their reason. Its entries click the hidden original buttons, so dialogs and
-scripts work as before. Without JavaScript the buttons wrap below the title. Used
-on the location, item and unique item pages; quick-items have their own menu (see
-[Quick-items](quick-items.md)).
+`data-action-group` on the buttons; the title comes first), they stand right-aligned beside the
+title. Those that would not fit there on one line, on narrow screens or with a long title, move
+into an **actions menu** (three dots) at the right end, one by one from the right, until the
+others fit; with none left, the menu alone stays beside the title. **Important actions**
+(`data-action-primary`) never move: if they still do not fit, they show their icon only and are
+listed in the menu as well. They are taking stock out on a bulk item's page, moving a container,
+"move here" on a storage unit (shelf, cabinet) and moving a unique item. The menu lists the moved
+actions with their icon and name; unavailable ones are greyed out with their reason. Its entries
+click the hidden original buttons, so dialogs and scripts work as before. Without JavaScript the
+buttons wrap below the title. Used on the location, item and unique item pages; quick-items have their own
+menu (see [Quick-items](quick-items.md)).

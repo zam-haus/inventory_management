@@ -13,7 +13,8 @@
 .item-heading h1 { margin: .2rem 0 .6rem; font-size: clamp(1.6rem, 4vw, 2.3rem); font-weight: 650; }
 .item-heading h1 .unique-item-of { color: inherit; text-decoration-thickness: 1px; text-underline-offset: .2em; }
 .item-eyebrow { color: var(--item-muted); font-size: .8rem; font-weight: 600; letter-spacing: .04em; margin: 0 0 .4rem; }
-.item-location-identifier { display: inline-block; padding: .25rem .6rem; background: #edf2f7; border: 0; border-radius: .35rem; font-family: monospace; font-size: 1rem; color: inherit; text-align: left; max-width: 100%; }
+/* The location's code as a chip (locations.css) that explains itself on hover. */
+.item-location-identifier { border: 0; max-width: 100%; text-align: left; }
 .item-help { cursor: help; }
 .item-actions { display: flex; flex-wrap: wrap; gap: .5rem; flex: 0 0 auto; max-width: 100%; }
 .item-actions .btn { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; padding-inline: 1.25rem; white-space: normal; }
@@ -87,10 +88,6 @@
     .item-gallery { padding: 0 1rem 1rem; }
 }
 
-/* Taking stock out (stock_take_panel.html): large buttons, one per location. */
-.item-take { display: flex; flex-wrap: wrap; gap: .75rem; margin-bottom: 1.5rem; }
-.item-take-button { display: inline-flex; align-items: center; gap: .5rem; min-height: 52px; padding-inline: 1.25rem; font-size: 1.1rem; font-weight: 600; white-space: normal; text-align: left; }
-.item-take-button .bi { width: 1.25em; height: 1.25em; flex: 0 0 auto; }
-.item-take-amount { font-size: .9rem; font-weight: 400; opacity: .85; font-variant-numeric: tabular-nums; }
-@media (max-width: 575.98px) { .item-take-button { flex: 1 1 100%; justify-content: center; } }
+/* Taking stock out, first among the actions (stock_take_panel.html); a location's code as a chip inside. */
+.item-take-button .loc-code { vertical-align: .05em; }
 .item-locations li.item-location-current { background: #fff4e5; box-shadow: inset 4px 0 0 #dc3545; }

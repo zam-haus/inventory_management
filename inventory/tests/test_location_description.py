@@ -71,6 +71,6 @@ class LocationDescriptionTests(TestCase):
         self.assertNotIn("Edit physical description", self.client.get(self.shelf.get_absolute_url()).content.decode())
         self.client.force_login(self.viewer)
         page = self.client.get(self.shelf.get_absolute_url()).content.decode()
-        self.assertIn("Edit physical description", page)  # disabled, with its reason
+        self.assertNotIn("Edit physical description", page)  # what cannot be changed has no pencil
         self.assertNotIn('id="location-description-editor"', page)
         self.assertEqual(self.client.post(self.url(self.shelf), {"physical_description": "x"}).status_code, 403)

@@ -9,7 +9,7 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{% trans 'Cancel' %}"></button>
             </div>
             <div class="modal-body">
-                <p class="text-muted">{% blocktrans with location=object.location %}Currently at {{ location }}.{% endblocktrans %}</p>
+                <p class="text-muted">{% blocktrans with location=object.location.title_with_code %}Currently at {{ location }}.{% endblocktrans %}</p>
                 {# The field's QR button scans the new location's label (widgets.LocationSelect). #}
                 {% bootstrap_field move_form.location %}
             </div>

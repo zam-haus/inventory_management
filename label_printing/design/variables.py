@@ -23,6 +23,7 @@ class Variable:
 VARIABLES = {
     "location": [
         Variable("location", _("the location, with all its fields and properties, e.g.:")),
+        Variable("location.title", _("what it is called first: its purpose, else its name")),
         Variable("location.unique_identifier", _("its code, e.g. WH-1.R303.a")),
         Variable("location.name", _("its name")),
         Variable("location.descriptive_identifier", _("where it is: the full path with codes")),

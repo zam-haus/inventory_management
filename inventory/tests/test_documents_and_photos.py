@@ -274,7 +274,7 @@ class LevelTests(MediaMixin, UniqueItemFixture, TestCase):
         response = self.client.get(url)
         field = response.context["inlines"][1].forms[0].fields["unique_item"]
         self.assertEqual(field.empty_label, "The item in general")
-        self.assertIn("K7R-4XD @ WS", [label for _value, label in field.choices])
+        self.assertIn("K7R-4XD @ Workshop · WS", [label for _value, label in field.choices])
         data = self.item_data(**{
             "itemfile_set-TOTAL_FORMS": "2", "itemfile_set-INITIAL_FORMS": "1",
             "itemfile_set-0-id": self.manual.pk, "itemfile_set-0-description": "Manual", "itemfile_set-0-unique_item": "",
@@ -487,7 +487,9 @@ class QuickActionTests(MediaMixin, UniqueItemFixture, TestCase):
     def test_location_lookup_for_scans(self):
         url = reverse("location_lookup")
         self.assertEqual(self.client.get(url, {"q": "WS"}).json(),
-                         {"id": self.location.pk, "text": str(self.location), "label": self.location.path_with_purpose})
+                         {"id": self.location.pk, "text": "Workshop · WS",
+                          "html": '<span class="loc-label"><span class="loc-title">Workshop</span> '
+                                  '<span class="loc-code">WS</span></span>'})
         self.assertEqual(self.client.get(url, {"q": f"https://inv.zam.haus{self.shelf.get_absolute_url()}"}).json()["id"], self.shelf.pk)
         label = services.claim(make_id("ABCDE").code, self.shelf, None)
         self.assertEqual(self.client.get(url, {"q": f"HTTPS://I.ZAM.HAUS/{label.code}"}).json()["id"], self.shelf.pk)

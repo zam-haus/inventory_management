@@ -267,14 +267,17 @@ class PrintDialogTests(SimulatedPrinters, InventoryData, TestCase):
 
     def test_item_page_with_location_from_the_label(self):
         response = self.client.get(self.item.get_absolute_url() + f"?loc={self.other_part.pk}")
-        self.assertContains(response, "Take out at R303.b")
+        # "Take out" and "Add stock", without the location: for the one from the label; the dialog offers the others
+        self.assertContains(response, '<span class="action-label">Take out</span>', count=1)
+        self.assertContains(response, '<span class="action-label">Add stock</span>', count=1)
         self.assertContains(response, 'class="item-location-current" aria-current="location"')
-        content = response.content.decode()
-        self.assertLess(content.index("Take out at R303.b"), content.index("Take out at R303.a"))
-        self.assertContains(response, 'data-direction="decrease"', count=2)
-        # One location: just "Take out".
-        ItemLocation.objects.filter(location=self.other_part).delete()
-        self.assertContains(self.client.get(self.item.get_absolute_url()), "Take out</span>")
+        take = re.search(r'<a class="btn btn-danger item-take-button"[^>]*>', response.content.decode()).group(0)
+        entry = ItemLocation.objects.get(item=self.item, location=self.other_part)
+        self.assertIn(reverse("stock_change", args=[entry.pk]), take)
+        self.assertIn('data-stock-choices="item-stock-choices"', take)
+        choices = response.context["take_choices"]
+        self.assertEqual([choice["label"] for choice in choices], ["Fach b · R303.b", "Fach a · R303.a"])
+        self.assertContains(response, 'id="item-stock-choices"')
 
 
 @override_settings(**SETTINGS)

@@ -7,7 +7,9 @@
                 <div class="modal-header">
                     <div class="stock-change-heading">
                         <h2 class="modal-title fs-5" id="stock-change-title">{% icon "cart" %} {% trans "Change stock" %}</h2>
-                        <p class="stock-change-subject"><strong data-change-item></strong> · <span data-change-location></span></p>
+                        <p class="stock-change-subject"><strong data-change-item></strong><span data-change-location-fixed> · <span data-change-location-title></span> <span class="loc-code" data-change-location></span></span></p>
+                        {# For an item with several locations ("Take out" on its page): where. #}
+                        <select class="form-select form-select-sm stock-change-location-choice" data-change-location-choice aria-label="{% trans 'Location' %}" hidden></select>
                     </div>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{% trans 'Cancel' %}"></button>
                 </div>

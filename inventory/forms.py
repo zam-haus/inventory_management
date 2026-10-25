@@ -486,7 +486,7 @@ PRIMARY_PHOTO_CHECKBOX = layout.HTML("""
 
 def unique_item_choice_label(unique_item):
     code = unique_item.label_display or f"#{unique_item.pk}"
-    where = unique_item.location.locatable_identifier if unique_item.location else _("removed from the inventory")
+    where = unique_item.location.title_with_code if unique_item.location else _("removed from the inventory")
     return f"{code} @ {where}"
 
 

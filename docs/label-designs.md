@@ -150,12 +150,18 @@ objects may be used, also along relations: `{{ location.parent_location.name }}`
 | Locations | Items | Label IDs |
 |---|---|---|
 | `location` the location | `item` the item | `label_id` the label ID, as printed: K7R-4XD |
-| `location.unique_identifier` WH-1.R303.a | `item.name` | `label_id.code|slice:":3"` K7R, `label_id.code|slice:"3:"` 4XD |
-| `location.name` | `item.sale_price|floatformat:2` 0,15 (empty if not for sale) | `label_id.target` what it belongs to |
-| `location.descriptive_identifier` where it is, with codes | `item.measurement_unit.short` Stk | |
+| `location.title` what it is called first: its purpose, else its name | `item.name` | `label_id.code|slice:":3"` K7R, `label_id.code|slice:"3:"` 4XD |
+| `location.unique_identifier` WH-1.R303.a | `item.sale_price|floatformat:2` 0,15 (empty if not for sale) | `label_id.target` what it belongs to |
+| `location.name` | `item.measurement_unit.short` Stk | |
+| `location.descriptive_identifier` where it is, with codes | | |
 | `location.locatable_identifier` code within its area | `location` where it is stored (the first location; may be none) | |
 | `location.purpose` | `label_id` its label ID as printed | |
 | `qr` the code via the label host | `qr` its label ID and the location's code (`…/K7R4XD/WH-1.R303.A`), leading to the item there | `qr` the ID via the label host |
+
+Locations on labels follow the rule of the pages ([how locations are shown](locations.md#how-locations-are-shown)):
+what it is called first, `location.title`, its code after or below it, inverted in monospace
+(`font mono  bold  invert`, with `width auto` in a column: as wide as the code). A text that comes out as nothing
+at all takes no room and draws nothing, not even its inverted box (e.g. the code of an item stored nowhere).
 
 Templates for **unique items** have `unique_item` (e.g. `unique_item.owner_first_name_display`, its owner's
 first name if it is not the ZAM's; `unique_item.has_owner`), `item` (what it is), `location`, `label_id` (its

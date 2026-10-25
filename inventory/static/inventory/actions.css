@@ -25,9 +25,14 @@
 .action-label { font-size: var(--bs-btn-font-size); white-space: nowrap; }
 .btn:has(> .action-label) { gap: .4rem; }
 
-/* Action rows (actions.js): actions that would wrap below the title move into a menu
-   beside it. The title then wraps instead. */
+/* Action rows (actions.js): actions that would not fit beside the title move into a menu at the right end, from
+   the right; with none left, the menu stays beside the title, which then wraps. */
 [data-action-row].is-collapsed { flex-wrap: nowrap; }
+[data-action-row] [data-action-group] > .is-overflowed { display: none !important; }
+/* Important actions that stay when space is short: their icon only (they are in the menu, too). */
+[data-action-row] [data-action-group] > .is-compact .action-label { display: none; }
+[data-action-row] > [data-action-group],
+[data-action-row].is-collapsed > .action-menu { margin-left: auto; }
 .action-menu { flex: none; }
 .action-menu-toggle { display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; padding: 0; font-size: 1.25rem; line-height: 1; }
 .action-menu .dropdown-menu { min-width: 14rem; max-width: min(22rem, calc(100vw - 2rem)); }

@@ -1,14 +1,32 @@
 # Location purpose and overview photo
 
 Each location can have a **purpose** (one line, up to 50 characters) and one
-overview photo. The purpose says what the location is for and is shown with its
-name on pages and in lists: "Box 23: Carp project" (`Location.display_name`),
-including the location list and search, sub-location lists and the location
-choices (autocomplete, with the full path). Printed labels, the stored path
-(`descriptive_identifier`) and the admin keep the plain name. The purpose is
-included in location searches. Physical descriptions are kept separately.
+overview photo. The purpose says what the location is for. Physical descriptions are kept separately.
+The purpose is included in location searches.
 
-**Purpose** (pencil) right after the name (and purpose) in the heading of the location page
+## How locations are shown
+
+A UX rule for every page, list and dialog (`inventory/location_display.py`, `{% load locations %}`):
+
+* **What people call it comes first:** its purpose, else its name (`Location.title`). Next to a
+  purpose the name follows, smaller and grey (`Location.subtitle`): "Schrauben M4 *Regal 301 Fach a*".
+* **The code comes after it** (short name, unique or locatable identifier, whichever the place
+  shows), **always alike:** white monospace on a muted grey chip (class `loc-code`,
+  `inventory/static/inventory/locations.css`). Template tags: `{% location_label location %}`
+  (title, name, code; `code="…"` for another code or `""` for none, `subtitle=False` without the name),
+  `{% location_code code %}`.
+* **Plain text** (page titles, messages, tooltips, select options) reads "Schrauben M4 · WH-1.R301.a"
+  (`Location.title_with_code`).
+* Location fields (`widgets.LocationSelect`) show their suggestions the same way, with the parent
+  below; their autocompletes give HTML only to them (`?html=1`), the admin's fields get the path as
+  text. The breadcrumb shows the path with each location's title and short name.
+
+Label templates follow the rule too: `{{ location.title }}` first, the code after or below it inverted in
+monospace ([label designs](label-designs.md)). The stored path (`descriptive_identifier`, "Halle [HAL] Regal 301
+[R301] …") and the admin keep the plain names; the path appears in the breadcrumb, and as text in the
+**Location details**.
+
+**Purpose** (pencil) right after the title in the heading of the location page
 edits the purpose in a small dialog. The camera button edits the photo in its own dialog:
 it sits beside **Overview photo** in the first panel (**At this location …**), or,
 while the location has no photo and that section is hidden, beside
@@ -25,11 +43,15 @@ The detail page shows a thumbnail; the link and the enlarged view use the full p
 Each dialog saves only its own field.
 
 The photo appears in the first panel, **At this location …**, above the item list.
-Item and sub-location lists stay expanded. The physical description appears beside
-the location path, with a **Location details** button opening a modal containing
-the type, physical description, label preview, and the type's rules for moving,
-sub-locations, and unique identifiers.
-Its columns stack on small screens.
+Item and sub-location lists stay expanded. The heading shows the title and the code below it, the
+actions to the right (those that do not fit go into the actions menu, see [icons](icons.md)). Below
+it a grey box, like the item page's, holds the physical description, the responsible teams (its
+own, else those of the location above it) and, where it applies, **Free of fire load** (marked red,
+with the location it comes from); its (i) at the top right opens **Location details**: the location
+path, where the responsible teams come from (own, taken over from the location it is in,
+`Location.responsible_teams_source`, or none; rooms, areas and levels with their own code never take
+them over), the type, former codes, physical description, and the type's rules for moving, sub-locations, and unique identifiers. Its columns stack
+on small screens.
 
 Editing requires `inventory.change_location`; purpose and photo are public.
 The history page requires `inventory.view_locationhistory`, because it shows who

@@ -172,6 +172,8 @@ def text_layout(element, context, width, height):
 
 
 def text_natural(element, context, width, height):
+    if not context.text(element):  # came out as nothing at all: takes no room (blanks do)
+        return 0, 0
     rotated = element.get("rotate", 0) in (90, 270)
     if rotated:
         width, height = height, width
@@ -186,6 +188,8 @@ def text_natural(element, context, width, height):
 
 
 def draw_text(element, context, image, x, y, width, height):
+    if not context.text(element):  # nothing at all: no inverted box either (e.g. the code of no location)
+        return
     if width < 1 or height < 1:  # crowded out by the other elements of its row or column
         if context.text(element).strip():
             context.problem(element, _("There is no room left for this text."))

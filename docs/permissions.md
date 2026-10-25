@@ -43,10 +43,10 @@ property with the other location type properties.
 Location types marked **admin only** (`LocationType.admin_only`, used for the building
 structure, see [Building structure](location-structure.md)) go further: their locations are
 created, changed and deleted only in the admin, which requires staff status, their purpose
-included. On the inventory pages the buttons for purpose, physical description and overview photo
-stay visible but locked, saying why (`inventory.permissions.location_edit_denied`), and their
-endpoints answer 403. Where the purpose or description is empty, its locked button is left out, as
-there is nothing to show. Such a type
+included. On the inventory pages the overview photo's button stays visible but locked, saying why
+(`inventory.permissions.location_edit_denied`); the pencils for purpose and physical description are
+left out whenever they cannot be changed, for this reason or for lack of permission. Their endpoints
+answer 403. Such a type
 can be neither moveable nor deletable outside the admin. What these locations contain (shelves,
 boxes, stock) can still be moved as before.
 

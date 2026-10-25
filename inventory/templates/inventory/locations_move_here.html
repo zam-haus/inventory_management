@@ -1,12 +1,12 @@
 {% extends 'base.html' %}
-{% load django_bootstrap5 i18n static icons %}
+{% load django_bootstrap5 i18n static icons locations %}
 
 {% block bootstrap5_extra_head %}
     {{ block.super }}
     <link rel="stylesheet" href="{% static 'inventory/location_detail.css' %}">
 {% endblock %}
 
-{% block title %}{% trans "Move locations here" %}: {{ object.unique_identifier }}{% endblock %}
+{% block title %}{% trans "Move locations here" %}: {{ object.title_with_code }}{% endblock %}
 {% block admin_url %}{{ object.get_admin_url }}{% endblock %}
 
 {% block page_header %}
@@ -15,8 +15,7 @@
         <div class="location-heading">
             <div class="location-heading-text">
                 <p class="location-eyebrow">{% trans "Move locations here" %} · {{ object.type.name }}</p>
-                <h1>{{ object.name }}</h1>
-                <button type="button" class="location-identifier location-help" data-bs-toggle="tooltip" title="{% trans 'Unique identifier for this storage location, used on labels and to find the location in the inventory.' %}">{{ object.unique_identifier }} {% icon "info-circle" %}</button>
+                <h1>{% location_label object %}</h1>
             </div>
             <div class="location-actions">
                 <a class="btn btn-secondary" href="{{ object.get_absolute_url }}">{% trans "Cancel" %}</a>

@@ -15,7 +15,8 @@
     const requestInput = form.elements.request_id;
     const part = name => form.querySelector(`[data-change-${name}]`);
     const parts = {
-        item: part('item'), location: part('location'), details: part('details'), stock: part('stock'),
+        item: part('item'), location: part('location'), locationTitle: part('location-title'),
+        locationFixed: part('location-fixed'), locationChoice: part('location-choice'), details: part('details'), stock: part('stock'),
         unit: part('unit'), sign: part('sign'), amountLabel: part('amount-label'), hint: part('amount-hint'),
         after: part('after'), decreaseOnly: part('decrease-only'), completeHint: part('complete-hint'),
         lastStock: part('last-stock'), value: part('value'), errors: part('errors'),
@@ -58,6 +59,7 @@
         };
         if (parts.item) parts.item.textContent = data.item;
         if (parts.location) parts.location.textContent = data.location;
+        if (parts.locationTitle) parts.locationTitle.textContent = data.locationTitle || '';
         parts.stock.textContent = entry.amountText;
         parts.unit.textContent = entry.unit;
         update();
@@ -224,6 +226,33 @@
         else dialog.show();
     }
 
+    // An item's "Take out" and "Add stock" buttons offer its locations (data-stock-choices: the id of their
+    // JSON): choosing another loads its stock entry, keeping direction and amount.
+    let choices = [];
+    function use(url) {
+        form.action = url;
+        if (!requestIds.has(url)) requestIds.set(url, newRequestId());
+        requestInput.value = requestIds.get(url);
+    }
+    function offer(button) {
+        const source = button.dataset.stockChoices && document.getElementById(button.dataset.stockChoices);
+        choices = source ? JSON.parse(source.textContent) : [];
+        const several = choices.length > 1;
+        if (parts.locationChoice) {
+            parts.locationChoice.hidden = !several;
+            parts.locationChoice.replaceChildren(...(several ? choices.map(choice => new Option(choice.label, choice.url)) : []));
+            if (several) parts.locationChoice.value = choices.find(choice => button.href.endsWith(choice.url) || button.getAttribute('href') === choice.url)?.url || choices[0].url;
+        }
+        if (parts.locationFixed) parts.locationFixed.hidden = several;
+    }
+    parts.locationChoice?.addEventListener('change', () => {
+        const choice = choices.find(item => item.url === parts.locationChoice.value);
+        if (!choice || pending) return;
+        clearErrors();
+        use(choice.url);
+        load(choice);
+    });
+
     document.querySelectorAll('[data-stock-change]').forEach(button => {
         button.addEventListener('click', event => {
             event.preventDefault();
@@ -232,9 +261,8 @@
                 form.reset();
                 clearErrors();
                 typedAmount = '';
-                form.action = button.href;
-                if (!requestIds.has(button.href)) requestIds.set(button.href, newRequestId());
-                requestInput.value = requestIds.get(button.href);
+                use(button.href);
+                offer(button);
                 load(button.dataset);
                 // "Take out" buttons open the dialog for removing.
                 const preset = form.querySelector(`[name=direction][value="${button.dataset.direction}"]`);

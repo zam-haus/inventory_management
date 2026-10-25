@@ -360,10 +360,13 @@ class UniqueItemViewTests(UniqueItemFixture, TestCase):
         drawer = Location.objects.create(name="Drawer", short_name="D2", type=self.kind, parent_location=self.shelf)
         response = self.client.get(drawer.get_absolute_url())
         content = response.content.decode()
+        def crumb(location):
+            return (f'<span class="loc-label"><span class="loc-title">{location.title}</span> '
+                    f'<span class="loc-code">{location.short_name}</span></span>')
         for location in (self.location, self.shelf):
-            self.assertInHTML(f'<a href="{location.get_absolute_url()}">{location.name} [{location.short_name}]</a>', content)
-        self.assertInHTML(f'<a href="{drawer.get_absolute_url()}" aria-current="page">Drawer [D2]</a>', content)
-        self.assertLess(content.index("Workshop [WS]</a>"), content.index("Shelf [S]</a>"))
+            self.assertInHTML(f'<a href="{location.get_absolute_url()}">{crumb(location)}</a>', content)
+        self.assertInHTML(f'<a href="{drawer.get_absolute_url()}" aria-current="page">{crumb(drawer)}</a>', content)
+        self.assertLess(content.index(crumb(self.location)), content.index(crumb(self.shelf)))
         self.assertNotIn(f">{drawer.locatable_identifier}</a>", content)
 
     def test_search_by_id_opens_the_unique_item(self):

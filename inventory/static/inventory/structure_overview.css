@@ -32,14 +32,10 @@
 .structure-table td.structure-void { background-image: repeating-linear-gradient(135deg, var(--location-border) 0 1px, transparent 1px 8px); }
 
 .structure-main { display: flex; flex-wrap: wrap; align-items: baseline; gap: .15rem .4rem; margin-bottom: .5rem; }
-.structure-code { font-family: monospace; font-weight: 700; }
-/* Links read like the sub-location lists: code in link colour, title in text colour, underlined on hover. */
+/* Links read like the sub-location lists: title in text colour, then the code (locations.css), underlined on hover. */
 .structure-table a { color: inherit; text-decoration: none; }
-.structure-table a .structure-code,
-.structure-table a.structure-code { color: #0d6efd; }
 .structure-table a:hover,
 .structure-table a:focus-visible { text-decoration: underline; }
-.structure-code-part { color: var(--location-muted); }
 
 .structure-nodes { display: grid; grid-template-columns: minmax(0, 1fr); gap: .45rem; margin: 0; padding: 0; list-style: none; }
 .structure-wide .structure-nodes { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -56,9 +52,6 @@
 .structure-parts { display: grid; gap: .15rem; margin: .35rem 0 0; padding: .3rem 0 0 .5rem; border-left: 1px solid var(--location-border); list-style: none; font-size: .8rem; }
 .structure-parts li { display: flex; flex-wrap: wrap; align-items: baseline; gap: .1rem .35rem; }
 
-.team-badges { display: inline-flex; flex: 0 0 auto; gap: .2rem; }
-.team-badge { display: inline-flex; align-items: center; justify-content: center; min-width: 1.4rem; height: 1.25rem; padding: 0 .3rem; border-radius: .25rem; background: var(--team-bg); color: var(--team-fg); box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .25); font-family: monospace; font-size: .75rem; font-weight: 700; line-height: 1; }
-.team-badge-plain { --team-bg: transparent; --team-fg: inherit; }
 
 @media (max-width: 575.98px) {
     .structure-overview { gap: 1rem; }

@@ -1,13 +1,13 @@
 {% extends 'base.html' %}
 
-{% load django_bootstrap5 icons %}
+{% load django_bootstrap5 icons locations %}
 {% load i18n %}
 {% load static %}
 
 {% block title %}
     {{ title }}
     {% if location %}
-        @ <a href={% url 'view_location' location.id location.unique_identifier %}>{{ location.unique_identifier }}</a>
+        @ <a href={% url 'view_location' location.id location.unique_identifier %}>{% location_label location %}</a>
     {% endif %}
 {% endblock %}
 

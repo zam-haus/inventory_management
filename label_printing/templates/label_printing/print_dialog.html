@@ -6,7 +6,7 @@
     <div class="modal-dialog modal-lg modal-dialog-scrollable">
         <form class="modal-content" method="post" {% include 'label_printing/form_attrs.html' %}>
             <div class="modal-header">
-                <h2 class="modal-title fs-5" id="label-print-title-{{ subject_type }}">{% icon "tag" %} {% trans "Print labels" %} · <span class="label-print-subject">{{ print_title }}</span></h2>
+                <h2 class="modal-title fs-5" id="label-print-title-{{ subject_type }}">{% icon "tag" %} {% trans "Print labels" %} · <span class="label-print-subject">{{ print_heading }}</span></h2>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{% trans 'Close' %}"></button>
             </div>
             <div class="modal-body">

@@ -4,7 +4,7 @@
 {% block title %}{% trans "Remove from inventory" %}: {{ object }}{% endblock %}
 
 {% block content %}
-<p>{% blocktrans with location=object.location.descriptive_identifier name=label_id_name %}The unique item currently is at {{ location }}. Once removed, it no longer appears there; its page, history and {{ name }} remain, so an old label still leads here.{% endblocktrans %}</p>
+<p>{% blocktrans with location=object.location.title_with_code name=label_id_name %}The unique item currently is at {{ location }}. Once removed, it no longer appears there; its page, history and {{ name }} remain, so an old label still leads here.{% endblocktrans %}</p>
 <form method="post" class="mb-3">
     {% csrf_token %}
     {% bootstrap_form form %}

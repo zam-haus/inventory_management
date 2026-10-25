@@ -234,6 +234,14 @@ class LayoutTests(SimpleTestCase):
         image, _problems = draw('label 40 x 10\ntext "{{ name|default:\'__________\' }}"', {"name": None}, dpi=254)
         self.assertEqual(len(blocks(black_columns(image), gap=1)), 1)  # unbroken, whatever the font
 
+    def test_a_text_of_nothing_takes_no_room(self):
+        """E.g. the code of an item stored nowhere: no inverted box either."""
+        design = 'label 40 x 10\nrow  gap 0\n  box  width 5\n  text "{{ code }}"  font mono  bold  invert\n  box  width 5'
+        empty, _problems = draw(design, {"code": ""}, dpi=254)
+        self.assertEqual(blocks(black_columns(empty), gap=1), [(0, 99)])  # the boxes meet
+        coded, _problems = draw(design, {"code": "R1"}, dpi=254)
+        self.assertGreater(len(black_columns(coded)), 100)
+
     def test_a_row_or_column_showing_nothing_is_left_out(self):
         design = ('label 40 x 10\nrow  gap 2\n  row  border 0.5  shape bulge  width auto\n'
                   '    text "{% if price %}€ {{ price }}{% endif %}"\n  box  width 5')
@@ -567,16 +575,48 @@ class AdminTests(InventoryData, TestCase):
         self.assertContains(form, '<option value="gelb">gelb</option>', html=True)
         self.assertContains(self.client.get(reverse("label_design_help")), "Label designs")
 
-    def test_location_page_shows_its_label(self):
+    def test_a_location_label_preview_is_public(self):
+        """As the admin shows it (Location.label_image_tag); the location page shows none."""
         template = LocationLabelTemplate.objects.create(name="T", description="label 57 x 32\ntext {{ location.unique_identifier }}")
         remember_label(self.part, template)  # printed with it last
         self.client.logout()
         url = self.part.label_preview_url()
-        self.assertContains(self.client.get(self.part.get_absolute_url()), url)
+        self.assertNotContains(self.client.get(self.part.get_absolute_url()), url)
         response = self.client.get(url)
         self.assertEqual(Image.open(io.BytesIO(response.content)).size, (456, 256))
         item_url = reverse("label_template_preview", args=[template.pk, "item", self.item.pk])
         self.assertEqual(self.client.get(item_url).status_code, 404)  # not public
+
+
+@override_settings(LANGUAGE_CODE="en")
+class LocationDisplayMigrationTests(TestCase):
+    """label_printing 0003: unchanged templates get the location display rule, changed ones stay."""
+
+    def test_unchanged_templates_are_updated(self):
+        import importlib
+        from django.apps import apps
+        migration = importlib.import_module("label_printing.migrations.0003_location_display")
+        changes = migration.changes()
+        card = next(change for change in changes if change["name"] == "QR-Code, Kennung, Name und Ort"
+                    and change["label_width"] == 57)
+        tape = next(change for change in changes if change["name"] == "QR-Code, Kennung, Name und Ort"
+                    and change["label_height"] == 12)
+        self.assertIn("{{ location.title }}", card["after"])
+        self.assertLess(card["after"].index("{{ location.title }}"), card["after"].index("location.unique_identifier"))
+        for change in changes:  # all of them draw without mistakes
+            self.assertEqual(parse(change["after"])[1], [], change["name"])
+
+        def template(change):
+            return LocationLabelTemplate.objects.get(name=change["name"], label_width=change["label_width"],
+                                                     label_height=change["label_height"])
+        self.assertEqual(template(card).description, card["after"])  # as the migrations left them
+        LocationLabelTemplate.objects.filter(pk=template(card).pk).update(description=card["before"])
+        LocationLabelTemplate.objects.filter(pk=template(tape).pk).update(description="label height 12\ntext \"own\"")
+        migration.forwards(apps, None)
+        self.assertEqual(template(card).description, card["after"])
+        self.assertEqual(template(tape).description, 'label height 12\ntext "own"')  # changed since: left alone
+        migration.backwards(apps, None)
+        self.assertEqual(template(card).description, card["before"])
 
 
 class ZplTemplatesMigrationTests(TransactionTestCase):
@@ -623,8 +663,10 @@ class ZplTemplatesMigrationTests(TransactionTestCase):
                 start = json.loads((Path(migrations_path[0]).parent / "catalog" / "label_templates.json").read_text())
                 self.assertEqual(Template.objects.count(), len(start) + 1)
                 self.assertEqual(mobile.pk, mobile_zpl.pk)
-                self.assertEqual(mobile.description, next(entry["description"] for entry in start
-                                                          if entry.get("replaces") == "105x52 mobile"))
+                updated = json.loads((Path(migrations_path[0]).parent / "catalog" / "location_display_0003.json")
+                                     .read_text())  # label_printing 0003
+                self.assertEqual(mobile.description, next(change["after"] for change in updated
+                                                          if change["name"] == mobile.name and change["label_width"] == 105))
                 item_9 = Template.objects.get(name="Name, Preis und QR-Code", label_height=9)
                 self.assertFalse(item_9.is_active)
                 rules = apps.get_model("inventory", "LabelTemplateRule").objects

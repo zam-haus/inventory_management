@@ -4,7 +4,7 @@ from django.utils.translation import gettext_lazy as _
 
 from ..forms import ItemOrNewField, NewItemAlongsideMixin
 from ..models import Item, Location, UniqueItem
-from ..widgets import AutocompleteSelect, ItemOrNewSelect
+from ..widgets import AutocompleteSelect, ItemOrNewSelect, LocationSelect
 from .services import MAX_BATCH
 
 
@@ -22,7 +22,8 @@ class ClaimItemForm(forms.Form):
 class ClaimLocationForm(forms.Form):
     location = forms.ModelChoiceField(
         label=_("Existing location"), queryset=Location.active.all(),
-        widget=_select2("location-autocomplete", _("Search for a location…")),
+        widget=LocationSelect(url="location-autocomplete", attrs={"data-placeholder": _("Search for a location…"),
+                                                                  "data-allow-clear": 1}),
     )
 
 
@@ -44,7 +45,8 @@ class NewUniqueItemForm(NewItemAlongsideMixin, forms.ModelForm):
         widgets = {
             "item": ItemOrNewSelect(url="unique_kind_item_autocomplete",
                                     attrs={"data-placeholder": _("Search for an item with unique items…"), "data-allow-clear": 1}),
-            "location": _select2("location-autocomplete", _("Search for a location…")),
+            "location": LocationSelect(url="location-autocomplete",
+                                       attrs={"data-placeholder": _("Search for a location…"), "data-allow-clear": 1}),
         }
 
     def __init__(self, *args, **kwargs):

@@ -45,10 +45,10 @@ class UnavailableActionsStayVisibleTests(TestCase):
     def test_users_without_permission_see_disabled_actions(self):
         self.client.force_login(get_user_model().objects.create_user(username="reader"))
         for url, names in (
-            (self.shelf.get_absolute_url(), ["Verschieben", "Etiketten drucken", "Standort auflösen",
-                                             "Bestand von Resistor an SH entnehmen oder hinzufügen"]),
+            (self.shelf.get_absolute_url(), ["Bewegen", "Etiketten drucken", "Standort auflösen",
+                                             "Bestand von Resistor an Shelf · SH entnehmen oder hinzufügen"]),
             (self.item.get_absolute_url(), ["Sache bearbeiten", "Foto hinzufügen", "Datei hinzufügen",
-                                            "Etiketten drucken", "Entnehmen aus SH"]),
+                                            "Etiketten drucken", "Entnehmen", "Hinzufügen"]),
             (reverse("index_items"), ["Neue Sache anlegen"]),
         ):
             with self.subTest(url=url):

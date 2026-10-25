@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% load i18n static thumbnail mytemplatetags actions icons label_printing %}
+{% load i18n static thumbnail mytemplatetags actions icons label_printing locations %}
 
 {% block bootstrap5_extra_head %}
     {{ block.super }}
@@ -13,27 +13,30 @@
     {% if move_form %}{{ move_form.media.css }}{% endif %}
 {% endblock %}
 
-{% block title %}{% trans "Location" %}: {{ object.unique_identifier }}{% endblock %}
+{% block title %}{{ object.title_with_code }}{% endblock %}
 {% block admin_url %}{{ object.get_admin_url }}{% endblock %}
 
 {% block page_header %}
     <header class="location-header">
         {% include "inventory/location_breadcrumb.html" with location=object current=True %}
+        {# Title and code on the left, the actions on the right (actions.js: those that do not fit go into a menu). #}
         <div class="location-heading" data-action-row>
             <div class="location-heading-text">
                 <h1 class="location-title-row">
-                    <span class="location-identifier">{{ object.unique_identifier }} <button type="button" class="location-help location-help-icon" data-bs-toggle="tooltip" aria-label="{% trans 'Unique identifier for this storage location, used on labels and to find the location in the inventory.' %}" title="{% trans 'Unique identifier for this storage location, used on labels and to find the location in the inventory.' %}">{% icon "info-circle" %}</button></span>
-                    <span class="location-title-name">{{ object.name }}{% if object.purpose %}<span class="location-title-purpose">: {{ object.purpose }}</span>{% endif %}
-                        {# Right after the last word, so it wraps with the text. #}
-                        {% if not purpose_denied %}<a href="#location-purpose-editor" class="btn btn-sm btn-warning location-edit-purpose" data-field-editor-open="location-purpose-editor" data-bs-toggle="tooltip" title="{% trans 'Edit purpose' %}">{% icon "pencil" %} <span class="action-label">{% trans "Purpose" %}</span></a>{% elif object.purpose %}{% icon "pencil" as edit_icon %}{% disabled_action edit_icon label=_("Purpose") name=_("Edit purpose") reason=purpose_denied classes="btn btn-sm btn-warning location-edit-purpose" %}{% endif %}</span>
+                    {# What people call it first (its purpose, else its name); its code below. #}
+                    <span class="location-title-name">{{ object.title }}{% if object.subtitle %} <span class="loc-name">{{ object.subtitle }}</span>{% endif %}
+                        {# Right after the last word, so it wraps with the text; only for whoever may change it. #}
+                        {% if not purpose_denied %}<a href="#location-purpose-editor" class="btn btn-sm btn-warning location-edit-purpose" data-field-editor-open="location-purpose-editor" data-bs-toggle="tooltip" title="{% trans 'Edit purpose' %}">{% icon "pencil" %} <span class="action-label">{% trans "Purpose" %}</span></a>{% endif %}</span>
                 </h1>
+                {# The code in the line below the title. #}
+                <p class="location-title-code-row"><span class="loc-code location-title-code">{{ object.unique_identifier }} <button type="button" class="location-help location-help-icon" data-bs-toggle="tooltip" aria-label="{% trans 'Unique identifier for this storage location, used on labels and to find the location in the inventory.' %}" title="{% trans 'Unique identifier for this storage location, used on labels and to find the location in the inventory.' %}">{% icon "info-circle" %}</button></span></p>
             </div>
             <div class="location-actions" data-action-group>
                 {% if not object.type.moveable %}
                     {% blocktrans with location_type=object.type.name asvar move_unavailable %}Moving is disabled for location type “{{ location_type }}”.{% endblocktrans %}
                     {% icon "arrows-move" as move_icon %}{% disabled_action move_icon label=_("Move location") reason=move_unavailable classes="btn btn-warning location-print" %}
                 {% elif perms.inventory.change_location %}
-                    <a class="btn btn-warning location-print" href="{% url 'location_move' pk=object.id %}" data-modal-open="location-move-modal">{% icon "arrows-move" %} <span class="action-label">{% trans "Move location" %}</span></a>
+                    <a class="btn btn-warning location-print" href="{% url 'location_move' pk=object.id %}" data-modal-open="location-move-modal"{% if object.type.category == "container" %} data-action-primary{% endif %}>{% icon "arrows-move" %} <span class="action-label">{% trans "Move location" %}</span></a>
                 {% else %}
                     {% icon "arrows-move" as move_icon %}{% disabled_action move_icon label=_("Move location") classes="btn btn-warning location-print" %}
                 {% endif %}
@@ -42,7 +45,7 @@
                 {% if object.type.no_sublocations %}
                     {% icon "box-arrow-in-down" as move_here_icon %}{% disabled_action move_here_icon label=_("Move here") name=_("Move locations into this location") reason=_("This location cannot contain sub-locations.") classes="btn btn-warning location-print" %}
                 {% elif perms.inventory.change_location %}
-                    <a class="btn btn-warning location-print" href="{% url 'locations_move_here' pk=object.pk %}" data-modal-open="locations-move-here-modal" data-bs-toggle="tooltip" title="{% trans 'Move locations into this location' %}">{% icon "box-arrow-in-down" %} <span class="action-label">{% trans "Move here" %}</span></a>
+                    <a class="btn btn-warning location-print" href="{% url 'locations_move_here' pk=object.pk %}" data-modal-open="locations-move-here-modal"{% if object.type.category == "storage_unit" %} data-action-primary{% endif %} data-bs-toggle="tooltip" title="{% trans 'Move locations into this location' %}">{% icon "box-arrow-in-down" %} <span class="action-label">{% trans "Move here" %}</span></a>
                 {% else %}
                     {% icon "box-arrow-in-down" as move_here_icon %}{% disabled_action move_here_icon label=_("Move here") name=_("Move locations into this location") classes="btn btn-warning location-print" %}
                 {% endif %}
@@ -73,21 +76,30 @@
                 {% endif %}
             </div>
         </div>
-        <div class="location-header-info">
-            <div class="location-header-path">
-                <div class="location-path-heading">
-                    <span class="location-eyebrow">{% trans "Location path" %} <button type="button" class="location-help location-help-icon" aria-label="{% trans 'Explain location path' %}" data-bs-toggle="tooltip" title="{% trans 'The full path from the top-level location to this storage location. Short identifiers are shown in square brackets.' %}">{% icon "info-circle" %}</button></span>
+        {# A grey box like the item page's: physical description, responsible teams, fire load; (i) opens the location details. #}
+        <div class="location-summary location-header-description">
+            <button type="button" class="location-details-button location-help-icon" data-bs-toggle="modal" data-bs-target="#location-metadata" aria-controls="location-metadata" aria-haspopup="dialog" aria-label="{% trans 'Location details' %}" title="{% trans 'Location details' %}">{% icon "info-circle" %}</button>
+            <dl class="location-summary-fields">
+                <div class="location-summary-description">
+                    <dt class="location-description-heading"><span class="location-eyebrow">{% trans "Physical description" %}</span>
+                        {% if not edit_denied %}<a href="#location-description-editor" class="btn btn-sm btn-warning location-edit-description" data-field-editor-open="location-description-editor" data-bs-toggle="tooltip" title="{% trans 'Edit physical description' %}">{% icon "pencil" %} <span class="action-label">{% trans "Description" %}</span></a>{% endif %}</dt>
+                    <dd>{% if object.physical_description %}<p class="location-physical-description">{{ object.physical_description|linebreaksbr }}</p>{% else %}<p class="location-physical-description location-muted">{% trans "No physical description yet." %}</p>{% endif %}</dd>
                 </div>
-                <p class="location-path">{{ object.descriptive_identifier }}</p>
-            </div>
-            <div class="location-header-description">
-                <div class="location-description-heading">
-                    {% if object.physical_description %}<span class="location-eyebrow">{% trans "Physical description" %}</span>{% endif %}
-                    {% if not edit_denied %}<a href="#location-description-editor" class="btn btn-sm btn-warning location-edit-description" data-field-editor-open="location-description-editor" data-bs-toggle="tooltip" title="{% trans 'Edit physical description' %}">{% icon "pencil" %} <span class="action-label">{% trans "Description" %}</span></a>{% elif object.physical_description %}{# Without a description that can be added, nothing to show. #}{% icon "pencil" as edit_icon %}{% disabled_action edit_icon label=_("Description") name=_("Edit physical description") reason=edit_denied classes="btn btn-sm btn-warning location-edit-description" %}{% endif %}
-                    <button type="button" class="btn btn-info btn-sm location-details-button" data-bs-toggle="modal" data-bs-target="#location-metadata" aria-controls="location-metadata" aria-haspopup="dialog">{% trans "Location details" %}</button>
+                {# Who looks after it: its teams, else those of the location above it (explained in the location details). #}
+                <div>
+                    <dt><span class="location-eyebrow">{% trans "Responsible" %}</span></dt>
+                    <dd>{% with source=object.responsible_teams_source %}{% if source %}
+                        {% for team in source.responsible_teams.all %}<span class="location-team">{% include "inventory/team_badge.html" %} {{ team.group.name }}</span>{% endfor %}
+                    {% else %}<span class="location-muted">{% trans "No team yet." %}</span>{% endif %}{% endwith %}</dd>
                 </div>
-                {% if object.physical_description %}<p class="location-physical-description">{{ object.physical_description|linebreaksbr }}</p>{% endif %}
-            </div>
+                {% with fire=object.fire_load_free_source %}{% if fire %}
+                <div class="location-summary-fire">
+                    <dt><span class="location-eyebrow">{% trans "Free of fire load" as fire_load %}{{ fire_load|capfirst }}</span></dt>
+                    <dd>{% trans "No combustible materials may be stored here. Applies to everything inside." %}
+                        {% if fire.pk != object.pk %}<span class="location-muted">{% blocktrans with location=fire.title %}from {{ location }}{% endblocktrans %}</span>{% endif %}</dd>
+                </div>
+                {% endif %}{% endwith %}
+            </dl>
         </div>
     </header>
 {% endblock %}
@@ -121,9 +133,9 @@
                     <a class="location-overview-photo" href="{{ object.overview_photo.url }}" target="_blank" rel="noopener">
                         {# Shown at most 24rem high; the link and lightbox open the full photo. #}
                         {% thumbnail object.overview_photo "1600x768" upscale=False as im %}
-                            <img src="{{ im.url }}" width="{{ im.width }}" height="{{ im.height }}" alt="{% blocktrans with location=object.display_name %}Overview photo of {{ location }}{% endblocktrans %}" loading="lazy">
+                            <img src="{{ im.url }}" width="{{ im.width }}" height="{{ im.height }}" alt="{% blocktrans with location=object.title %}Overview photo of {{ location }}{% endblocktrans %}" loading="lazy">
                         {% empty %}
-                            <img src="{{ object.overview_photo.url }}" alt="{% blocktrans with location=object.display_name %}Overview photo of {{ location }}{% endblocktrans %}" loading="lazy">
+                            <img src="{{ object.overview_photo.url }}" alt="{% blocktrans with location=object.title %}Overview photo of {{ location }}{% endblocktrans %}" loading="lazy">
                         {% endthumbnail %}
                     </a>
                 </div>

@@ -84,7 +84,7 @@ class CreateUniqueItemView(UniqueItemEditorMixin, extra_views.CreateWithInlinesV
         else:
             lid = services.generate_and_claim(self.object, self.request.user)
         messages.success(self.request, _("The ID %(code)s now belongs to %(target)s.") % {
-            "code": lid.display, "target": self.object})
+            "code": lid.display, "target": getattr(self.object, "title_with_code", self.object)})
         return response
 
     def post(self, request, *args, **kwargs):

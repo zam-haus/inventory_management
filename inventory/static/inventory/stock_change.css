@@ -28,3 +28,5 @@
 .stock-change-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: .5rem; margin-top: 1.5rem; }
 .stock-change-actions .btn,
 .stock-change-modal .modal-footer .btn { min-height: 44px; }
+/* Where: an item's locations, when it has several (stock_change_dialog.html). */
+.stock-change-location-choice { margin-top: .4rem; max-width: 100%; }

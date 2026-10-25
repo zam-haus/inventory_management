@@ -1,0 +1,114 @@
+[
+ {
+  "name": "Mobil, mit Logo und Eigentum",
+  "subject_type": "location",
+  "label_width": 105.0,
+  "label_height": 52.0,
+  "before": "# Mobile locations, 105 × 52 mm polyester\r\nlabel 105 x 52  margin 1\r\nrow  gap 3\r\n  qr {{ qr }}  ecc Q  max 32\r\n  column  gap 4\r\n    text {{ location.unique_identifier }}  font condensed  bold  invert  height 18\r\n    image \"ZAM Logo\" height 20\r\ntext \"Eigentum Betreiberverein ZAM e.V.\"  font condensed  bold  center  height 4.5",
+  "after": "# Mobile locations, 105 × 52 mm polyester\r\nlabel 105 x 52  margin 1\r\nrow  gap 3\r\n  qr {{ qr }}  ecc Q  max 32\r\n  column  gap 4\r\n    text {{ location.unique_identifier }}  font mono  bold  invert  height 18\r\n    image \"ZAM Logo\" height 20\r\ntext \"Eigentum Betreiberverein ZAM e.V.\"  font condensed  bold  center  height 4.5"
+ },
+ {
+  "name": "QR-Code, Kennung, Name und Ort",
+  "subject_type": "location",
+  "label_width": 57.0,
+  "label_height": 32.0,
+  "before": "# Locations on 57 × 32 mm labels: QR code, code, name and path\nlabel 57 x 32  margin 1.5\nrow  gap 2\n  qr {{ qr }}  max 25.65\n  column  gap 1\n    text {{ location.unique_identifier }}  font mono  bold  invert  height 30%\n    text {{ location.name }}  font condensed  lines 2  height 30%\n    text {{ location.descriptive_identifier }}  lines 3\n",
+  "after": "# Locations on 57 × 32 mm labels: QR code, title (purpose, else name), code and path\nlabel 57 x 32  margin 1.5\nrow  gap 2\n  qr {{ qr }}  max 25.65\n  column  gap 1  align left\n    text {{ location.title }}  font condensed  bold  lines 2  height 30%\n    text {{ location.unique_identifier }}  font mono  bold  invert  height 30%  width auto\n    text {{ location.descriptive_identifier }}  lines 3\n"
+ },
+ {
+  "name": "Name, Preis und QR-Code",
+  "subject_type": "item",
+  "label_width": 57.0,
+  "label_height": 32.0,
+  "before": "# Bulk items on 57 × 32 mm labels: name, price, ID and location, QR code\nlabel 57 x 32  margin 1.5\nrow  gap 2\n  column  gap 0.5  align left\n    text {{ item.name|default:'_______________' }}  bold  lines 3  height 50%\n    row  border 0.4  shape bulge  padding 0.2 0  width auto  height 25%\n      text \"{% if item.sale_price is not None %}€ {{ item.sale_price|floatformat:2 }}{% else %}{{ ''|ljust:10 }}{% endif %}\"  font condensed  bold\n      text \"{% if item.sale_price is not None %}/ {{ item.measurement_unit.short }}{% endif %}\"  font condensed  height 45%  margin 0 0 0 0.5  bottom\n    text \"{{ label_id }}  {{ location.unique_identifier }}\"  font mono  height 15%  bottom\n  qr {{ qr }}  max 22.8\n",
+  "after": "# Bulk items on 57 × 32 mm labels: name, price, ID and location, QR code\nlabel 57 x 32  margin 1.5\nrow  gap 2\n  column  gap 0.5  align left\n    text {{ item.name|default:'_______________' }}  bold  lines 3  height 50%\n    row  border 0.4  shape bulge  padding 0.2 0  width auto  height 25%\n      text \"{% if item.sale_price is not None %}€ {{ item.sale_price|floatformat:2 }}{% else %}{{ ''|ljust:10 }}{% endif %}\"  font condensed  bold\n      text \"{% if item.sale_price is not None %}/ {{ item.measurement_unit.short }}{% endif %}\"  font condensed  height 45%  margin 0 0 0 0.5  bottom\n    row  gap 1.5  height 15%\n      text {{ label_id }}  font mono\n      text {{ location.unique_identifier }}  font mono  bold  invert\n  qr {{ qr }}  max 22.8\n"
+ },
+ {
+  "name": "QR-Code, Kennung, Name und Ort",
+  "subject_type": "location",
+  "label_width": 60.0,
+  "label_height": 30.0,
+  "before": "# Locations on 60 × 30 mm labels: QR code, code, name and path\nlabel 60 x 30  margin 1.5\nrow  gap 2\n  qr {{ qr }}  max 27\n  column  gap 1\n    text {{ location.unique_identifier }}  font mono  bold  invert  height 30%\n    text {{ location.name }}  font condensed  lines 2  height 30%\n    text {{ location.descriptive_identifier }}  lines 3\n",
+  "after": "# Locations on 60 × 30 mm labels: QR code, title (purpose, else name), code and path\nlabel 60 x 30  margin 1.5\nrow  gap 2\n  qr {{ qr }}  max 27\n  column  gap 1  align left\n    text {{ location.title }}  font condensed  bold  lines 2  height 30%\n    text {{ location.unique_identifier }}  font mono  bold  invert  height 30%  width auto\n    text {{ location.descriptive_identifier }}  lines 3\n"
+ },
+ {
+  "name": "Name, Preis und QR-Code",
+  "subject_type": "item",
+  "label_width": 60.0,
+  "label_height": 30.0,
+  "before": "# Bulk items on 60 × 30 mm labels: name, price, ID and location, QR code\nlabel 60 x 30  margin 1.5\nrow  gap 2\n  column  gap 0.5  align left\n    text {{ item.name|default:'_______________' }}  bold  lines 3  height 50%\n    row  border 0.4  shape bulge  padding 0.2 0  width auto  height 25%\n      text \"{% if item.sale_price is not None %}€ {{ item.sale_price|floatformat:2 }}{% else %}{{ ''|ljust:10 }}{% endif %}\"  font condensed  bold\n      text \"{% if item.sale_price is not None %}/ {{ item.measurement_unit.short }}{% endif %}\"  font condensed  height 45%  margin 0 0 0 0.5  bottom\n    text \"{{ label_id }}  {{ location.unique_identifier }}\"  font mono  height 15%  bottom\n  qr {{ qr }}  max 24\n",
+  "after": "# Bulk items on 60 × 30 mm labels: name, price, ID and location, QR code\nlabel 60 x 30  margin 1.5\nrow  gap 2\n  column  gap 0.5  align left\n    text {{ item.name|default:'_______________' }}  bold  lines 3  height 50%\n    row  border 0.4  shape bulge  padding 0.2 0  width auto  height 25%\n      text \"{% if item.sale_price is not None %}€ {{ item.sale_price|floatformat:2 }}{% else %}{{ ''|ljust:10 }}{% endif %}\"  font condensed  bold\n      text \"{% if item.sale_price is not None %}/ {{ item.measurement_unit.short }}{% endif %}\"  font condensed  height 45%  margin 0 0 0 0.5  bottom\n    row  gap 1.5  height 15%\n      text {{ label_id }}  font mono\n      text {{ location.unique_identifier }}  font mono  bold  invert\n  qr {{ qr }}  max 24\n"
+ },
+ {
+  "name": "QR-Code, Kennung, Name und Ort",
+  "subject_type": "location",
+  "label_width": 70.0,
+  "label_height": 32.0,
+  "before": "# Locations on 70 × 32 mm labels: QR code, code, name and path\r\nlabel 70 x 32  margin 1.5\r\nrow  gap 2\r\n  qr {{ qr }}  max 31.5\r\n  column  gap 1\r\n    text {{ location.unique_identifier }}  font mono  bold  invert  height 30%\r\n    text {{ location.name }}  font condensed  lines 2  height 30%\r\n    text {{ location.descriptive_identifier }}  lines 3",
+  "after": "# Locations on 70 × 32 mm labels: QR code, title (purpose, else name), code and path\r\nlabel 70 x 32  margin 1.5\r\nrow  gap 2\r\n  qr {{ qr }}  max 31.5\r\n  column  gap 1  align left\n    text {{ location.title }}  font condensed  bold  lines 2  height 30%\r\n    text {{ location.unique_identifier }}  font mono  bold  invert  height 30%  width auto\n    text {{ location.descriptive_identifier }}  lines 3"
+ },
+ {
+  "name": "Name, Preis und QR-Code",
+  "subject_type": "item",
+  "label_width": 70.0,
+  "label_height": 32.0,
+  "before": "# Bulk items on 70 × 32 mm labels: name, price, ID and location, QR code\nlabel 70 x 32  margin 1.5\nrow  gap 2\n  column  gap 0.5  align left\n    text {{ item.name|default:'_______________' }}  bold  lines 3  height 50%\n    row  border 0.4  shape bulge  padding 0.2 0  width auto  height 25%\n      text \"{% if item.sale_price is not None %}€ {{ item.sale_price|floatformat:2 }}{% else %}{{ ''|ljust:10 }}{% endif %}\"  font condensed  bold\n      text \"{% if item.sale_price is not None %}/ {{ item.measurement_unit.short }}{% endif %}\"  font condensed  height 45%  margin 0 0 0 0.5  bottom\n    text \"{{ label_id }}  {{ location.unique_identifier }}\"  font mono  height 15%  bottom\n  qr {{ qr }}  max 28\n",
+  "after": "# Bulk items on 70 × 32 mm labels: name, price, ID and location, QR code\nlabel 70 x 32  margin 1.5\nrow  gap 2\n  column  gap 0.5  align left\n    text {{ item.name|default:'_______________' }}  bold  lines 3  height 50%\n    row  border 0.4  shape bulge  padding 0.2 0  width auto  height 25%\n      text \"{% if item.sale_price is not None %}€ {{ item.sale_price|floatformat:2 }}{% else %}{{ ''|ljust:10 }}{% endif %}\"  font condensed  bold\n      text \"{% if item.sale_price is not None %}/ {{ item.measurement_unit.short }}{% endif %}\"  font condensed  height 45%  margin 0 0 0 0.5  bottom\n    row  gap 1.5  height 15%\n      text {{ label_id }}  font mono\n      text {{ location.unique_identifier }}  font mono  bold  invert\n  qr {{ qr }}  max 28\n"
+ },
+ {
+  "name": "QR-Code, Kennung, Name und Ort",
+  "subject_type": "location",
+  "label_width": 105.0,
+  "label_height": 52.0,
+  "before": "# Locations on 105 × 52 mm labels: QR code, code, name and path\r\nlabel 105 x 52  margin 1.5\r\nrow  gap 2\r\n  qr {{ qr }}  max 47.25\r\n  column  gap 1\r\n    text {{ location.unique_identifier }}  font mono  bold  invert  height 30%\r\n    text \"{% if location.purpose %}{{ location.purpose }}{% else %}{{ location.name }}{% endif %}\"  font condensed  lines 2  height 30%\r\n    text {{ location.descriptive_identifier }}  lines 3",
+  "after": "# Locations on 105 × 52 mm labels: QR code, title (purpose, else name), code and path\r\nlabel 105 x 52  margin 1.5\r\nrow  gap 2\r\n  qr {{ qr }}  max 47.25\r\n  column  gap 1  align left\n    text {{ location.title }}  font condensed  bold  lines 2  height 30%\r\n    text {{ location.unique_identifier }}  font mono  bold  invert  height 30%  width auto\n    text {{ location.descriptive_identifier }}  lines 3"
+ },
+ {
+  "name": "Name, Preis und QR-Code",
+  "subject_type": "item",
+  "label_width": 105.0,
+  "label_height": 52.0,
+  "before": "# Bulk items on 105 × 52 mm labels: name, price, ID and location, QR code\nlabel 105 x 52  margin 1.5\nrow  gap 2\n  column  gap 0.5  align left\n    text {{ item.name|default:'_______________' }}  bold  lines 3  height 50%\n    row  border 0.4  shape bulge  padding 0.2 0  width auto  height 25%\n      text \"{% if item.sale_price is not None %}€ {{ item.sale_price|floatformat:2 }}{% else %}{{ ''|ljust:10 }}{% endif %}\"  font condensed  bold\n      text \"{% if item.sale_price is not None %}/ {{ item.measurement_unit.short }}{% endif %}\"  font condensed  height 45%  margin 0 0 0 0.5  bottom\n    text \"{{ label_id }}  {{ location.unique_identifier }}\"  font mono  height 15%  bottom\n  qr {{ qr }}  max 42\n",
+  "after": "# Bulk items on 105 × 52 mm labels: name, price, ID and location, QR code\nlabel 105 x 52  margin 1.5\nrow  gap 2\n  column  gap 0.5  align left\n    text {{ item.name|default:'_______________' }}  bold  lines 3  height 50%\n    row  border 0.4  shape bulge  padding 0.2 0  width auto  height 25%\n      text \"{% if item.sale_price is not None %}€ {{ item.sale_price|floatformat:2 }}{% else %}{{ ''|ljust:10 }}{% endif %}\"  font condensed  bold\n      text \"{% if item.sale_price is not None %}/ {{ item.measurement_unit.short }}{% endif %}\"  font condensed  height 45%  margin 0 0 0 0.5  bottom\n    row  gap 1.5  height 15%\n      text {{ label_id }}  font mono\n      text {{ location.unique_identifier }}  font mono  bold  invert\n  qr {{ qr }}  max 42\n"
+ },
+ {
+  "name": "QR-Code, Kennung, Name und Ort",
+  "subject_type": "location",
+  "label_width": null,
+  "label_height": 9.0,
+  "before": "# Locations on 9 mm tape, as long as the path needs: QR code, code and path\r\nlabel height 9  margin 0 0.5\r\nrow  gap 1\r\n  qr {{ qr }}  quiet 1\r\n  column  gap 0.5\r\n    text {{ location.unique_identifier }} size 1.5 font mono  bold  invert\r\n    text \"{% if location.purpose %}{{ location.purpose }}{% else %}{{ location.name }}{% endif %}\" size 2 font condensed\r\n    text {{ location.descriptive_identifier }} size 1",
+  "after": "# Locations on 9 mm tape, as long as the path needs: QR code, title (purpose, else name), code and path\r\nlabel height 9  margin 0 0.5\r\nrow  gap 1\r\n  qr {{ qr }}  quiet 1\r\n  column  gap 0.5  align left\n    text {{ location.title }} size 2 font condensed  bold\r\n    text {{ location.unique_identifier }}  size 1.5 font mono  bold  invert  width auto\n    text {{ location.descriptive_identifier }} size 1"
+ },
+ {
+  "name": "QR-Code, Kennung, Name und Ort",
+  "subject_type": "location",
+  "label_width": null,
+  "label_height": 12.0,
+  "before": "# Locations on 12 mm tape, as long as the path needs: QR code, code, name and path\r\nlabel height 12  margin 0 0.5\r\nrow  gap 1\r\n  qr {{ qr }}  quiet 1\r\n  column  gap 0.5\r\n    text {{ location.unique_identifier }}  size 2  font mono  bold  invert\r\n    text \"{% if location.purpose %}{{ location.purpose }}{% else %}{{ location.name }}{% endif %}\"  size 2.67  font condensed\r\n    text {{ location.descriptive_identifier }}  size 1.33",
+  "after": "# Locations on 12 mm tape, as long as the path needs: QR code, title (purpose, else name), code and path\r\nlabel height 12  margin 0 0.5\r\nrow  gap 1\r\n  qr {{ qr }}  quiet 1\r\n  column  gap 0.5  align left\n    text {{ location.title }}  size 2.67  font condensed  bold\r\n    text {{ location.unique_identifier }}  size 2  font mono  bold  invert  width auto\n    text {{ location.descriptive_identifier }}  size 1.33"
+ },
+ {
+  "name": "QR-Code, Kennung, Name und Ort",
+  "subject_type": "location",
+  "label_width": null,
+  "label_height": 18.0,
+  "before": "# Locations on 18 mm tape, as long as the path needs: QR code, code, name and path\r\nlabel height 18  margin 0 0.5\r\nrow  gap 1\r\n  qr {{ qr }}  quiet 1\r\n  column  gap 0.5\r\n    text {{ location.unique_identifier }}  size 3  font mono  bold  invert\r\n    text \"{% if location.purpose %}{{ location.purpose }}{% else %}{{ location.name }}{% endif %}\"  size 4  font condensed\r\n    text {{ location.descriptive_identifier }}  size 2",
+  "after": "# Locations on 18 mm tape, as long as the path needs: QR code, title (purpose, else name), code and path\r\nlabel height 18  margin 0 0.5\r\nrow  gap 1\r\n  qr {{ qr }}  quiet 1\r\n  column  gap 0.5  align left\n    text {{ location.title }}  size 4  font condensed  bold\r\n    text {{ location.unique_identifier }}  size 3  font mono  bold  invert  width auto\n    text {{ location.descriptive_identifier }}  size 2"
+ },
+ {
+  "name": "QR-Code, Kennung, Name und Ort",
+  "subject_type": "location",
+  "label_width": null,
+  "label_height": 24.0,
+  "before": "# Locations on 24 mm tape, as long as the path needs: QR code, code, name and path\r\nlabel height 24  margin 0 0.5\r\nrow  gap 1\r\n  qr {{ qr }}  quiet 1\r\n  column  gap 0.5\r\n    text {{ location.unique_identifier }}  size 4  font mono  bold  invert\r\n    text \"{% if location.purpose %}{{ location.purpose }}{% else %}{{ location.name }}{% endif %}\"  size 5.33  font condensed\r\n    text {{ location.descriptive_identifier }}  size 2.67",
+  "after": "# Locations on 24 mm tape, as long as the path needs: QR code, title (purpose, else name), code and path\r\nlabel height 24  margin 0 0.5\r\nrow  gap 1\r\n  qr {{ qr }}  quiet 1\r\n  column  gap 0.5  align left\n    text {{ location.title }}  size 5.33  font condensed  bold\r\n    text {{ location.unique_identifier }}  size 4  font mono  bold  invert  width auto\n    text {{ location.descriptive_identifier }}  size 2.67"
+ },
+ {
+  "name": "QR-Code, Kennung, Name und Ort",
+  "subject_type": "location",
+  "label_width": null,
+  "label_height": 36.0,
+  "before": "# Locations on 36 mm tape, as long as the path needs: QR code, code, name and path\r\nlabel height 36  margin 0 0.5\r\nrow  gap 1\r\n  qr {{ qr }}  quiet 1\r\n  column  gap 0.5\r\n    text {{ location.unique_identifier }}  size 6  font mono  bold  invert\r\n    text \"{% if location.purpose %}{{ location.purpose }}{% else %}{{ location.name }}{% endif %}\"  size 8  font condensed\r\n    text {{ location.descriptive_identifier }}  size 4",
+  "after": "# Locations on 36 mm tape, as long as the path needs: QR code, title (purpose, else name), code and path\r\nlabel height 36  margin 0 0.5\r\nrow  gap 1\r\n  qr {{ qr }}  quiet 1\r\n  column  gap 0.5  align left\n    text {{ location.title }}  size 8  font condensed  bold\r\n    text {{ location.unique_identifier }}  size 6  font mono  bold  invert  width auto\n    text {{ location.descriptive_identifier }}  size 4"
+ }
+]

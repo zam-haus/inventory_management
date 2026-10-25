@@ -1,7 +1,7 @@
 
 {% extends 'base.html' %}
 
-{% load mytemplatetags icons %}
+{% load mytemplatetags icons locations %}
 {% load django_bootstrap5 i18n actions %}
 {% load icons %}
 
@@ -25,6 +25,7 @@
 </div>
 <table class="table table-striped">
     <thead><tr>
+        <th scope="col">{% trans "Name" %}</th>
         <th scope="col">
             {% trans "Identifier" %}
             {% if sort_helper.is_sorted_by_unique_identifier == "asc" %}
@@ -41,7 +42,6 @@
             </a>
             {% endif %}
         </th>
-        <th scope="col">{% trans "Name" %}</th>
         <th scope="col">{% trans "Items" %}</th>
     </tr></thead>
     <tbody>
@@ -49,12 +49,12 @@
         <tr>
         <td scope="row">
             <a href="{{ object.get_absolute_url }}" data-bs-toggle="tooltip" title="" data-bs-original-title="{{ object.descriptive_identifier }}">
-                {{ object.unique_identifier }}
+                {% location_label object code="" %}
             </a>
         </td>
         <td>
             <a href="{{ object.get_absolute_url }}" data-bs-toggle="tooltip" title="" data-bs-original-title="{{ object.descriptive_identifier }}">
-                {{ object.display_name }}
+                {% location_code object.unique_identifier %}
             </a>
         </td>
         <td>

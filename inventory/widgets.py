@@ -4,6 +4,7 @@ from django.urls import reverse
 from django.utils.html import format_html
 from django.utils.translation import gettext
 
+from . import location_display
 from .icons import icon
 
 
@@ -38,6 +39,22 @@ class LocationSelect(AutocompleteSelect):
 
     class Media:
         js = ["inventory/location_scan.js"]
+
+    def build_attrs(self, *args, **kwargs):
+        """Suggestions and the chosen location as HTML (location_display: title, name, code chip); the views give
+        HTML only to these fields (?html=1), the admin's fields get text."""
+        attrs = super().build_attrs(*args, **kwargs)
+        if url := attrs.get("data-autocomplete-light-url"):
+            attrs["data-autocomplete-light-url"] = f"{url}{'&' if '?' in url else '?'}html=1"
+        attrs["data-html"] = ""
+        return attrs
+
+    def create_option(self, name, value, label, selected, index, subindex=None, attrs=None):
+        # The chosen location's HTML as the option's text, escaped like any text (a plain str, not safe): Select2
+        # shows it as HTML.
+        if (location := getattr(value, "instance", None)) is not None:
+            label = "".join([location_display.label_html(location)])
+        return super().create_option(name, value, label, selected, index, subindex, attrs)
 
     def render(self, name, value, attrs=None, renderer=None, **kwargs):
         html = super().render(name, value, attrs, renderer, **kwargs)

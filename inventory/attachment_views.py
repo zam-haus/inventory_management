@@ -8,7 +8,7 @@ from django.shortcuts import get_object_or_404, redirect
 from django.utils.translation import gettext as _
 from django.views import View
 
-from . import forms
+from . import forms, location_display
 from .location_lookup import location_from_label_id, resolve_location_reference
 from .models import Item, ItemImage, Location, UniqueItem
 
@@ -72,7 +72,7 @@ class MoveUniqueItemView(PermissionRequiredMixin, View):
             if form.is_valid():
                 unique_item = form.save(commit=False)
                 unique_item.save(actor=request.user)
-                messages.success(request, _("Moved to %(location)s.") % {"location": unique_item.location})
+                messages.success(request, _("Moved to %(location)s.") % {"location": unique_item.location.title_with_code})
             else:
                 for errors in form.errors.values():
                     for error in errors:
@@ -89,4 +89,5 @@ def location_lookup(request):
             location = resolve_location_reference(raw)
         except ValidationError as error:
             return JsonResponse({"error": " ".join(error.messages)}, status=404)
-    return JsonResponse({"id": location.pk, "text": str(location), "label": location.path_with_purpose})
+    return JsonResponse({"id": location.pk, "text": location.title_with_code,
+                         "html": location_display.label_html(location)})

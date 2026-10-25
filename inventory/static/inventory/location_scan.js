@@ -11,16 +11,16 @@
             const response = await fetch(`${data.lookupUrl}?q=${encodeURIComponent(value)}`, {credentials: 'same-origin'});
             const result = await response.json();
             if (!response.ok) throw new Error(result.error);
-            const text = result.label || result.text;
             select.querySelectorAll(`option[value="${CSS.escape(String(result.id))}"]`).forEach(option => option.remove());
-            const option = new Option(text, result.id, true, true);
+            // The field shows its options as HTML (widgets.LocationSelect: title, name, code chip).
+            const option = new Option(result.html || result.text, result.id, true, true);
             if (window.jQuery) window.jQuery(select).append(option).trigger('change');
             else {
                 select.append(option);
                 select.value = String(result.id);
                 select.dispatchEvent(new Event('change', {bubbles: true}));
             }
-            status.textContent = data.found.replace('{location}', text);
+            status.textContent = data.found.replace('{location}', result.text);
             status.classList.remove('text-danger');
         } catch (error) {
             status.textContent = error.message || String(error);

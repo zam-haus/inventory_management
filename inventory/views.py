@@ -23,7 +23,7 @@ from django.utils.translation import gettext_lazy as _
 from django.views import View
 from django.views.generic import DetailView, ListView, TemplateView, UpdateView
 
-from . import forms, models
+from . import forms, location_display, models
 from .location_lookup import resolve_location_reference
 from .permissions import (
     QUICK_ITEM_PERMISSIONS, UNIQUE_ITEM_CREATE_PERMISSIONS, ItemEditorPermissionMixin, location_deletion_denied,
@@ -54,12 +54,23 @@ def filter_locations(qs, query):
     return qs.filter(matches).distinct()
 
 
-class LocationAutocomplete(autocomplete.Select2QuerySetView):
-    def get_result_label(self, result):
-        return result.path_with_purpose
+class LocationResults:
+    """Locations as suggestions: HTML for the frontend's fields (widgets.LocationSelect asks with ?html=1: title,
+    name, code chip, and where it is), else text with the path (the admin's fields)."""
 
+    def html(self):
+        return bool(self.request.GET.get("html"))
+
+    def get_result_label(self, result):
+        return location_display.option_html(result) if self.html() else result.path_with_purpose
+
+    def get_selected_result_label(self, result):
+        return location_display.label_html(result) if self.html() else result.path_with_purpose
+
+
+class LocationAutocomplete(LocationResults, autocomplete.Select2QuerySetView):
     def get_queryset(self):
-        qs = models.Location.active.all()
+        qs = models.Location.active.select_related("parent_location")
 
         # `self.q` is the search term from the user, provided by DAL.
         return filter_locations(qs, self.q)
@@ -332,6 +343,16 @@ class DetailItemView(DetailView):
             take.insert(0, current)
             context["take_location"] = current.location
         context["take_entries"] = take
+        # The stock change dialog of "Take out" and "Add stock" offers the item's locations (stock_change.js).
+        next_url = self.request.get_full_path()
+        context["take_choices"] = [{
+            "url": f"{reverse('stock_change', args=[entry.pk])}?{urlencode({'next': next_url})}",
+            "item": str(entry.item), "location": entry.location.unique_identifier, "locationTitle": entry.location.title,
+            "label": entry.location.title_with_code, "amount": "" if entry.amount is None else str(entry.amount),
+            "kind": entry.amount_kind, "amountText": entry.amount_text, "unit": entry.item.measurement_unit.short,
+            "price": "" if entry.item.sale_price is None else str(entry.item.sale_price),
+            "lastStock": "true" if getattr(entry, "is_last_stock", False) else "false",
+        } for entry in take]
         return context
 
 
@@ -549,12 +570,9 @@ class StructureOverviewView(TemplateView):
         return super().get_context_data(overview=structure_overview(), **kwargs)
 
 
-class ParentLocationAutocompleteView(autocomplete.Select2QuerySetView):
-    def get_result_label(self, result):
-        return result.path_with_purpose
-
+class ParentLocationAutocompleteView(LocationResults, autocomplete.Select2QuerySetView):
     def get_queryset(self):
-        queryset = models.Location.active.filter(type__no_sublocations=False)
+        queryset = models.Location.active.filter(type__no_sublocations=False).select_related("parent_location")
         try:
             moved = models.Location.objects.select_related("type").get(pk=int(self.forwarded.get("id")))
         except (TypeError, ValueError, models.Location.DoesNotExist):

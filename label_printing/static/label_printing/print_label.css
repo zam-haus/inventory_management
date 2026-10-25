@@ -20,7 +20,7 @@
 .label-print-options { display: grid; grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr)); gap: 0 1rem; }
 .label-print-copies { max-width: 8rem; }
 .label-print-status { margin: 1rem 0 0; }
-.label-print-subject { font-family: monospace; }
+.label-print-subject { font-weight: 400; }
 .label-print-page { max-width: 56rem; }
 /* More labels (priority 0), on request */
 .label-outcomes-more > summary { cursor: pointer; color: #0d6efd; }

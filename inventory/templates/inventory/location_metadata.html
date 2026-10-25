@@ -1,4 +1,4 @@
-{% load i18n %}
+{% load i18n locations %}
 <div class="modal fade location-metadata" id="location-metadata" tabindex="-1" aria-labelledby="location-metadata-title" aria-hidden="true">
     <div class="modal-dialog modal-lg modal-dialog-scrollable">
         <div class="modal-content">
@@ -7,6 +7,12 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{% trans 'Close' %}"></button>
             </div>
             <div class="modal-body">
+                <dl class="location-metadata-field location-metadata-path">
+                    <dt>{% trans "Location path" %}</dt>
+                    <dd><p class="location-path">{{ object.descriptive_identifier }}</p>
+                        <p class="location-muted">{% trans "The full path from the top-level location to this storage location. Short identifiers are shown in square brackets." %}</p>
+                    </dd>
+                </dl>
                 <div class="location-metadata-grid">
                     <dl class="location-metadata-field">
                         <dt>{% trans "Location type" %}</dt>
@@ -17,10 +23,20 @@
                             {% endif %}
                         </dd>
                     </dl>
+                    {# Where the responsible teams come from (the grey box shows them). #}
+                    <dl class="location-metadata-field">
+                        <dt>{% trans "Responsible" %}</dt>
+                        <dd>{% with source=object.responsible_teams_source %}
+                            {% if not source %}{% trans "No team is responsible for this location, nor for the one it is in." %}
+                            {% elif source.pk == object.pk %}{% trans "Its own teams. Locations inside it without teams of their own take them over." %}
+                            {% else %}{% blocktrans with location=source.title_with_code %}From {{ location }}: this location has no teams of its own and takes those of the location it is in.{% endblocktrans %}{% endif %}
+                            <p class="location-muted">{% trans "Rooms, areas and levels with their own code never take teams over from above." %}</p>
+                        {% endwith %}</dd>
+                    </dl>
                     {% with former_codes=object.former_codes.all %}{% if former_codes %}
                         <dl class="location-metadata-field">
                             <dt>{% trans "Former codes" %}</dt>
-                            <dd>{% for former in former_codes %}<span class="location-identifier">{{ former.code }}</span> {% endfor %}
+                            <dd>{% for former in former_codes %}{% location_code former.code %} {% endfor %}
                                 <p class="location-muted">{% trans "Codes this location had before. They still lead here and are never given to another location." %}</p>
                             </dd>
                         </dl>
@@ -31,16 +47,6 @@
                             <dd>{{ object.physical_description|linebreaksbr }}</dd>
                         </dl>
                     {% endif %}
-                    {% with label_url=object.label_preview_url %}
-                        {% if label_url %}
-                            <figure class="location-metadata-label">
-                                <figcaption>{% trans "Label preview" %}</figcaption>
-                                <a href="{{ label_url }}">
-                                    <img src="{{ label_url }}" alt="{% blocktrans with identifier=object.unique_identifier %}Label for {{ identifier }}{% endblocktrans %}" loading="lazy">
-                                </a>
-                            </figure>
-                        {% endif %}
-                    {% endwith %}
                 </div>
                 <section class="location-type-details" aria-labelledby="location-type-properties-heading">
                     <h3 class="fs-5" id="location-type-properties-heading">{% trans "Location type properties" %}</h3>

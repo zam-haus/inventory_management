@@ -1,12 +1,12 @@
 {% extends 'base.html' %}
-{% load i18n static %}
+{% load i18n static locations %}
 
 {% block bootstrap5_extra_head %}
     {{ block.super }}
     {{ form.media.css }}
     <link rel="stylesheet" href="{% static 'inventory/location_detail.css' %}">
 {% endblock %}
-{% block title %}{% if delete_root %}{% trans "Dissolve location" %}{% else %}{% trans "Move contents" %}{% endif %}: {{ object.unique_identifier }}{% endblock %}
+{% block title %}{% if delete_root %}{% trans "Dissolve location" %}{% else %}{% trans "Move contents" %}{% endif %}: {{ object.title_with_code }}{% endblock %}
 {% block admin_url %}{{ object.get_admin_url }}{% endblock %}
 {% block page_header %}
     <header class="location-header">
@@ -14,8 +14,7 @@
         <div class="location-heading">
             <div class="location-heading-text">
                 <p class="location-eyebrow">{% if delete_root %}{% trans "Dissolve location" %}{% else %}{% trans "Move contents" %}{% endif %}</p>
-                <h1>{{ object.name }}</h1>
-                <span class="location-identifier">{{ object.unique_identifier }}</span>
+                <h1>{% location_label object %}</h1>
             </div>
             <div class="location-actions">
                 <a class="btn btn-secondary" href="{{ object.get_absolute_url }}">{% trans "Cancel" %}</a>

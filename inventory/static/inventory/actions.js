@@ -53,10 +53,12 @@ window.appIcon = name => {
     };
 })();
 
-// Action rows: a title and its actions ([data-action-row] containing [data-action-group]).
-// When the actions would wrap below the title, they move into a menu beside it
-// (#action-menu-template). Its entries forward clicks to the hidden originals, which keep
-// their behaviour; unavailable actions are listed disabled with their reason.
+// Action rows: a title and its actions ([data-action-row] containing [data-action-group]). Actions that do not fit
+// beside the title move into a menu at the right end, one by one from the right (#action-menu-template); if none
+// fit, the menu alone stays beside the title. Important actions ([data-action-primary], e.g. taking stock out)
+// stay: if the others are in the menu and they still do not fit, they show their icon only and are listed in the
+// menu, too. Menu entries forward clicks to the hidden originals, which keep their
+// behaviour; unavailable actions are listed disabled with their reason.
 (() => {
     const template = document.getElementById('action-menu-template');
     if (!template || !window.bootstrap?.Dropdown || typeof ResizeObserver === 'undefined') return;
@@ -95,6 +97,9 @@ window.appIcon = name => {
         return li;
     }
 
+    const overflowed = action => action.classList.contains('is-overflowed');
+    const primary = action => action.hasAttribute('data-action-primary');
+    const compact = action => action.classList.contains('is-compact');
     const rows = [...document.querySelectorAll('[data-action-row]')].map(row => {
         const group = row.querySelector('[data-action-group]');
         if (!group || group === row.firstElementChild) return null;
@@ -103,24 +108,62 @@ window.appIcon = name => {
         const list = menu.querySelector('.dropdown-menu');
         menu.hidden = true;
         group.after(menu);
+        const actions = () => [...group.children].filter(action => !action.hidden);
         // Built when opened, so it shows the actions as they are now (scripts enable some).
         menu.addEventListener('show.bs.dropdown', () => {
-            list.replaceChildren(...[...group.children].filter(action => !action.hidden).map(entry));
+            list.replaceChildren(...actions().filter(action => group.hidden || overflowed(action) || compact(action))
+                .map(entry));
         });
         const fit = () => {
-            const wasCollapsed = row.classList.contains('is-collapsed');
+            const all = actions();
             row.classList.remove('is-collapsed');
             group.hidden = false;
             menu.hidden = true;
+            all.forEach(action => {
+                action.classList.remove('is-overflowed', 'is-compact');
+                // The name and tooltip given while it showed its icon only.
+                if (action.dataset.compactName) action.removeAttribute('aria-label');
+                if (action.dataset.compactTitle) action.removeAttribute('title');
+                delete action.dataset.compactName;
+                delete action.dataset.compactTitle;
+            });
+            // Below the title, or on more than one line beside it.
+            const wraps = () => {
+                const shown = all.filter(action => !overflowed(action));
+                const top = shown.length ? shown[0].getBoundingClientRect().top : 0;
+                return [...shown, menu].some(element => !element.hidden
+                    && (element.getBoundingClientRect().top >= row.firstElementChild.getBoundingClientRect().bottom - 1
+                        || (element !== menu && element.getBoundingClientRect().top > top + 1)));
+            };
             // Guests may see no actions at all.
-            const wraps = group.childElementCount > 0
-                && group.getBoundingClientRect().top >= row.firstElementChild.getBoundingClientRect().bottom - 1;
-            if (wraps) {
+            if (!all.length || !wraps()) {
+                bootstrap.Dropdown.getInstance(toggle)?.hide();
+                return;
+            }
+            menu.hidden = false;
+            for (let index = all.length - 1; index >= 0 && wraps(); index--) {
+                if (!primary(all[index])) all[index].classList.add('is-overflowed');
+            }
+            if (wraps()) {
+                all.filter(primary).forEach(action => {
+                    action.classList.add('is-compact');
+                    // Its text is hidden: it keeps it as its name and tooltip.
+                    const name = action.textContent.trim();
+                    if (!action.hasAttribute('aria-label')) {
+                        action.setAttribute('aria-label', name);
+                        action.dataset.compactName = 'true';
+                    }
+                    if (!action.hasAttribute('title') && !action.hasAttribute('data-bs-original-title')) {
+                        action.setAttribute('title', name);
+                        action.dataset.compactTitle = 'true';
+                    }
+                });
+            }
+            if (all.every(overflowed)) {  // only the menu, beside the title, which wraps instead
                 row.classList.add('is-collapsed');
                 group.hidden = true;
-                menu.hidden = false;
-            } else if (wasCollapsed) {
-                bootstrap.Dropdown.getInstance(toggle)?.hide();
+            } else if (wraps()) {  // the important ones and the menu beside the title, which wraps instead
+                row.classList.add('is-collapsed');
             }
         };
         let width = 0;
@@ -132,6 +175,7 @@ window.appIcon = name => {
         }).observe(row);
         return fit;
     }).filter(Boolean);
+
     // Web fonts change the title's width without resizing the row.
     document.fonts?.ready.then(() => rows.forEach(fit => fit()));
 })();

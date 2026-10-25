@@ -1,5 +1,5 @@
 {% extends 'inventory/location_dissolve_base.html' %}
-{% load i18n %}
+{% load i18n locations %}
 
 {% block dissolution_content %}
     <section class="location-overview">
@@ -31,7 +31,7 @@
                     {% endfor %}
                     {% if delete_root %}
                         <tr>
-                            <th scope="row"><strong>{{ object.name }}</strong><div class="location-muted">{{ object.locatable_identifier }} — {% trans "Deleted last, only when completely empty." %}</div></th>
+                            <th scope="row"><strong>{% location_label object code=object.locatable_identifier %}</strong><div class="location-muted">{% trans "Deleted last, only when completely empty." %}</div></th>
                             <td>—</td><td>—</td>
                         </tr>
                     {% endif %}

@@ -4,7 +4,7 @@ How the ZAM inventory works, feature by feature. Setup is covered in the
 [project README](../README.md), running the production server in [ops/README.md](../ops/README.md).
 
 * [Concepts](concepts.md): bulk items vs. unique items, locations, initial data collection
-* [Location purpose and photo](locations.md): purpose shown with the name, overview photo and change history
+* [Location purpose and photo](locations.md): how locations are shown (purpose or name first, code chip after it), overview photo and change history
 * [Building structure](location-structure.md): levels, rooms and areas, axes, fire load, responsible teams, categories, number ranges; overview command
 * [Standortregeln](standortregeln.md) (deutsch): wie das ZAM Häuser, Ebenen, Räume und Bereiche codiert und benennt
 * [Quick-items](quick-items.md): items known only by name, edited in the location list

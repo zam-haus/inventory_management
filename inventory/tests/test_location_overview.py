@@ -346,7 +346,7 @@ class LocationOverviewTests(TestCase):
                     self.assertIn(stored.name, visible_contents)
                     self.assertIn(stored.get_absolute_url(), visible_contents)
 
-    def test_purpose_joins_the_name_and_the_photo_precedes_the_items(self):
+    def test_purpose_comes_first_and_the_photo_precedes_the_items(self):
         self.client.post(self.url, self.data(overview_photo=self.photo()))
         self.location.refresh_from_db()
         unit = MeasurementUnit.objects.create(name="Piece", short="pc")
@@ -355,8 +355,16 @@ class LocationOverviewTests(TestCase):
         self.client.logout()
         response = self.client.get(self.location.get_absolute_url())
         heading = next(element for element in html_elements(parse_html(response.content.decode())) if element.name == "h1")
-        self.assertIn("Workshop", str(heading))
-        self.assertIn(": Tools", str(heading))
+        # What it is for first, the name small after it (docs/locations.md); the code in the line below
+        text = str(heading)
+        self.assertLess(text.index("Tools"), text.index('<span class="loc-name">'))
+        self.assertIn("Workshop", text)
+        self.assertNotIn("loc-code", text)
+        page = response.content.decode()
+        self.assertLess(page.index("</h1>"), page.index('class="loc-code location-title-code"'))
+        # the actions beside the title (data-action-row), the physical description in a grey box below
+        self.assertLess(page.index('class="loc-code location-title-code"'), page.index("data-action-group"))
+        self.assertLess(page.index("data-action-group"), page.index("location-summary"))
         panel = next(
             element for element in html_elements(parse_html(response.content.decode()))
             if dict(element.attributes).get("aria-labelledby") == "location-stored-heading"
@@ -392,17 +400,43 @@ class LocationOverviewTests(TestCase):
                      if "location-title-name" in dict(e.attributes).get("class", ""))
         self.assertIn('data-field-editor-open="location-purpose-editor"', str(title))
 
-    def test_lists_and_location_choices_show_the_purpose_with_the_name(self):
+    def test_lists_and_location_choices_show_the_purpose_first(self):
         child = Location.objects.create(type=self.location.type, parent_location=self.location,
                                         name="Box 23", short_name="B23", purpose="Carp project")
+        label = ('<span class="loc-label"><span class="loc-title">Carp project</span> <span class="loc-name">Box 23</span> '
+                 f'<span class="loc-code">{child.unique_identifier}</span></span>')
         detail = self.client.get(self.location.get_absolute_url())
-        self.assertContains(detail, "Box 23: Carp project")
+        self.assertContains(detail, label, html=True)
         listing = self.client.get(reverse("index_locations"), {"q": "Box 23"})
-        self.assertContains(listing, "Box 23: Carp project")
+        self.assertContains(listing, '<span class="loc-title">Carp project</span>', html=True)
+        self.assertContains(listing, f'<span class="loc-code">{child.unique_identifier}</span>', html=True)
         for name in ("location-autocomplete", "parent_location_autocomplete"):
             with self.subTest(autocomplete=name):
+                # the frontend's fields (widgets.LocationSelect): HTML, with where it is below
+                result = self.client.get(reverse(name), {"q": "carp", "html": "1"}).json()["results"][0]
+                self.assertInHTML(label, result["text"])
+                self.assertIn(f'<span class="loc-where">{self.location.title}</span>', result["text"])
+                self.assertInHTML(label, result["selected_text"])
+                # the admin's: text with the path
                 results = self.client.get(reverse(name), {"q": "carp"}).json()["results"]
                 self.assertEqual([result["text"] for result in results], [f"{child.descriptive_identifier}: Carp project"])
+        # Escaped, also as the text of a chosen option, which the field shows as HTML.
+        child.purpose = "<b>Carp</b>"
+        child.save()
+        result = self.client.get(reverse("location-autocomplete"), {"q": "carp", "html": "1"}).json()["results"][0]
+        self.assertIn("&lt;b&gt;Carp&lt;/b&gt;", result["text"])
+        from django import forms as django_forms
+        from ..widgets import LocationSelect
+
+        class Choose(django_forms.Form):
+            location = django_forms.ModelChoiceField(Location.objects.all(), widget=LocationSelect(url="location-autocomplete"))
+
+        rendered = str(Choose(initial={"location": child.pk})["location"])
+        self.assertIn("html=1", rendered)
+        self.assertIn("data-html", rendered)
+        # the option's text is the label's HTML, escaped like any text: its own escaping stays
+        self.assertIn("&amp;lt;b&amp;gt;Carp&amp;lt;/b&amp;gt;", rendered)
+        self.assertIn("&lt;span class=&quot;loc-code&quot;&gt;", rendered)
         # Printed labels and the stored path keep the plain name.
         self.assertNotIn("Carp project", child.descriptive_identifier)
 
@@ -416,15 +450,16 @@ class LocationOverviewTests(TestCase):
         self.assertIn("modal", dict(metadata.attributes).get("class", "").split())
         self.assertEqual(dict(metadata.attributes).get("aria-hidden"), "true")
         self.assertIn(self.location.physical_description, str(metadata))
-        self.assertIn(label_url, str(metadata))
+        self.assertNotIn(label_url, str(metadata))  # no label preview in the details
         description = next(element for element in elements if "location-header-description" in dict(element.attributes).get("class", "").split())
         self.assertIn(self.location.physical_description, str(description))
         trigger = next(element for element in html_elements(description) if dict(element.attributes).get("data-bs-target") == "#location-metadata")
         self.assertEqual(trigger.name, "button")
         self.assertEqual(dict(trigger.attributes).get("data-bs-toggle"), "modal")
-        self.assertIn("Location details", str(trigger))
+        self.assertEqual(dict(trigger.attributes).get("aria-label"), "Location details")  # the (i) in the grey box
+        # The path is in the breadcrumb, and in the details, not in the heading.
         path = next(element for element in elements if "location-path" in dict(element.attributes).get("class", "").split())
-        self.assertNotIn(path, list(html_elements(metadata)))
+        self.assertIn(path, list(html_elements(metadata)))
         self.assertIn(self.location.descriptive_identifier, str(path))
 
     def test_sublocation_panel_is_hidden_when_the_type_forbids_sublocations(self):

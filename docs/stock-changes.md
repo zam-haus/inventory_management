@@ -7,6 +7,11 @@ one location. First choose **Remove stock** (red, arrow down) or **Add stock**
 dialog shows the sale value of the changed amount as you type, or says it is
 unknown; it is marked as an estimate when based on an estimated amount.
 
+A bulk item's page also has **Take out** and **Add stock** first among its actions, without a
+location: they open the dialog removing or adding, for the location from the label (`?loc=`), else
+the first one. For an item at several locations the dialog offers them in a choice instead of naming
+one; another location brings its stock, keeping direction and amount (`take_choices`, `stock_change.js`).
+
 * Reasons for removing: sale, ZAM's own use, recount (lost or correction),
   destruction, other. Reasons for adding: purchase, donation, recount (found or
   unknown origin).

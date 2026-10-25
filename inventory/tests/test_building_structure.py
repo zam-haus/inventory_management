@@ -1,6 +1,6 @@
 
 from django.contrib.auth.models import Group
-from django.test import TestCase
+from django.test import TestCase, override_settings
 
 from accounts.models import Team
 from ..models import Location, LocationAxis, LocationType
@@ -44,13 +44,35 @@ class StructureTests(TestCase):
         self.assertEqual(self.hood.purpose_context, "Abzug")
         self.assertTrue(self.box_lab.is_fire_load_free)
 
+    @override_settings(LANGUAGE_CODE="en")
+    def test_the_location_page_shows_teams_and_fire_load(self):
+        def parts(location):
+            page = self.client.get(location.get_absolute_url()).content.decode()
+            box = page[page.index('class="location-summary'):page.index("</header>")]
+            details = page[page.index('id="location-metadata"'):]
+            return box, details[:details.index('class="location-type-details"')]
+        box, details = parts(self.box_lab)  # both from the room it is in
+        self.assertIn("Werkstattgruppe Bio", box)
+        self.assertIn('title="Werkstattgruppe Bio">B</span>', box)
+        self.assertEqual(box.count("from Chemieraum"), 1)  # the fire load's; where the teams come from: in the details
+        self.assertIn("Free of fire load", box)
+        self.assertIn("From Chemieraum · CHE: this location has no teams of its own", details)
+        lab, details = parts(Location.objects.get(short_name="CHE"))  # its own
+        self.assertIn("Free of fire load", lab)
+        self.assertNotIn("from ", lab)
+        self.assertIn("Its own teams.", details)
+        changing_room, details = parts(self.changing_room)
+        self.assertIn("No team yet.", changing_room)
+        self.assertNotIn("Free of fire load", changing_room)  # only where it applies
+        self.assertIn("No team is responsible for this location", details)
+
     def test_levels_and_axes_page(self):
         from django.urls import reverse
         page = self.client.get(reverse("structure_overview")).content.decode()
         lab = Location.objects.get(short_name="CHE")
         self.assertIn(f'href="{lab.get_absolute_url()}"', page)
         self.assertIn(f'href="{self.hood.get_absolute_url()}"', page)
-        self.assertIn(">.1</span> Abzug", page)  # numbered parts relative to their room
+        self.assertIn('Abzug <span class="loc-code">.1</span>', page)  # numbered parts relative to their room
         self.assertIn("Werkhaus <span class=\"structure-house-code\">WH</span>", page)  # without the level number
         self.assertIn("--team-bg: #7d3a2d", page)
         self.assertNotIn("Kiste 2", page)  # boxes and shelves are left out
@@ -102,11 +124,11 @@ class AdminOnlyTypeTests(TestCase):
         page = self.client.get(self.room.get_absolute_url(), HTTP_ACCEPT_LANGUAGE="en").content.decode()
         self.assertNotIn('id="location-purpose-editor"', page)
         self.assertNotIn('id="location-overview-editor"', page)
-        self.assertNotIn("Edit purpose", page)  # nothing to show and nothing to add: no locked pencil either
+        self.assertNotIn("Edit purpose", page)  # what cannot be changed has no pencil
         Location.objects.filter(pk=self.room.pk).update(purpose="Labor")
         page = self.client.get(self.room.get_absolute_url(), HTTP_ACCEPT_LANGUAGE="en").content.decode()
-        self.assertIn("Edit purpose", page)  # locked, with its reason
-        self.assertIn("can only be changed in the admin.", page)
+        self.assertNotIn("Edit purpose", page)  # also with a purpose
+        self.assertIn("Labor", page)
         crate_page = self.client.get(self.crate.get_absolute_url()).content.decode()
         self.assertIn('id="location-overview-editor"', crate_page)
 

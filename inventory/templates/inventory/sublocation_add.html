@@ -1,12 +1,12 @@
 {% extends 'base.html' %}
-{% load django_bootstrap5 i18n static icons %}
+{% load django_bootstrap5 i18n static icons locations %}
 
 {% block bootstrap5_extra_head %}
     {{ block.super }}
     <link rel="stylesheet" href="{% static 'inventory/location_detail.css' %}">
 {% endblock %}
 
-{% block title %}{% blocktrans with type=sub.name %}Add {{ type }}{% endblocktrans %}: {{ object.unique_identifier }}{% endblock %}
+{% block title %}{% blocktrans with type=sub.name %}Add {{ type }}{% endblocktrans %}: {{ object.title_with_code }}{% endblock %}
 
 {% block page_header %}
     <header class="location-header">
@@ -14,8 +14,7 @@
         <div class="location-heading">
             <div class="location-heading-text">
                 <p class="location-eyebrow">{% blocktrans with type=sub.name %}Add {{ type }}{% endblocktrans %} · {{ object.type.name }}</p>
-                <h1>{{ object.name }}</h1>
-                <span class="location-identifier">{{ object.unique_identifier }}</span>
+                <h1>{% location_label object %}</h1>
             </div>
             <div class="location-actions">
                 <a class="btn btn-secondary" href="{{ object.get_absolute_url }}">{% trans "Cancel" %}</a>
@@ -31,7 +30,7 @@
                 <h2 id="sub-heading">{% blocktrans with type=sub.name %}Add {{ type }}{% endblocktrans %}</h2>
                 <p class="location-muted mb-1">{% blocktrans with sub=sub.name %}{{ sub }}: lettered from the bottom up, starting with a. The top counts as one too if things are put on it: it gets the last letter.{% endblocktrans %}
                     {% trans "New ones get the next free letters; after z come aa, ab …" %}</p>
-                <p class="location-muted">{% trans "Already here:" %} {% for part in existing %}<code>{{ part.short_name }}</code>{% if not forloop.last %}, {% endif %}{% empty %}–{% endfor %}</p>
+                <p class="location-muted">{% trans "Already here:" %} {% for part in existing %}{% location_code part.short_name %}{% if not forloop.last %} {% endif %}{% empty %}–{% endfor %}</p>
             </div>
             {% if form.next %}
                 <form method="post" novalidate class="location-move-form location-narrow-form">

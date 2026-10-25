@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% load i18n static l10n icons %}
+{% load i18n static l10n icons locations %}
 
 {% block bootstrap5_extra_head %}
     {{ block.super }}
@@ -11,7 +11,7 @@
 {% block content %}
     <div class="stock-change-page">
         <h1 class="fs-3">{% icon "cart" %} {% trans "Change stock" %}</h1>
-        <p class="stock-change-subject"><a href="{{ entry.item.get_absolute_url }}">{{ entry.item }}</a> · <a href="{{ entry.location.get_absolute_url }}">{{ entry.location.unique_identifier }}</a></p>
+        <p class="stock-change-subject"><a href="{{ entry.item.get_absolute_url }}">{{ entry.item }}</a> · <a href="{{ entry.location.get_absolute_url }}">{% location_label entry.location %}</a></p>
         <form method="post" action="{% url 'stock_change' entry.pk %}" class="stock-change-form" {% include 'inventory/stock_change_form_attrs.html' %}
               data-amount="{% if entry.amount != None %}{{ entry.amount|unlocalize }}{% endif %}" data-kind="{{ entry.amount_kind }}" data-amount-text="{{ entry.amount_text }}"
               data-unit="{{ entry.item.measurement_unit.short }}" data-price="{% if entry.item.sale_price != None %}{{ entry.item.sale_price|unlocalize }}{% endif %}"

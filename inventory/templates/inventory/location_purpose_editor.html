@@ -14,7 +14,7 @@
                         <span class="location-muted" data-field-editor-count aria-hidden="true">{{ purpose_form.purpose.value|default:""|length }} / 50</span>
                     </div>
                     {{ purpose_form.purpose }}
-                    <p class="form-text">{% blocktrans with name=object.name %}What the location is for. It is shown with its name, e.g. “{{ name }}: Carp project”.{% endblocktrans %}</p>
+                    <p class="form-text">{% blocktrans with name=object.name %}What the location is for. It is shown first, its name small after it, e.g. “Carp project {{ name }}”.{% endblocktrans %}</p>
                     <div class="text-danger" data-field-editor-errors>{{ purpose_form.purpose.errors }}</div>
                 </div>
                 <div class="modal-footer">

@@ -110,7 +110,8 @@ class PrintLabelsView(PermissionRequiredMixin, View):
             "form": form, "object": self.obj, "subject_type": self.subject_type, "print_options": print_options,
             "unavailable": dialog.unavailable_reason(self.subject_type, print_options),
             "options_id": f"label-print-options-{self.subject_type}",
-            "print_title": dialog.title(self.subject_type, self.obj), "back_url": self.back_url(),
+            "print_title": dialog.title(self.subject_type, self.obj),
+            "print_heading": dialog.title_html(self.subject_type, self.obj), "back_url": self.back_url(),
         }, status=status)
 
     def back_url(self):

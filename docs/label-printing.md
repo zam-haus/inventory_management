@@ -99,8 +99,11 @@ Brother gets P-touch raster data. The code is in the app `label_printing`.
 
 ### Taking stock out (item pages)
 
-Item pages show a large **Take out** button per location, which opens the stock change dialog
-for removing. The location from the label (`?loc=`) comes first and is marked in the list.
+Item pages show **Take out** and **Add stock** first among their actions, beside the title, without
+a location: they open the stock change dialog for the location from the label (`?loc=`), which is
+also marked in the list; for an item at several locations the dialog offers the others
+([stock changes](stock-changes.md)). Actions that do not fit go into the actions menu from the
+right, so taking out stays visible longest.
 
 ## Setting up (admin → Label printing)
 
@@ -183,8 +186,9 @@ Standort", also with an arrow up or down, and "Mobil, mit Logo und Eigentum"; `r
 file names the ZPL template), keeping their IDs, so locations and types keep their labels; their
 logo becomes the label image "ZAM Logo"; a template it did not know gets a plain design and its ZPL
 as comments. The other templates are for 57 × 32, 60 × 30, 70 × 32 and 105 × 52 mm labels and for
-9, 12, 18, 24 and 36 mm tape:
-* locations: "QR-Code, Kennung, Name und Ort" (QR code, code, name, path);
+9, 12, 18, 24 and 36 mm tape (as `label_printing.0003` updated them, see below):
+* locations: "QR-Code, Kennung, Name und Ort" (QR code, title: purpose, else name, then the code
+  inverted, path);
 * bulk items: "Name, Preis und QR-Code" (name, the price in a price tag frame as wide as the price,
   an empty one without a price, QR code, on labels also label ID and location; no name: a line to
   write it on; deactivated on 9 mm tape), and "Preisschild" (price with € in a price tag frame,
@@ -192,6 +196,12 @@ as comments. The other templates are for 57 × 32, 60 × 30, 70 × 32 and 105 ×
 * label IDs: "ZAMid" (lettering, QR code, ID in two lines; on tape with a margin of at least
   1 mm at top and bottom);
 * unique items: "ZAMid mit Eigentum" (the ZAMid design and the owner's first name).
+
+Migration `label_printing.0003` applies the [location display rule](locations.md#how-locations-are-shown) to
+them: the location's title first, its code after it inverted in monospace (also next to the label ID on item
+labels, and on "Mobil, mit Logo und Eigentum" 105 × 52 mm). It updates the templates whose description is still
+the one `0002` brought (`catalog/location_display_0003.json`, before and after); templates changed since stay
+as they are.
 
 Their rules:
 

@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
 
-{% load django_bootstrap5 i18n actions icons %}
+{% load django_bootstrap5 i18n actions icons locations %}
 {% load mytemplatetags %}
 {% load thumbnail %}
 {% load static %}
@@ -71,12 +71,10 @@
         <td>
             {% for unique_item in object.active_unique_items %}
                 <a href="{{ unique_item.get_absolute_url }}">{% if unique_item.label_code %}{{ unique_item.label_display }}{% else %}#{{ unique_item.pk }}{% endif %}</a>
-                @ <a href="{{ unique_item.location.get_absolute_url }}" title="{{ unique_item.location.descriptive_identifier }}">{{ unique_item.location.locatable_identifier }}</a><br>
+                @ <a href="{{ unique_item.location.get_absolute_url }}" title="{{ unique_item.location.descriptive_identifier }}">{% location_label unique_item.location code=unique_item.location.locatable_identifier subtitle=False %}</a><br>
             {% endfor %}
             {% for itemloc in object.itemlocation_set.all %}
-                <a href="{{ itemloc.location.get_absolute_url }}" title="{{ itemloc.location.descriptive_identifier }}">
-                {{ itemloc }}
-                </a><br>
+                {{ itemloc.amount_text }} @ <a href="{{ itemloc.location.get_absolute_url }}" title="{{ itemloc.location.descriptive_identifier }}">{% location_label itemloc.location code=itemloc.location.locatable_identifier subtitle=False %}</a><br>
             {% endfor %}
         </td>
         </tr>

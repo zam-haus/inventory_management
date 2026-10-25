@@ -309,7 +309,7 @@ msgstr "Entnehmen"
 
 #: inventory/templates/inventory/location_detail.html:40
 msgid "Move"
-msgstr "Verlegen"
+msgstr "Bewegen"
 
 #: inventory/templates/inventory/location_detail.html:42
 msgid "No items located here."
@@ -389,13 +389,13 @@ msgid "Print inventory"
 msgstr "Inventarliste drucken"
 
 msgid "Move Location"
-msgstr "Standort verschieben"
+msgstr "Standort bewegen"
 
 msgid "Move location"
-msgstr "Verschieben"
+msgstr "Bewegen"
 
 msgid "Moving is disabled for location type “%(location_type)s”."
-msgstr "Verschieben ist für den Standorttyp „%(location_type)s“ nicht freigegeben."
+msgstr "Bewegen ist für den Standorttyp „%(location_type)s“ nicht freigegeben."
 
 msgid "Location navigation"
 msgstr "Standortnavigation"
@@ -506,7 +506,7 @@ msgid "Stored items and child locations remain assigned to this location."
 msgstr "Gelagerte Sachen und Unterstandorte bleiben diesem Standort zugeordnet."
 
 msgid "Leave the destination empty to make this a top-level location."
-msgstr "Das Ziel leer lassen, um diesen Standort auf die oberste Ebene zu verschieben."
+msgstr "Das Ziel leer lassen, um diesen Standort auf die oberste Ebene zu bewegen."
 
 msgid "Destination"
 msgstr "Zielstandort"
@@ -518,7 +518,7 @@ msgid "Search for a location…"
 msgstr "Standort suchen…"
 
 msgid "Locations to move here"
-msgstr "Hierher zu verschiebende Standorte"
+msgstr "Hierher zu bewegende Standorte"
 
 msgid "Enter unique identifiers, locatable identifiers, numeric IDs or /loc URLs. Separate entries with spaces, newlines, tabs or semicolons."
 msgstr "Eindeutige Kennungen, vollständige Standortkennungen, numerische IDs oder /loc-URLs eingeben. Einträge durch Leerzeichen, Zeilenumbrüche, Tabulatoren oder Semikolons trennen."
@@ -536,26 +536,26 @@ msgid "This location cannot contain sub-locations."
 msgstr "Dieser Standort kann keine Unterstandorte enthalten."
 
 msgid "Moving is disabled for this location type."
-msgstr "Das Verschieben ist für diesen Standorttyp deaktiviert."
+msgstr "Das Bewegen ist für diesen Standorttyp deaktiviert."
 
 msgid "Moving would create conflicting location identifiers."
-msgstr "Beim Verschieben würden widersprüchliche Standortkennungen entstehen."
+msgstr "Beim Bewegen würden widersprüchliche Standortkennungen entstehen."
 
 #, python-format
 msgid "Locations moved: %(successes)d. Errors: %(errors)d."
-msgstr "Standorte verschoben: %(successes)d. Fehler: %(errors)d."
+msgstr "Standorte bewegt: %(successes)d. Fehler: %(errors)d."
 
 msgid "Edit and retry failed entries"
 msgstr "Fehlerhafte Einträge bearbeiten und erneut versuchen"
 
 msgid "Move locations into this location"
-msgstr "Standorte hierher verschieben"
+msgstr "Standorte hierher bewegen"
 
 msgid "Move locations here"
-msgstr "Standorte hierher verschieben"
+msgstr "Standorte hierher bewegen"
 
 msgid "Stored items and child locations remain assigned to each moved location. Duplicate entries are processed once."
-msgstr "Sachen und Unterstandorte bleiben dem jeweils verschobenen Standort zugeordnet. Doppelte Einträge werden einmal verarbeitet."
+msgstr "Sachen und Unterstandorte bleiben dem jeweils bewegten Standort zugeordnet. Doppelte Einträge werden einmal verarbeitet."
 
 msgid "Dissolve location"
 msgstr "Standort auflösen"
@@ -576,19 +576,19 @@ msgid "Choose an action for every entry."
 msgstr "Bitte für jeden Eintrag eine Aktion auswählen."
 
 msgid "Choose a destination for every entry to move."
-msgstr "Bitte für jeden zu verschiebenden Eintrag einen Zielstandort auswählen."
+msgstr "Bitte für jeden zu bewegenden Eintrag einen Zielstandort auswählen."
 
 msgid "This destination cannot contain sub-locations."
 msgstr "Dieser Zielstandort kann keine Unterstandorte enthalten."
 
 msgid "A location selected for deletion still has sub-locations. Move or delete them first."
-msgstr "Ein zum Löschen ausgewählter Standort hat noch Unterstandorte. Diese zuerst verschieben oder löschen."
+msgstr "Ein zum Löschen ausgewählter Standort hat noch Unterstandorte. Diese zuerst bewegen oder löschen."
 
 msgid "Location tree may not contain cycles."
 msgstr "Der Standortbaum darf keine Zyklen enthalten."
 
 msgid "A location selected for deletion still contains items. Move or delete its stock entries first."
-msgstr "Ein zum Löschen ausgewählter Standort enthält noch Sachen. Die Bestandszuordnungen zuerst verschieben oder löschen."
+msgstr "Ein zum Löschen ausgewählter Standort enthält noch Sachen. Die Bestandszuordnungen zuerst bewegen oder löschen."
 
 msgid "The same item would have two stock entries at one destination. Choose another destination; quantities are not merged automatically."
 msgstr "Dieselbe Sache hätte zwei Bestandszuordnungen an einem Zielstandort. Bitte ein anderes Ziel auswählen; Mengen werden nicht automatisch zusammengeführt."
@@ -597,10 +597,10 @@ msgid "Two sub-locations would have the same short name at the destination."
 msgstr "Zwei Unterstandorte hätten am Ziel denselben Kurznamen."
 
 msgid "These stock moves depend on each other. Choose different destinations."
-msgstr "Diese Bestandsverschiebungen hängen voneinander ab. Bitte andere Zielstandorte auswählen."
+msgstr "Diese Bestandsbewegungen hängen voneinander ab. Bitte andere Zielstandorte auswählen."
 
 msgid "These location moves or deletions conflict. Review the destinations and empty locations."
-msgstr "Diese Standortverschiebungen oder Löschungen stehen im Konflikt. Bitte die Zielstandorte und zu leerenden Standorte prüfen."
+msgstr "Diese Standortbewegungen oder Löschungen stehen im Konflikt. Bitte die Zielstandorte und zu leerenden Standorte prüfen."
 
 msgid "The location is not empty and cannot be deleted."
 msgstr "Der Standort ist nicht leer und kann nicht gelöscht werden."
@@ -612,19 +612,19 @@ msgid "The plan conflicts with the current inventory. No changes were saved."
 msgstr "Der Plan steht im Konflikt mit dem aktuellen Bestand. Es wurden keine Änderungen gespeichert."
 
 msgid "Location dissolved. Planned moves and deletions were completed."
-msgstr "Standort aufgelöst. Die geplanten Verschiebungen und Löschungen wurden ausgeführt."
+msgstr "Standort aufgelöst. Die geplanten Bewegungen und Löschungen wurden ausgeführt."
 
 msgid "Stock entry"
 msgstr "Bestandszuordnung"
 
 msgid "1. Plan moves and deletions"
-msgstr "1. Verschiebungen und Löschungen planen"
+msgstr "1. Bewegungen und Löschungen planen"
 
 msgid "Choose a destination or deletion for each entry. Entries without either stay where they are. Nothing changes until you confirm on the next page."
 msgstr "Für jeden Eintrag ein Ziel oder das Löschen auswählen. Einträge ohne beides bleiben, wo sie sind. Erst nach der Bestätigung auf der nächsten Seite wird etwas geändert."
 
 msgid "Deleting a stock entry removes only its association with the location, never the item itself. Locations can only be deleted once empty. Moving a sub-location keeps its remaining contents together."
-msgstr "Das Löschen einer Bestandszuordnung entfernt nur die Zuordnung zum Standort, niemals die Sache selbst. Standorte können nur leer gelöscht werden. Beim Verschieben eines Unterstandorts bleibt sein verbleibender Inhalt zusammen."
+msgstr "Das Löschen einer Bestandszuordnung entfernt nur die Zuordnung zum Standort, niemals die Sache selbst. Standorte können nur leer gelöscht werden. Beim Bewegen eines Unterstandorts bleibt sein verbleibender Inhalt zusammen."
 
 msgid "Include all descendants and their stock entries"
 msgstr "Alle Unterstandorte und deren Bestandszuordnungen einbeziehen"
@@ -651,13 +651,13 @@ msgid "This location is already empty. Continue to review its deletion."
 msgstr "Dieser Standort ist bereits leer. Weiter zur Prüfung seiner Löschung."
 
 msgid "Review moves and deletions"
-msgstr "Verschiebungen und Löschungen prüfen"
+msgstr "Bewegungen und Löschungen prüfen"
 
 msgid "2. Confirm and dissolve"
 msgstr "2. Bestätigen und auflösen"
 
 msgid "Review every move and deletion below. Confirming applies the whole plan and finally deletes the empty location. Cancelling changes nothing."
-msgstr "Bitte alle folgenden Verschiebungen und Löschungen prüfen. Die Bestätigung führt den gesamten Plan aus und löscht abschließend den leeren Standort. Beim Abbrechen wird nichts geändert."
+msgstr "Bitte alle folgenden Bewegungen und Löschungen prüfen. Die Bestätigung führt den gesamten Plan aus und löscht abschließend den leeren Standort. Beim Abbrechen wird nichts geändert."
 
 msgid "Only stock entries are deleted; the items themselves are kept."
 msgstr "Es werden nur Bestandszuordnungen gelöscht; die Sachen selbst bleiben erhalten."
@@ -669,13 +669,13 @@ msgid "Deleted last, only when completely empty."
 msgstr "Wird zuletzt gelöscht, nur wenn vollständig leer."
 
 msgid "To be moved"
-msgstr "Wird verschoben"
+msgstr "Wird bewegt"
 
 msgid "Back to editing"
 msgstr "Zurück zur Bearbeitung"
 
 msgid "Confirm moves and deletions"
-msgstr "Verschiebungen und Löschungen bestätigen"
+msgstr "Bewegungen und Löschungen bestätigen"
 
 msgid "deleted"
 msgstr "gelöscht"
@@ -706,7 +706,7 @@ msgid "You do not have permission to delete this entry."
 msgstr "Du hast keine Berechtigung, diesen Eintrag zu löschen."
 
 msgid "You do not have permission to move this entry."
-msgstr "Du hast keine Berechtigung, diesen Eintrag zu verschieben."
+msgstr "Du hast keine Berechtigung, diesen Eintrag zu bewegen."
 
 msgid "You do not have permission for the selected action."
 msgstr "Du hast keine Berechtigung für die ausgewählte Aktion."
@@ -882,10 +882,10 @@ msgid "Location type properties"
 msgstr "Eigenschaften des Standorttyps"
 
 msgid "Moving"
-msgstr "Verschieben"
+msgstr "Bewegen"
 
 msgid "Moving is allowed for this location type."
-msgstr "Verschieben ist für diesen Standorttyp erlaubt."
+msgstr "Bewegen ist für diesen Standorttyp erlaubt."
 
 msgid "This location can contain sub-locations."
 msgstr "Dieser Standort kann Unterstandorte enthalten."
@@ -1795,15 +1795,15 @@ msgstr "Datei hinzugefügt (%(name)s)."
 #: attachment_views.py:76
 #, python-format
 msgid "Moved to %(location)s."
-msgstr "Verlegt nach %(location)s."
+msgstr "Bewegt nach %(location)s."
 
 #: dissolution.py:65 models/location.py:344
 msgid "Unique items are still stored here. Move them or remove them from the inventory first."
-msgstr "Hier befinden sich noch Einzelobjekte. Verlege sie oder entferne sie zuerst aus dem Inventar."
+msgstr "Hier befinden sich noch Einzelobjekte. Bewege sie oder entferne sie zuerst aus dem Inventar."
 
 #: dissolution.py:95
 msgid "A location selected for deletion still contains unique items. Move them or remove them from the inventory first."
-msgstr "Ein zum Löschen ausgewählter Standort enthält noch Einzelobjekte. Verlege sie oder entferne sie zuerst aus dem Inventar."
+msgstr "Ein zum Löschen ausgewählter Standort enthält noch Einzelobjekte. Bewege sie oder entferne sie zuerst aus dem Inventar."
 
 #: forms.py:104
 msgid "Markdown is supported, e.g. [link text](https://example.org), lists and **bold**."
@@ -2062,7 +2062,7 @@ msgstr "keine Unterstandorte"
 
 #: models/location.py:30
 msgid "moveable flag"
-msgstr "verschiebbar"
+msgstr "beweglich"
 
 #: models/location.py:195
 msgid "Can print the inventory of locations"
@@ -2238,7 +2238,7 @@ msgstr "Ins Inventar aufgenommen"
 
 #: models/unique_item.py:211
 msgid "Moved"
-msgstr "Verlegt"
+msgstr "Bewegt"
 
 #: models/unique_item.py:212
 msgid "Removed from the inventory"
@@ -2430,7 +2430,7 @@ msgstr "Einzelobjekte müssen zuerst einzeln bearbeitet werden"
 
 #: templates/inventory/location_dissolve.html:22
 msgid "Unique items are never dissolved together with their location. Move each one elsewhere or remove it from the inventory, then dissolve this location."
-msgstr "Einzelobjekte werden nie zusammen mit ihrem Standort aufgelöst. Verlege jedes an einen anderen Ort oder entferne es aus dem Inventar und löse dann diesen Standort auf."
+msgstr "Einzelobjekte werden nie zusammen mit ihrem Standort aufgelöst. Bewege jedes an einen anderen Ort oder entferne es aus dem Inventar und löse dann diesen Standort auf."
 
 #: templates/inventory/location_dissolve.html:28
 #: templates/inventory/unique_item_detail.html:37
@@ -2806,7 +2806,7 @@ msgstr "Hier befinden sich …"
 #: inventory/templates/inventory/location_detail.html
 #: inventory/templates/inventory/location_dissolve_base.html
 msgid "Move contents"
-msgstr "Inhalt verschieben"
+msgstr "Inhalt bewegen"
 
 #: inventory/templates/inventory/location_dissolve.html
 msgid "Delete this location once it is empty"
@@ -2822,7 +2822,7 @@ msgstr "Alle an ihrem Platz lassen"
 
 #: inventory/templates/inventory/location_dissolve.html
 msgid "This location is empty. There is nothing to move."
-msgstr "Dieser Standort ist leer. Es gibt nichts zu verschieben."
+msgstr "Dieser Standort ist leer. Es gibt nichts zu bewegen."
 
 #: inventory/templates/inventory/location_dissolve_confirm.html
 msgid "2. Confirm"
@@ -2830,7 +2830,7 @@ msgstr "2. Bestätigen"
 
 #: inventory/templates/inventory/location_dissolve_confirm.html
 msgid "Review every move and deletion below. Confirming applies the whole plan; the location itself is kept. Cancelling changes nothing."
-msgstr "Alle Verschiebungen und Löschungen unten prüfen. Mit der Bestätigung wird der ganze Plan ausgeführt; der Standort selbst bleibt erhalten. Abbrechen ändert nichts."
+msgstr "Alle Bewegungen und Löschungen unten prüfen. Mit der Bestätigung wird der ganze Plan ausgeführt; der Standort selbst bleibt erhalten. Abbrechen ändert nichts."
 
 #: inventory/templates/inventory/location_dissolve_confirm.html
 #, python-format
@@ -2849,7 +2849,7 @@ msgstr "Dieser Zielstandort wird laut Plan gelöscht. Bitte einen anderen auswä
 
 #: inventory/dissolve_views.py
 msgid "Planned moves and deletions were completed. The location was kept."
-msgstr "Die geplanten Verschiebungen und Löschungen wurden ausgeführt. Der Standort bleibt erhalten."
+msgstr "Die geplanten Bewegungen und Löschungen wurden ausgeführt. Der Standort bleibt erhalten."
 
 #: inventory/templates/admin/inventory/capped_tabular.html
 #, python-format
@@ -3073,8 +3073,12 @@ msgstr "Übersichtsfoto von %(location)s"
 
 #: inventory/templates/inventory/location_purpose_editor.html
 #, python-format
-msgid "What the location is for. It is shown with its name, e.g. “%(name)s: Carp project”."
-msgstr "Wofür der Standort da ist. Er wird mit dem Namen angezeigt, z. B. „%(name)s: Karpfenprojekt“."
+msgid ""
+"What the location is for. It is shown first, its name small after it, e.g. "
+"“Carp project %(name)s”."
+msgstr ""
+"Wofür der Standort da ist. Er steht vorne, der Name klein dahinter, z. B. "
+"„Karpfenprojekt %(name)s“."
 
 #: inventory/templates/inventory/location_overview_editor.html
 msgid "Take or choose a photo"
@@ -3098,7 +3102,7 @@ msgid "Choose from photo library"
 msgstr "Aus der Fotomediathek auswählen"
 
 msgid "Move here"
-msgstr "Hierher verschieben"
+msgstr "Hierher bewegen"
 
 msgid "Print"
 msgstr "Drucken"
@@ -3194,10 +3198,10 @@ msgid "admin only"
 msgstr "nur im Admin"
 
 msgid "Locations of this type are created, changed and deleted only in the admin, which requires staff status. On the inventory pages purpose, description, photo, place and deletion are locked; what they contain can still be moved."
-msgstr "Standorte dieses Typs werden nur im Admin angelegt, bearbeitet und gelöscht; dafür sind Staff-Rechte nötig. Auf den Inventarseiten sind Zweck, Beschreibung, Foto, Ort und Löschen gesperrt; ihr Inhalt lässt sich weiter verschieben."
+msgstr "Standorte dieses Typs werden nur im Admin angelegt, bearbeitet und gelöscht; dafür sind Staff-Rechte nötig. Auf den Inventarseiten sind Zweck, Beschreibung, Foto, Ort und Löschen gesperrt; ihr Inhalt lässt sich weiter bewegen."
 
 msgid "Locations of an admin-only type can be neither moved nor deleted on the inventory pages."
-msgstr "Standorte eines Admin-Typs können auf den Inventarseiten weder verschoben noch gelöscht werden."
+msgstr "Standorte eines Admin-Typs können auf den Inventarseiten weder bewegt noch gelöscht werden."
 
 msgid "You do not have permission to change this location."
 msgstr "Du hast keine Berechtigung, diesen Standort zu bearbeiten."
@@ -3247,7 +3251,7 @@ msgid "number ranges per area"
 msgstr "Nummernkreise pro Bereich"
 
 msgid "New locations of this type get a free number from the number range of the room or area they are created in (also on a pallet there), on its page. They keep it when moved. Only for types with building-wide codes, a short name prefix and the numeric sequence."
-msgstr "Neue Standorte dieses Typs bekommen eine freie Nummer aus dem Nummernkreis des Raums oder Bereichs, in dem sie angelegt werden (auch auf einer Palette dort), und werden auf dessen Seite angelegt. Beim Verschieben behalten sie sie. Nur für Typen mit hausweit eindeutigem Code, Kürzel-Präfix und numerischer Folge."
+msgstr "Neue Standorte dieses Typs bekommen eine freie Nummer aus dem Nummernkreis des Raums oder Bereichs, in dem sie angelegt werden (auch auf einer Palette dort), und werden auf dessen Seite angelegt. Beim Bewegen behalten sie sie. Nur für Typen mit hausweit eindeutigem Code, Kürzel-Präfix und numerischer Folge."
 
 msgid "Number ranges per area need building-wide codes, a short name prefix and the numeric sequence."
 msgstr "Nummernkreise pro Bereich brauchen hausweit eindeutige Codes, ein Kürzel-Präfix und die numerische Folge."
@@ -3469,7 +3473,7 @@ msgid "No levels yet. Levels are locations of a type with the building structure
 msgstr "Noch keine Ebenen. Ebenen sind Standorte eines Typs mit der Gebäudestruktur „Haus und Ebene“ und einem Code wie WH-1."
 
 msgid "Locations of this type can be moved on the inventory pages, e.g. boxes, or shelves and cabinets (also onto a pallet)."
-msgstr "Standorte dieses Typs lassen sich auf den Inventarseiten verschieben, z. B. Kisten, oder Regale und Schränke (auch auf eine Palette)."
+msgstr "Standorte dieses Typs lassen sich auf den Inventarseiten bewegen, z. B. Kisten, oder Regale und Schränke (auch auf eine Palette)."
 
 #, python-format
 msgid "The code %(code)s was used before and stays blocked."
@@ -3740,3 +3744,26 @@ msgstr "Hintergrundfarbe"
 
 msgid "Only labels or tape of this colour; empty: any."
 msgstr "Nur Etiketten oder Band in dieser Farbe; leer: beliebig."
+
+msgid "No physical description yet."
+msgstr "Noch keine physische Beschreibung."
+
+#, python-format
+msgid "from %(location)s"
+msgstr "von %(location)s"
+
+msgid "No team yet."
+msgstr "Noch kein Team."
+
+msgid "No team is responsible for this location, nor for the one it is in."
+msgstr "Für diesen Standort ist kein Team zuständig, auch nicht für den, in dem er liegt."
+
+msgid "Its own teams. Locations inside it without teams of their own take them over."
+msgstr "Eigene Teams. Standorte darin ohne eigene Teams übernehmen sie."
+
+#, python-format
+msgid "From %(location)s: this location has no teams of its own and takes those of the location it is in."
+msgstr "Von %(location)s: Dieser Standort hat keine eigenen Teams und übernimmt die des Standorts, in dem er liegt."
+
+msgid "Rooms, areas and levels with their own code never take teams over from above."
+msgstr "Räume, Bereiche und Ebenen mit eigenem Code übernehmen nie Teams von oben."

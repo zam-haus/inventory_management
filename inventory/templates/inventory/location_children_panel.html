@@ -1,4 +1,4 @@
-{% load i18n icons actions %}{% comment %}Sub-locations of the location page: all of them, or those of one category (anchor, title,
+{% load i18n icons actions locations %}{% comment %}Sub-locations of the location page: all of them, or those of one category (anchor, title,
 children, category). Storage units and containers have a shortcut to the header's "add" and "move here" buttons, which stay.{% endcomment %}
 <section class="location-panel location-children" id="{{ anchor }}" aria-labelledby="{{ anchor }}-heading">
     {% if children|length > 10 %}<input type="checkbox" class="list-collapse-state visually-hidden" id="{{ anchor }}-expanded">{% endif %}
@@ -41,7 +41,7 @@ children, category). Storage units and containers have a shortcut to the header'
         {% for child in children %}
             <li>
                 <a href="{{ child.get_absolute_url }}">
-                    <span><span class="location-child-name fs-6">{{ child.display_name }}</span><span class="location-child-identifier">{{ child.unique_identifier }}</span></span>
+                    <span class="location-child-name fs-6">{% location_label child %}</span>
                     <span class="location-child-arrow" aria-hidden="true">{% icon "chevron-right" %}</span>
                 </a>
             </li>

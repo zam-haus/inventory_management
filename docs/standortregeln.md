@@ -18,7 +18,7 @@ verlinkt auf der Standortliste) zeigt ihn als Übersicht.
    im Admin angelegt, bearbeitet und gelöscht, auch Zweck und Beschreibung; dafür sind
    Staff-Rechte nötig. Auf den Inventarseiten sind Zweck, Beschreibung, Foto, Ort und Löschen
    gesperrt. Was darin steht (Regale, Kisten, Bestand), lässt sich weiter
-   verschieben, und neue Regale und Schränke werden dort angelegt.
+   bewegen, und neue Regale und Schränke werden dort angelegt.
 5. **Regale, Schränke und Kisten** gehören nicht zur Gebäudestruktur. Sie haben eigene Codes
    (`R303`, `K034c`) und hängen in dem Raum oder Bereich, in dem sie stehen; Regale und Schränke
    auch auf einer Palette dort.
@@ -39,7 +39,7 @@ Lagermöbel bleiben Lagermöbel, auch wenn sie Rollen haben. *Mobil* (unterwegs 
 hat keine Kategorie. Die Standortseite listet die Unterstandorte je Kategorie in einem eigenen
 Kasten: unter „Hier befinden sich …“ links die Sachen, rechts Gebäudeteile, Lagermöbel und
 Behälter. Bei den Lagermöbeln legt **+** ein neues an (wie der Knopf **Regal / Schrank**), bei
-den Behältern holt der Knopf daneben weitere hierher (wie **Hierher holen**).
+den Behältern holt der Knopf daneben weitere hierher (wie **Hierher bewegen**).
 
 ## Häuser und Ebenen
 
@@ -246,9 +246,9 @@ Nummern unabhängig von den Regalen.
 
 ### Umziehen und Paletten
 
-Regale und Schränke lassen sich verschieben (**Verschieben** auf ihrer Seite, **Hierher holen** am
+Regale und Schränke lassen sich bewegen (**Bewegen** auf ihrer Seite, **Hierher bewegen** am
 Ziel), aber nur in eine Ebene, einen Raum, einen Bereich oder auf eine Palette, nicht in ein Fach
-oder ein anderes Regal und nie ganz ohne Ort. Eine Palette nimmt ihr Regal beim Verschieben mit. Ein Regal behält beim
+oder ein anderes Regal und nie ganz ohne Ort. Eine Palette nimmt ihr Regal beim Bewegen mit. Ein Regal behält beim
 Umzug seine Nummer, auch wenn sie nicht zum Kreis des neuen Orts passt.
 
 ## Kennungen bleiben

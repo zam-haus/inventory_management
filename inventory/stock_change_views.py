@@ -154,7 +154,7 @@ class StockChangeView(PermissionRequiredMixin, View):
                 return JsonResponse({"ok": False, "errors": form.errors.get_json_data()}, status=400)
             return self.render_page(request, entry, form, status=400)
 
-        names = {"item": log.item_name, "location": entry.location.unique_identifier}
+        names = {"item": log.item_name, "location": entry.location.title_with_code}
         if log.amount is None:
             message = _("Removed everything of “%(item)s” from %(location)s.") % names
         else:

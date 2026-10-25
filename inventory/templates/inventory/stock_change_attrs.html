@@ -1,5 +1,5 @@
-{% load l10n %}{# The link and data of a stock entry for stock_change.js; needs entry, item and location (its code). #}href="{% url 'stock_change' entry.pk %}?next={{ request.get_full_path|urlencode }}"
-   data-stock-change data-item="{{ item }}" data-location="{{ location }}"
+{% load l10n %}{# The link and data of a stock entry for stock_change.js; needs entry, item and location. #}href="{% url 'stock_change' entry.pk %}?next={{ request.get_full_path|urlencode }}"
+   data-stock-change data-item="{{ item }}" data-location="{{ location.unique_identifier }}" data-location-title="{{ location.title }}"
    data-amount="{% if entry.amount != None %}{{ entry.amount|unlocalize }}{% endif %}" data-kind="{{ entry.amount_kind }}" data-amount-text="{{ entry.amount_text }}"
    data-unit="{{ item.measurement_unit.short }}" data-price="{% if item.sale_price != None %}{{ item.sale_price|unlocalize }}{% endif %}"
    data-last-stock="{{ entry.is_last_stock|yesno:'true,false' }}"

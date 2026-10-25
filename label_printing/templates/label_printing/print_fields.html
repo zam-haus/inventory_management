@@ -39,7 +39,7 @@
             </div>
             {% endif %}
             <div class="label-overview-info">
-                <span class="label-overview-name">{{ row.name }}</span>
+                <span class="label-overview-name">{% if row.html %}{{ row.html }}{% else %}{{ row.name }}{% endif %}</span>
                 {% if row.outcomes %}
                 <div class="label-picker" data-picker>
                     <select class="form-select form-select-sm" name="row-{{ forloop.counter0 }}-outcome" aria-label="{% trans 'Label' %}">
@@ -64,7 +64,7 @@
     <div class="mb-3">
         <label class="form-label" for="label-print-location-{{ subject_type }}">{% trans "Location on the label" %}</label>
         <select class="form-select{% if form.location.errors %} is-invalid{% endif %}" id="label-print-location-{{ subject_type }}" name="location">
-            {% for location in print_options.locations %}<option value="{{ location.id }}"{% if request.GET.loc == location.id|stringformat:"s" %} selected{% endif %}>{{ location.code }} {{ location.name }}</option>{% endfor %}
+            {% for location in print_options.locations %}<option value="{{ location.id }}"{% if request.GET.loc == location.id|stringformat:"s" %} selected{% endif %}>{{ location.label }}</option>{% endfor %}
             <option value="">{% trans "None (the QR code opens the item)" %}</option>
         </select>
         <div class="invalid-feedback" data-error-for="location">{{ form.location.errors|join:" " }}</div>

@@ -40,7 +40,8 @@ def label_print_dialog(context, obj, subject_type):
     return {"user": context.get("user"), "request": context.get("request"), "csrf_token": context.get("csrf_token"),
             "object": obj, "subject_type": subject_type, "form": form, "print_options": options, "modal": True,
             "options_id": f"label-print-options-{subject_type}",
-            "print_title": dialog.title(subject_type, obj), **just_created(context, options)}
+            "print_title": dialog.title(subject_type, obj), "print_heading": dialog.title_html(subject_type, obj),
+            **just_created(context, options)}
 
 
 def just_created(context, options):

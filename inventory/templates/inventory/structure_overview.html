@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% load i18n static %}
+{% load i18n static locations %}
 
 {% block bootstrap5_extra_head %}
     {{ block.super }}
@@ -64,8 +64,7 @@
                                 <td class="{% if not cell.present %}structure-void{% endif %}{% if cell.wide %} structure-wide{% endif %}">
                                     {% for level in cell.mains %}
                                         <div class="structure-main">
-                                            <a class="structure-code" href="{{ level.get_absolute_url }}">{{ level.short_name }}</a>
-                                            <span>{% if level.purpose %}{% trans "Main area:" %} <strong>{{ level.purpose }}</strong>{% else %}{{ level.name }}{% endif %}</span>
+                                            <a href="{{ level.get_absolute_url }}"><span>{% if level.purpose %}{% trans "Main area:" %} <strong>{{ level.purpose }}</strong>{% else %}{{ level.name }}{% endif %}</span> {% location_code level.short_name %}</a>
                                             {% if level.physical_description %}<span class="location-muted">{{ level.physical_description }}</span>{% endif %}
                                             {% include "inventory/team_badges.html" with teams=level.responsible_teams.all %}
                                         </div>
@@ -75,7 +74,7 @@
                                             {% for node in cell.nodes %}{% with location=node.location %}
                                                 <li class="structure-node structure-node-{{ node.kind }}{% if location.fire_load_free %} structure-fire{% endif %}">
                                                     <div class="structure-node-head">
-                                                        <a href="{{ location.get_absolute_url }}"><span class="structure-code">{{ location.short_name }}</span> <span class="structure-node-title">{{ location.purpose|default:location.name }}</span></a>
+                                                        <a href="{{ location.get_absolute_url }}"><span class="structure-node-title">{{ location.title }}</span> {% location_code location.short_name %}</a>
                                                         {% include "inventory/team_badges.html" with teams=location.responsible_teams.all %}
                                                     </div>
                                                     {% if location.fire_load_free %}<div class="structure-fire-mark">{% trans "Free of fire load" %}</div>{% endif %}
@@ -85,7 +84,7 @@
                                                         <ul class="structure-parts">
                                                             {% for part in node.parts %}
                                                                 <li>
-                                                                    <a href="{{ part.location.get_absolute_url }}"><span class="structure-code{% if not part.coded %} structure-code-part{% endif %}">{% if not part.coded %}.{% endif %}{{ part.code }}</span> {{ part.location.purpose|default:part.location.name }}</a>
+                                                                    <a href="{{ part.location.get_absolute_url }}">{{ part.location.title }} {% if part.coded %}{% location_code part.code %}{% else %}{% location_code "."|add:part.code %}{% endif %}</a>
                                                                     {% if part.location.physical_description %}<span class="location-muted">· {{ part.location.physical_description }}</span>{% endif %}
                                                                     {% if part.location.fire_load_free %}<span class="structure-fire-mark">{% trans "Free of fire load" %}</span>{% endif %}
                                                                     {% include "inventory/team_badges.html" with teams=part.location.responsible_teams.all %}

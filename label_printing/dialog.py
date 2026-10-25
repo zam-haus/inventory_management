@@ -14,6 +14,10 @@ from django.urls import reverse
 from django.utils.http import urlencode
 from django.utils.translation import gettext, gettext_lazy as _
 
+from django.utils.html import escape
+from django.utils.safestring import mark_safe
+
+from inventory import location_display
 from inventory.models import Item, LabelId, Location, UniqueItem
 from . import label_urls, outcomes, selection
 from .label_urls import ItemAt
@@ -52,11 +56,20 @@ def subject_object(subject_type, pk):
 
 
 def title(subject_type, obj):
-    """How the dialog names what it prints."""
-    return {"location": lambda: obj.unique_identifier, "labelid": lambda: obj.display,
+    """How the dialog names what it prints, as text."""
+    return {"location": lambda: obj.title_with_code, "labelid": lambda: obj.display,
             "uniqueitem": lambda: str(obj),
-            "items": lambda: gettext("Price tags at %(location)s") % {"location": obj.unique_identifier}}.get(
+            "items": lambda: gettext("Price tags at %(location)s") % {"location": obj.title_with_code}}.get(
         subject_type, lambda: obj.name)()
+
+
+def title_html(subject_type, obj):
+    """The same for the dialog's heading: locations as everywhere (title, name, code chip; location_display)."""
+    if subject_type == "location":
+        return location_display.label_html(obj)
+    if subject_type == "items":
+        return mark_safe(escape(gettext("Price tags at %(location)s")) % {"location": location_display.label_html(obj)})
+    return escape(title(subject_type, obj))
 
 
 def item_locations(item):
@@ -99,7 +112,7 @@ def dialog_outcomes(subject_type):
 
 def subject_name(subject):
     if isinstance(subject, Location):
-        return f"{subject.unique_identifier} {subject.name}"
+        return subject.title_with_code
     if isinstance(subject, ItemAt):
         price = label_urls.price_text(subject.item)
         return f"{subject.item.name} ({price})" if price else subject.item.name
@@ -126,6 +139,8 @@ def row(subject_type, subject, found):
     ranked = selection.rank(found, label_kind(subject_type), subject)
     on_medium, without = preview_urls(subject_type, subject)
     return {"name": subject_name(subject), "pk": str(subject_pk(subject)),
+            # locations shown as everywhere (title, name, code chip)
+            "html": location_display.label_html(subject) if isinstance(subject, Location) else "",
             "outcomes": [[entry.outcome.key, entry.priority, entry.shown] for entry in ranked],
             "chosen": ranked[0].outcome.key if ranked else "", "preview": on_medium, "template_preview": without,
             "priced": priced(subject) if isinstance(subject, ItemAt) else None}
@@ -193,7 +208,8 @@ def options(subject_type, obj):
     if subject_type == "item":
         # Where the QR code leads: the item's label ID (given out when first printed) with the location
         data["item"] = obj.name
-        data["locations"] = [{"id": location.pk, "code": location.unique_identifier, "name": location.name}
+        data["locations"] = [{"id": location.pk, "code": location.unique_identifier, "name": location.name,
+                              "label": location.title_with_code}
                              for location in item_locations(obj)]
         code = label_urls.item_label_code(ItemAt(obj, None), create=False)
         data["label_id"] = label_urls.display(code) if code else ""

@@ -1,0 +1,36 @@
+/* Locations shown alike everywhere (inventory/location_display.py): the title (purpose, else name) first,
+   the name small next to a purpose, the code after it as white monospace on a muted slate grey (quiet beside
+   the text, still readable: contrast about 5.4:1). */
+.loc-label { display: inline; }
+.loc-title { overflow-wrap: anywhere; }
+.loc-name { margin-left: .15em; color: #59636e; font-size: .8em; font-weight: 400; overflow-wrap: anywhere; }
+.loc-code {
+    display: inline-block;
+    margin-left: .15em;
+    padding: .05em .4em;
+    border-radius: .3em;
+    background: #5f6b76;
+    color: #fff;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+    font-size: .82em;
+    font-weight: 500;
+    line-height: 1.4;
+    letter-spacing: .01em;
+    vertical-align: .06em;
+    overflow-wrap: anywhere;
+}
+.loc-label > .loc-code:first-child { margin-left: 0; }
+a .loc-code, a.loc-code, .loc-code a { color: #fff; }
+/* A link around a label underlines the title only, not the space and chip after it. */
+a:has(> .loc-label) { text-decoration: none; }
+a > .loc-label > .loc-title { text-decoration: underline; }
+a:has(> .loc-label):hover > .loc-label > .loc-title { text-decoration-thickness: 2px; }
+/* Autocomplete suggestions: where the location is, below its label. */
+.loc-option { display: block; }
+.loc-where { display: block; color: #59636e; font-size: .8em; }
+.select2-results__option--highlighted .loc-name,
+.select2-results__option--highlighted .loc-where { color: inherit; }
+/* Responsible teams (team_badge.html): their code in their colour, on the location page and the levels-and-axes overview. */
+.team-badges { display: inline-flex; flex: 0 0 auto; gap: .2rem; }
+.team-badge { display: inline-flex; align-items: center; justify-content: center; min-width: 1.4rem; height: 1.25rem; padding: 0 .3rem; border-radius: .25rem; background: var(--team-bg); color: var(--team-fg); box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .25); font-family: monospace; font-size: .75rem; font-weight: 700; line-height: 1; }
+.team-badge-plain { --team-bg: transparent; --team-fg: inherit; }

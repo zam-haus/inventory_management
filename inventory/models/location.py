@@ -585,7 +585,7 @@ class Location(SoftDeleteModel, ComputedFieldsModel):
     )
 
     physical_description = models.TextField(_("physical description"), blank=True)
-    # What the location is for, shown with its name ("Box 23: Carp project", see display_name).
+    # What the location is for, shown first with the name small after it (title, subtitle; docs/locations.md).
     purpose = models.CharField(
         _("purpose"), max_length=50, blank=True,
         validators=[validators.RegexValidator(
@@ -829,10 +829,20 @@ class Location(SoftDeleteModel, ComputedFieldsModel):
         return any(node.fire_load_free for node in self._self_and_ancestors())
 
     @property
+    def responsible_teams_source(self):
+        """The location whose teams are responsible here (effective_responsible_teams): this one or one above."""
+        return self._inherited_from(lambda node: node.responsible_teams.exists())
+
+    @property
     def effective_responsible_teams(self):
         from accounts.models import Team
-        source = self._inherited_from(lambda node: node.responsible_teams.exists())
+        source = self.responsible_teams_source
         return source.responsible_teams.all() if source else Team.objects.none()
+
+    @property
+    def fire_load_free_source(self):
+        """The location that makes this one free of fire load (is_fire_load_free): this one or one above; None."""
+        return next((node for node in self._self_and_ancestors() if node.fire_load_free), None)
 
     def number_range_source(self, location_type):
         """The nearest location from here upwards with a number range for `location_type`. A range applies to
@@ -893,6 +903,21 @@ class Location(SoftDeleteModel, ComputedFieldsModel):
     @property
     def name_with_short_name(self):
         return f"{self.name} [{self.short_name}]"
+
+    @property
+    def title(self):
+        """What people call it first (docs/locations.md): its purpose, else its name. Codes come after."""
+        return self.purpose or self.name
+
+    @property
+    def subtitle(self):
+        """The name next to a purpose shown as title, else ""."""
+        return self.name if self.purpose and self.name != self.purpose else ""
+
+    @property
+    def title_with_code(self):
+        """For plain text (page titles, messages, options): "Schrauben M4 · WH-1.R301.a"."""
+        return f"{self.title} · {self.unique_identifier}"
 
     @property
     def display_name(self):

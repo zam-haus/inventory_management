@@ -70,7 +70,7 @@ class StockChangeDialogTests(TestCase):
         )
         self.assertEqual((log.amount_before, log.amount_after, log.amount), (10, 7, 3))
         self.assertEqual((log.sale_value, log.is_estimate, log.entry_removed), (Decimal("0.75"), False, False))
-        self.assertEqual(self.messages(response), ["Removed 3 pc of “Resistor” from SH."])
+        self.assertEqual(self.messages(response), ["Removed 3 pc of “Resistor” from Shelf · SH."])
 
     def test_restock_increases_precise_amount(self):
         response = self.remove(direction="increase", reason="purchase", amount="5", complete="on", note="Order 17")
@@ -80,7 +80,7 @@ class StockChangeDialogTests(TestCase):
         self.assertEqual((log.direction, log.reason, log.amount, log.amount_before, log.amount_after, log.entry_removed),
                          ("increase", "purchase", 5, 10, 15, False))
         self.assertEqual((log.sale_value, log.note), (Decimal("1.25"), "Order 17"))
-        self.assertEqual(self.messages(response), ["Added 5 pc of “Resistor” to SH."])
+        self.assertEqual(self.messages(response), ["Added 5 pc of “Resistor” to Shelf · SH."])
 
     def test_restock_increases_estimate(self):
         self.set_amount(-20)
@@ -136,7 +136,7 @@ class StockChangeDialogTests(TestCase):
         self.assertEqual(response.json(), {"ok": True, "url": reverse("index_items")})
         self.assertTrue(Item.objects.get(pk=self.item.pk).is_deleted)
         self.assertEqual(self.messages(response), [
-            "Removed 10 pc of “Resistor” from SH. No stock is left, so “Resistor” was deleted.",
+            "Removed 10 pc of “Resistor” from Shelf · SH. No stock is left, so “Resistor” was deleted.",
         ])
         self.assertEqual(StockChange.objects.get().item, self.item)
 
@@ -195,7 +195,7 @@ class StockChangeDialogTests(TestCase):
         response = self.remove(amount="20", complete="on")
         log = StockChange.objects.get()
         self.assertEqual((log.amount, log.is_estimate, log.sale_value), (20, True, Decimal("5.00")))
-        self.assertEqual(self.messages(response), ["Removed ~20 pc of “Resistor” from SH."])
+        self.assertEqual(self.messages(response), ["Removed ~20 pc of “Resistor” from Shelf · SH."])
 
     def test_complete_removal_with_counted_amount_is_precise(self):
         ItemLocation.objects.create(item=self.item, location=self.cabinet, amount=1)
@@ -210,7 +210,7 @@ class StockChangeDialogTests(TestCase):
         response = self.remove(complete="on", reason="own_use")
         log = StockChange.objects.get()
         self.assertEqual((log.amount, log.sale_value, log.entry_removed), (None, None, True))
-        self.assertEqual(self.messages(response), ["Removed everything of “Resistor” from SH."])
+        self.assertEqual(self.messages(response), ["Removed everything of “Resistor” from Shelf · SH."])
 
     def test_sale_value_unknown_without_price(self):
         self.item.sale_price = None

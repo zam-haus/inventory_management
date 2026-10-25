@@ -1,8 +1,7 @@
-{% load i18n %}
+{% load i18n locations %}
 {% if row.kind == 'item' %}
     <strong>{% if row.object.item.is_deleted %}{{ row.object.item }} <span class="location-muted">({% trans "Deleted" %})</span>{% else %}<a href="{{ row.object.item.get_absolute_url }}">{{ row.object.item }}</a>{% endif %}</strong>
     <div class="location-muted">{{ row.object.location.descriptive_identifier }}</div>
 {% else %}
-    <strong><a href="{{ row.object.get_absolute_url }}">{{ row.object.name }}</a></strong>
-    <div class="location-muted">{{ row.object.locatable_identifier }}</div>
+    <strong><a href="{{ row.object.get_absolute_url }}">{% location_label row.object code=row.object.locatable_identifier %}</a></strong>
 {% endif %}
