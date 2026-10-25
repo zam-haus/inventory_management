@@ -229,6 +229,12 @@ class LayoutTests(SimpleTestCase):
         unpriced, _problems = draw(design, {"price": None}, dpi=254)
         self.assertEqual(len(blocks(black_columns(priced))), 2)
         self.assertEqual(blocks(black_columns(unpriced)), [(0, 49)])  # no frame, no gap: the box comes first
+        # Blanks keep their room: an empty frame, about as wide as a price.
+        empty, _problems = draw(design.replace("{% endif %}", "{% else %}{{ ''|ljust:6 }}{% endif %}"),
+                                {"price": None}, dpi=254)
+        frame, box = blocks(black_columns(empty))
+        self.assertGreater(frame[1] - frame[0], 50)
+        self.assertEqual(empty.getpixel(((frame[0] + frame[1]) // 2, 50)), 1)  # nothing inside
         # A frame around just spaces stays, so does one with anything but texts.
         image, _problems = draw('label 40 x 10\nrow  border 0.5\n  text ""\n  box  width 5', dpi=254)
         self.assertEqual(image.getpixel((0, 50)), 0)

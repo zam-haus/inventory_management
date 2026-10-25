@@ -278,10 +278,11 @@ row  gap 2
 
 
 def price_tag(indent, border, padding, options=""):
-    """A price in a price tag's frame (shape bulge), as wide as the price; without a price nothing at all."""
+    """A price in a price tag's frame (shape bulge), as wide as the price; without a price the frame is empty,
+    about as wide as a price (blanks keep their room)."""
     inner = indent + "  "
     return (f"{indent}row  border {border}  shape bulge  padding {padding} 0  width auto{options}\n"
-            f'{inner}text "{PRICED}€ {AMOUNT}{{% endif %}}"  font condensed  bold\n'
+            f'{inner}text "{PRICED}€ {AMOUNT}{{% else %}}{{{{ \'\'|ljust:10 }}}}{{% endif %}}"  font condensed  bold\n'
             f'{inner}text "{PRICED}/ {UNIT}{{% endif %}}"  font condensed  height 45%  margin 0 0 0 0.5  bottom\n')
 
 

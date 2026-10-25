@@ -113,13 +113,14 @@ def intrinsic(element, horizontal):
 
 
 def blank(element, context):
-    """Whether a row or column shows nothing although it has texts: they all came out empty (e.g. a price frame
-    for an item without a price, "{% if %}…{% endif %}"), and it holds nothing else but spaces. It is left out,
-    frame and all; a frame around just spaces stays."""
+    """Whether a row or column shows nothing although it has texts: they all came out as nothing at all (e.g. a
+    price frame for an item without a price, "{% if %}…{% endif %}"), and it holds nothing else but spaces. It
+    is left out, frame and all. Texts of blanks keep their room (an empty frame), as does a frame around just
+    spaces."""
     inside = list(element.walk())
     texts = [child for child in inside if child.kind == "text"]
     return (bool(texts) and all(child.kind in ("row", "column", "space", "text") for child in inside)
-            and not any(context.text(text).strip() for text in texts))
+            and not any(context.text(text) for text in texts))
 
 
 def shrinks(element):
