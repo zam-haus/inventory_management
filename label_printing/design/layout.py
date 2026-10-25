@@ -6,8 +6,10 @@ Rows lay their elements out from left to right, columns from top to bottom (the 
 Along that direction an element is as large as given (mm, or % of the row or column), as its content needs
 ("auto": the default for text with a size, QR codes, images, lines, fixed spaces), or shares what is left
 with the other "fill" elements (the default otherwise; where the length is open, fill means auto). Across
-it fills the row or column unless given; then the row's or column's align places it. Elements with
-"at x y" (mm from the top left of their row or column) are placed there instead.
+it fills the row or column unless given ("auto": as large as its content, e.g. a price frame or inverted
+text beside a long name); then the row's or column's align places it. Elements with "at x y" (mm from the
+top left of their row or column) are placed there instead. A row or column that shows nothing (blank) is left
+out.
 """
 import functools
 import math
@@ -108,6 +110,16 @@ def intrinsic(element, horizontal):
     return (element.kind in ("qr", "image", "line")
             or (element.kind == "text" and ("size" in element.options or horizontal))
             or (element.kind == "space" and element.get("extent", ("fill",))[0] != "fill"))
+
+
+def blank(element, context):
+    """Whether a row or column shows nothing although it has texts: they all came out empty (e.g. a price frame
+    for an item without a price, "{% if %}…{% endif %}"), and it holds nothing else but spaces. It is left out,
+    frame and all; a frame around just spaces stays."""
+    inside = list(element.walk())
+    texts = [child for child in inside if child.kind == "text"]
+    return (bool(texts) and all(child.kind in ("row", "column", "space", "text") for child in inside)
+            and not any(context.text(text).strip() for text in texts))
 
 
 def shrinks(element):
@@ -429,7 +441,8 @@ def arrange(container, context, width, height):
     main_total, cross_total = (inner_width, inner_height) if horizontal else (inner_height, inner_width)
     main_name, cross_name = ("width", "height") if horizontal else ("height", "width")
     gap = context.dots(container.get("gap", 0))
-    flow = [child for child in container.children if "at" not in child.options]
+    shown = [child for child in container.children if child.kind not in ("row", "column") or not blank(child, context)]
+    flow = [child for child in shown if "at" not in child.options]
 
     def size(main, cross):
         return (main, cross) if horizontal else (cross, main)
@@ -495,7 +508,7 @@ def arrange(container, context, width, height):
         x, y = (position, offset) if horizontal else (offset, position)
         placed.append((child, x, y, *size(main, cross)))
         position += main + gap
-    for child in container.children:
+    for child in shown:
         if "at" not in child.options:
             continue
         x, y = (context.dots(value) for value in child.get("at"))

@@ -181,8 +181,9 @@ Eigentum"), and stored their logo as the label image "ZAM Logo"; a template it d
 plain design and its ZPL as comments. It also added templates for 57 × 32, 60 × 30, 70 × 32 and
 105 × 52 mm labels and for 9, 12, 18, 24 and 36 mm tape:
 * locations: "QR-Code, Kennung, Name und Ort" (QR code, code, name, path);
-* bulk items: "Name, Preis und QR-Code", and "Preisschild" (price with € in a price tag frame, unit,
-  name, QR code) on 60 × 30 mm labels and on 12, 18 and 24 mm tape;
+* bulk items: "Name, Preis und QR-Code" (name, the price in a price tag frame as wide as the price,
+  none without a price, label ID and location, QR code), and "Preisschild" (price with € in a price
+  tag frame, unit, name, QR code) on 60 × 30 mm labels and on 12, 18 and 24 mm tape;
 * label IDs: "ZAMid" (lettering, QR code, ID in two lines; on tape with a margin of at least
   1 mm at top and bottom) and "ZAMid: QR + ID";
 * unique items: "ZAMid mit Eigentum" (the ZAMid design and the owner's first name).

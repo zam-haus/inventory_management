@@ -55,7 +55,13 @@ The label itself lays out its elements like a column, from top to bottom.
 * **Text** in a row is as wide as it needs at the height it gets (shrinking if the row is too short);
   in a column, texts without a size share the height.
 * **Across**, an element fills the row or column unless its width or height is given; the row or
-  column then places it by its `align`.
+  column then places it by its `align`. **`auto`** across (`width auto` in a column, `height auto` in
+  a row) makes it only as large as its content: a price tag frame or an inverted text below a long name
+  is then as wide as the price, not as the name.
+* **A row or column that shows nothing** is left out, frame and all, as if it were not there: all its
+  texts came out empty and it holds nothing else but spaces. So a price frame disappears for items
+  without a price if its texts are `"{% if item.sale_price is not None %}…{% endif %}"`. A frame
+  around just spaces stays.
 * **`at X Y`** places an element X mm from the left and Y mm from the top of its row or column (or of
   the label), outside the flow. It takes its `width` and `height`, else what its content needs.
 * **`space`** takes room: `space 2`, or `space` alone to share what is left (to centre something,
@@ -230,6 +236,21 @@ row  gap 2  margin 0.5 0 0 0
     text "€ {{ item.sale_price|floatformat:2 }}"  font condensed  bold
     text "/ {{ item.measurement_unit.short }}"  font condensed  height 40%  margin 0 0 0 1  bottom
   qr {{ qr }}  ecc M
+```
+
+A bulk item on 57 × 32 mm labels (template "Name, Preis und QR-Code"): the price in a price tag frame
+as wide as the price, below the name, and no frame for items without a price.
+
+```
+label 57 x 32  margin 1.5
+row  gap 2
+  column  gap 0.5  align left
+    text {{ item.name }}  bold  lines 3  height 50%
+    row  border 0.4  shape bulge  padding 0.2 0  width auto  height 25%
+      text "{% if item.sale_price is not None %}€ {{ item.sale_price|floatformat:2 }}{% endif %}"  font condensed  bold
+      text "{% if item.sale_price is not None %}/ {{ item.measurement_unit.short }}{% endif %}"  font condensed  height 45%  margin 0 0 0 0.5  bottom
+    text "{{ label_id }}  {{ location.unique_identifier }}"  font mono  height 15%  bottom
+  qr {{ qr }}  max 22.8
 ```
 
 A fixed shelf label with an arrow pointing up to the shelf:

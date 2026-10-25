@@ -210,6 +210,29 @@ class LayoutTests(SimpleTestCase):
         image, _problems = draw("label 40 x 10\nrow  justify end  padding 0 2\n  box  width 10", dpi=254)
         self.assertEqual(blocks(black_columns(image)), [(280, 379)])
 
+    def test_auto_across_is_as_large_as_the_content(self):
+        """A price frame or inverted text below a long name: as wide as itself with width auto, else as the column."""
+        design = ('label 40 x 10\ncolumn  align left\n  text "A long name for an item"  height 50%%\n'
+                  '  %s\n    text "1"')
+        framed, _problems = draw(design % "row  border 0.5  shape bulge", dpi=254)
+        hugging, _problems = draw(design % "row  border 0.5  shape bulge  width auto", dpi=254)
+        self.assertGreater(blocks(black_columns(framed.crop((0, 50, 400, 100))))[-1][1], 390)  # the whole width
+        self.assertLess(blocks(black_columns(hugging.crop((0, 50, 400, 100))))[-1][1], 150)
+        inverted, _problems = draw('label 40 x 10\ncolumn  align left\n  text "A long name for an item"  height 50%\n'
+                                   '  text "1"  invert  width auto', dpi=254)
+        self.assertLess(blocks(black_columns(inverted.crop((0, 50, 400, 100))))[-1][1], 100)
+
+    def test_a_row_or_column_showing_nothing_is_left_out(self):
+        design = ('label 40 x 10\nrow  gap 2\n  row  border 0.5  shape bulge  width auto\n'
+                  '    text "{% if price %}€ {{ price }}{% endif %}"\n  box  width 5')
+        priced, _problems = draw(design, {"price": "1,50"}, dpi=254)
+        unpriced, _problems = draw(design, {"price": None}, dpi=254)
+        self.assertEqual(len(blocks(black_columns(priced))), 2)
+        self.assertEqual(blocks(black_columns(unpriced)), [(0, 49)])  # no frame, no gap: the box comes first
+        # A frame around just spaces stays, so does one with anything but texts.
+        image, _problems = draw('label 40 x 10\nrow  border 0.5\n  text ""\n  box  width 5', dpi=254)
+        self.assertEqual(image.getpixel((0, 50)), 0)
+
     def test_text_in_a_row_is_as_wide_as_it_needs(self):
         image, _problems = draw('label 40 x 10\nrow  border 0.5  justify center\n  text "MM"\n  text "x"  height 40%  bottom',
                                 dpi=254)

@@ -92,7 +92,7 @@ PATH = "{{ location.descriptive_identifier }}"
 ITEM = "{{ item.name }}"
 AMOUNT = "{{ item.sale_price|floatformat:2 }}"
 UNIT = "{{ item.measurement_unit.short }}"
-PRICE = f"{{% if item.sale_price is not None %}}{AMOUNT} € / {UNIT}{{% endif %}}"
+PRICED = "{% if item.sale_price is not None %}"
 LABEL_ID = "{{ label_id }}"
 LABEL_ID_1 = '{{ label_id.code|slice:":3" }}'
 LABEL_ID_2 = '{{ label_id.code|slice:"3:" }}'
@@ -277,6 +277,14 @@ row  gap 2
 """
 
 
+def price_tag(indent, border, padding, options=""):
+    """A price in a price tag's frame (shape bulge), as wide as the price; without a price nothing at all."""
+    inner = indent + "  "
+    return (f"{indent}row  border {border}  shape bulge  padding {padding} 0  width auto{options}\n"
+            f'{inner}text "{PRICED}€ {AMOUNT}{{% endif %}}"  font condensed  bold\n'
+            f'{inner}text "{PRICED}/ {UNIT}{{% endif %}}"  font condensed  height 45%  margin 0 0 0 0.5  bottom\n')
+
+
 def item_tape(tape):
     return f"""# Bulk items on {tape} mm tape, as long as the name needs: QR code, name, price, ID and location
 label height {tape}  margin 1 0.5
@@ -284,7 +292,8 @@ row  gap 1
   qr {QR}  quiet 1
   column  align left
     text {ITEM}  bold  height 55%
-    text "{PRICE}  {LABEL_ID} {CODE}"  height 40%  bottom
+    row  gap 1  height 45%
+{price_tag("      ", 0.3, 0.1)}      text "{LABEL_ID} {CODE}"  font mono
 """
 
 
@@ -292,10 +301,9 @@ def item_card(width, height):
     return f"""# Bulk items on {width} × {height} mm labels: name, price, ID and location, QR code
 label {width} x {height}  margin 1.5
 row  gap 2
-  column  gap 0.5
+  column  gap 0.5  align left
     text {ITEM}  bold  lines 3  height 50%
-    text "{PRICE}"  bold  height 25%
-    text "{LABEL_ID}  {CODE}"  font mono  height 15%  bottom
+{price_tag("    ", 0.4, 0.2, "  height 25%")}    text "{LABEL_ID}  {CODE}"  font mono  height 15%  bottom
   qr {QR}  max {mm(width * 0.4)}
 """
 
