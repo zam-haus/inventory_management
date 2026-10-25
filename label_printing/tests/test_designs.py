@@ -464,6 +464,19 @@ class AdminTests(InventoryData, TestCase):
         self.assertEqual(found["Preisschild"], {"Schrauben M4"})
         self.assertEqual(found["Name, Preis und QR-Code"], {"Schrauben M4", "Wechselstift"})
 
+    def test_preview_records_by_the_saved_rules(self):
+        """While editing a saved template, its preview offers the records its saved rules are meant for."""
+        from inventory.models import Item, ItemLocation
+        unpriced = Item.objects.create(name="Wechselstift", measurement_unit=self.unit)
+        ItemLocation.objects.create(item=unpriced, location=self.part, amount=5)
+        price_tag = LocationLabelTemplate.objects.get(name="Preisschild", label_width=60)
+        description = "label 60 x 30\ntext {{ item.name }}"
+        records = lambda **data: self.client.post(reverse("label_design_preview"), {
+            "description": description, "subject_type": "item", **data}).json()["records"]
+        self.assertEqual(records(template=price_tag.pk), ["Schrauben M4"])
+        self.assertEqual(records(), ["Wechselstift", "Schrauben M4"])  # a new template: the newest
+        self.assertIn("Wechselstift", records(template=generated("item", "57x32").pk))  # kind == "bulk"
+
     def test_list_samples_only_of_records_one_may_see(self):
         viewer = create_user("viewer", "inventory.view_locationlabeltemplate")
         viewer.is_staff = True

@@ -30,6 +30,7 @@
         body.append('subject_type', kind ? kind.value : 'location');
         body.append('record', part('record').value || '0');
         body.append('medium', part('medium').value);
+        if (data.template) body.append('template', data.template);
         let result;
         try {
             const response = await fetch(data.preview_url, {

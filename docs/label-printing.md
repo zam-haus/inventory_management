@@ -152,9 +152,10 @@ template for the new locations and their sub-locations.
   a made-up one: every property lorem ipsum, numbers random.
 * Templates can be **deactivated** (field or list action): they are then neither offered nor
   printed, not even by waiting jobs or the admin's print actions.
-* The page shows the label beside the description while it is typed, with real records and with
-  the printer it is for chosen or none. Mistakes are listed by line, and a template with mistakes
-  is not saved.
+* The page shows the label beside the description while it is typed, with real records (of a saved
+  template those its saved rules are meant for) and with the printer it is for chosen or none. Mistakes
+  are listed by line, and a template with mistakes is not saved. The list of templates shows each with
+  random records it is meant for.
 * The location page shows the location's label: with the template it was printed with last, else the
   one its rules put first.
 * **Last labels** (`LastLabel`) remember the template each location was printed with last. Migration

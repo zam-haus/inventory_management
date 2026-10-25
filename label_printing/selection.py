@@ -70,6 +70,15 @@ def priorities(subject_type, subject, templates):
     return found
 
 
+def meant_for(template, subjects):
+    """Those of `subjects` (of the template's kind) the template is meant for; its rules read once."""
+    rules = rules_of([template]).get(template.pk)
+    if rules is None:  # without rules: every one
+        return list(subjects)
+    return [subject for subject in subjects
+            if any(texts.holds(condition, variables_for(template.subject_type, subject)) for condition, _p in rules)]
+
+
 def subject_key(subject_type, subject):
     return subject_type, str(subject.pk)
 

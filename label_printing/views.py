@@ -244,14 +244,30 @@ def template_sample(request, pk):
     return png_response(image, canvas.dpi, "private, max-age=3600")
 
 
+PREVIEW_RECORDS, PREVIEW_CANDIDATES = 5, 40
+
+
+def preview_records(subject_type, template_pk=None):
+    """The newest records to preview a template with: [(name, subject)]; for a saved template of this kind only
+    those its saved rules are meant for (among the newest PREVIEW_CANDIDATES)."""
+    template = LocationLabelTemplate.objects.filter(pk=template_pk, subject_type=subject_type).first() if str(
+        template_pk or "").isdigit() else None
+    if template is None:
+        return design_variables.sample_subjects(subject_type, PREVIEW_RECORDS)
+    records = design_variables.sample_subjects(subject_type, PREVIEW_CANDIDATES)
+    meant = selection.meant_for(template, [subject for _name, subject in records])
+    return [(name, subject) for name, subject in records if subject in meant][:PREVIEW_RECORDS]
+
+
 @login_required
 @permission_required("inventory.change_locationlabeltemplate", raise_exception=True)
 @require_POST
 def design_preview(request):
     """The admin's preview while a description is typed (label_template.js): JSON with the label as a PNG data URL,
-    the problems by line, the size, and the sample records to choose from."""
+    the problems by line, the size, and the sample records to choose from: of a saved template those its saved
+    rules are meant for."""
     subject_type = request.POST.get("subject_type", "location")
-    records = design_variables.sample_subjects(subject_type)
+    records = preview_records(subject_type, request.POST.get("template"))
     try:
         variables = selection.variables_for(subject_type, records[int(request.POST.get("record") or 0)][1])
     except (IndexError, ValueError):

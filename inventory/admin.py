@@ -222,6 +222,8 @@ class LocationLabelTemplateAdmin(admin.ModelAdmin):
         context["label_editor"] = {
             "preview_url": reverse("label_design_preview"),
             "media": [{"id": medium.pk, "name": f"{medium.printer} – {medium.name}"} for medium in media],
+            # A saved template's records to preview: those its saved rules are meant for
+            "template": obj.pk if obj and obj.pk else None,
         }
         return super().render_change_form(request, context, add, change, form_url, obj)
 admin.site.register(models.LocationLabelTemplate, LocationLabelTemplateAdmin)
