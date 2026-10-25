@@ -45,14 +45,13 @@
     .label-overview-row { grid-template-columns: auto minmax(0, 1fr); }
     .label-overview-info { grid-column: 2; }
 }
-/* Printer and labels of a label: green when there, struck through in red when missing */
-.label-marks { display: inline-flex; gap: .3rem; vertical-align: -.125em; }
-.label-mark { position: relative; display: inline-flex; line-height: 1; }
+/* Whether a label is printed now: the printer mark, green, or struck through in red */
+.label-mark { position: relative; display: inline-flex; line-height: 1; vertical-align: -.125em; }
 .label-mark.is-ok { color: #198754; }
 .label-mark.is-missing { color: #b02a37; }
 .label-mark.is-missing::after { content: ""; position: absolute; left: -15%; right: -15%; top: 50%;
                                 border-top: 2px solid currentColor; transform: rotate(-45deg); }
-.label-overview-label .label-marks { flex: none; flex-direction: column; font-size: 1.1rem; }
+.label-overview-label .label-mark { flex: none; font-size: 1.1rem; }
 /* The overview's choice of label, with a preview of each */
 .label-picker { position: relative; }
 .label-picker-toggle { text-align: left; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

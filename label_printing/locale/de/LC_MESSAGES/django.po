@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-25 15:25+0100\n"
+"POT-Creation-Date: 2026-10-25 15:31+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -463,52 +463,52 @@ msgstr "wie Label-IDs heißen, z. B. ZAMid"
 msgid "Price tags at %(location)s"
 msgstr "Preisschilder an %(location)s"
 
-#: label_printing/dialog.py:209
+#: label_printing/dialog.py:210
 msgid "No bulk items are stored here."
 msgstr "Hier lagern keine Mengenartikel."
 
-#: label_printing/dialog.py:213
+#: label_printing/dialog.py:214
 #: label_printing/templates/label_printing/print_fields.html:54
 msgid "No label template is meant for this."
 msgstr "Dafür ist keine Etikettenvorlage vorgesehen."
 
-#: label_printing/dialog.py:215
+#: label_printing/dialog.py:216
 msgid "No printer is set up for these labels yet."
 msgstr "Für diese Etiketten ist noch kein Drucker eingerichtet."
 
-#: label_printing/dialog.py:221
+#: label_printing/dialog.py:222
 #: label_printing/templates/label_printing/print_button.html:1
 #: label_printing/templates/label_printing/print_fields.html:7
 #: label_printing/templates/label_printing/print_fields.html:45
 msgid "Label"
 msgstr "Etikett"
 
-#: label_printing/dialog.py:222 label_printing/dialog.py:309
+#: label_printing/dialog.py:223 label_printing/dialog.py:310
 msgid "Copies"
 msgstr "Anzahl"
 
-#: label_printing/dialog.py:223
+#: label_printing/dialog.py:224
 msgid "Location"
 msgstr "Standort"
 
-#: label_printing/dialog.py:224
+#: label_printing/dialog.py:225
 msgid "Also the sub-locations"
 msgstr "Auch die Unterorte"
 
-#: label_printing/dialog.py:247 label_printing/dialog.py:319
+#: label_printing/dialog.py:248 label_printing/dialog.py:320
 #, python-format
 msgid "At most %(max)d copies."
 msgstr "Höchstens %(max)d Stück."
 
-#: label_printing/dialog.py:264
+#: label_printing/dialog.py:265
 msgid "There is nothing to print."
 msgstr "Es gibt nichts zu drucken."
 
-#: label_printing/dialog.py:272
+#: label_printing/dialog.py:273
 msgid "These labels cannot be printed here."
 msgstr "Diese Etiketten lassen sich hier nicht drucken."
 
-#: label_printing/dialog.py:308
+#: label_printing/dialog.py:309
 msgid "Printer and labels"
 msgstr "Drucker und Etiketten"
 
@@ -1316,7 +1316,27 @@ msgstr ""
 msgid "any"
 msgstr "beliebig"
 
-#: label_printing/outcomes.py:156
+#: label_printing/outcomes.py:134
+#, python-format
+msgid "Prints on %(printer)s."
+msgstr "Druckt auf %(printer)s."
+
+#: label_printing/outcomes.py:136
+#, python-format
+msgid "No printer has these labels: %(labels)s."
+msgstr "Kein Drucker hat diese Etiketten: %(labels)s."
+
+#: label_printing/outcomes.py:139
+#, python-format
+msgid "%(printer)s is online, but not with these labels: %(reason)s"
+msgstr "%(printer)s ist online, aber nicht mit diesen Etiketten: %(reason)s"
+
+#: label_printing/outcomes.py:141
+#, python-format
+msgid "No suitable printer is online: %(reason)s"
+msgstr "Kein passender Drucker online: %(reason)s"
+
+#: label_printing/outcomes.py:169
 msgid "No printer has labels of this size."
 msgstr "Kein Drucker hat Etiketten dieser Größe."
 
@@ -1426,7 +1446,6 @@ msgid "Record"
 msgstr "Datensatz"
 
 #: label_printing/templates/label_printing/admin/label_template_change_form.html:11
-#: label_printing/templates/label_printing/print_marks.html:2
 msgid "Printer"
 msgstr "Drucker"
 

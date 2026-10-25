@@ -123,7 +123,7 @@ class PrintDialogTests(SimulatedPrinters, InventoryData, TestCase):
         self.assertContains(response, "Also its sub-locations (2)")
         self.assertContains(response, "data-wait-note hidden")  # what waiting means, for labels no printer can print now
         self.assertContains(response, "data-overview hidden")  # the sub-locations, if they are printed too
-        self.assertContains(response, 'data-mark="material"')  # printer and labels: there, or what keeps a label from printing
+        self.assertContains(response, 'title="Prints on Zebra Lager." data-mark')  # the printer mark
         self.assertContains(response, "Copies per label")
         self.assertNotContains(response, 'name="wait"')
 

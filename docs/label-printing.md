@@ -41,9 +41,10 @@ Brother gets P-touch raster data. The code is in the app `label_printing`.
     * A tap anywhere on a row (but its template) switches it on or off.
     * The template is chosen from a menu with a preview of each; **use this label for all** (first row)
       gives the first row's label to every row it is meant for.
-    * Marks for printer and labels beside each label (and on the single dialog's labels): green when
-      there, struck through in red when they keep it from being printed now: the printer (offline, an
-      error), or the labels (not loaded, used up, none of this kind).
+    * A printer mark beside each label (also on the single dialog's labels): green when it is printed
+      now, struck through in red if not. Its text says where it prints, else why not: a suitable printer
+      is online but with other labels (or none left), no suitable printer is online (offline, an error), or
+      no printer has these labels.
     * Above the button a summary says what waits for what, e.g. "16 at once, 3 waiting for labels
       (TZe-231 …), 3 waiting for a printer (P-touch Werkstatt)"; the button says how many labels are
       queued, **copies per label** counted ("22 labels").

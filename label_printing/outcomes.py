@@ -127,6 +127,19 @@ class Outcome:
         target = self.targets[0]
         return target.missing, str(target.printer) if target.missing == "printer" else material_name(target.medium)
 
+    @property
+    def status(self):
+        """Whether and where it is printed now, else why not, in words for the printer mark."""
+        if target := self.target():
+            return _("Prints on %(printer)s.") % {"printer": target.printer}
+        if not self.targets:
+            return _("No printer has these labels: %(labels)s.") % {"labels": labels_text(self.layout.template)}
+        target = self.targets[0]
+        if target.missing == "material":
+            return _("%(printer)s is online, but not with these labels: %(reason)s") % {
+                "printer": target.printer, "reason": target.reason}
+        return _("No suitable printer is online: %(reason)s") % {"reason": target.reason}
+
     def sample_medium(self):
         """Labels to preview it on: those it would print on, else any it fits."""
         target = self.target() or (self.targets[0] if self.targets else None)

@@ -56,17 +56,24 @@ class OutcomeTests(InventoryData, TestCase):
 
     def test_what_is_missing(self):
         """For the overview's marks and summary: the printer, or the labels (which)."""
-        self.assertEqual(self.found()[self.on_tape].missing, ("", ""))
+        tape = self.found()[self.on_tape]
+        self.assertEqual((tape.missing, tape.status), (("", ""), "Prints on P-touch Werkstatt."))
         self.brother.remember_status(TAPE_24)
-        self.assertEqual(self.found()[self.on_tape].missing, ("material", "12 mm"))
+        tape = self.found()[self.on_tape]
+        self.assertEqual((tape.missing, tape.status), (("material", "12 mm"), "P-touch Werkstatt is online, but not "
+                                                                              "with these labels: Loaded: 24 mm tape."))
         self.brother.remember_status({"ok": False, "errors": ["cover_open"]})
-        self.assertEqual(self.found()[self.on_tape].missing, ("printer", "P-touch Werkstatt"))
+        tape = self.found()[self.on_tape]
+        self.assertEqual((tape.missing, tape.status), (("printer", "P-touch Werkstatt"),
+                                                       "No suitable printer is online: The cover is open."))
         self.brother.remember_status({"ok": False, "errors": ["end_of_media"]})
         self.assertEqual(self.found()[self.on_tape].missing, ("material", "12 mm"))
         large = LocationLabelTemplate.objects.create(name="Groß", description="label 100 x 50\ntext {{ qr }}",
                                                      material="Polyester")
         self.assertEqual(self.found()[f"design:{large.pk}"].missing,
                          ("material", "100 × 50 mm, Polyester, schwarz on weiß"))
+        self.assertEqual(self.found()[f"design:{large.pk}"].status,
+                         "No printer has these labels: 100 × 50 mm, Polyester, schwarz on weiß.")
 
     def test_the_printer_that_can_print_is_chosen(self):
         other = Printer.objects.create(name="P-touch Lager", slug="ptouch2", language="ptouch", model="E550W", dpi=180,

@@ -2,9 +2,9 @@
 // subject: which label to print (the server picks the printer), the templates its rules recommend shown, others
 // on request; labels no printer can print now are greyed but may wait for one. For several (a location with its
 // sub-locations, the items at a location): an overview, a row per label with its best template, each printed as a
-// job of its own: the labels in their real size, a tap on a row switches it, marks say what is missing (printer or
-// material), and a summary what waits for what. After printing the dialog follows the job (or the batch of jobs) until the printers report back,
-// or until waiting jobs expire.
+// job of its own: the labels in their real size, a tap on a row switches it, a printer mark says whether it
+// prints now (its title why not), and a summary what waits for what. After printing the dialog follows the job
+// (or the batch of jobs) until the printers report back, or until waiting jobs expire.
 (() => {
     if (window.labelPrintDialogs) return;  // each dialog includes this script
     window.labelPrintDialogs = true;
@@ -75,19 +75,17 @@ function setUp(form, options) {
         const url = previewUrl(options.rows[Number(row.dataset.row)], item);
         if (image.getAttribute('src') !== url) image.src = url;
         else realSize(image, item);
-        setMarks(row.querySelector('[data-marks]'), item);
+        setMark(row.querySelector('[data-mark]'), item);
         const toggle = row.querySelector('[data-picker-toggle]');
         if (toggle) toggle.textContent = select(row).selectedOptions[0]?.textContent || '';
     }
 
-    // Printer and labels: green when there, struck through in red when they keep the label from printing now
-    function setMarks(marks, item) {
-        marks?.querySelectorAll('[data-mark]').forEach(mark => {
-            const missing = !item.printer && item.missing === mark.dataset.mark;
-            mark.classList.toggle('is-missing', missing);
-            mark.classList.toggle('is-ok', !missing);
-            mark.title = missing ? item.reason : (mark.dataset.mark === 'printer' ? item.printer : item.size);
-        });
+    // The printer mark: green when the label is printed now, struck through in red if not; its title says why
+    function setMark(mark, item) {
+        if (!mark) return;
+        mark.classList.toggle('is-ok', Boolean(item.printer));
+        mark.classList.toggle('is-missing', !item.printer);
+        mark.title = item.status;
     }
 
     // The overview's choice of label: a menu with a preview of each (the select stays for the form)
@@ -121,8 +119,8 @@ function setUp(form, options) {
                     const label = Object.assign(document.createElement('span'), {
                         className: 'label-picker-text', textContent: option.textContent,
                     });
-                    const marks = row.querySelector('[data-marks]').cloneNode(true);
-                    setMarks(marks, item);
+                    const marks = row.querySelector('[data-mark]').cloneNode(true);
+                    setMark(marks, item);
                     entry.append(image, label, marks);
                     entry.addEventListener('click', () => choose(option.value));
                     return entry;

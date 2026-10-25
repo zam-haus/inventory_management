@@ -177,6 +177,7 @@ def options(subject_type, obj):
                           "printer": str(target.printer) if (target := outcome.target()) else "",
                           "reason": outcome.why_not, "can_wait": outcome.can_wait,
                           "missing": outcome.missing[0], "missing_name": outcome.missing[1],
+                          "status": outcome.status,
                           "template": outcome.layout.template.pk,
                           "query": urlencode({"medium": medium.pk, "layout": outcome.layout.key})
                           if (medium := outcome.sample_medium()) else "",
