@@ -370,6 +370,21 @@ function setUp(form, options) {
         setBusy(false);
     });
 
+    // Closed, the dialog forgets what was changed (modals.js resets the form): previews, marks, menus and
+    // messages follow the fields again; a print that is going on keeps its status.
+    form.addEventListener('reset', () => queueMicrotask(() => {
+        form.querySelectorAll('[data-picker-menu]').forEach(menu => { menu.hidden = true; });
+        parts.rows.forEach(rowState);
+        previews();
+        qrNote();
+        if (!pending) {
+            clearErrors();
+            showStatus('', 'info');
+            startOver();
+        }
+        update();
+    }));
+
     function open() {
         if (pending) return;
         clearErrors();

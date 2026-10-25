@@ -82,3 +82,30 @@ document.addEventListener('click', event => {
     event.preventDefault();
     window.bootstrap.Modal.getOrCreateInstance(modal).show(opener);
 });
+
+// Closing a modal forgets what was changed in it, without reloading the page: its forms go back to
+// how the page brought them (also choices an autocomplete added, and marked mistakes). This runs
+// before the dialogs' own listeners (capture), so a dialog shown again right away keeps what it sets
+// then. Dialogs with more state than their fields reset it on their form's "reset" event (the fields
+// are reset just after it: read them in a microtask).
+(() => {
+    const options = new WeakMap();  // select → the values of its options as the page brought them
+    document.querySelectorAll('.modal select').forEach(select => {
+        options.set(select, new Set([...select.options].map(option => option.value)));
+    });
+
+    document.addEventListener('hidden.bs.modal', event => {
+        const modal = event.target;
+        const forms = modal.matches('form') ? [modal] : [...modal.querySelectorAll('form')];
+        forms.forEach(form => {
+            form.querySelectorAll('select').forEach(select => {
+                const known = options.get(select);
+                if (known) [...select.options].filter(option => !known.has(option.value)).forEach(option => option.remove());
+            });
+            form.reset();
+            form.querySelectorAll('.is-invalid').forEach(field => field.classList.remove('is-invalid'));
+            // Autocompletes (select2) show the reset value again.
+            if (window.jQuery?.fn?.select2) window.jQuery(form).find('select').trigger('change.select2');
+        });
+    }, true);
+})();
