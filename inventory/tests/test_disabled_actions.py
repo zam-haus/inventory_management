@@ -45,7 +45,7 @@ class UnavailableActionsStayVisibleTests(TestCase):
     def test_users_without_permission_see_disabled_actions(self):
         self.client.force_login(get_user_model().objects.create_user(username="reader"))
         for url, names in (
-            (self.shelf.get_absolute_url(), ["Verschieben", "Inventarliste drucken", "Etiketten drucken", "Standort auflösen",
+            (self.shelf.get_absolute_url(), ["Verschieben", "Etiketten drucken", "Standort auflösen",
                                              "Bestand von Resistor an SH entnehmen oder hinzufügen"]),
             (self.item.get_absolute_url(), ["Sache bearbeiten", "Foto hinzufügen", "Datei hinzufügen",
                                             "Etiketten drucken", "Entnehmen aus SH"]),

@@ -22,18 +22,6 @@
     <div class="col-auto">
         <a href="{% url 'structure_overview' %}" class="btn btn-info">{% icon "grid-3x3" %} <span class="action-label">{% trans "Levels and axes" %}</span></a>
     </div>
-    {# Printing applies to the locations found, so it is offered only for a search. #}
-    {% with query=request.GET.q.strip %}
-    {% if query and perms.inventory.print_inventory or query and user.is_authenticated %}
-    <div class="col-auto">
-        {% if perms.inventory.print_inventory %}
-        <a href="{% url 'print_inventory' %}?q={{ query|urlencode }}" class="btn btn-info" data-bs-toggle="tooltip" title="{% trans 'Print inventory of the locations found' %}">{% icon "printer" %} <span class="action-label">{% trans "Print" %}</span></a>
-        {% else %}
-        {% icon "printer" as print_icon %}{% disabled_action print_icon label=_("Print") name=_("Print inventory of the locations found") classes="btn btn-info" %}
-        {% endif %}
-    </div>
-    {% endif %}
-    {% endwith %}
 </div>
 <table class="table table-striped">
     <thead><tr>

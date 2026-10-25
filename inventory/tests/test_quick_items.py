@@ -11,7 +11,6 @@ from django.urls import reverse
 from PIL import Image
 
 from ..forms import ItemLocationForm
-from ..icons import icon
 from ..models import Item, ItemBarcode, ItemImage, ItemLocation, Location, LocationType, MeasurementUnit
 
 
@@ -242,23 +241,15 @@ class QuickItemTests(TestCase):
         self.assertContains(response, "Crimping tool")
         self.assertContains(response, "amount unknown")
 
-    def test_location_list_print_button_carries_the_search(self):
-        response = self.client.get(reverse("index_locations"), {"q": "Shelf A&B"})
-        self.assertNotContains(response, reverse("print_inventory"))
-        self.assertContains(response, 'aria-label="Print inventory of the locations found"')  # visible, but disabled
+    def test_pages_do_not_offer_the_printable_inventory(self):
+        """It is a rough internal tool: reached by its URL only, not from the pages, even with the permission."""
         self.creator.user_permissions.add(*permissions("print_inventory"))
-        response = self.client.get(reverse("index_locations"), {"q": " Shelf A&B "})
-        self.assertContains(response, reverse("print_inventory") + "?q=Shelf%20A%26B")
-        # The printer icon with a short text; the tooltip names what is printed.
-        self.assertContains(response, icon("printer") + ' <span class="action-label">Print</span></a>', html=False)
-
-    def test_location_list_offers_printing_only_for_a_search(self):
-        self.creator.user_permissions.add(*permissions("print_inventory"))
-        for params in ({}, {"q": ""}, {"q": "   "}):
-            with self.subTest(params=params):
-                response = self.client.get(reverse("index_locations"), params)
+        for url, params in ((reverse("index_locations"), {}), (reverse("index_locations"), {"q": "Shelf A&B"}),
+                            (self.location.get_absolute_url(), {})):
+            with self.subTest(url=url, params=params):
+                response = self.client.get(url, params)
                 self.assertNotContains(response, reverse("print_inventory"))
-                self.assertNotContains(response, "bi-printer")
+                self.assertNotContains(response, "Print inventory")
 
     def test_entering_an_amount_turns_a_quick_item_into_a_regular_item(self):
         entry = self.quick_item()

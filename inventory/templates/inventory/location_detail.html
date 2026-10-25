@@ -37,11 +37,6 @@
                 {% else %}
                     {% icon "arrows-move" as move_icon %}{% disabled_action move_icon label=_("Move location") classes="btn btn-warning location-print" %}
                 {% endif %}
-                {% if perms.inventory.print_inventory %}
-                <a class="btn btn-info location-print" href="{% url 'print_inventory' %}?locations={{ object.pk }}" data-bs-toggle="tooltip" title="{% trans 'Print inventory' %}">{% icon "printer" %} <span class="action-label">{% trans "Print" %}</span></a>
-                {% else %}
-                    {% icon "printer" as print_icon %}{% disabled_action print_icon label=_("Print") name=_("Print inventory") classes="btn btn-info location-print" %}
-                {% endif %}
                 {% label_print_button object "location" classes="btn btn-info location-print" %}
                 {% label_print_button object "items" classes="btn btn-info location-print" %}
                 {% if object.type.no_sublocations %}
