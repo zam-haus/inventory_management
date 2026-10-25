@@ -10,11 +10,7 @@
 
 {% block page_header %}
     <header class="location-header">
-        <nav aria-label="{% trans 'Location navigation' %}" class="location-breadcrumb">
-            <a href="{% url 'index_locations' %}">{% trans "Locations" %}</a>
-            <span aria-hidden="true">/</span>
-            <a href="{{ object.get_absolute_url }}">{{ object.name }}</a>
-        </nav>
+        {% include "inventory/location_breadcrumb.html" with location=object %}
         <div class="location-heading">
             <div class="location-heading-text">
                 <p class="location-eyebrow">{% trans "Add container" %} · {{ object.type.name }}</p>
@@ -39,6 +35,7 @@
                 {% csrf_token %}
                 {% bootstrap_form_errors form type="non_fields" %}
                 {% bootstrap_field form.type %}
+                {% bootstrap_field form.count %}
                 {% bootstrap_field form.purpose %}
                 {% bootstrap_field form.physical_description %}
                 <div class="location-actions mt-3">

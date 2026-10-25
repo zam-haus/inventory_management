@@ -10,11 +10,7 @@
 
 {% block page_header %}
     <header class="location-header">
-        <nav aria-label="{% trans 'Location navigation' %}" class="location-breadcrumb">
-            <a href="{% url 'index_locations' %}">{% trans "Locations" %}</a>
-            <span aria-hidden="true">/</span>
-            <a href="{{ object.get_absolute_url }}">{{ object.name }}</a>
-        </nav>
+        {% include "inventory/location_breadcrumb.html" with location=object %}
         <div class="location-heading">
             <div class="location-heading-text">
                 <p class="location-eyebrow">{% blocktrans with type=sub.name %}Add {{ type }}{% endblocktrans %} · {{ object.type.name }}</p>

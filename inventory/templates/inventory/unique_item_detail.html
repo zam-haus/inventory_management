@@ -15,17 +15,10 @@
 
 {% block page_header %}
     <header class="item-header">
-        <nav class="item-breadcrumb" aria-label="{% trans 'Unique item navigation' %}">
-            <a href="{% url 'index_items' %}">{% trans "Items" %}</a>
-            <span aria-hidden="true">/</span>
-            <a href="{{ object.item.get_absolute_url }}">{{ object.item }}</a>
-            <span aria-hidden="true">/</span>
-            <a href="{{ object.get_absolute_url }}" aria-current="page">{% if lid %}{{ lid.display }}{% else %}#{{ object.pk }}{% endif %}</a>
-        </nav>
         <div class="item-heading" data-action-row>
             <div class="item-heading-text">
                 <p class="item-eyebrow">{% trans "Unique item" %}{% if object.item.category %} · {{ object.item.category }}{% endif %}</p>
-                <h1>{{ object.item }} {% if lid %}<span class="unique-item-code">{{ lid.display }}</span>{% else %}<span class="item-muted">#{{ object.pk }}</span>{% endif %}</h1>
+                <h1><a class="unique-item-of" href="{{ object.item.get_absolute_url }}">{{ object.item }}</a> {% if lid %}<span class="unique-item-code">{{ lid.display }}</span>{% else %}<span class="item-muted">#{{ object.pk }}</span>{% endif %}</h1>
             </div>
             {% if not object.is_disposed %}
             <div class="item-actions gap-2" data-action-group>

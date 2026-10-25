@@ -3523,6 +3523,19 @@ msgstr "Kiste, Karton oder Palette mit der nächsten Nummer anlegen"
 msgid "%(name)s (%(code)s) created."
 msgstr "%(name)s (%(code)s) angelegt."
 
+msgid "%(count)s × %(type)s created: %(codes)s."
+msgstr "%(count)s × %(type)s angelegt: %(codes)s."
+
+msgid "How many?"
+msgstr "Wie viele?"
+
+msgid ""
+"Several get the next free numbers, from the one shown on; each gets the "
+"purpose and description below."
+msgstr ""
+"Mehrere bekommen die nächsten freien Nummern ab der angezeigten; jede "
+"bekommt den Zweck und die Beschreibung unten."
+
 msgid "The number was taken in the meantime. Try again."
 msgstr "Die Nummer wurde inzwischen vergeben. Bitte noch einmal versuchen."
 

@@ -15,9 +15,6 @@
 
 {% block page_header %}
     <header class="item-header">
-        <nav class="item-breadcrumb" aria-label="{% trans 'Item navigation' %}">
-            <a href="{% url 'index_items' %}">{% trans "Items" %}</a>
-        </nav>
         <div class="item-heading" data-action-row>
             <div class="item-heading-text">
                 <p class="item-eyebrow">{% if object.tracks_unique_items %}{% trans "Item with unique items" %}{% else %}{% trans "Bulk item" %}{% endif %}{% if object.category %} · {{ object.category }}{% endif %}</p>

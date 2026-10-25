@@ -18,15 +18,7 @@
 
 {% block page_header %}
     <header class="location-header">
-        <nav aria-label="{% trans 'Location navigation' %}" class="location-breadcrumb">
-            <a href="{% url 'index_locations' %}">{% trans "Locations" %}</a>
-            {% for ancestor in object.ancestors %}
-                <span aria-hidden="true">/</span>
-                <a href="{{ ancestor.get_absolute_url }}">{{ ancestor.name_with_short_name }}</a>
-            {% endfor %}
-            <span aria-hidden="true">/</span>
-            <a href="{{ object.get_absolute_url }}" aria-current="page">{{ object.name_with_short_name }}</a>
-        </nav>
+        {% include "inventory/location_breadcrumb.html" with location=object current=True %}
         <div class="location-heading" data-action-row>
             <div class="location-heading-text">
                 <h1 class="location-title-row">

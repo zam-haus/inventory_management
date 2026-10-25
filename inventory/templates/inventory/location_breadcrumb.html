@@ -1,0 +1,8 @@
+{% load i18n %}{# The path of `location` from its top-level location down; with current it is this page's location. #}
+<nav aria-label="{% trans 'Location navigation' %}" class="location-breadcrumb">
+    {% for ancestor in location.ancestors %}
+        <a href="{{ ancestor.get_absolute_url }}">{{ ancestor.name_with_short_name }}</a>
+        <span aria-hidden="true">/</span>
+    {% endfor %}
+    <a href="{{ location.get_absolute_url }}"{% if current %} aria-current="page"{% endif %}>{{ location.name_with_short_name }}</a>
+</nav>

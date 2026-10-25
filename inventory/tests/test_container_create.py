@@ -2,6 +2,7 @@ from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Permission
+from django.core.exceptions import ValidationError
 from django.db import IntegrityError
 from django.test import TestCase, override_settings
 from django.urls import reverse
@@ -86,6 +87,31 @@ class ContainerCreateTests(TestCase):
             self.client.post(self.url(self.hall), {"type": self.pallet_type.pk})
         self.assertEqual(calls, ["P0001"])
         self.assertTrue(Location.objects.filter(short_name="P0001").exists())
+
+    def test_several_at_once_get_the_next_numbers(self):
+        self.client.force_login(self.member)
+        self.assertContains(self.client.get(self.url(self.hall)), 'name="count"')
+        response = self.client.post(self.url(self.hall), {"type": self.box_type.pk, "count": 3, "purpose": "Lager"})
+        self.assertRedirects(response, self.hall.get_absolute_url(), fetch_redirect_response=False)
+        boxes = Location.objects.filter(short_name__in=["K0525", "K0526", "K0527"])
+        self.assertEqual([(box.parent_location, box.purpose) for box in boxes], [(self.hall, "Lager")] * 3)
+        self.assertEqual(self.client.post(self.url(self.hall), {"type": self.box_type.pk, "count": 51}).status_code,
+                         200)  # at most 50 at a time
+        # One invalid container creates none of them.
+        with patch.object(Location, "full_clean", side_effect=[None, ValidationError("broken")]):
+            response = self.client.post(self.url(self.hall), {"type": self.box_type.pk, "count": 2})
+        self.assertContains(response, "broken")
+        self.assertFalse(Location.objects.filter(short_name="K0528").exists())
+
+    def test_location_pages_show_the_path(self):
+        pallet = Location.objects.create(type=self.pallet_type, name="Palette 1", short_name="P0001",
+                                         parent_location=self.hall)
+        self.client.force_login(self.member)
+        page = self.client.get(self.url(pallet)).content.decode()
+        self.assertInHTML(f'<a href="{self.hall.get_absolute_url()}">Halle [HAL]</a>', page)
+        self.assertInHTML(f'<a href="{pallet.get_absolute_url()}">Palette 1 [P0001]</a>', page)
+        breadcrumb = page[page.index('class="location-breadcrumb"'):page.index("</nav>", page.index("location-breadcrumb"))]
+        self.assertNotIn(f'href="{reverse("index_locations")}"', breadcrumb)  # no "Locations" at the root
 
     def test_boxes_take_no_containers(self):
         self.client.force_login(self.member)

@@ -292,6 +292,19 @@ class OpenAfterCreatingTests(InventoryData, TestCase):
         request.user = create_user("reader")
         self.assertEqual(with_print_dialog(request, self.part, [self.part]), self.part.get_absolute_url())
 
+    def test_several_new_containers_are_checked_on_their_parent(self):
+        box = LocationType.objects.create(name="Kiste", unique=True, moveable=True, category="container",
+                                          auto_name_prefix="Kiste", auto_short_name_prefix="K",
+                                          auto_short_name_padding_length=4, auto_sequence="0123456789",
+                                          no_sublocations=True)
+        self.shelf.type.category = "space"
+        self.shelf.type.save()
+        self.client.force_login(create_user("builder", "inventory.add_location", "label_printing.print_label"))
+        response = self.client.post(reverse("container_create", args=[self.shelf.pk]), {"type": box.pk, "count": 2})
+        new = list(Location.objects.filter(type=box).order_by("short_name"))
+        self.assertRedirects(response, f"{self.shelf.get_absolute_url()}?print={new[0].pk},{new[1].pk}",
+                             fetch_redirect_response=False)
+
     def test_the_new_locations_are_passed_on_by_the_purposes_page(self):
         compartment = LocationType.objects.create(name="Fach/Schub", auto_name_prefix="Fach",
                                                   auto_sequence="abcdefghijklmnopqrstuvwxyz")

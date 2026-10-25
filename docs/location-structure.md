@@ -73,12 +73,18 @@ are in [Standortregeln](standortregeln.md) (German).
   cartons and pallets (`LocationType.numbered_containers`: containers with building-wide codes, a
   short name prefix and the numeric sequence, not admin-only) get the next number of their type, after
   the highest one (`LocationType.next_free_number`, counting former codes, skipping taken codes;
-  codes of other sequences such as `K034c` do not count). There is no number to choose. The location
+  codes of other sequences such as `K034c` do not count). There is no number to choose. Up to 50 are
+  created at once (`MAX_CONTAINERS`), all or none, each with the next free number and the same
+  purpose and description. The location
   page shows a button named after the types (“Karton / Kiste / Palette”) and a **+** at the containers'
   panel, which then shows while empty for logged-in users. Creating them and numbered locations also
   asks for the purpose and the physical description. The physical description of everything but the
   building structure can be changed later on the location page like the purpose
   (`LocationDescriptionUpdateView`, `location_field_editor.js`).
+* **Breadcrumbs** of location pages (the location and its sub-pages: move, history, dissolve, adding
+  shelves, containers or compartments) show the location's full path from its top-level location,
+  without a “Locations” root (`inventory/location_breadcrumb.html`). Item pages have none for now:
+  theirs would follow the categories. A unique item's heading links to its item.
 * **Sub-locations** (`LocationType.sublocation_type`, e.g. *Fach/Schub* for shelves and
   cabinets): creating such a location asks how many to add inside it and creates them with the
   sub type's naming, with the shelf's or cabinet's name first (`Regal 301 Fach a`, `a`;

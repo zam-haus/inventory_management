@@ -23,6 +23,7 @@ from .models import Location, LocationNumberRange, LocationType
 
 COMPUTED = ["unique_identifier", "locatable_identifier", "descriptive_identifier"]
 RESERVED, WISH, AUTO = "reserved", "wish", "auto"
+MAX_CONTAINERS = 50  # created at once
 
 
 class NumberedLocationForm(forms.Form):
@@ -191,6 +192,10 @@ class NumberedLocationCreateView(PermissionRequiredMixin, FormView):
 class ContainerCreateForm(forms.Form):
     type = forms.ModelChoiceField(label=_("What is added?"), queryset=LocationType.objects.none(),
                                   widget=forms.RadioSelect, empty_label=None)
+    count = forms.IntegerField(
+        label=_("How many?"), required=False, min_value=1, max_value=MAX_CONTAINERS, initial=1,
+        help_text=_("Several get the next free numbers, from the one shown on; each gets the purpose and "
+                    "description below."))
     purpose = NumberedLocationForm.base_fields["purpose"]
     physical_description = NumberedLocationForm.base_fields["physical_description"]
 
@@ -232,6 +237,23 @@ class ContainerCreateView(PermissionRequiredMixin, FormView):
 
     def form_valid(self, form):
         kind, data = form.cleaned_data["type"], form.cleaned_data
+        try:
+            with transaction.atomic():
+                created = [self.create_container(kind, data) for _index in range(data.get("count") or 1)]
+        except ValidationError as error:
+            form.add_error(None, " ".join(error.messages))
+            return self.form_invalid(form)
+        if len(created) == 1:
+            location = created[0]
+            messages.success(self.request, _("%(name)s (%(code)s) created.") % {
+                "name": location.name, "code": location.short_name})
+            return redirect(with_print_dialog(self.request, location, created))
+        messages.success(self.request, _("%(count)s × %(type)s created: %(codes)s.") % {
+            "count": len(created), "type": kind.name, "codes": ", ".join(entry.short_name for entry in created)})
+        return redirect(with_print_dialog(self.request, self.parent, created))
+
+    def create_container(self, kind, data):
+        """The next container of `kind`, with the next free number."""
         for _attempt in range(3):
             try:
                 with transaction.atomic():
@@ -240,17 +262,10 @@ class ContainerCreateView(PermissionRequiredMixin, FormView):
                                         purpose=data["purpose"], physical_description=data["physical_description"])
                     location.full_clean(exclude=COMPUTED + ["overview_photo"])
                     location.save(actor=self.request.user)
-                break
+                return location
             except IntegrityError:
                 continue  # someone took the number in the meantime: take the next one
-            except ValidationError as error:
-                form.add_error(None, " ".join(error.messages))
-                return self.form_invalid(form)
-        else:
-            form.add_error(None, _("The number was taken in the meantime. Try again."))
-            return self.form_invalid(form)
-        messages.success(self.request, _("%(name)s (%(code)s) created.") % {"name": location.name, "code": short})
-        return redirect(with_print_dialog(self.request, location, [location]))
+        raise ValidationError(_("The number was taken in the meantime. Try again."))
 
 
 class SublocationAddForm(forms.Form):

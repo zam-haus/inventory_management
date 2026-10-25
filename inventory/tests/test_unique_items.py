@@ -352,10 +352,11 @@ class UniqueItemViewTests(UniqueItemFixture, TestCase):
         self.assertFalse(Item.objects.filter(name="Ladder").exists())
 
     def test_breadcrumbs(self):
+        # Items have none for now (theirs would follow the categories); the heading leads to the item.
         response = self.client.get(self.unique_item.get_absolute_url())
-        self.assertContains(response, f'<a href="{reverse("index_items")}">Items</a>', html=True)
-        self.assertContains(response, f'<a href="{self.extinguisher.get_absolute_url()}">Fire extinguisher</a>', html=True)
-        self.assertContains(response, f'<a href="{self.unique_item.get_absolute_url()}" aria-current="page">K7R-4XD</a>', html=True)
+        self.assertNotContains(response, "item-breadcrumb")
+        self.assertContains(response, f'<a class="unique-item-of" href="{self.extinguisher.get_absolute_url()}">'
+                                      'Fire extinguisher</a>', html=True)
         drawer = Location.objects.create(name="Drawer", short_name="D2", type=self.kind, parent_location=self.shelf)
         response = self.client.get(drawer.get_absolute_url())
         content = response.content.decode()
