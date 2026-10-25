@@ -493,6 +493,10 @@ class AdminTests(InventoryData, TestCase):
         template = LocationLabelTemplate.objects.get(name="Neu")
         self.assertEqual((template.label_width, template.label_height), (50, 20))
         self.assertEqual([str(rule) for rule in template.rules.all()], ['2: location.type.category == "container"'])
+        # Material and colours as label stock names them, black on white unless chosen otherwise; empty: any
+        self.assertEqual((template.print_color, template.background_color, template.material), ("schwarz", "weiß", ""))
+        form = self.client.get(reverse("admin:inventory_locationlabeltemplate_change", args=[template.pk]))
+        self.assertContains(form, '<option value="gelb">gelb</option>', html=True)
         self.assertContains(self.client.get(reverse("label_design_help")), "Label designs")
 
     def test_location_page_shows_its_label(self):
@@ -553,9 +557,10 @@ class ZplTemplatesMigrationTests(TransactionTestCase):
                 self.assertEqual(list(rules.filter(template=own).values_list("condition", "priority")), [("", 0)])
                 # the template chosen for the location: preselected as its last label
                 last = apps.get_model("label_printing", "LastLabel").objects
-                self.assertEqual(last.get(subject_type="location", subject_pk=str(hall.pk)).template_id, own.pk)
+                self.assertEqual(last.get(subject_type="location", subject_pk=str(hall.pk)).layout_key, f"design:{own.pk}")
                 # else its type's
-                self.assertEqual(last.get(subject_type="location", subject_pk=str(room_2.pk)).template_id, mobile.pk)
+                self.assertEqual(last.get(subject_type="location", subject_pk=str(room_2.pk)).layout_key,
+                                 f"design:{mobile.pk}")
                 stock = apps.get_model("label_printing", "LabelStock")
                 self.assertEqual(sorted(stock.objects.filter(language="zpl").values_list("name", flat=True)),
                                  ["Etikett 105 × 52 mm Polyester", "Etikett 50 × 25 mm"])

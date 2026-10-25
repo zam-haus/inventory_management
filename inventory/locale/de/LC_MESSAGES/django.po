@@ -1730,7 +1730,7 @@ msgstr "Anzahl"
 
 #: admin.py:190
 msgid "Copies per label"
-msgstr "Exemplare pro Etikett"
+msgstr "Kopien pro Etikett"
 
 #: admin.py:193
 msgid "Sub-location type"
@@ -3676,3 +3676,33 @@ msgstr "Die höchste wird vorausgewählt; 0: nur auf Anfrage angeboten, außer k
 
 msgid "always"
 msgstr "immer"
+
+msgid "any"
+msgstr "beliebig"
+
+msgid "Which labels of its size it prints on: a label stock, else by material and colours (label stock without colours is black on white)."
+msgstr "Auf welche Etiketten ihrer Größe sie druckt: eine bestimmte Materialvorlage, sonst nach Material und Farben (Materialvorlagen ohne Farbangabe gelten als schwarz auf weiß)."
+
+msgid "label stock"
+msgstr "Materialvorlage"
+
+msgid "Only these labels; empty: any of its size, by material and colours."
+msgstr "Nur diese Etiketten; leer: alle ihrer Größe, nach Material und Farben."
+
+msgid "material"
+msgstr "Material"
+
+msgid "Only labels of this material, e.g. Polyester; empty: any."
+msgstr "Nur Etiketten aus diesem Material, z. B. Polyester; leer: beliebig."
+
+msgid "print colour"
+msgstr "Druckfarbe"
+
+msgid "Only labels or tape printing in this colour; empty: any."
+msgstr "Nur Etiketten oder Band mit dieser Druckfarbe; leer: beliebig."
+
+msgid "background colour"
+msgstr "Hintergrundfarbe"
+
+msgid "Only labels or tape of this colour; empty: any."
+msgstr "Nur Etiketten oder Band in dieser Farbe; leer: beliebig."

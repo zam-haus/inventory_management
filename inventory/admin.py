@@ -55,12 +55,33 @@ class CategoryAdmin(admin.ModelAdmin):
 admin.site.register(models.Category, CategoryAdmin)
 
 
+def stock_values(field):
+    """The values label stock has for a field, to choose from (empty: any)."""
+    from label_printing.models import LabelStock
+
+    values = sorted({value for value in LabelStock.objects.values_list(field, flat=True) if value},
+                    key=str.casefold)
+    return [("", _("any"))] + [(value, value) for value in values]
+
+
 class LocationLabelTemplateForm(forms.ModelForm):
     class Meta:
         model = models.LocationLabelTemplate
-        fields = ("name", "subject_type", "quality", "description")
+        fields = ("name", "subject_type", "quality", "description", "label_stock", "material", "print_color",
+                  "background_color")
         widgets = {"description": forms.Textarea(attrs={
             "rows": 24, "cols": 72, "spellcheck": "false", "autocapitalize": "off", "class": "label-description"})}
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Material and colours as label stock names them; a value no stock has (any more) stays choosable.
+        for name in ("material", "print_color", "background_color"):
+            if name in self.fields:
+                choices = stock_values(name)
+                current = self.initial.get(name) or getattr(self.instance, name, "")
+                if current and current not in dict(choices):
+                    choices.append((current, current))
+                self.fields[name].widget = forms.Select(choices=choices)
 
     def clean(self):
         data = super().clean()
@@ -91,7 +112,13 @@ class LocationLabelTemplateAdmin(admin.ModelAdmin):
     list_display = ("name", "sample", "subject_type", "size", "rules_list", "quality", "is_active")
     list_filter = ("is_active", "subject_type", "quality")
     search_fields = ("name", "description")
-    fields = ("name", "subject_type", "is_active", "quality", "description", "variables_list", "fitting_media")
+    fieldsets = (
+        (None, {"fields": ("name", "subject_type", "is_active", "quality", "description", "variables_list")}),
+        (_("Labels"), {"fields": ("label_stock", ("material", "print_color", "background_color"), "fitting_media"),
+                       "description": _("Which labels of its size it prints on: a label stock, else by material and "
+                                        "colours (label stock without colours is black on white).")}),
+    )
+    autocomplete_fields = ("label_stock",)
     actions = ["activate", "deactivate"]
     readonly_fields = ("variables_list", "fitting_media")
     inlines = [LabelTemplateRuleInline]

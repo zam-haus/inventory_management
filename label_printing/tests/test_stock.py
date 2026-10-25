@@ -47,26 +47,36 @@ class LabelStockTests(TestCase):
             LabelMedium(printer=zebra, stock=tape.stock).full_clean()
         self.assertIn("stock", raised.exception.message_dict)
 
-    def test_templates_of_the_stock_are_offered(self):
-        zebra, labels, *_ = create_printers()
-        def template(name):
-            return LocationLabelTemplate.objects.create(name=name, description="label 57 x 32\ntext {{ location.unique_identifier }}")
-        chosen, other = template("Fach"), template("Anderes")
-        keys = lambda: [layout.key for layout in layouts_for("location", zebra, labels)]
-        self.assertIn(f"design:{other.pk}", keys())  # nothing chosen: every template of the size
-        stock = LabelStock.objects.create(language="zpl", name="57 × 32", width_mm=57, height_mm=32, method="direct")
-        stock.label_templates.add(chosen)
-        labels.stock = stock
+    def test_templates_by_label_stock_material_and_colours(self):
+        """A template prints on labels of its size, and of its label stock, material and colours if it names them;
+        label stock without colours is black on white."""
+        zebra, labels, brother, tape = create_printers()
+        LocationLabelTemplate.objects.update(is_active=False)
+
+        def template(name, size="57 x 32", **criteria):
+            return LocationLabelTemplate.objects.create(name=name, description=f"label {size}\ntext {{{{ qr }}}}",
+                                                        **criteria)
+        plain, any_colour = template("Schlicht"), template("Beliebig", print_color="", background_color="")
+        yellow = template("Gelb", background_color="gelb")
+        paper = template("Papier", material="papier")
+        paper_stock = LabelStock.objects.create(language="zpl", name="57 × 32 Papier", width_mm=57, height_mm=32,
+                                                material="Papier")
+        own = template("Eigene", label_stock=paper_stock)
+        keys = lambda printer, medium: {layout.template for layout in layouts_for("location", printer, medium)}
+        self.assertEqual(keys(zebra, labels), {plain, any_colour})  # without stock: black on white, material unknown
+        labels.stock = paper_stock
         labels.save()
-        self.assertIn(f"design:{chosen.pk}", keys())
-        self.assertNotIn(f"design:{other.pk}", keys())
-        own = template("Own")
-        labels.label_templates.add(own)  # the medium's own choice wins
-        self.assertEqual(keys()[:1], [f"design:{own.pk}"])
-        self.assertNotIn(f"design:{chosen.pk}", keys())
+        self.assertEqual(keys(zebra, labels), {plain, any_colour, paper, own})
+        on_tape = [template(name, size="height 12", **criteria) for name, criteria in (
+            ("Schlicht", {}), ("Beliebig", {"print_color": "", "background_color": ""}),
+            ("Gelb", {"background_color": "gelb"}))]
+        tape.stock = LabelStock.objects.get(code="TZe-631")  # black on yellow
+        tape.save()
+        self.assertEqual(keys(brother, tape), set(on_tape[1:]))
 
     def test_preview_in_the_tape_colours(self):
         _zebra, _labels, brother, tape = create_printers()
+        LocationLabelTemplate.objects.filter(pk=generated("location", "tape12").pk).update(background_color="")
         tape.stock = LabelStock.objects.get(code="TZe-631")  # black on yellow
         tape.save()
         location = Location.objects.create(name="Lager", short_name="WH", type=LocationType.objects.create(name="Room", unique=True))

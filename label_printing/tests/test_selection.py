@@ -57,7 +57,7 @@ class RuleTests(InventoryData, TestCase):
                                   subject_type="location", subjects=[self.box])
         PrintJob.objects.filter(pk=job.pk).update(status=PrintJob.Status.DONE)
         selection.remember_job(PrintJob.objects.get(pk=job.pk))
-        self.assertEqual(LastLabel.objects.get(subject_pk=str(self.box.pk)).template, self.plain)
+        self.assertEqual(LastLabel.objects.get(subject_pk=str(self.box.pk)).layout_key, f"design:{self.plain.pk}")
         # The admin's print actions take it too
         self.assertEqual(services.location_layout(self.box, self.zebra, self.labels).template, self.plain)
 

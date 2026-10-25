@@ -326,6 +326,17 @@ class LocationLabelTemplate(models.Model):
                     "the tape; Zebra: print speed."))
     is_active = models.BooleanField(_("active"), default=True,
                                     help_text=_("Only active templates are offered and printed."))
+    # Which labels of its size it is for (label_printing.layouts.designs.stock_matches): a label stock, else
+    # material and colours as label stock has them (label stock without colours is black on white).
+    label_stock = models.ForeignKey(
+        "label_printing.LabelStock", verbose_name=_("label stock"), null=True, blank=True, on_delete=models.PROTECT,
+        related_name="+", help_text=_("Only these labels; empty: any of its size, by material and colours."))
+    material = models.CharField(_("material"), max_length=64, blank=True,
+                                help_text=_("Only labels of this material, e.g. Polyester; empty: any."))
+    print_color = models.CharField(_("print colour"), max_length=64, blank=True, default="schwarz",
+                                   help_text=_("Only labels or tape printing in this colour; empty: any."))
+    background_color = models.CharField(_("background colour"), max_length=64, blank=True, default="weiß",
+                                        help_text=_("Only labels or tape of this colour; empty: any."))
     label_width = models.FloatField(_("width (mm)"), null=True, editable=False,
                                     help_text=_("Empty: as long as the content (Brother tape)."))
     label_height = models.FloatField(_("height (mm)"), null=True, editable=False)

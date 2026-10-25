@@ -103,10 +103,11 @@ class SubmitTests(TestCase):
         self.assertTrue(payload.startswith("^XA^PW456^LL256") and "^GFA" in payload and "^PQ2" in payload)
         self.assertEqual((job.label_code, job.subject_label, job.subject_id), ("WH", str(location), location.pk))
         self.assertEqual(job.snapshot[0]["code"], "WH")
-        # Templates chosen for the medium: only those.
-        self.labels.label_templates.add(template("Gewählt"))
+        # Templates for other labels of the size: not.
+        yellow = template("Gelb")
+        LocationLabelTemplate.objects.filter(pk=yellow.pk).update(background_color="gelb")
         with self.assertRaises(services.PrintError):
-            self.submit(layout_key=f"design:{fitting.pk}", **options)
+            self.submit(layout_key=f"design:{yellow.pk}", **options)
 
 
 @override_settings(**SETTINGS)

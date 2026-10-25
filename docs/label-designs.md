@@ -179,8 +179,15 @@ no resolution in a template):
   made-up record (every property two words of lorem ipsum): 9 mm tape templates, for example, are not
   offered on the E550W (180 dpi).
 
-Media offer the fitting active templates of the kind being printed. If templates are chosen for a medium (or
-for its label stock), only those are offered. Deactivated templates are neither offered nor printed.
+A template may also say which labels of its size it is for (admin: **Labels**):
+* a **label stock**: only media of exactly that stock;
+* else **material** (e.g. Polyester; empty: any) and **print and background colour** as label stock names
+  them (default black on white; empty: any). Label stock without colours (Zebra labels) and media without
+  label stock count as black on white; media without label stock have no known material, so templates that
+  name one are not offered on them.
+
+Media offer the fitting active templates of the kind being printed; the template decides, so label printing
+needs nothing of the inventory's templates. Deactivated templates are neither offered nor printed.
 
 Which of them are meant for a subject, and in which order, say the template's **rules**: conditions with the
 same variables as in `{% if %}`, each with a print priority ([label printing](label-printing.md#label-templates-and-images)).

@@ -9,6 +9,7 @@ class Migration(migrations.Migration):
 
     dependencies = [
         ("inventory", "0041_admin_only_locks_purpose"),
+        ("label_printing", "0001_initial"),
     ]
 
     operations = [
@@ -114,5 +115,50 @@ class Migration(migrations.Migration):
                 "verbose_name_plural": "rules",
                 "ordering": ("-priority", "pk"),
             },
+        ),
+        migrations.AddField(
+            model_name="locationlabeltemplate",
+            name="background_color",
+            field=models.CharField(
+                blank=True,
+                default="weiß",
+                help_text="Only labels or tape of this colour; empty: any.",
+                max_length=64,
+                verbose_name="background colour",
+            ),
+        ),
+        migrations.AddField(
+            model_name="locationlabeltemplate",
+            name="label_stock",
+            field=models.ForeignKey(
+                blank=True,
+                help_text="Only these labels; empty: any of its size, by material and colours.",
+                null=True,
+                on_delete=django.db.models.deletion.PROTECT,
+                related_name="+",
+                to="label_printing.labelstock",
+                verbose_name="label stock",
+            ),
+        ),
+        migrations.AddField(
+            model_name="locationlabeltemplate",
+            name="material",
+            field=models.CharField(
+                blank=True,
+                help_text="Only labels of this material, e.g. Polyester; empty: any.",
+                max_length=64,
+                verbose_name="material",
+            ),
+        ),
+        migrations.AddField(
+            model_name="locationlabeltemplate",
+            name="print_color",
+            field=models.CharField(
+                blank=True,
+                default="schwarz",
+                help_text="Only labels or tape printing in this colour; empty: any.",
+                max_length=64,
+                verbose_name="print colour",
+            ),
         ),
     ]

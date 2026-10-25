@@ -245,10 +245,6 @@ class LabelStock(models.Model):
                               help_text=_("Thermal transfer: the ribbon the material needs."))
     material = models.CharField(_("material"), max_length=64, blank=True,
                                 help_text=_("e.g. paper, polypropylene, polyester"))
-    label_templates = models.ManyToManyField(
-        "inventory.LocationLabelTemplate", verbose_name=_("label templates"), blank=True, related_name="stock",
-        help_text=_("Only these of their kind for these labels; none: every template of the labels' size."),
-    )
     url = models.URLField(_("product page"), blank=True)
 
     def __str__(self):
@@ -318,11 +314,6 @@ class LabelMedium(models.Model):
     )
     zpl_darkness = models.SmallIntegerField(_("darkness"), null=True, blank=True,
                                             help_text=_("Zebra: -30 to 30 (^MD); empty for the printer's setting."))
-    label_templates = models.ManyToManyField(
-        "inventory.LocationLabelTemplate", verbose_name=_("label templates"), blank=True, related_name="media",
-        help_text=_("Only these of their kind for this medium (else those chosen for its label stock); none: "
-                    "every template of the medium's size."),
-    )
     quality = models.CharField(
         _("print quality"), max_length=16, choices=Quality.choices, default=Quality.STANDARD,
         help_text=_("Preselected in the print dialog. Brother: draft printing or high resolution; "
@@ -381,12 +372,6 @@ class LabelMedium(models.Model):
     def is_tape(self):
         return self.printer.language == Printer.Language.PTOUCH
 
-    def chosen_templates(self):
-        """The label templates chosen for the medium, else for its label stock (maybe none)."""
-        own = self.label_templates.all()
-        if own.exists() or self.stock_id is None:
-            return own
-        return self.stock.label_templates.all()
 
 
 class PrintJob(models.Model):
@@ -463,7 +448,8 @@ class PrintJob(models.Model):
 
 class LastLabel(models.Model):
     """The label template a subject was printed with last (selection.py preselects it): e.g. the arrow up or
-    down for a compartment, which no rule could tell."""
+    down for a compartment, which no rule could tell. By its layout key ("design:12", as PrintJob.layout_key),
+    so label printing has no relation to the inventory's models."""
 
     class Meta:
         verbose_name = _("last label")
@@ -472,12 +458,11 @@ class LastLabel(models.Model):
 
     subject_type = models.CharField(_("subject type"), max_length=32)
     subject_pk = models.CharField(_("subject"), max_length=64)
-    template = models.ForeignKey("inventory.LocationLabelTemplate", on_delete=models.CASCADE, related_name="+",
-                                 verbose_name=_("label template"))
+    layout_key = models.CharField(_("layout"), max_length=64)
     printed_at = models.DateTimeField(_("printed at"), default=timezone.now)
 
     def __str__(self):
-        return f"{self.subject_type} {self.subject_pk}: {self.template}"
+        return f"{self.subject_type} {self.subject_pk}: {self.layout_key}"
 
 
 class LabelImage(models.Model):

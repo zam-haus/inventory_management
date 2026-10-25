@@ -20,11 +20,10 @@ class LabelStockAdmin(admin.ModelAdmin):
     list_display = ("__str__", "language", "size", "colours", "method_text", "material")
     list_filter = ("language", "tape_mm", "method", "ribbon", "background_color", "print_color")
     search_fields = ("code", "name", "description", "background_color", "print_color", "material")
-    filter_horizontal = ("label_templates",)
     fieldsets = (
         (None, {"fields": ("language", ("code", "name"), "description", "url")}),
         (_("Brother P-touch"), {"fields": ("tape_mm", ("print_color", "background_color"), "length_m")}),
-        (_("Zebra"), {"fields": (("width_mm", "height_mm"), ("method", "ribbon"), "material", "label_templates")}),
+        (_("Zebra"), {"fields": (("width_mm", "height_mm"), ("method", "ribbon"), "material")}),
     )
 
     @admin.display(description=_("size"))
@@ -133,9 +132,8 @@ class LabelMediumInline(admin.StackedInline):
     model = LabelMedium
     extra = 0
     fields = ("stock", ("name", "is_default"), ("width_mm", "height_mm", "ptouch_tape"),
-              ("offset_x", "offset_y", "zpl_darkness"), "quality", "label_templates")
+              ("offset_x", "offset_y", "zpl_darkness"), "quality")
     autocomplete_fields = ("stock",)
-    filter_horizontal = ("label_templates",)
 
 
 @admin.register(Printer)

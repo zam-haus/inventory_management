@@ -1,8 +1,8 @@
 """
 Label templates (inventory's LocationLabelTemplate: a label design in the description language,
 label_printing.design) as layouts. A template is designed for a label size and prints only on labels of that
-size (fits), on any printer: it is drawn at the printer's resolution. Media offer the fitting active templates;
-only those chosen for the medium or its label stock, if there are any of the kind.
+size, and of its material and colours or its label stock if it names them (fits), on any printer: it is drawn
+at the printer's resolution. Media offer the fitting active templates.
 """
 import functools
 
@@ -26,10 +26,35 @@ def close(size, wanted):
     return size is not None and wanted is not None and abs(size - wanted) <= SIZE_TOLERANCE_MM
 
 
+# Label stock without colours (Zebra labels, media without stock) is black on white.
+DEFAULT_PRINT_COLOR, DEFAULT_BACKGROUND_COLOR = "schwarz", "weiß"
+
+
 def fits(template, medium):
-    """Whether the template is for labels of the medium's size; a template prints on matching labels only.
-    Zebra: labels of its width and height. Brother: tape as wide as its height; endless tape takes any length,
-    tape with a label length only templates of that length."""
+    """Whether the template is for the medium's labels: of its size, and of its label stock, material and
+    colours if it names them; a template prints on matching labels only."""
+    return size_fits(template, medium) and stock_matches(template, medium)
+
+
+def stock_matches(template, medium):
+    """Whether the medium's labels are those the template names: its label stock, else its material (labels of
+    unknown material: not) and colours (empty: any; label stock without colours is black on white)."""
+    if template.label_stock_id:
+        return medium.stock_id == template.label_stock_id
+    stock = medium.stock if medium.stock_id else None
+    if template.material and (stock is None or stock.material.casefold() != template.material.casefold()):
+        return False
+    print_color = (stock.print_color if stock else "") or DEFAULT_PRINT_COLOR
+    background_color = (stock.background_color if stock else "") or DEFAULT_BACKGROUND_COLOR
+    return ((not template.print_color or template.print_color.casefold() == print_color.casefold())
+            and (not template.background_color
+                 or template.background_color.casefold() == background_color.casefold()))
+
+
+def size_fits(template, medium):
+    """Whether the template is for labels of the medium's size. Zebra: labels of its width and height. Brother:
+    tape as wide as its height; endless tape takes any length, tape with a label length only templates of that
+    length."""
     if template.label_height is None:
         return False
     if medium.is_tape:
@@ -63,12 +88,9 @@ def drawable(template, medium):
                    canvas.squeeze)
 
 
-def candidates(medium, subject_type):
-    """The active templates a medium may offer for a kind of label: those chosen for it (or its stock), else
-    all."""
-    chosen = medium.chosen_templates().filter(subject_type=subject_type, is_active=True)
-    return chosen if chosen.exists() else LocationLabelTemplate.objects.filter(subject_type=subject_type,
-                                                                               is_active=True)
+def candidates(subject_type):
+    """The active templates for a kind of label."""
+    return LocationLabelTemplate.objects.filter(subject_type=subject_type, is_active=True)
 
 
 def images():
@@ -104,9 +126,8 @@ class DesignLayout(Layout):
         self.quality = template.quality
 
     def supports(self, printer, medium):
-        """For labels of its size, if chosen for them, and if its QR codes are big enough on the printer."""
-        return (printer.language in self.languages and fits(self.template, medium)
-                and candidates(medium, self.subject_type).filter(pk=self.template.pk).exists()
+        """While active, for its labels (fits), and if its QR codes are big enough on the printer."""
+        return (printer.language in self.languages and self.template.is_active and fits(self.template, medium)
                 and drawable(self.template, medium))
 
     def subject_data(self, subject, preview, user):
@@ -140,7 +161,7 @@ class DesignLayout(Layout):
 def template_layouts(subject_type, printer, medium):
     if medium is None or medium.pk is None or printer.language not in DesignLayout.languages:
         return []
-    return [DesignLayout(template) for template in candidates(medium, subject_type).order_by("name")
+    return [DesignLayout(template) for template in candidates(subject_type).order_by("name")
             if fits(template, medium) and drawable(template, medium)]
 
 

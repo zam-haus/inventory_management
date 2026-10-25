@@ -54,6 +54,20 @@ class OutcomeTests(InventoryData, TestCase):
         self.assertIn(f"medium={self.tape.pk}", card["preview"])  # previewed as it would print
         self.assertEqual(dialog.unavailable_reason("location", options), "")  # the dialog opens: labels may wait
 
+    def test_what_is_missing(self):
+        """For the overview's marks and summary: the printer, or the labels (which)."""
+        self.assertEqual(self.found()[self.on_tape].missing, ("", ""))
+        self.brother.remember_status(TAPE_24)
+        self.assertEqual(self.found()[self.on_tape].missing, ("material", "12 mm"))
+        self.brother.remember_status({"ok": False, "errors": ["cover_open"]})
+        self.assertEqual(self.found()[self.on_tape].missing, ("printer", "P-touch Werkstatt"))
+        self.brother.remember_status({"ok": False, "errors": ["end_of_media"]})
+        self.assertEqual(self.found()[self.on_tape].missing, ("material", "12 mm"))
+        large = LocationLabelTemplate.objects.create(name="Groß", description="label 100 x 50\ntext {{ qr }}",
+                                                     material="Polyester")
+        self.assertEqual(self.found()[f"design:{large.pk}"].missing,
+                         ("material", "100 × 50 mm, Polyester, schwarz on weiß"))
+
     def test_the_printer_that_can_print_is_chosen(self):
         other = Printer.objects.create(name="P-touch Lager", slug="ptouch2", language="ptouch", model="E550W", dpi=180,
                                        host="127.0.0.1", is_default=True)

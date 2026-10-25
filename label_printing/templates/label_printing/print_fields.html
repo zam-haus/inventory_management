@@ -1,4 +1,4 @@
-{% load i18n %}{# The fields of the print form: which label, or a row per label (overview); then where and how often. print_label.js follows the job. #}
+{% load i18n icons %}{# The fields of the print form: which label, or a row per label (overview); then where and how often. print_label.js follows the job. #}
 {% csrf_token %}
 <input type="hidden" name="request_id" value="">
 {% if form.non_field_errors %}<div class="alert alert-danger">{{ form.non_field_errors|join:" " }}</div>{% endif %}
@@ -32,16 +32,24 @@
         {% for row in print_options.rows %}
         <div class="label-overview-row" data-row="{{ forloop.counter0 }}">
             <input class="form-check-input" type="checkbox" name="row-{{ forloop.counter0 }}-print" aria-label="{% blocktrans with name=row.name %}Print {{ name }}{% endblocktrans %}"{% if not row.outcomes %} disabled{% elif subject_type != "items" or not print_options.priced or row.priced %} checked{% endif %}>
-            <span class="label-overview-name">{{ row.name }}</span>
             {% if row.outcomes %}
-            <select class="form-select form-select-sm" name="row-{{ forloop.counter0 }}-outcome" aria-label="{% trans 'Label' %}">
-                <optgroup label="{% trans 'Recommended' %}">{% for choice in row.choices %}{% if choice.shown %}<option value="{{ choice.key }}"{% if choice.chosen %} selected{% endif %}>{{ choice.label }}</option>{% endif %}{% endfor %}</optgroup>
-                {% if row.more %}<optgroup label="{% trans 'More labels' %}">{% for choice in row.choices %}{% if not choice.shown %}<option value="{{ choice.key }}"{% if choice.chosen %} selected{% endif %}>{{ choice.label }}</option>{% endif %}{% endfor %}</optgroup>{% endif %}
-            </select>
-            <span class="label-overview-preview"><img src="{{ row.image }}" alt="" loading="lazy"></span>
-            {% else %}
-            <span class="label-overview-none">{% trans "No label template is meant for this." %}</span>
+            <div class="label-overview-label">
+                <span class="label-overview-preview"><img src="{{ row.image }}" alt="" loading="lazy"></span>
+                <span class="label-overview-missing" data-missing="printer" hidden>{% icon "printer" %}</span>
+                <span class="label-overview-missing" data-missing="material" hidden>{% icon "tag" %}</span>
+            </div>
             {% endif %}
+            <div class="label-overview-info">
+                <span class="label-overview-name">{{ row.name }}</span>
+                {% if row.outcomes %}
+                <select class="form-select form-select-sm" name="row-{{ forloop.counter0 }}-outcome" aria-label="{% trans 'Label' %}">
+                    <optgroup label="{% trans 'Recommended' %}">{% for choice in row.choices %}{% if choice.shown %}<option value="{{ choice.key }}"{% if choice.chosen %} selected{% endif %}>{{ choice.label }}</option>{% endif %}{% endfor %}</optgroup>
+                    {% if row.more %}<optgroup label="{% trans 'More labels' %}">{% for choice in row.choices %}{% if not choice.shown %}<option value="{{ choice.key }}"{% if choice.chosen %} selected{% endif %}>{{ choice.label }}</option>{% endif %}{% endfor %}</optgroup>{% endif %}
+                </select>
+                {% else %}
+                <span class="label-overview-none">{% trans "No label template is meant for this." %}</span>
+                {% endif %}
+            </div>
         </div>
         {% endfor %}
     </div>
@@ -65,10 +73,11 @@
     </div>
     {% endif %}
     <div class="mb-3">
-        <label class="form-label" for="label-print-copies-{{ subject_type }}">{% trans "Copies" %}</label>
+        <label class="form-label" for="label-print-copies-{{ subject_type }}">{% trans "Copies per label" %}</label>
         <input class="form-control label-print-copies{% if form.copies.errors %} is-invalid{% endif %}" type="number" id="label-print-copies-{{ subject_type }}" name="copies" value="1" min="1" max="{{ print_options.max_copies }}" inputmode="numeric" required>
         <div class="invalid-feedback" data-error-for="copies">{{ form.copies.errors|join:" " }}</div>
     </div>
 </div>
+<div class="alert alert-warning small mb-2" data-wait-summary hidden></div>
 <div class="alert alert-warning small mb-2" data-wait-note hidden>{% blocktrans with minutes=print_options.wait_minutes %}No printer can print this label right now. If you go on, the job waits up to {{ minutes }} minutes and is printed as soon as a printer can: when it is back online or the right labels are loaded. Otherwise it is not printed.{% endblocktrans %}</div>
 <div class="label-print-status" role="status" aria-live="polite" data-print-status hidden></div>

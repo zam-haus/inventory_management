@@ -23,13 +23,14 @@ class LabelPrintingTests(TestCase):
 
     @classmethod
     def setUpTestData(cls):
-        template = LocationLabelTemplate.objects.create(name="Box", description="label 57 x 32\ntext {{ location.unique_identifier }}")
+        cls.template = template = LocationLabelTemplate.objects.create(
+            name="Box", description="label 57 x 32\ntext {{ location.unique_identifier }}")
         kind = LocationType.objects.create(name="Room", unique=True)
         cls.locations = [Location.objects.create(name=f"Room {n}", short_name=f"R{n}", type=kind) for n in (1, 2)]
         cls.printer = Printer.objects.create(name="Zebra", slug="zebra", language="zpl", host="192.0.2.1",
                                              is_default=True)
         cls.medium = LabelMedium.objects.create(printer=cls.printer, name="57 × 32", width_mm=57, height_mm=32)
-        cls.medium.label_templates.add(template)
+        LocationLabelTemplate.objects.exclude(pk=template.pk).update(is_active=False)
 
     def run_action(self, action):
         request = RequestFactory().post("/")
@@ -49,7 +50,7 @@ class LabelPrintingTests(TestCase):
                 self.assertEqual((job.copies, job.pages, job.printer), (copies, 2 * copies, self.printer))
                 payload = bytes(job.payload).decode()
                 self.assertEqual((payload.count("^XA"), payload.count(f"^PQ{copies}"), payload.count("^GFA")), (2, 2, 2))
-                self.assertEqual(job.layout_key, f"design:{self.medium.label_templates.get().pk}")
+                self.assertEqual(job.layout_key, f"design:{self.template.pk}")
 
     def test_without_default_printer(self):
         Printer.objects.update(is_default=False)

@@ -446,7 +446,7 @@ def labels_to_start_with(apps, schema_editor):
     # locations keep their labels; the rules decide for new ones.
     LastLabel = apps.get_model("label_printing", "LastLabel")
     LastLabel.objects.bulk_create([
-        LastLabel(subject_type="location", subject_pk=str(pk), template_id=own or of_type)
+        LastLabel(subject_type="location", subject_pk=str(pk), layout_key=f"design:{own or of_type}")
         for pk, own, of_type in apps.get_model("inventory", "Location").objects.values_list(
             "pk", "label_template_id", "type__default_label_template_id") if own or of_type])
 

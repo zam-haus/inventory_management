@@ -2,7 +2,8 @@
 // subject: which label to print (the server picks the printer), the templates its rules recommend shown, others
 // on request; labels no printer can print now are greyed but may wait for one. For several (a location with its
 // sub-locations, the items at a location): an overview, a row per label with its best template, each printed as a
-// job of its own. After printing the dialog follows the job (or the batch of jobs) until the printers report back,
+// job of its own: the labels in their real size, a tap on a row switches it, marks say what is missing (printer or
+// material), and a summary what waits for what. After printing the dialog follows the job (or the batch of jobs) until the printers report back,
 // or until waiting jobs expire.
 (() => {
     if (window.labelPrintDialogs) return;  // each dialog includes this script
@@ -28,6 +29,7 @@ function setUp(form, options) {
         pricedOnly: form.querySelector('[data-priced-only]'),
         qrNote: form.querySelector('[data-qr-note]'),
         waitNote: form.querySelector('[data-wait-note]'),
+        waitSummary: form.querySelector('[data-wait-summary]'),
         status: form.querySelector('[data-print-status]'),
         submit: form.querySelector('[data-print-submit]'),
     };
@@ -58,10 +60,47 @@ function setUp(form, options) {
         return data.template_preview.replace('{template}', item.template);
     }
 
-    function rowPreview(row) {
+    // The label in its real size (1 mm on the label = 1 mm on the screen, as far as the screen says)
+    function realSize(image, item) {
+        if (!item?.dpi || !image.naturalWidth) return;
+        image.style.width = `${(image.naturalWidth / item.dpi) * 25.4}mm`;
+        image.style.height = `${(image.naturalHeight / item.dpi) * 25.4}mm`;
+    }
+
+    // A row's preview and what keeps its label from being printed now (printer or material)
+    function rowState(row) {
         const image = row.querySelector('img');
         const item = outcome(select(row)?.value);
-        if (image && item) image.src = previewUrl(options.rows[Number(row.dataset.row)], item);
+        if (!image || !item) return;
+        const url = previewUrl(options.rows[Number(row.dataset.row)], item);
+        if (image.getAttribute('src') !== url) image.src = url;
+        else realSize(image, item);
+        row.querySelectorAll('[data-missing]').forEach(mark => {
+            mark.hidden = item.printer !== '' || mark.dataset.missing !== item.missing;
+            mark.title = item.reason;
+        });
+    }
+
+    // What the overview's labels wait for: "16 at once, 3 waiting for labels (…), 3 for a printer (…)"
+    function summary(rows, copies) {
+        const now = [], waiting = {material: new Map(), printer: new Map()};
+        rows.forEach(row => {
+            const item = outcome(select(row).value);
+            if (item.printer) now.push(row);
+            else if (waiting[item.missing]) {
+                waiting[item.missing].set(item.missing_name, (waiting[item.missing].get(item.missing_name) || 0) + copies);
+            }
+        });
+        const count = map => [...map.values()].reduce((sum, value) => sum + value, 0);
+        const names = map => [...map.keys()].join(', ');
+        const parts = [text.labelSummaryNow.replace('{count}', now.length * copies)];
+        if (waiting.material.size) {
+            parts.push(text.labelSummaryMaterial.replace('{count}', count(waiting.material)).replace('{names}', names(waiting.material)));
+        }
+        if (waiting.printer.size) {
+            parts.push(text.labelSummaryPrinter.replace('{count}', count(waiting.printer)).replace('{names}', names(waiting.printer)));
+        }
+        return waiting.material.size || waiting.printer.size ? `${parts.join(', ')}. ${text.labelSummaryWait}` : '';
     }
 
     // The button says what will happen: print on a printer, or wait for one (the note says what waiting means);
@@ -70,13 +109,16 @@ function setUp(form, options) {
         const several = overview();
         if (parts.single) parts.single.hidden = several;
         if (parts.overview) parts.overview.hidden = !several;
+        parts.waitSummary.hidden = true;
         if (several) {
             const rows = wanted();
             const items = rows.map(row => outcome(select(row).value)).filter(Boolean);
-            parts.waitNote.hidden = !items.some(item => !item.printer);
-            const labels = rows.length * (parseInt(fields.copies.value, 10) || 1);
+            const copies = parseInt(fields.copies.value, 10) || 1;
+            parts.waitNote.hidden = true;
+            parts.waitSummary.textContent = summary(rows, copies);
+            parts.waitSummary.hidden = !parts.waitSummary.textContent;
             parts.submit.disabled = pending || !rows.length || items.some(item => !item.printer && !item.can_wait);
-            if (!pending) submitLabel.textContent = text.labelPrintRows.replace('{count}', labels);
+            if (!pending) submitLabel.textContent = text.labelSubmitRows.replace('{count}', rows.length * copies);
             return;
         }
         const current = chosen();
@@ -114,9 +156,24 @@ function setUp(form, options) {
         if (event.target === fields.copies) update();
     });
 
+    // A tap anywhere on a row of the overview (but its template) switches it on or off.
+    form.addEventListener('click', event => {
+        const row = event.target.closest('[data-row]');
+        if (!row || event.target.closest('select, input, option')) return;
+        const box = printing(row);
+        if (box.disabled) return;
+        box.checked = !box.checked;
+        update();
+    });
+
+    form.addEventListener('load', event => {
+        const row = event.target.closest?.('[data-row]');
+        if (row && event.target.tagName === 'IMG') realSize(event.target, outcome(select(row)?.value));
+    }, true);
+
     form.addEventListener('change', event => {
         const row = event.target.closest('[data-row]');
-        if (row && event.target.tagName === 'SELECT') rowPreview(row);
+        if (row && event.target.tagName === 'SELECT') rowState(row);
         if (event.target === parts.pricedOnly) {
             parts.rows.forEach(entry => {
                 if (select(entry)) printing(entry).checked = !parts.pricedOnly.checked || options.rows[Number(entry.dataset.row)].priced;
@@ -259,6 +316,7 @@ function setUp(form, options) {
     }
 
     startOver();
+    parts.rows.forEach(rowState);
     update();
     if (modal && window.bootstrap) {
         modal.addEventListener('show.bs.modal', open);

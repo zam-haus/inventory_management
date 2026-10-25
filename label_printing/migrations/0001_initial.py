@@ -10,7 +10,6 @@ class Migration(migrations.Migration):
     initial = True
 
     dependencies = [
-        ("inventory", "0042_label_designs"),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
 
@@ -275,16 +274,6 @@ class Migration(migrations.Migration):
                     ),
                 ),
                 ("url", models.URLField(blank=True, verbose_name="product page")),
-                (
-                    "label_templates",
-                    models.ManyToManyField(
-                        blank=True,
-                        help_text="Only these of their kind for these labels; none: every template of the labels' size.",
-                        related_name="stock",
-                        to="inventory.locationlabeltemplate",
-                        verbose_name="label templates",
-                    ),
-                ),
             ],
             options={
                 "verbose_name": "label stock",
@@ -393,16 +382,6 @@ class Migration(migrations.Migration):
                 (
                     "is_default",
                     models.BooleanField(default=False, verbose_name="default medium"),
-                ),
-                (
-                    "label_templates",
-                    models.ManyToManyField(
-                        blank=True,
-                        help_text="Only these of their kind for this medium (else those chosen for its label stock); none: every template of the medium's size.",
-                        related_name="media",
-                        to="inventory.locationlabeltemplate",
-                        verbose_name="label templates",
-                    ),
                 ),
                 (
                     "stock",
@@ -858,15 +837,7 @@ class Migration(migrations.Migration):
                         default=django.utils.timezone.now, verbose_name="printed at"
                     ),
                 ),
-                (
-                    "template",
-                    models.ForeignKey(
-                        on_delete=django.db.models.deletion.CASCADE,
-                        related_name="+",
-                        to="inventory.locationlabeltemplate",
-                        verbose_name="label template",
-                    ),
-                ),
+                ("layout_key", models.CharField(max_length=64, verbose_name="layout")),
             ],
             options={
                 "verbose_name": "last label",

@@ -79,7 +79,8 @@ def last_template_pk(subject_type, subject):
     if subject_type not in REMEMBERED or getattr(subject, "pk", None) is None:
         return None
     kind, pk = subject_key(subject_type, subject)
-    return LastLabel.objects.filter(subject_type=kind, subject_pk=pk).values_list("template_id", flat=True).first()
+    key = LastLabel.objects.filter(subject_type=kind, subject_pk=pk).values_list("layout_key", flat=True).first()
+    return int(key.removeprefix("design:")) if key and key.removeprefix("design:").isdigit() else None
 
 
 def remember_label(subject, template, subject_type="location"):
@@ -88,20 +89,17 @@ def remember_label(subject, template, subject_type="location"):
         return
     kind, pk = subject_key(subject_type, subject)
     LastLabel.objects.update_or_create(subject_type=kind, subject_pk=pk,
-                                       defaults={"template": template, "printed_at": timezone.now()})
+                                       defaults={"layout_key": f"design:{template.pk}", "printed_at": timezone.now()})
 
 
 def remember_job(job):
     """After a job was printed: its template for each of its subjects whose last label is remembered."""
     if job.subject_type not in REMEMBERED or not job.layout_key.startswith("design:"):
         return
-    template = LocationLabelTemplate.objects.filter(pk=job.layout_key.removeprefix("design:")).first()
-    if template is None:
-        return
     for entry in job.snapshot:
         if isinstance(entry, dict) and entry.get("type") == job.subject_type and entry.get("id") is not None:
             LastLabel.objects.update_or_create(subject_type=job.subject_type, subject_pk=str(entry["id"]),
-                                               defaults={"template": template, "printed_at": timezone.now()})
+                                               defaults={"layout_key": job.layout_key, "printed_at": timezone.now()})
 
 
 @dataclass

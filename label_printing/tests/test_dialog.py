@@ -98,7 +98,9 @@ class PrintDialogTests(SimulatedPrinters, InventoryData, TestCase):
         cls.create_inventory()
         cls.zebra, cls.labels, cls.brother, cls.tape = create_printers(cls.zebra_server.port, cls.brother_server.port)
         cls.template = LocationLabelTemplate.objects.create(name="Fach", description="label 57 x 32\nqr {{ qr }}")
-        cls.labels.label_templates.add(cls.template)
+        # On the Zebra's labels only this location template
+        LocationLabelTemplate.objects.filter(subject_type="location", label_width=57).exclude(pk=cls.template.pk).update(
+            is_active=False)
         cls.user = create_user("printing", "label_printing.print_label", "inventory.add_stockchange")
 
     def setUp(self):
@@ -121,6 +123,8 @@ class PrintDialogTests(SimulatedPrinters, InventoryData, TestCase):
         self.assertContains(response, "Also its sub-locations (2)")
         self.assertContains(response, "data-wait-note hidden")  # what waiting means, for labels no printer can print now
         self.assertContains(response, "data-overview hidden")  # the sub-locations, if they are printed too
+        self.assertContains(response, 'data-missing="material"')  # marks for what keeps a label from printing
+        self.assertContains(response, "Copies per label")
         self.assertNotContains(response, 'name="wait"')
 
     def test_print_a_location_and_its_compartments(self):
@@ -242,7 +246,6 @@ class PrintDialogTests(SimulatedPrinters, InventoryData, TestCase):
 
     def test_without_printers_the_button_says_why(self):
         PrintJob.objects.all().delete()
-        self.labels.label_templates.clear()
         type(self.zebra).objects.update(is_active=False)
         response = self.client.get(self.part.get_absolute_url())
         self.assertContains(response, "No printer is set up for these labels yet.")

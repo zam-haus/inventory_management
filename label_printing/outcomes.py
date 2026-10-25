@@ -50,13 +50,33 @@ def not_loaded(printer, medium):
     return ""
 
 
+# Printer errors that are about its labels: the material is missing, not the printer
+MATERIAL_ERRORS = {"no_media", "end_of_media", "wrong_media", "paper_out", "ribbon_out"}
+
+
 def unavailable(printer, medium):
-    """Why the printer cannot print on the medium now, or ""."""
+    """(Why the printer cannot print on the medium now, and what is missing: "printer" or "material"), or
+    ("", "")."""
     if code := printer.unavailable_code():
-        return str(messages.describe(code))
+        return str(messages.describe(code)), "printer"
     if errors := (printer.last_status or {}).get("errors"):
-        return str(messages.describe(errors[0]))
-    return not_loaded(printer, medium)
+        return str(messages.describe(errors[0])), "material" if errors[0] in MATERIAL_ERRORS else "printer"
+    reason = not_loaded(printer, medium)
+    return reason, "material" if reason else ""
+
+
+def material_name(medium):
+    return medium.stock.name if medium.stock_id else medium.name
+
+
+def labels_text(template):
+    """The labels a template needs, in words: its label stock, else size, material and colours."""
+    if template.label_stock_id:
+        return str(template.label_stock)
+    colours = (_("%(print)s on %(background)s") % {"print": template.print_color or _("any"),
+                                                    "background": template.background_color or _("any")}
+               if template.print_color or template.background_color else "")
+    return ", ".join(part for part in (template.size_text, template.material, colours) if part)
 
 
 @dataclass
@@ -64,6 +84,7 @@ class Target:
     printer: object
     medium: object
     reason: str  # why it cannot print now; "" if it can
+    missing: str = ""  # what is missing then: "printer" or "material"
 
 
 @dataclass
@@ -96,6 +117,16 @@ class Outcome:
         printers and the labels may be loaded into one."""
         return bool(self.targets) or self.waits_for_labels
 
+    @property
+    def missing(self):
+        """(What keeps it from being printed now: "printer" or "material", and which), or ("", "")."""
+        if self.target():
+            return "", ""
+        if not self.targets:
+            return "material", labels_text(self.layout.template)
+        target = self.targets[0]
+        return target.missing, str(target.printer) if target.missing == "printer" else material_name(target.medium)
+
     def sample_medium(self):
         """Labels to preview it on: those it would print on, else any it fits."""
         target = self.target() or (self.targets[0] if self.targets else None)
@@ -108,11 +139,11 @@ def outcomes(subject_type):
     media = (LabelMedium.objects.filter(printer__is_active=True).select_related("printer__loaded_medium", "stock")
              .order_by("-printer__is_default", "printer__name", "-is_default", "name"))
     for medium in media:
-        reason = unavailable(medium.printer, medium)
+        reason, missing = unavailable(medium.printer, medium)
         for layout in layouts_for(subject_type, medium.printer, medium):
             key = f"{layout.key}@{size_key(medium)}"
             found.setdefault(key, Outcome(key, layout, size_text(medium))).targets.append(
-                Target(medium.printer, medium, reason))
+                Target(medium.printer, medium, reason, missing))
     # Templates for labels no printer has: shown, not printable now; jobs may wait for the labels to be put in
     # (a Zebra: also set as loaded) while there are active printers.
     printers = None

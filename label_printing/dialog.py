@@ -131,6 +131,14 @@ def row(subject_type, subject, found):
             "priced": priced(subject) if isinstance(subject, ItemAt) else None}
 
 
+def preview_dpi(template):
+    """The resolution a template is previewed in without a printer (editor.nominal_canvas)."""
+    from .editor import nominal_canvas
+
+    design, _problems = template.design()
+    return nominal_canvas(design).dpi if design.height is not None else 0
+
+
 def preview_url(row_data, outcome):
     """The preview of a row's subject with an outcome: as the printer gets it, else without a printer."""
     if outcome["query"]:
@@ -167,9 +175,12 @@ def options(subject_type, obj):
     data = {"outcomes": [{"key": outcome.key, "name": outcome.name, "size": outcome.size,
                           "printer": str(target.printer) if (target := outcome.target()) else "",
                           "reason": outcome.why_not, "can_wait": outcome.can_wait,
+                          "missing": outcome.missing[0], "missing_name": outcome.missing[1],
                           "template": outcome.layout.template.pk,
                           "query": urlencode({"medium": medium.pk, "layout": outcome.layout.key})
-                          if (medium := outcome.sample_medium()) else ""}
+                          if (medium := outcome.sample_medium()) else "",
+                          # the preview's dots per inch, to show it in its real size
+                          "dpi": medium.printer.dpi if medium else preview_dpi(outcome.layout.template)}
                          for outcome in found],
             "rows": [row(subject_type, subject, found)
                      for subject in subjects(subject_type, obj, children=subject_type == "location")],

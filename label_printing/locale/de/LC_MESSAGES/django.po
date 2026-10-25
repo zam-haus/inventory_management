@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-25 14:37+0100\n"
+"POT-Creation-Date: 2026-10-25 15:19+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -18,163 +18,163 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
-#: label_printing/admin.py:26 label_printing/admin.py:153
+#: label_printing/admin.py:25 label_printing/admin.py:151
 #: label_printing/models.py:71
 msgid "Brother P-touch"
 msgstr "Brother P-touch"
 
-#: label_printing/admin.py:27 label_printing/admin.py:152
+#: label_printing/admin.py:26 label_printing/admin.py:150
 msgid "Zebra"
 msgstr "Zebra"
 
-#: label_printing/admin.py:30
+#: label_printing/admin.py:29
 msgid "size"
 msgstr "Größe"
 
-#: label_printing/admin.py:36
+#: label_printing/admin.py:35
 msgid "colours"
 msgstr "Farben"
 
-#: label_printing/admin.py:40 label_printing/models.py:242
+#: label_printing/admin.py:39 label_printing/models.py:242
 msgid "printing method"
 msgstr "Druckverfahren"
 
-#: label_printing/admin.py:60
+#: label_printing/admin.py:59
 msgid "Images or ZIP archives"
 msgstr "Bilder oder ZIP-Archive"
 
-#: label_printing/admin.py:61
+#: label_printing/admin.py:60
 msgid "PNG, GIF, JPEG, WebP; ZIP archives of them, e.g. a set of safety signs."
 msgstr ""
 "PNG, GIF, JPEG, WebP; ZIP-Archive davon, z. B. ein Satz Sicherheitszeichen."
 
-#: label_printing/admin.py:72
+#: label_printing/admin.py:71
 msgid "Cut off"
 msgstr "Zuschneiden"
 
-#: label_printing/admin.py:79
+#: label_printing/admin.py:78
 msgid "image"
 msgstr "Bild"
 
-#: label_printing/admin.py:83
+#: label_printing/admin.py:82
 msgid "size (pixels)"
 msgstr "Größe (Pixel)"
 
-#: label_printing/admin.py:90
+#: label_printing/admin.py:89
 msgid "used by"
 msgstr "verwendet von"
 
-#: label_printing/admin.py:97 label_printing/models.py:494
+#: label_printing/admin.py:96 label_printing/models.py:479
 msgid "original"
 msgstr "Original"
 
-#: label_printing/admin.py:101
+#: label_printing/admin.py:100
 msgid "Save the image first."
 msgstr "Speichere das Bild zuerst."
 
-#: label_printing/admin.py:109
+#: label_printing/admin.py:108
 msgid ""
 "Drag over the image to choose the part to keep; the margins below follow."
 msgstr ""
 "Zieh über das Bild, um den Teil zu wählen, der bleibt; die Ränder darunter "
 "folgen."
 
-#: label_printing/admin.py:122
+#: label_printing/admin.py:121
 #, python-format
 msgid "%(count)d image imported."
 msgid_plural "%(count)d images imported."
 msgstr[0] "%(count)d Bild importiert."
 msgstr[1] "%(count)d Bilder importiert."
 
-#: label_printing/admin.py:128
+#: label_printing/admin.py:127
 msgid "Import label images"
 msgstr "Etikettenbilder importieren"
 
-#: label_printing/admin.py:151
+#: label_printing/admin.py:149
 msgid "Connection"
 msgstr "Verbindung"
 
-#: label_printing/admin.py:154
+#: label_printing/admin.py:152
 msgid "Status"
 msgstr "Status"
 
-#: label_printing/admin.py:155
+#: label_printing/admin.py:153
 msgid "Reported by the print agent"
 msgstr "Vom Druckagenten gemeldet"
 
-#: label_printing/admin.py:166 label_printing/models.py:82
+#: label_printing/admin.py:164 label_printing/models.py:82
 msgid "reported details"
 msgstr "gemeldete Angaben"
 
-#: label_printing/admin.py:171
+#: label_printing/admin.py:169
 msgid "Activate (printers found by an agent)"
 msgstr "Freischalten (von einem Agenten gefundene Drucker)"
 
-#: label_printing/admin.py:183
+#: label_printing/admin.py:181
 #, python-format
 msgid "Its print agent %(agent)s is not active yet."
 msgstr "Sein Druckagent %(agent)s ist noch nicht freigeschaltet."
 
-#: label_printing/admin.py:185
+#: label_printing/admin.py:183
 msgid "Add the labels loaded in it."
 msgstr "Trage die eingelegten Etiketten ein."
 
-#: label_printing/admin.py:187
+#: label_printing/admin.py:185
 msgid "Set the labels loaded in it."
 msgstr "Lege fest, welche Etiketten eingelegt sind."
 
-#: label_printing/admin.py:188
+#: label_printing/admin.py:186
 #, python-format
 msgid "%(printer)s is active."
 msgstr "%(printer)s ist freigeschaltet."
 
-#: label_printing/admin.py:190 label_printing/models.py:431
+#: label_printing/admin.py:188 label_printing/models.py:416
 msgid "status"
 msgstr "Status"
 
-#: label_printing/admin.py:195
+#: label_printing/admin.py:193
 msgid "Print a test label"
 msgstr "Testetikett drucken"
 
-#: label_printing/admin.py:197
+#: label_printing/admin.py:195
 msgid "test label"
 msgstr "Testetikett"
 
-#: label_printing/admin.py:199
+#: label_printing/admin.py:197
 msgid "Print a calibration label (lines numbered by row)"
 msgstr "Kalibrieretikett drucken (Linien mit Zeilennummern)"
 
-#: label_printing/admin.py:201
+#: label_printing/admin.py:199
 msgid "calibration label"
 msgstr "Kalibrieretikett"
 
-#: label_printing/admin.py:213
+#: label_printing/admin.py:211
 #, python-format
 msgid "%(printer)s: %(what)s %(status)s"
 msgstr "%(printer)s: %(what)s – %(status)s"
 
-#: label_printing/admin.py:216
+#: label_printing/admin.py:214
 msgid "Check the printer status"
 msgstr "Druckerstatus abfragen"
 
-#: label_printing/admin.py:236
+#: label_printing/admin.py:234
 msgid "Activate"
 msgstr "Freischalten"
 
-#: label_printing/admin.py:239
+#: label_printing/admin.py:237
 #, python-format
 msgid "%(count)d print agents active. Activate their printers, too."
 msgstr "%(count)d Druckagenten freigeschaltet. Schalte auch ihre Drucker frei."
 
-#: label_printing/admin.py:241
+#: label_printing/admin.py:239
 msgid "online"
 msgstr "online"
 
-#: label_printing/admin.py:245 label_printing/models.py:66
+#: label_printing/admin.py:243 label_printing/models.py:66
 msgid "printers"
 msgstr "Drucker"
 
-#: label_printing/admin.py:257
+#: label_printing/admin.py:255
 #, python-brace-format
 msgid ""
 "Token of {agent}, shown only now: <code>{token}</code>. Put it into the "
@@ -183,11 +183,11 @@ msgstr ""
 "Token von {agent}, wird nur jetzt angezeigt: <code>{token}</code>. In die "
 "Token-Datei des Agenten eintragen."
 
-#: label_printing/admin.py:260
+#: label_printing/admin.py:258
 msgid "Give a new token (the old one stops working)"
 msgstr "Neuen Token erzeugen (der alte gilt dann nicht mehr)"
 
-#: label_printing/admin.py:265
+#: label_printing/admin.py:263
 #, python-format
 msgid ""
 "%(agent)s registered itself and keeps its own token; delete it to let it "
@@ -196,23 +196,23 @@ msgstr ""
 "%(agent)s hat sich selbst angemeldet und behält seinen Token; lösche ihn, "
 "damit er sich neu anmeldet."
 
-#: label_printing/admin.py:275
+#: label_printing/admin.py:273
 msgid "labels out of date"
 msgstr "Etiketten veraltet"
 
-#: label_printing/admin.py:280 label_printing/admin.py:304
+#: label_printing/admin.py:278 label_printing/admin.py:302
 msgid "out of date"
 msgstr "veraltet"
 
-#: label_printing/admin.py:300 label_printing/models.py:432
+#: label_printing/admin.py:298 label_printing/models.py:417
 msgid "result"
 msgstr "Ergebnis"
 
-#: label_printing/admin.py:310
+#: label_printing/admin.py:308
 msgid "Print these labels again, as they are now"
 msgstr "Diese Etiketten neu drucken, wie sie jetzt sind"
 
-#: label_printing/admin.py:318
+#: label_printing/admin.py:316
 #, python-format
 msgid "Job %(old)s printed again as job %(new)s."
 msgstr "Auftrag %(old)s als Auftrag %(new)s neu gedruckt."
@@ -348,53 +348,53 @@ msgstr "Die Elemente sind %(mm).1f mm zu lang für diese(s) %(kind)s."
 msgid "Write the condition alone, without {% if %}."
 msgstr "Schreib die Bedingung allein, ohne {% if %}."
 
-#: label_printing/design/variables.py:24
+#: label_printing/design/variables.py:25
 msgid "the location, with all its fields and properties, e.g.:"
 msgstr "der Ort, mit all seinen Feldern und Eigenschaften, z. B.:"
 
-#: label_printing/design/variables.py:25
+#: label_printing/design/variables.py:26
 msgid "its code, e.g. WH-1.R303.a"
 msgstr "seine Kennung, z. B. WH-1.R303.a"
 
-#: label_printing/design/variables.py:26 label_printing/design/variables.py:35
+#: label_printing/design/variables.py:27 label_printing/design/variables.py:36
 msgid "its name"
 msgstr "sein Name"
 
-#: label_printing/design/variables.py:27
+#: label_printing/design/variables.py:28
 msgid "where it is: the full path with codes"
 msgstr "wo er ist: der ganze Pfad mit Kennungen"
 
-#: label_printing/design/variables.py:28
+#: label_printing/design/variables.py:29
 msgid "the code within its area, e.g. R303.a"
 msgstr "die Kennung innerhalb seines Bereichs, z. B. R303.a"
 
-#: label_printing/design/variables.py:29
+#: label_printing/design/variables.py:30
 msgid "its purpose"
 msgstr "sein Zweck"
 
-#: label_printing/design/variables.py:30
+#: label_printing/design/variables.py:31
 msgid "the name of the location it is in"
 msgstr "der Name des Orts, in dem er ist"
 
-#: label_printing/design/variables.py:31
+#: label_printing/design/variables.py:32
 msgid ""
 "for QR codes: the code via the label host, HTTPS://I.ZAM.HAUS/WH-1.R303.A"
 msgstr ""
 "für QR-Codes: die Kennung über den Label-Host, HTTPS://I.ZAM.HAUS/WH-1.R303.A"
 
-#: label_printing/design/variables.py:34
+#: label_printing/design/variables.py:35
 msgid "the item, with all its fields and properties, e.g.:"
 msgstr "der Artikel, mit all seinen Feldern und Eigenschaften, z. B.:"
 
-#: label_printing/design/variables.py:36
+#: label_printing/design/variables.py:37
 msgid "its price for items for sale, e.g. 0,15; else empty"
 msgstr "sein Preis bei Verkaufsartikeln, z. B. 0,15; sonst leer"
 
-#: label_printing/design/variables.py:37
+#: label_printing/design/variables.py:38
 msgid "its unit, e.g. Stk"
 msgstr "seine Einheit, z. B. Stk"
 
-#: label_printing/design/variables.py:38
+#: label_printing/design/variables.py:39
 msgid ""
 "the code of the location it is stored at (the first one); location is the "
 "location, if there is one"
@@ -402,11 +402,11 @@ msgstr ""
 "die Kennung des Orts, an dem er lagert (des ersten); location ist der Ort, "
 "wenn es einen gibt"
 
-#: label_printing/design/variables.py:40 label_printing/design/variables.py:50
+#: label_printing/design/variables.py:41 label_printing/design/variables.py:51
 msgid "its label ID as printed, e.g. K7R-4XD"
 msgstr "seine Label-ID wie gedruckt, z. B. K7R-4XD"
 
-#: label_printing/design/variables.py:41
+#: label_printing/design/variables.py:42
 msgid ""
 "for QR codes: the item's label ID and the location's code (…/K7R4XD/"
 "WH-1.R303.A), leading to the item there"
@@ -414,47 +414,47 @@ msgstr ""
 "für QR-Codes: die Label-ID des Artikels und die Kennung des Standorts (…/"
 "K7R4XD/WH-1.R303.A); führt zum Artikel dort"
 
-#: label_printing/design/variables.py:45
+#: label_printing/design/variables.py:46
 msgid "the unique item, with all its fields and properties, e.g.:"
 msgstr "das Einzelobjekt mit allen Feldern und Eigenschaften, z. B.:"
 
-#: label_printing/design/variables.py:46
+#: label_printing/design/variables.py:47
 msgid "its owner's first name, if it is not the ZAM's"
 msgstr "der Vorname seines Eigentümers, wenn es nicht dem ZAM gehört"
 
-#: label_printing/design/variables.py:47
+#: label_printing/design/variables.py:48
 msgid "whether it has an owner other than the ZAM (for rules)"
 msgstr "ob es einen anderen Eigentümer als das ZAM hat (für Regeln)"
 
-#: label_printing/design/variables.py:48
+#: label_printing/design/variables.py:49
 msgid "what it is: the item's name"
 msgstr "was es ist: der Name der Sache"
 
-#: label_printing/design/variables.py:49
+#: label_printing/design/variables.py:50
 msgid "the code of the location it is at"
 msgstr "die Kennung des Standorts, an dem es ist"
 
-#: label_printing/design/variables.py:51 label_printing/design/variables.py:57
+#: label_printing/design/variables.py:52 label_printing/design/variables.py:58
 msgid "its first part, e.g. K7R"
 msgstr "ihr erster Teil, z. B. K7R"
 
-#: label_printing/design/variables.py:52 label_printing/design/variables.py:58
+#: label_printing/design/variables.py:53 label_printing/design/variables.py:59
 msgid "its second part, e.g. 4XD"
 msgstr "ihr zweiter Teil, z. B. 4XD"
 
-#: label_printing/design/variables.py:53 label_printing/design/variables.py:60
+#: label_printing/design/variables.py:54 label_printing/design/variables.py:61
 msgid "for QR codes: the label ID via the label host"
 msgstr "für QR-Codes: die Label-ID über den Label-Host"
 
-#: label_printing/design/variables.py:56
+#: label_printing/design/variables.py:57
 msgid "the label ID as printed, e.g. K7R-4XD"
 msgstr "die Label-ID wie gedruckt, z. B. K7R-4XD"
 
-#: label_printing/design/variables.py:59
+#: label_printing/design/variables.py:60
 msgid "what it belongs to"
 msgstr "wozu sie gehört"
 
-#: label_printing/design/variables.py:63
+#: label_printing/design/variables.py:64
 msgid "what label IDs are called, e.g. ZAMid"
 msgstr "wie Label-IDs heißen, z. B. ZAMid"
 
@@ -463,53 +463,52 @@ msgstr "wie Label-IDs heißen, z. B. ZAMid"
 msgid "Price tags at %(location)s"
 msgstr "Preisschilder an %(location)s"
 
-#: label_printing/dialog.py:197
+#: label_printing/dialog.py:208
 msgid "No bulk items are stored here."
 msgstr "Hier lagern keine Mengenartikel."
 
-#: label_printing/dialog.py:201
-#: label_printing/templates/label_printing/print_fields.html:43
+#: label_printing/dialog.py:212
+#: label_printing/templates/label_printing/print_fields.html:50
 msgid "No label template is meant for this."
 msgstr "Dafür ist keine Etikettenvorlage vorgesehen."
 
-#: label_printing/dialog.py:203
+#: label_printing/dialog.py:214
 msgid "No printer is set up for these labels yet."
 msgstr "Für diese Etiketten ist noch kein Drucker eingerichtet."
 
-#: label_printing/dialog.py:209
+#: label_printing/dialog.py:220
 #: label_printing/templates/label_printing/print_button.html:1
 #: label_printing/templates/label_printing/print_fields.html:7
-#: label_printing/templates/label_printing/print_fields.html:37
+#: label_printing/templates/label_printing/print_fields.html:45
 msgid "Label"
 msgstr "Etikett"
 
-#: label_printing/dialog.py:210 label_printing/dialog.py:297
-#: label_printing/templates/label_printing/print_fields.html:68
+#: label_printing/dialog.py:221 label_printing/dialog.py:308
 msgid "Copies"
 msgstr "Anzahl"
 
-#: label_printing/dialog.py:211
+#: label_printing/dialog.py:222
 msgid "Location"
 msgstr "Standort"
 
-#: label_printing/dialog.py:212
+#: label_printing/dialog.py:223
 msgid "Also the sub-locations"
 msgstr "Auch die Unterorte"
 
-#: label_printing/dialog.py:235 label_printing/dialog.py:307
+#: label_printing/dialog.py:246 label_printing/dialog.py:318
 #, python-format
 msgid "At most %(max)d copies."
 msgstr "Höchstens %(max)d Stück."
 
-#: label_printing/dialog.py:252
+#: label_printing/dialog.py:263
 msgid "There is nothing to print."
 msgstr "Es gibt nichts zu drucken."
 
-#: label_printing/dialog.py:260
+#: label_printing/dialog.py:271
 msgid "These labels cannot be printed here."
 msgstr "Diese Etiketten lassen sich hier nicht drucken."
 
-#: label_printing/dialog.py:296
+#: label_printing/dialog.py:307
 msgid "Printer and labels"
 msgstr "Drucker und Etiketten"
 
@@ -521,7 +520,7 @@ msgstr "kein ZIP-Archiv"
 msgid "not a PNG, GIF, JPEG or WebP image"
 msgstr "kein PNG-, GIF-, JPEG- oder WebP-Bild"
 
-#: label_printing/layouts/designs.py:130
+#: label_printing/layouts/designs.py:151
 #, python-format
 msgid "Line %(line)s: %(message)s"
 msgstr "Zeile %(line)s: %(message)s"
@@ -679,7 +678,7 @@ msgid "Printer error: %(code)s"
 msgstr "Druckerfehler: %(code)s"
 
 #: label_printing/models.py:26 label_printing/models.py:94
-#: label_printing/models.py:435
+#: label_printing/models.py:420
 msgid "print agent"
 msgstr "Druckagent"
 
@@ -688,8 +687,8 @@ msgid "print agents"
 msgstr "Druckagenten"
 
 #: label_printing/models.py:29 label_printing/models.py:77
-#: label_printing/models.py:232 label_printing/models.py:304
-#: label_printing/models.py:492
+#: label_printing/models.py:232 label_printing/models.py:300
+#: label_printing/models.py:477
 msgid "name"
 msgstr "Name"
 
@@ -732,8 +731,8 @@ msgstr "zuletzt gesehen"
 msgid "version"
 msgstr "Version"
 
-#: label_printing/models.py:65 label_printing/models.py:300
-#: label_printing/models.py:416
+#: label_printing/models.py:65 label_printing/models.py:296
+#: label_printing/models.py:401
 msgid "printer"
 msgstr "Drucker"
 
@@ -916,7 +915,8 @@ msgstr "Bereit."
 msgid "%(width)s mm tape"
 msgstr "%(width)s-mm-Band"
 
-#: label_printing/models.py:189 label_printing/models.py:256
+#: label_printing/models.py:189 label_printing/models.py:252
+#: label_printing/outcomes.py:76
 #, python-format
 msgid "%(print)s on %(background)s"
 msgstr "%(print)s auf %(background)s"
@@ -945,7 +945,7 @@ msgid "high quality (slower)"
 msgstr "Hohe Qualität (langsamer)"
 
 #: label_printing/models.py:215 label_printing/models.py:216
-#: label_printing/models.py:301
+#: label_printing/models.py:297
 msgid "label stock"
 msgstr "Materialvorlage"
 
@@ -977,7 +977,7 @@ msgstr "Artikelnummer"
 msgid "description"
 msgstr "Beschreibung"
 
-#: label_printing/models.py:235 label_printing/models.py:311
+#: label_printing/models.py:235 label_printing/models.py:307
 msgid "tape width"
 msgstr "Bandbreite"
 
@@ -993,7 +993,7 @@ msgstr "Druckfarbe"
 msgid "length (m)"
 msgstr "Länge (m)"
 
-#: label_printing/models.py:240 label_printing/models.py:305
+#: label_printing/models.py:240 label_printing/models.py:301
 msgid "width (mm)"
 msgstr "Breite (mm)"
 
@@ -1022,63 +1022,51 @@ msgstr "Material"
 msgid "e.g. paper, polypropylene, polyester"
 msgstr "z. B. Papier, Polypropylen, Polyester"
 
-#: label_printing/models.py:249 label_printing/models.py:322
-msgid "label templates"
-msgstr "Etikettenvorlagen"
-
-#: label_printing/models.py:250
-msgid ""
-"Only these of their kind for these labels; none: every template of the "
-"labels' size."
-msgstr ""
-"Nur diese ihrer Art für diese Etiketten; keine: jede Vorlage der "
-"Etikettengröße."
-
-#: label_printing/models.py:252
+#: label_printing/models.py:248
 msgid "product page"
 msgstr "Produktseite"
 
-#: label_printing/models.py:276 label_printing/models.py:363
+#: label_printing/models.py:272 label_printing/models.py:354
 msgid "Choose the tape width."
 msgstr "Wähle die Bandbreite."
 
-#: label_printing/models.py:279 label_printing/models.py:358
+#: label_printing/models.py:275 label_printing/models.py:349
 msgid "Zebra labels need a width."
 msgstr "Zebra-Etiketten brauchen eine Breite."
 
-#: label_printing/models.py:281 label_printing/models.py:360
+#: label_printing/models.py:277 label_printing/models.py:351
 msgid "Zebra labels need a height."
 msgstr "Zebra-Etiketten brauchen eine Höhe."
 
-#: label_printing/models.py:283
+#: label_printing/models.py:279
 msgid "Thermal transfer labels need a ribbon: choose which."
 msgstr "Thermotransfer-Etiketten brauchen ein Farbband: wähle welches."
 
-#: label_printing/models.py:285
+#: label_printing/models.py:281
 msgid "Only thermal transfer labels take a ribbon."
 msgstr "Nur Thermotransfer-Etiketten brauchen ein Farbband."
 
-#: label_printing/models.py:294 label_printing/models.py:418
+#: label_printing/models.py:290 label_printing/models.py:403
 msgid "label medium"
 msgstr "Etikettenmaterial"
 
-#: label_printing/models.py:295
+#: label_printing/models.py:291
 msgid "label media"
 msgstr "Etikettenmaterialien"
 
-#: label_printing/models.py:303
+#: label_printing/models.py:299
 msgid "Fills in name, size and tape; colours and material come from it."
 msgstr "Füllt Name, Größe und Band aus; Farben und Material kommen daher."
 
-#: label_printing/models.py:306
+#: label_printing/models.py:302
 msgid "Zebra: the label width."
 msgstr "Zebra: die Etikettenbreite."
 
-#: label_printing/models.py:308
+#: label_printing/models.py:304
 msgid "height / length (mm)"
 msgstr "Höhe / Länge (mm)"
 
-#: label_printing/models.py:309
+#: label_printing/models.py:305
 msgid ""
 "Zebra: the label height. Brother: a fixed label length; empty for as long as "
 "the content."
@@ -1086,23 +1074,23 @@ msgstr ""
 "Zebra: die Etikettenhöhe. Brother: eine feste Etikettenlänge; leer für so "
 "lang wie der Inhalt."
 
-#: label_printing/models.py:312
+#: label_printing/models.py:308
 msgid "Brother only."
 msgstr "Nur Brother."
 
-#: label_printing/models.py:313
+#: label_printing/models.py:309
 msgid "offset x (dots)"
 msgstr "Versatz x (Punkte)"
 
-#: label_printing/models.py:313
+#: label_printing/models.py:309
 msgid "Zebra: label home (^LH)."
 msgstr "Zebra: Ursprung des Etiketts (^LH)."
 
-#: label_printing/models.py:315
+#: label_printing/models.py:311
 msgid "offset y (dots)"
 msgstr "Versatz y (Punkte)"
 
-#: label_printing/models.py:316
+#: label_printing/models.py:312
 msgid ""
 "Zebra: label home (^LH). Brother: moves the print across the tape, positive "
 "= down, if the top or bottom is cut off (print the calibration label to "
@@ -1112,27 +1100,19 @@ msgstr ""
 "Band, positiv = nach unten, falls oben oder unten etwas abgeschnitten wird "
 "(zum Messen das Kalibrieretikett drucken)."
 
-#: label_printing/models.py:319
+#: label_printing/models.py:315
 msgid "darkness"
 msgstr "Schwärzung"
 
-#: label_printing/models.py:320
+#: label_printing/models.py:316
 msgid "Zebra: -30 to 30 (^MD); empty for the printer's setting."
 msgstr "Zebra: -30 bis 30 (^MD); leer für die Einstellung des Druckers."
 
-#: label_printing/models.py:323
-msgid ""
-"Only these of their kind for this medium (else those chosen for its label "
-"stock); none: every template of the medium's size."
-msgstr ""
-"Nur diese ihrer Art für dieses Material (sonst die der Materialvorlage); "
-"keine: jede Vorlage der Größe des Materials."
-
-#: label_printing/models.py:327 label_printing/models.py:429
+#: label_printing/models.py:318 label_printing/models.py:414
 msgid "print quality"
 msgstr "Druckqualität"
 
-#: label_printing/models.py:328
+#: label_printing/models.py:319
 msgid ""
 "Preselected in the print dialog. Brother: draft printing or high resolution; "
 "Zebra: print speed."
@@ -1140,187 +1120,183 @@ msgstr ""
 "Im Druckdialog vorausgewählt. Brother: Entwurfsdruck oder hohe Auflösung; "
 "Zebra: Druckgeschwindigkeit."
 
-#: label_printing/models.py:331
+#: label_printing/models.py:322
 msgid "default medium"
 msgstr "Standardmaterial"
 
-#: label_printing/models.py:353
+#: label_printing/models.py:344
 msgid "These labels are for another kind of printer."
 msgstr "Diese Etiketten sind für eine andere Druckerart."
 
-#: label_printing/models.py:355
+#: label_printing/models.py:346
 msgid "Name the medium or choose a label stock."
 msgstr "Gib einen Namen an oder wähle eine Materialvorlage."
 
-#: label_printing/models.py:366
+#: label_printing/models.py:357
 msgid "The printer does not take this tape."
 msgstr "Dieses Band passt nicht in den Drucker."
 
-#: label_printing/models.py:368
+#: label_printing/models.py:359
 msgid "Between -30 and 30."
 msgstr "Zwischen -30 und 30."
 
-#: label_printing/models.py:397
+#: label_printing/models.py:382
 msgid "print job"
 msgstr "Druckauftrag"
 
-#: label_printing/models.py:398
+#: label_printing/models.py:383
 msgid "print jobs"
 msgstr "Druckaufträge"
 
-#: label_printing/models.py:400
+#: label_printing/models.py:385
 msgid "Can print labels"
 msgstr "Kann Etiketten drucken"
 
-#: label_printing/models.py:404
+#: label_printing/models.py:389
 msgid "waiting for a printer"
 msgstr "wartet auf Drucker"
 
-#: label_printing/models.py:405
+#: label_printing/models.py:390
 msgid "waiting"
 msgstr "wartet"
 
-#: label_printing/models.py:406
+#: label_printing/models.py:391
 msgid "printing"
 msgstr "druckt"
 
-#: label_printing/models.py:407
+#: label_printing/models.py:392
 msgid "printed"
 msgstr "gedruckt"
 
-#: label_printing/models.py:408
+#: label_printing/models.py:393
 msgid "sent, not confirmed"
 msgstr "gesendet, nicht bestätigt"
 
-#: label_printing/models.py:409
+#: label_printing/models.py:394
 msgid "failed"
 msgstr "fehlgeschlagen"
 
-#: label_printing/models.py:410
+#: label_printing/models.py:395
 msgid "expired"
 msgstr "verfallen"
 
-#: label_printing/models.py:414
+#: label_printing/models.py:399
 msgid "user"
 msgstr "Benutzer"
 
-#: label_printing/models.py:420
+#: label_printing/models.py:405 label_printing/models.py:461
 msgid "layout"
 msgstr "Layout"
 
-#: label_printing/models.py:421 label_printing/models.py:473
+#: label_printing/models.py:406 label_printing/models.py:459
 msgid "subject type"
 msgstr "Art"
 
-#: label_printing/models.py:422
+#: label_printing/models.py:407
 msgid "subject ID"
 msgstr "ID"
 
-#: label_printing/models.py:423 label_printing/models.py:474
+#: label_printing/models.py:408 label_printing/models.py:460
 msgid "subject"
 msgstr "Gegenstand"
 
-#: label_printing/models.py:424
+#: label_printing/models.py:409
 msgid "code in the QR code"
 msgstr "Kennung im QR-Code"
 
-#: label_printing/models.py:426
+#: label_printing/models.py:411
 msgid "printed content"
 msgstr "gedruckter Inhalt"
 
-#: label_printing/models.py:427
+#: label_printing/models.py:412
 msgid "copies"
 msgstr "Anzahl"
 
-#: label_printing/models.py:428
+#: label_printing/models.py:413
 msgid "labels"
 msgstr "Etiketten"
 
-#: label_printing/models.py:434
+#: label_printing/models.py:419
 msgid "printer status"
 msgstr "Druckerstatus"
 
-#: label_printing/models.py:437
+#: label_printing/models.py:422
 msgid "processed by"
 msgstr "verarbeitet von"
 
-#: label_printing/models.py:440
+#: label_printing/models.py:425
 msgid "batch"
 msgstr "Sammelauftrag"
 
-#: label_printing/models.py:442
+#: label_printing/models.py:427
 msgid "label"
 msgstr "Etikett"
 
-#: label_printing/models.py:444
+#: label_printing/models.py:429
 msgid "waits until"
 msgstr "wartet bis"
 
-#: label_printing/models.py:445
+#: label_printing/models.py:430
 msgid "created at"
 msgstr "erstellt am"
 
-#: label_printing/models.py:448
+#: label_printing/models.py:433
 msgid "picked up at"
 msgstr "abgeholt um"
 
-#: label_printing/models.py:449
+#: label_printing/models.py:434
 msgid "finished at"
 msgstr "fertig um"
 
-#: label_printing/models.py:469
+#: label_printing/models.py:455
 msgid "last label"
 msgstr "zuletzt gedrucktes Etikett"
 
-#: label_printing/models.py:470
+#: label_printing/models.py:456
 msgid "last labels"
 msgstr "zuletzt gedruckte Etiketten"
 
-#: label_printing/models.py:476
-msgid "label template"
-msgstr "Etikettenvorlage"
-
-#: label_printing/models.py:477
+#: label_printing/models.py:462
 msgid "printed at"
 msgstr "gedruckt am"
 
-#: label_printing/models.py:488
+#: label_printing/models.py:473
 msgid "label image"
 msgstr "Etikettenbild"
 
-#: label_printing/models.py:489
+#: label_printing/models.py:474
 msgid "label images"
 msgstr "Etikettenbilder"
 
-#: label_printing/models.py:493
+#: label_printing/models.py:478
 msgid "Designs use it by this name: image \"ZAM Logo\"."
 msgstr "Designs nutzen es unter diesem Namen: image \"ZAM Logo\"."
 
-#: label_printing/models.py:495
+#: label_printing/models.py:480
 msgid "PNG, GIF, JPEG or WebP, best large: designs scale it down."
 msgstr "PNG, GIF, JPEG oder WebP, am besten groß: Designs verkleinern es."
 
-#: label_printing/models.py:496
+#: label_printing/models.py:481
 msgid "cut off left"
 msgstr "links abschneiden"
 
-#: label_printing/models.py:497
+#: label_printing/models.py:482
 msgid "cut off top"
 msgstr "oben abschneiden"
 
-#: label_printing/models.py:498
+#: label_printing/models.py:483
 msgid "cut off right"
 msgstr "rechts abschneiden"
 
-#: label_printing/models.py:499
+#: label_printing/models.py:484
 msgid "cut off bottom"
 msgstr "unten abschneiden"
 
-#: label_printing/models.py:531
+#: label_printing/models.py:516
 msgid "The file is not an image that can be read."
 msgstr "Die Datei ist kein lesbares Bild."
 
-#: label_printing/models.py:533
+#: label_printing/models.py:518
 #, python-format
 msgid "Cut off less than the image: it is %(width)s × %(height)s pixels."
 msgstr "Schneide weniger als das Bild ab: Es hat %(width)s × %(height)s Pixel."
@@ -1336,7 +1312,11 @@ msgstr ""
 "Für diesen Drucker sind keine eingelegten Etiketten eingestellt (Admin: "
 "seine Einstellungen)."
 
-#: label_printing/outcomes.py:125
+#: label_printing/outcomes.py:76 label_printing/outcomes.py:77
+msgid "any"
+msgstr "beliebig"
+
+#: label_printing/outcomes.py:156
 msgid "No printer has labels of this size."
 msgstr "Kein Drucker hat Etiketten dieser Größe."
 
@@ -1458,7 +1438,7 @@ msgid "Preview of the label"
 msgstr "Vorschau des Etiketts"
 
 #: label_printing/templates/label_printing/admin/label_template_change_form.html:16
-#: label_printing/views.py:272
+#: label_printing/views.py:277
 msgid "How to describe labels"
 msgstr "Wie man Etiketten beschreibt"
 
@@ -1556,8 +1536,30 @@ msgstr "Nochmal drucken"
 
 #: label_printing/templates/label_printing/form_attrs.html:19
 #, python-format
-msgid "Print %(count)s labels"
-msgstr "%(count)s Etiketten drucken"
+msgid "Queue %(count)s labels"
+msgstr "%(count)s Etiketten beauftragen"
+
+#: label_printing/templates/label_printing/form_attrs.html:20
+#, python-format
+msgid "%(count)s at once"
+msgstr "%(count)s sofort"
+
+#: label_printing/templates/label_printing/form_attrs.html:21
+#, python-format
+msgid "%(count)s waiting for labels (%(names)s)"
+msgstr "%(count)s warten auf Material (%(names)s)"
+
+#: label_printing/templates/label_printing/form_attrs.html:22
+#, python-format
+msgid "%(count)s waiting for a printer (%(names)s)"
+msgstr "%(count)s warten auf Drucker (%(names)s)"
+
+#: label_printing/templates/label_printing/form_attrs.html:23
+#, python-format
+msgid ""
+"Waiting labels are printed as soon as they can be, within %(minutes)s "
+"minutes; otherwise they are not printed."
+msgstr "Wartende Etiketten werden gedruckt, sobald es geht, innerhalb von %(minutes)s Minuten; sonst werden sie nicht gedruckt."
 
 #: label_printing/templates/label_printing/print_button.html:1
 msgid "Print price tags of the bulk items here"
@@ -1602,30 +1604,34 @@ msgstr[1] "Nur Artikel mit Verkaufspreis (%(count)s)"
 msgid "Print %(name)s"
 msgstr "%(name)s drucken"
 
-#: label_printing/templates/label_printing/print_fields.html:38
+#: label_printing/templates/label_printing/print_fields.html:46
 msgid "Recommended"
 msgstr "Empfohlen"
 
-#: label_printing/templates/label_printing/print_fields.html:39
+#: label_printing/templates/label_printing/print_fields.html:47
 msgid "More labels"
 msgstr "Weitere Etiketten"
 
-#: label_printing/templates/label_printing/print_fields.html:53
+#: label_printing/templates/label_printing/print_fields.html:61
 msgid "Location on the label"
 msgstr "Standort auf dem Etikett"
 
-#: label_printing/templates/label_printing/print_fields.html:56
+#: label_printing/templates/label_printing/print_fields.html:64
 msgid "None (the QR code opens the item)"
 msgstr "Keiner (der QR-Code öffnet die Sache)"
 
-#: label_printing/templates/label_printing/print_fields.html:64
+#: label_printing/templates/label_printing/print_fields.html:72
 #, python-format
 msgid "Also its sub-location (%(count)s)"
 msgid_plural "Also its sub-locations (%(count)s)"
 msgstr[0] "Auch sein Unterort (%(count)s)"
 msgstr[1] "Auch seine Unterorte (%(count)s)"
 
-#: label_printing/templates/label_printing/print_fields.html:73
+#: label_printing/templates/label_printing/print_fields.html:76
+msgid "Copies per label"
+msgstr "Kopien pro Etikett"
+
+#: label_printing/templates/label_printing/print_fields.html:82
 #, python-format
 msgid ""
 "No printer can print this label right now. If you go on, the job waits up to "
@@ -1661,7 +1667,7 @@ msgstr "%(count)d warten auf einen Drucker"
 msgid "%(count)d not printed"
 msgstr "%(count)d nicht gedruckt"
 
-#: label_printing/views.py:260
+#: label_printing/views.py:265
 #, python-format
 msgid ""
 "%(width)s × %(height)s dots at %(dpi)s dpi: %(width_mm).1f × %(height_mm).1f "
@@ -1669,6 +1675,26 @@ msgid ""
 msgstr ""
 "%(width)s × %(height)s Punkte bei %(dpi)s dpi: %(width_mm).1f × "
 "%(height_mm).1f mm"
+
+#~ msgid "label templates"
+#~ msgstr "Etikettenvorlagen"
+
+#~ msgid ""
+#~ "Only these of their kind for these labels; none: every template of the "
+#~ "labels' size."
+#~ msgstr ""
+#~ "Nur diese ihrer Art für diese Etiketten; keine: jede Vorlage der "
+#~ "Etikettengröße."
+
+#~ msgid ""
+#~ "Only these of their kind for this medium (else those chosen for its label "
+#~ "stock); none: every template of the medium's size."
+#~ msgstr ""
+#~ "Nur diese ihrer Art für dieses Material (sonst die der Materialvorlage); "
+#~ "keine: jede Vorlage der Größe des Materials."
+
+#~ msgid "label template"
+#~ msgstr "Etikettenvorlage"
 
 #~ msgid "Only items with a sale price"
 #~ msgstr "Nur Artikel mit Verkaufspreis"

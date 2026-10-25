@@ -35,8 +35,17 @@ Brother gets P-touch raster data. The code is in the app `label_printing`.
     The dialog follows the job as long as it waits. Without any active printer nothing waits.
   * **Also its sub-locations** (e.g. a shelf with its compartments) shows an overview instead: a row per
     location, each with the template best for it preselected (the compartment's arrow it was printed with
-    last), to change or to leave out. Each label is a job of its own; the jobs of one print form a batch
-    that the dialog follows together ("12 of 30 labels printed, 2 waiting for a printer").
+    last), to change or to leave out.
+    * Each row starts with its label in its real size (1 mm on the label is 1 mm on the screen, as far
+      as the screen reports its size); long tape labels scroll sideways.
+    * A tap anywhere on a row (but its template) switches it on or off.
+    * A printer or label mark beside the label says what keeps it from being printed now: the printer
+      (offline, an error), or the labels (not loaded, used up, none of this kind).
+    * Above the button a summary says what waits for what, e.g. "16 at once, 3 waiting for labels
+      (TZe-231 …), 3 waiting for a printer (P-touch Werkstatt)"; the button says how many labels are
+      queued, **copies per label** counted ("22 labels").
+    * Each label is a job of its own; the jobs of one print form a batch that the dialog follows together
+      ("12 of 30 labels printed, 2 waiting for a printer").
 * **Price tags** (location pages): the same overview with a row per bulk item stored at the location,
   each with its best item template (a price tag for items with a sale price); **only items with a sale
   price** chooses the rows.
@@ -113,8 +122,8 @@ for removing. The location from the label (`?loc=`) comes first and is marked in
    or high resolution (E550W 180×360, P900 series 360×720 dpi): the label is drawn at twice the
    resolution along the tape, not only printed twice as dense. Zebra: print speed (`^PR6`, the
    printer's own setting, `^PR2`); darkness stays with the medium. Offset and darkness (`^MD`)
-   are optional. Media offer the label templates of their size; if templates are chosen for the
-   medium (or its stock), only those of the kind being printed.
+   are optional. Media offer the label templates for their labels: of their size, and of their label
+   stock, material and colours if a template names them (see [label designs](label-designs.md#where-templates-are-offered)).
 4. **Test label** (30 mm on tape) and **Check the printer status** are actions on the printer list.
 
 The location admin's print actions, its **Print label** button and printing after mass creation
