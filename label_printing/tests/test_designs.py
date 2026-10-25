@@ -222,6 +222,17 @@ class LayoutTests(SimpleTestCase):
                                    '  text "1"  invert  width auto', dpi=254)
         self.assertLess(blocks(black_columns(inverted.crop((0, 50, 400, 100))))[-1][1], 100)
 
+    def test_words_are_split_only_if_nothing_else_fits(self):
+        from .. import render
+        loaded, lines = render.fit("Senkkopfschrauben M4", 300, 120, max_lines=3)
+        self.assertEqual(lines, ["Senkkopfschrauben", "M4"])  # smaller, not "Senkkopfschraube" / "n M4"
+        loaded, lines = render.fit("Senkkopfschrauben", 20, 120, max_lines=3)  # too narrow even at the smallest
+        self.assertGreater(len(lines), 1)
+
+    def test_underscores_are_a_line_to_write_on(self):
+        image, _problems = draw('label 40 x 10\ntext "{{ name|default:\'__________\' }}"', {"name": None}, dpi=254)
+        self.assertEqual(len(blocks(black_columns(image), gap=1)), 1)  # unbroken, whatever the font
+
     def test_a_row_or_column_showing_nothing_is_left_out(self):
         design = ('label 40 x 10\nrow  gap 2\n  row  border 0.5  shape bulge  width auto\n'
                   '    text "{% if price %}€ {{ price }}{% endif %}"\n  box  width 5')

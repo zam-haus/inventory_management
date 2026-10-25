@@ -1,5 +1,6 @@
 """Drawing labels as 1-bit images: text fitted into boxes without anti-aliasing, and crisp QR codes."""
 import functools
+import re
 from pathlib import Path
 
 import segno
@@ -69,19 +70,23 @@ def ellipsize(loaded, text, width):
 
 def fit(text, width, height, path=SANS, weight=400, max_lines=1, max_size=None):
     """(font, lines): the largest font size that fits `text` into width × height dots in up to
-    `max_lines` lines; at the smallest size the last line is cut short with "…"."""
-    high = max(MIN_FONT_PX, min(max_size or height, height))
-    low, best = MIN_FONT_PX, None
-    while low <= high:
-        size = (low + high) // 2
-        loaded = font(path, size, weight)
-        lines = wrap(text, loaded, width)
-        if len(lines) <= max_lines and len(lines) * line_height(loaded) <= height:
-            best, low = (loaded, lines), size + 1
-        else:
-            high = size - 1
-    if best:
-        return best
+    `max_lines` lines, without splitting a word if it fits that way; at the smallest size the last line is cut
+    short with "…"."""
+    words = text.split()
+    for whole_words in (True, False):  # rather smaller than with a word split, if it fits that way
+        high = max(MIN_FONT_PX, min(max_size or height, height))
+        low, best = MIN_FONT_PX, None
+        while low <= high:
+            size = (low + high) // 2
+            loaded = font(path, size, weight)
+            lines = wrap(text, loaded, width)
+            if (len(lines) <= max_lines and len(lines) * line_height(loaded) <= height
+                    and not (whole_words and any(text_width(loaded, word) > width for word in words))):
+                best, low = (loaded, lines), size + 1
+            else:
+                high = size - 1
+        if best:
+            return best
     loaded = font(path, MIN_FONT_PX, weight)
     lines = wrap(text, loaded, width)[:max(1, min(max_lines, height // line_height(loaded)))]
     lines[-1] = ellipsize(loaded, lines[-1] + ("…" if len(wrap(text, loaded, width)) > len(lines) else ""), width)
@@ -110,7 +115,20 @@ def draw_lines(image, box, loaded, lines, align="left", valign="top", fill=0):
         offset = {"left": 0, "center": (width - text_width(loaded, line)) / 2,
                   "right": width - text_width(loaded, line)}[align]
         draw.text((x + offset, y), line, font=loaded, fill=fill)
+        writing_lines(draw, x + offset, y, loaded, line, fill)
         y += step
+
+
+UNDERSCORES = re.compile(r"_{2,}")
+
+
+def writing_lines(draw, x, y, loaded, line, fill):
+    """Runs of underscores as one unbroken line, a line to write on: fonts draw them with gaps."""
+    for run in UNDERSCORES.finditer(line):
+        _left, top, _right, bottom = loaded.getbbox("_")
+        start = x + text_width(loaded, line[:run.start()])
+        draw.rectangle((round(start), y + top, round(start + text_width(loaded, run.group())) - 1,
+                        y + max(top, bottom - 1)), fill=fill)
 
 
 def text_box(image, box, text, path=SANS, weight=400, max_lines=1, align="left", valign="top", fill=0, max_size=None):

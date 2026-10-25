@@ -182,7 +182,7 @@ plain design and its ZPL as comments. It also added templates for 57 × 32, 60 �
 105 × 52 mm labels and for 9, 12, 18, 24 and 36 mm tape:
 * locations: "QR-Code, Kennung, Name und Ort" (QR code, code, name, path);
 * bulk items: "Name, Preis und QR-Code" (name, the price in a price tag frame as wide as the price,
-  an empty one without a price, label ID and location, QR code), and "Preisschild" (price with € in a price
+  an empty one without a price, label ID and location, QR code; no name: a line to write it on), and "Preisschild" (price with € in a price
   tag frame, unit, name, QR code) on 60 × 30 mm labels and on 12, 18 and 24 mm tape;
 * label IDs: "ZAMid" (lettering, QR code, ID in two lines; on tape with a margin of at least
   1 mm at top and bottom) and "ZAMid: QR + ID";

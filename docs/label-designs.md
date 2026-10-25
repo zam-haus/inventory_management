@@ -94,7 +94,7 @@ border, around all its elements.)
 |---|---|
 | `size S` | font size in mm (about 1.4 × the height of capital letters). Without it the text fits its box. |
 | `fit` | fit the box, with `size` as the largest size |
-| `lines N` | wrap into at most N lines (default 1); text that does not fit ends with "…" |
+| `lines N` | wrap into at most N lines (default 1), between words, a smaller size rather than a word split; text that does not fit ends with "…" |
 | `font F` | `sans` (Raleway, as in the ZAMid lettering), `mono` (Roboto Mono, the ZAMid's ID), `condensed` (Roboto Condensed, narrow like Zebra's built-in font), `ocr` (OCR-B, readable by people and machines) |
 | `bold`, `weight W` | weight 100 to 900 (bold is 700); OCR-B has one weight only |
 | `left`, `center`, `right` | justification (default left; inverted text centred) |
@@ -171,6 +171,8 @@ too.
   mistakes, and a template with mistakes is not printed.
 * An empty field that is stored as nothing (None) prints as "None"; `|default_if_none:""` leaves it out.
 * Nothing is escaped: a label is not HTML.
+* Underscores in a row (`__________`) print as one unbroken line to write on, whatever the font: the generated
+  item templates show one for an item without a name (`{{ item.name|default:'_______________' }}`).
 
 A template also sets the **print quality** its labels are printed in (draft, standard, high), on its admin
 page.
