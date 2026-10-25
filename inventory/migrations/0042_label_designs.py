@@ -13,8 +13,8 @@ class Migration(migrations.Migration):
     operations = [
         migrations.AlterModelOptions(
             name="locationlabeltemplate",
-            options={"ordering": ("name", "label_height", "label_width"), "verbose_name": "label template",
-                     "verbose_name_plural": "label templates"},
+            options={"ordering": ("name", models.F("label_width").asc(nulls_first=True), "label_height"),
+                     "verbose_name": "label template", "verbose_name_plural": "label templates"},
         ),
         migrations.AddField(
             model_name="locationlabeltemplate",

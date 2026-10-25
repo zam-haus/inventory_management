@@ -26,6 +26,7 @@ from . import dialog, editor, label_urls, services
 from .design import fields as design_fields
 from .render import coloured
 from .layouts import get_layout
+from .layouts.designs import SAMPLES
 from .models import LabelMedium, PrintJob
 
 
@@ -184,6 +185,20 @@ def template_preview(request, pk, subject_type, subject_pk):
     if image is None:
         raise Http404
     return png_response(image, canvas.dpi, f"{'public' if public else 'private'}, max-age=300")
+
+
+@login_required
+@permission_required("inventory.view_locationlabeltemplate", raise_exception=True)
+@require_safe
+def template_sample(request, pk):
+    """A template's label with sample values of typical length (layouts.designs.SAMPLES), without a printer, for
+    the admin's list of templates; no real records."""
+    template = get_object_or_404(LocationLabelTemplate, pk=pk)
+    image, _problems, canvas = editor.preview(template.description, template.subject_type,
+                                              SAMPLES.get(template.subject_type, {}))
+    if image is None:
+        raise Http404
+    return png_response(image, canvas.dpi, "private, max-age=3600")
 
 
 @login_required

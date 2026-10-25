@@ -382,6 +382,16 @@ class AdminTests(InventoryData, TestCase):
     def setUp(self):
         self.client.force_login(self.admin)
 
+    def test_list_shows_a_sample_of_each_template(self):
+        zamid = LocationLabelTemplate.objects.get(name="ZAMid", label_width=None, label_height=12)
+        response = self.client.get(reverse("admin:inventory_locationlabeltemplate_changelist"), {"q": "ZAMid"})
+        sample = reverse("label_template_sample", args=[zamid.pk])
+        self.assertContains(response, f'<img src="{sample}?v=')
+        image = Image.open(io.BytesIO(self.client.get(sample).content))
+        self.assertEqual(image.height, 150)  # 12 mm tape on the nominal tape printer (P900W, 360 dpi)
+        self.client.force_login(create_user("reader"))
+        self.assertEqual(self.client.get(sample).status_code, 403)
+
     def test_preview_while_writing(self):
         url = reverse("label_design_preview")
         data = self.client.post(url, {"description": "label 57 x 32\ntext {code}  size 6", "subject_type": "location"}).json()

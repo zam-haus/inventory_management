@@ -313,7 +313,8 @@ class LocationLabelTemplate(models.Model):
     class Meta:
         verbose_name = _("label template")
         verbose_name_plural = _("label templates")
-        ordering = ("name", "label_height", "label_width")
+        # Tape (any length) by width, then labels by width and height
+        ordering = ("name", models.F("label_width").asc(nulls_first=True), "label_height")
 
     class SubjectType(models.TextChoices):
         LOCATION = "location", _("location")

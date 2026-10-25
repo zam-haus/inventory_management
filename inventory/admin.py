@@ -1,3 +1,5 @@
+import hashlib
+
 from dal import autocomplete
 from django import forms
 from django.contrib import admin, messages
@@ -74,7 +76,7 @@ class LocationLabelTemplateAdmin(admin.ModelAdmin):
     preview the server renders while it is typed (label_printing/editor.py)."""
     model = models.LocationLabelTemplate
     form = LocationLabelTemplateForm
-    list_display = ("name", "subject_type", "size_text", "quality", "is_active")
+    list_display = ("name", "sample", "subject_type", "size", "quality", "is_active")
     list_filter = ("is_active", "subject_type", "quality")
     search_fields = ("name", "description")
     fields = ("name", "subject_type", "is_active", "quality", "description", "fields_list", "fitting_media")
@@ -104,6 +106,18 @@ class LocationLabelTemplateAdmin(admin.ModelAdmin):
         count = queryset.update(is_active=False)
         self.message_user(request, ngettext("%(count)d label template is inactive.", "%(count)d label templates are inactive.",
                                             count) % {"count": count})
+
+    @admin.display(description=_("size"), ordering="label_width")
+    def size(self, obj):
+        return obj.size_text
+
+    @admin.display(description=_("sample"))
+    def sample(self, obj):
+        """The label with sample values; the URL changes with the description, so browsers fetch it anew."""
+        version = hashlib.sha1(obj.description.encode()).hexdigest()[:10]
+        url = f"{reverse('label_template_sample', args=[obj.pk])}?v={version}"
+        return format_html('<img src="{}" alt="" loading="lazy" style="display: block; max-height: 4rem; '
+                           'max-width: 16rem; background: #fff; outline: 1px solid var(--hairline-color)">', url)
 
     @admin.display(description=_("fields"))
     def fields_list(self, obj):
