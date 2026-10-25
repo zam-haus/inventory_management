@@ -79,20 +79,21 @@ class LocationLabelTemplateAdmin(admin.ModelAdmin):
     list_display = ("name", "sample", "subject_type", "size", "quality", "is_active")
     list_filter = ("is_active", "subject_type", "quality")
     search_fields = ("name", "description")
-    fields = ("name", "subject_type", "is_active", "quality", "description", "fields_list", "fitting_media")
+    fields = ("name", "subject_type", "is_active", "quality", "description", "variables_list", "fitting_media")
     actions = ["activate", "deactivate"]
-    readonly_fields = ("fields_list", "fitting_media")
+    readonly_fields = ("variables_list", "fitting_media")
     change_form_template = "label_printing/admin/label_template_change_form.html"
 
     STARTER = (
         "# The size first (width x height in mm, or: label height 12 for any length),\n"
         "# then one element per line; indented elements are laid out in their row or column.\n"
+        "# Texts and QR codes are Django templates: {{ location.name }}, {% if %}, filters.\n"
         "label 70 x 32  margin 1.5\n"
         "row  gap 2\n"
-        "  qr {qr}  ecc Q\n"
+        "  qr {{ qr }}  ecc Q\n"
         "  column  gap 1\n"
-        "    text {code}  font mono  bold  invert\n"
-        "    text {path}  font condensed  lines 2\n"
+        "    text {{ location.unique_identifier }}  font mono  bold  invert\n"
+        "    text {{ location.descriptive_identifier }}  font condensed  lines 2\n"
     )
 
     @admin.action(description=_("Activate: offer for printing"))
@@ -119,9 +120,9 @@ class LocationLabelTemplateAdmin(admin.ModelAdmin):
         return format_html('<img src="{}" alt="" loading="lazy" style="display: block; max-height: 4rem; '
                            'max-width: 16rem; background: #fff; outline: 1px solid var(--hairline-color)">', url)
 
-    @admin.display(description=_("fields"))
-    def fields_list(self, obj):
-        return label_editor.field_tables()
+    @admin.display(description=_("variables"))
+    def variables_list(self, obj):
+        return label_editor.variable_tables()
 
     @admin.display(description=_("offered on"))
     def fitting_media(self, obj):

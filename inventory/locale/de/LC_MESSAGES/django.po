@@ -3544,8 +3544,8 @@ msgid "Line %(line)s: %(message)s"
 msgstr "Zeile %(line)s: %(message)s"
 
 #: inventory/admin.py
-msgid "fields"
-msgstr "Felder"
+msgid "variables"
+msgstr "Variablen"
 
 #: inventory/admin.py
 msgid "offered on"

@@ -19,7 +19,8 @@ from django.utils.translation import gettext as _
 from PIL import Image, ImageDraw, ImageOps
 
 from .. import render
-from .language import FIELD, Element, Problem
+from . import texts
+from .language import Element, Problem
 
 HERE = Path(__file__).resolve().parent
 FONT_FILES = {
@@ -43,12 +44,14 @@ class TooSmall(Exception):
 @dataclass
 class Context:
     dpi: int
-    values: dict = field(default_factory=dict)
+    # What the texts and QR codes show: {"location": …, "qr": …} (texts.py)
+    variables: dict = field(default_factory=dict)
     # A label image by name: its cropped original, greyscale; None if there is none.
     images: Callable[[str], Image.Image | None] = lambda name: None
     squeeze: int = 1
     strict: bool = False
     problems: list = field(default_factory=list)
+    rendered: dict = field(default_factory=dict)
 
     def dots(self, mm):
         return max(0, round(mm * self.dpi / 25.4))
@@ -61,7 +64,21 @@ class Context:
             self.problems.append(problem)
 
     def text(self, element):
-        return FIELD.sub(lambda match: str(self.values.get(match.group(1), "")), element.content or "")
+        """The element's content rendered with the variables (once per element: properties may query); with a
+        syntax error the content itself. Previews say which variables have no value."""
+        if element.line not in self.rendered:
+            source = element.content or ""
+            error = texts.syntax_error(source)
+            if error is not None:
+                if not self.strict:
+                    self.problem(element, error)
+                self.rendered[element.line] = source
+            else:
+                if not self.strict:
+                    for name in texts.missing(source, self.variables):
+                        self.problem(element, _("There is no “%s”, at least not for this record.") % name)
+                self.rendered[element.line] = texts.render(source, self.variables)
+        return self.rendered[element.line]
 
 
 @functools.lru_cache(maxsize=256)
@@ -156,6 +173,10 @@ def text_natural(element, context, width, height):
 
 
 def draw_text(element, context, image, x, y, width, height):
+    if width < 1 or height < 1:  # crowded out by the other elements of its row or column
+        if context.text(element).strip():
+            context.problem(element, _("There is no room left for this text."))
+        return
     rotation = element.get("rotate", 0)
     box_width, box_height = (height, width) if rotation in (90, 270) else (width, height)
     canvas = render.blank(box_width, box_height)

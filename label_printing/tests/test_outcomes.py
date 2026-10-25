@@ -24,7 +24,7 @@ class OutcomeTests(InventoryData, TestCase):
         cls.create_inventory()
         cls.zebra, cls.labels, cls.brother, cls.tape = create_printers()
         cls.on_tape, cls.on_labels = outcome_key("location", "tape12"), outcome_key("location", "57x32")
-        cls.template = LocationLabelTemplate.objects.create(name="Fach", description="label 57 x 32\ntext {code}")
+        cls.template = LocationLabelTemplate.objects.create(name="Fach", description="label 57 x 32\ntext {{ location.unique_identifier }}")
         cls.user = create_user("printing", "label_printing.print_label")
 
     def found(self, subject_type="location"):
@@ -173,7 +173,7 @@ class WaitingTests(InventoryData, TestCase):
                          ("expired", True, "No printer could print it in time, so it was not printed."))
 
     def test_waits_for_labels_no_printer_has_yet(self):
-        template = LocationLabelTemplate.objects.create(name="Groß", description="label 100 x 50\ntext {code}")
+        template = LocationLabelTemplate.objects.create(name="Groß", description="label 100 x 50\ntext {{ location.unique_identifier }}")
         data = self.post({"outcome": f"design:{template.pk}", "copies": 1}).json()
         job = PrintJob.objects.get(pk=data["job"]["id"])
         self.assertEqual((job.status, job.outcome), ("waiting", f"design:{template.pk}"))
@@ -186,7 +186,7 @@ class WaitingTests(InventoryData, TestCase):
         self.assertEqual((job.status, job.printer, job.medium), ("pending", self.zebra, large))
 
     def test_without_active_printers_nothing_waits(self):
-        template = LocationLabelTemplate.objects.create(name="Groß", description="label 100 x 50\ntext {code}")
+        template = LocationLabelTemplate.objects.create(name="Groß", description="label 100 x 50\ntext {{ location.unique_identifier }}")
         Printer.objects.update(is_active=False)
         response = self.post({"outcome": f"design:{template.pk}", "copies": 1})
         self.assertEqual(response.json()["errors"]["outcome"][0]["message"], "No printer has labels of this size.")
@@ -205,7 +205,7 @@ class WaitingTests(InventoryData, TestCase):
         schedule.assert_called_once_with(countdown=services.DISPATCH_EVERY)
 
     def test_templates_print_in_their_quality(self):
-        template = LocationLabelTemplate.objects.create(name="Fein", quality="draft", description="label 57 x 32\ntext {code}")
+        template = LocationLabelTemplate.objects.create(name="Fein", quality="draft", description="label 57 x 32\ntext {{ location.unique_identifier }}")
         with patch("label_printing.services.process"):
             data = self.post({"outcome": f"design:{template.pk}@57x32", "copies": 1}).json()
         self.assertEqual(PrintJob.objects.get(pk=data["job"]["id"]).quality, "draft")

@@ -17,7 +17,7 @@ Brother gets P-touch raster data. The code is in the app `label_printing`.
 
 * **Location pages:** the **Label** button in the header opens the print dialog. It offers
   labels, not printers: each active label template, with its size, e.g. "Preisschild" on
-  60 × 30 mm labels or "QR-Code, Kennung und Ort" on 12 mm tape. Templates whose QR code would be
+  60 × 30 mm labels or "QR-Code, Kennung, Name und Ort" on 12 mm tape. Templates whose QR code would be
   too small to scan at a printer's resolution are not offered on it (9 mm tape on the E550W).
   * Each choice has a preview and either the printer it would print on or why no printer can
     print it now.
@@ -136,7 +136,7 @@ what is on them ("Fester Standort", also with an arrow up or down, and "Mobil, m
 Eigentum"), and stored their logo as the label image "ZAM Logo"; a template it did not know gets a
 plain design and its ZPL as comments. It also added templates for 57 × 32, 60 × 30, 70 × 32 and
 105 × 52 mm labels and for 9, 12, 18, 24 and 36 mm tape:
-* locations: "QR-Code, Kennung und Ort" (QR code, code, path);
+* locations: "QR-Code, Kennung, Name und Ort" (QR code, code, name, path);
 * bulk items: "Name, Preis und QR-Code", and "Preisschild" (price with € in a price tag frame, unit,
   name, QR code) on 60 × 30 mm labels and on 12, 18 and 24 mm tape;
 * unique items: "ZAMid" (lettering, QR code, ID in two lines; on tape with a margin of at least

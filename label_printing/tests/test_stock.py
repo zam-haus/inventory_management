@@ -50,7 +50,7 @@ class LabelStockTests(TestCase):
     def test_templates_of_the_stock_are_offered(self):
         zebra, labels, *_ = create_printers()
         def template(name):
-            return LocationLabelTemplate.objects.create(name=name, description="label 57 x 32\ntext {code}")
+            return LocationLabelTemplate.objects.create(name=name, description="label 57 x 32\ntext {{ location.unique_identifier }}")
         chosen, other = template("Fach"), template("Anderes")
         keys = lambda: [layout.key for layout in layouts_for("location", zebra, labels)]
         self.assertIn(f"design:{other.pk}", keys())  # nothing chosen: every template of the size

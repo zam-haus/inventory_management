@@ -11,7 +11,7 @@ from django.utils.translation import gettext as _
 from inventory.models import LocationLabelTemplate
 from .. import label_urls
 from ..design import Context, TooSmall, check, parse, render_design
-from ..design import fields as design_fields
+from ..design import variables as design_variables
 from . import Canvas, LabelTooSmall, Layout, NotRendered, Rendered
 
 SIZE_TOLERANCE_MM = 1
@@ -39,17 +39,6 @@ def fits(template, medium):
     return close(template.label_width, medium.width_mm) and close(template.label_height, medium.height_mm)
 
 
-# Values of typical length to try a template with: whether its QR code fits on a printer's labels at all
-SAMPLES = {
-    "location": {"code": "WH-1.R303.a", "qr": "HTTPS://I.ZAM.HAUS/WH-1.R303.A", "name": "Fach a", "path": "R303.a",
-                 "purpose": "", "short": "R303.a"},
-    "item": {"name": "Artikel", "price": "0,15 € / Stk", "amount": "0,15", "qr": "HTTPS://I.ZAM.HAUS/K7R4XD/WH-1.R303.A",
-             "location": "R303.a", "id": "K7R-4XD", "unit": "Stk"},
-    "labelid": {"id": "K7R-4XD", "id1": "K7R", "id2": "4XD", "qr": "HTTPS://I.ZAM.HAUS/K7R4XD", "idname": "ZAMid",
-                "target": ""},
-}
-
-
 @functools.lru_cache(maxsize=512)
 def renders(subject_type, description, dpi, height, width, squeeze):
     """Whether a description can be drawn on a canvas of this size (its QR codes big enough to scan)."""
@@ -57,8 +46,8 @@ def renders(subject_type, description, dpi, height, width, squeeze):
     if problems or design.height is None:
         return False
     try:
-        render_design(design, Context(dpi, SAMPLES.get(subject_type, {}), lambda name: None, squeeze, strict=True),
-                      width, height)
+        render_design(design, Context(dpi, design_variables.samples(subject_type), lambda name: None, squeeze,
+                                      strict=True), width, height)
     except TooSmall:
         return False
     return True
@@ -99,11 +88,11 @@ def images():
 
 
 def problems_of(template):
-    """Everything wrong with a template's description: syntax, unknown fields and images."""
+    """Everything wrong with a template's description: syntax (also of its texts) and unknown images."""
     from ..models import LabelImage
     design, problems = template.design()
     names = set(LabelImage.objects.filter(name__in=design.images()).values_list("name", flat=True))
-    return design, problems + check(design, design_fields.names(template.subject_type), names)
+    return design, problems + check(design, names)
 
 
 class DesignLayout(Layout):
@@ -121,21 +110,21 @@ class DesignLayout(Layout):
                 and drawable(self.template, medium))
 
     def subject_data(self, subject, preview, user):
-        """(values, snapshot, code in the QR code)."""
+        """(variables, snapshot, code in the QR code)."""
         if self.subject_type == "location":
-            return (design_fields.location_values(subject), label_urls.location_snapshot(subject),
+            return (design_variables.location_variables(subject), label_urls.location_snapshot(subject),
                     subject.unique_identifier)
         if self.subject_type == "item":
             code = label_urls.item_label_code(subject, user, create=not preview) or label_urls.PREVIEW_CODE
-            return design_fields.item_values(subject, code), label_urls.item_snapshot(subject, code), code
-        return design_fields.label_id_values(subject), label_urls.label_id_snapshot(subject), subject.code
+            return design_variables.item_variables(subject, code), label_urls.item_snapshot(subject, code), code
+        return design_variables.label_id_variables(subject), label_urls.label_id_snapshot(subject), subject.code
 
     def render(self, subject, canvas, medium, *, preview=False, user=None):
         design, problems = problems_of(self.template)
         if problems:
             raise NotRendered(_("Line %(line)s: %(message)s") % {"line": problems[0].line, "message": problems[0].message})
-        values, snapshot, code = self.subject_data(subject, preview, user)
-        context = Context(canvas.dpi, values, images(), canvas.squeeze, strict=True)
+        variables, snapshot, code = self.subject_data(subject, preview, user)
+        context = Context(canvas.dpi, variables, images(), canvas.squeeze, strict=True)
         try:
             image = render_design(design, context, canvas.width, canvas.height)
         except TooSmall as error:

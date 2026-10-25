@@ -1,8 +1,8 @@
 """
 What the print dialog offers: label outcomes instead of printer, labels and layout. An outcome is a layout on labels
-of one size, e.g. the template "Preisschild" on 60 × 30 mm labels, or "QR-Code, Kennung und Ort" on 12 mm tape.
-The server picks a printer with these labels that can print now (Outcome.target); if none can, a job may wait for
-one (services.wait).
+of one size, e.g. the template "Preisschild" on 60 × 30 mm labels, or "QR-Code, Kennung, Name und Ort" on 12 mm
+tape. The server picks a printer with these labels that can print now (Outcome.target); if none can, a job may wait
+for one (services.wait).
 """
 from dataclasses import dataclass, field
 

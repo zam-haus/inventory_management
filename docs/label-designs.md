@@ -9,9 +9,9 @@ records, and lists mistakes by line.
 # Mobile locations, 105 × 52 mm polyester
 label 105 x 52  margin 1
 row  gap 3
-  qr {qr}  ecc Q  max 32
+  qr {{ qr }}  ecc Q  max 32
   column  gap 3
-    text {code}  font condensed  bold  invert  height 18
+    text {{ location.unique_identifier }}  font condensed  bold  invert  height 18
     image "ZAM Logo"
 text "Eigentum Betreiberverein ZAM e.V."  font condensed  bold  center  height 4.5
 ```
@@ -28,7 +28,8 @@ text "Eigentum Betreiberverein ZAM e.V."  font condensed  bold  center  height 4
   the admin, Tab indents by two.
 * **Lengths are in mm** (`3`, `2.5`, `2.5mm`). Some sizes may also be a percentage of the row or
   column (`50%`), `fill` or `auto`.
-* **Content** is text in quotes with `{fields}`, e.g. `"Ort: {path}"`, or a field alone: `{code}`.
+* **Content** is text in quotes, e.g. `"Ort: {{ location.descriptive_identifier }}"`, or a variable
+  alone: `{{ location.unique_identifier }}`. Texts and QR codes are [Django templates](#texts-are-django-templates).
 
 ## The label
 
@@ -80,7 +81,7 @@ border, around all its elements.)
 
 ### text
 
-`text "Fixed text"` or `text {field}`, also both: `text "{price} / Stück"`.
+`text "Fixed text"` or `text {{ variable }}`, also both: `text "{{ item.measurement_unit.short }} / Stück"`.
 
 | Option | |
 |---|---|
@@ -96,7 +97,7 @@ border, around all its elements.)
 
 ### qr
 
-`qr {qr}` is a QR code with whole printer dots per module, so it stays sharp.
+`qr {{ qr }}` is a QR code with whole printer dots per module, so it stays sharp.
 
 | Option | |
 |---|---|
@@ -131,19 +132,34 @@ and white for the printer.
 * `arrow up` (or `down`, `left`, `right`) is a filled triangle pointing that way, e.g. to say which
   side of a shelf a label is for.
 
-## Fields
+## Texts are Django templates
 
-Which `{fields}` a template may use depends on what it is for; the template page lists them.
+The content of `text` and `qr` is a [Django template](https://docs.djangoproject.com/en/stable/ref/templates/language/),
+rendered with the label's subject: `{{ location.name }}` shows a property, filters change it
+(`{{ location.name|upper }}`, `{{ item.sale_price|floatformat:2 }}`), and tags decide
+(`"{% if location.purpose %}{{ location.purpose }}{% else %}–{% endif %}"`). Any field or property of the
+objects may be used, also along relations: `{{ location.parent_location.name }}`.
 
 | Locations | Items | Label IDs |
 |---|---|---|
-| `{code}` WH-1.R303.a | `{name}` | `{id}` K7R-4XD |
-| `{qr}` the code via the label host | `{price}` 0,15 € / Stk (items for sale) | `{id1}` K7R, `{id2}` 4XD |
-| | `{amount}` 0,15 (just the price) | |
-| `{name}` | `{qr}` its label ID and the location's code (`…/K7R4XD/WH-1.R303.A`), leading to the item there | `{qr}` the ID via the label host |
-| `{path}` where it is, with codes | `{location}` the location's code | `{idname}` ZAMid |
-| `{purpose}` | `{id}` the label ID as printed | `{target}` what the ID belongs to |
-| `{short}` code within its area | `{unit}` Stk | |
+| `location` the location | `item` the item | `label_id` the label ID, as printed: K7R-4XD |
+| `location.unique_identifier` WH-1.R303.a | `item.name` | `label_id.code|slice:":3"` K7R, `label_id.code|slice:"3:"` 4XD |
+| `location.name` | `item.sale_price|floatformat:2` 0,15 (empty if not for sale) | `label_id.target` what it belongs to |
+| `location.descriptive_identifier` where it is, with codes | `item.measurement_unit.short` Stk | |
+| `location.locatable_identifier` code within its area | `location` where it is stored (the first location; may be none) | |
+| `location.purpose` | `label_id` its label ID as printed | |
+| `qr` the code via the label host | `qr` its label ID and the location's code (`…/K7R4XD/WH-1.R303.A`), leading to the item there | `qr` the ID via the label host |
+
+All labels also have `label_id_name`, what label IDs are called (ZAMid). The template page lists the variables
+too.
+
+* A variable alone needs no quotes; anything more is quoted. Quotes inside a template take the other kind:
+  `text '{{ location.name|default:"–" }}'`.
+* What has no value prints as nothing. The preview names such variables for the record shown ("There is no
+  “location.nmae”, at least not for this record"). Mistakes in the template's syntax are listed like other
+  mistakes, and a template with mistakes is not printed.
+* An empty field that is stored as nothing (None) prints as "None"; `|default_if_none:""` leaves it out.
+* Nothing is escaped: a label is not HTML.
 
 A template also sets the **print quality** its labels are printed in (draft, standard, high), on its admin
 page.
@@ -168,10 +184,10 @@ A location label on 12 mm tape, as long as the path needs:
 ```
 label height 12  margin 0.5
 row  gap 1
-  qr {qr}
+  qr {{ qr }}
   column  gap 0.5
-    text {code}  font mono  bold  invert
-    text {path}  font condensed
+    text {{ location.unique_identifier }}  font mono  bold  invert
+    text {{ location.descriptive_identifier }}  font condensed
 ```
 
 A label ID, like the Brother design:
@@ -179,12 +195,12 @@ A label ID, like the Brother design:
 ```
 label 70 x 32  margin 1.5
 row  gap 1.5
-  text {idname}  rotate 270  font sans  weight 800
-  qr {qr}
+  text {{ label_id_name }}  rotate 270  font sans  weight 800
+  qr {{ qr }}
   column
-    text {id1}  font mono  bold  center
+    text {{ label_id.code|slice:":3" }}  font mono  bold  center
     line  thickness 0.8  width 40%
-    text {id2}  font mono  bold  center
+    text {{ label_id.code|slice:"3:" }}  font mono  bold  center
 ```
 
 A price tag for bulk items on 24 mm tape (template "Preisschild Band 24 mm"): the name, below it the price
@@ -192,12 +208,12 @@ and the QR code.
 
 ```
 label height 24  margin 0.5
-text {name}  font condensed  bold  height 30%
+text {{ item.name }}  font condensed  bold  height 30%
 row  gap 2  margin 0.5 0 0 0
   row  border 0.5  shape bulge  padding 0.3 0  width auto
-    text "€ {amount}"  font condensed  bold
-    text "/ {unit}"  font condensed  height 40%  margin 0 0 0 1  bottom
-  qr {qr}  ecc M
+    text "€ {{ item.sale_price|floatformat:2 }}"  font condensed  bold
+    text "/ {{ item.measurement_unit.short }}"  font condensed  height 40%  margin 0 0 0 1  bottom
+  qr {{ qr }}  ecc M
 ```
 
 A fixed shelf label with an arrow pointing up to the shelf:
@@ -205,12 +221,12 @@ A fixed shelf label with an arrow pointing up to the shelf:
 ```
 label 70 x 32  margin 1
 row  gap 2
-  qr {qr}  ecc Q
+  qr {{ qr }}  ecc Q
   column
     space
     arrow up  width 14  height 6
     space 1
-    text {code}  font mono  bold  invert  height 11
+    text {{ location.unique_identifier }}  font mono  bold  invert  height 11
     space
-text {path}  font condensed  center  height 3.5
+text {{ location.descriptive_identifier }}  font condensed  center  height 3.5
 ```

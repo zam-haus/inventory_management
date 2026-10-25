@@ -4,16 +4,16 @@ The label description language: one element per line, nesting by indentation, le
     # Mobile locations, 105 × 52 mm polyester
     label 105 x 52  margin 1
     row  gap 3
-      qr {qr}  ecc Q  max 32
+      qr {{ qr }}  ecc Q  max 32
       column  gap 3
-        text {code}  font condensed  bold  invert  height 18
+        text {{ location.unique_identifier }}  font condensed  bold  invert  height 18
         image "ZAM Logo"
     text "Eigentum Betreiberverein ZAM e.V."  font condensed  center  height 4
 
 The first line says the size: "label 105 x 52" (width × height in mm) or "label height 12", as long as
-its content (Brother tape). Then elements, each on its own line: a keyword, its content (text in quotes
-with {fields}, or a {field} alone) and options ("height 18", "bold", …). Elements indented below row or
-column are laid out in it. # starts a comment, commas are optional.
+its content (Brother tape). Then elements, each on its own line: a keyword, its content (text in quotes, or
+a {{ variable }} alone; text and QR codes are Django templates, texts.py) and options ("height 18", "bold",
+…). Elements indented below row or column are laid out in it. # starts a comment, commas are optional.
 
 parse() makes a Design of Elements and lists every Problem with its line; it does not stop at the first.
 """
@@ -25,9 +25,8 @@ from django.utils.translation import gettext as _
 
 FONTS = ("sans", "mono", "condensed", "ocr")
 ROTATIONS = (0, 90, 180, 270)
-TOKEN = re.compile(r'''"((?:[^"\\]|\\.)*)"|'((?:[^'\\]|\\.)*)'|(\{[^{}\s]*\})|([^\s,"']+)|(,)|(\S)''')
+TOKEN = re.compile(r'''"((?:[^"\\]|\\.)*)"|'((?:[^'\\]|\\.)*)'|(\{\{.*?\}\})|([^\s,"']+)|(,)|(\S)''')
 NUMBER = re.compile(r"^(\d+(?:\.\d+)?)(mm|%)?$")
-FIELD = re.compile(r"\{([^{}\s]*)\}")
 
 
 @dataclass(frozen=True)
@@ -67,14 +66,6 @@ class Design:
     def elements(self):
         for child in self.children:
             yield from child.walk()
-
-    def fields(self):
-        """The {fields} used, with the lines using them."""
-        used = {}
-        for element in self.elements():
-            for name in FIELD.findall(element.content or "") if element.kind != "image" else ():
-                used.setdefault(name, []).append(element.line)
-        return used
 
     def images(self):
         return {element.content: element.line for element in self.elements() if element.kind == "image"}
@@ -124,18 +115,19 @@ class LineError(Exception):
 
 
 def tokens(text):
-    """The line's tokens: ("string", value), ("field", "{name}") or ("word", value); comments and commas dropped."""
+    """The line's tokens: ("string", value), ("variable", "{{ name }}") or ("word", value); comments and commas
+    dropped."""
     found = []
     for match in TOKEN.finditer(text):
-        double, single, field_, word, comma, stray = match.groups()
+        double, single, variable, word, comma, stray = match.groups()
         if stray is not None:
             if stray == "#":
                 break
             raise LineError(_("A quote is not closed.") if stray in "\"'" else _("Unexpected “%s”.") % stray)
         if double is not None or single is not None:
             found.append(("string", re.sub(r"\\(.)", r"\1", double if double is not None else single)))
-        elif field_ is not None:
-            found.append(("field", field_))
+        elif variable is not None:
+            found.append(("variable", variable))
         elif word is not None:
             if word.startswith("#"):
                 break
@@ -230,8 +222,8 @@ def element(words, number):
     rest = words[1:]
     item = Element(kind, number)
     if "content" in spec:
-        if not rest or rest[0][0] not in ("string", "field") and not (spec["content"] == "name" and rest[0][0] == "word"):
-            raise LineError(_("%s needs its content first: text in quotes or a {field}.") % kind
+        if not rest or rest[0][0] not in ("string", "variable") and not (spec["content"] == "name" and rest[0][0] == "word"):
+            raise LineError(_("%s needs its content first: text in quotes or a {{ variable }}.") % kind
                             if spec["content"] == "text" else _("image needs the name of a label image first."))
         item.content, rest = rest[0][1], rest[1:]
     if "argument" in spec and rest and rest[0][0] == "word" and (NUMBER.match(rest[0][1]) or rest[0][1] == "fill"):

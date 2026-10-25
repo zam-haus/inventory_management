@@ -61,7 +61,7 @@ def create_user(username="printer-user", *permissions):
 
 # The label templates the migrations make for every label size (label_printing 0002)
 GENERATED = {
-    "location": "QR-Code, Kennung und Ort",
+    "location": "QR-Code, Kennung, Name und Ort",
     "item": "Name, Preis und QR-Code",
     "labelid": "ZAMid",
     "labelid_plain": "ZAMid: QR + ID",

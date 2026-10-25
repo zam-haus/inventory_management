@@ -16,7 +16,7 @@ class LocationAdminAddTests(TestCase):
     @classmethod
     def setUpTestData(cls):
         template = LocationLabelTemplate.objects.create(
-            name="Small", description="label 50 x 25\nqr {qr}")
+            name="Small", description="label 50 x 25\nqr {{ qr }}")
         cls.room = LocationType.objects.create(name="Room", unique=True, default_label_template=template)
         cls.user = get_user_model().objects.create_user(username="admin", is_staff=True, is_superuser=True)
 

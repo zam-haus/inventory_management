@@ -91,7 +91,7 @@ class SubmitTests(TestCase):
 
     def test_label_templates_print_on_media_of_their_size(self):
         def template(name, size="57 x 32"):
-            return LocationLabelTemplate.objects.create(name=name, description=f"label {size}\nrow\n  qr {{qr}}\n  text {{code}}")
+            return LocationLabelTemplate.objects.create(name=name, description=f"label {size}\n" + "row\n  qr {{ qr }}\n  text {{ location.unique_identifier }}")
         fitting, wide = template("Fach"), template("Breit", "70 x 32")
         kind = LocationType.objects.create(name="Room", unique=True)
         location = Location.objects.create(name="Lager", short_name="WH", type=kind)

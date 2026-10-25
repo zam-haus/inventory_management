@@ -221,91 +221,90 @@ msgstr "Auftrag %(old)s als Auftrag %(new)s neu gedruckt."
 msgid "Label printing"
 msgstr "Etikettendruck"
 
-#: label_printing/design/__init__.py:18
-#, python-format
-msgid "There is no field {%(name)s}; there are: %(fields)s."
-msgstr "Es gibt kein Feld {%(name)s}; es gibt: %(fields)s."
-
 #: label_printing/design/__init__.py:22 label_printing/design/layout.py:222
 #, python-format
 msgid "There is no label image “%s”."
 msgstr "Es gibt kein Etikettenbild „%s“."
 
-#: label_printing/design/fields.py:19
-msgid "the location's code, e.g. WH-1.R303.a"
-msgstr "die Kennung des Orts, z. B. WH-1.R303.a"
+#: label_printing/design/variables.py
+msgid "the location, with all its fields and properties, e.g.:"
+msgstr "der Ort, mit all seinen Feldern und Eigenschaften, z. B.:"
 
-#: label_printing/design/fields.py:20
-msgid ""
-"for QR codes: the code via the label host, HTTPS://I.ZAM.HAUS/WH-1.R303.A"
-msgstr ""
-"für QR-Codes: die Kennung über den Label-Host, HTTPS://I.ZAM.HAUS/WH-1.R303.A"
+#: label_printing/design/variables.py
+msgid "its code, e.g. WH-1.R303.a"
+msgstr "seine Kennung, z. B. WH-1.R303.a"
 
-#: label_printing/design/fields.py:21
-msgid "the location's name"
-msgstr "der Name des Orts"
+#: label_printing/design/variables.py
+msgid "its name"
+msgstr "sein Name"
 
-#: label_printing/design/fields.py:22
+#: label_printing/design/variables.py
 msgid "where it is: the full path with codes"
 msgstr "wo er ist: der ganze Pfad mit Kennungen"
 
-#: label_printing/design/fields.py:23
-msgid "its purpose"
-msgstr "sein Zweck"
-
-#: label_printing/design/fields.py:24
+#: label_printing/design/variables.py
 msgid "the code within its area, e.g. R303.a"
 msgstr "die Kennung innerhalb seines Bereichs, z. B. R303.a"
 
-#: label_printing/design/fields.py:27
-msgid "the item's name"
-msgstr "der Name des Artikels"
+#: label_printing/design/variables.py
+msgid "its purpose"
+msgstr "sein Zweck"
 
-#: label_printing/design/fields.py:28
-msgid "price per unit for items for sale, e.g. 0,15 € / Stk; else empty"
-msgstr "Preis je Einheit bei Verkaufsartikeln, z. B. 0,15 € / Stk; sonst leer"
+#: label_printing/design/variables.py
+msgid "the name of the location it is in"
+msgstr "der Name des Orts, in dem er ist"
 
-#: label_printing/design/fields.py:29
-msgid "just the price, e.g. 0,15; else empty"
-msgstr "nur der Preis, z. B. 0,15; sonst leer"
+#: label_printing/design/variables.py
+msgid "for QR codes: the code via the label host, HTTPS://I.ZAM.HAUS/WH-1.R303.A"
+msgstr "für QR-Codes: die Kennung über den Label-Host, HTTPS://I.ZAM.HAUS/WH-1.R303.A"
 
-#: label_printing/design/fields.py:30
-msgid ""
-"for QR codes: the item's label ID and the location's code (…/K7R4XD/"
-"WH-1.R303.A), leading to the item there"
+#: label_printing/design/variables.py
+msgid "the item, with all its fields and properties, e.g.:"
+msgstr "der Artikel, mit all seinen Feldern und Eigenschaften, z. B.:"
+
+#: label_printing/design/variables.py
+msgid "its price for items for sale, e.g. 0,15; else empty"
+msgstr "sein Preis bei Verkaufsartikeln, z. B. 0,15; sonst leer"
+
+#: label_printing/design/variables.py
+msgid "its unit, e.g. Stk"
+msgstr "seine Einheit, z. B. Stk"
+
+#: label_printing/design/variables.py
+msgid "the code of the location it is stored at (the first one); location is the location, if there is one"
+msgstr "die Kennung des Orts, an dem er lagert (des ersten); location ist der Ort, wenn es einen gibt"
+
+#: label_printing/design/variables.py
+msgid "its label ID as printed, e.g. K7R-4XD"
+msgstr "seine Label-ID wie gedruckt, z. B. K7R-4XD"
+
+#: label_printing/design/variables.py
+msgid "for QR codes: the item's label ID and the location's code (…/K7R4XD/WH-1.R303.A), leading to the item there"
 msgstr "für QR-Codes: die Label-ID des Artikels und die Kennung des Standorts (…/K7R4XD/WH-1.R303.A); führt zum Artikel dort"
 
-#: label_printing/design/fields.py:31
-msgid "the location's code"
-msgstr "die Kennung des Orts"
-
-#: label_printing/design/fields.py:32 label_printing/design/fields.py:36
+#: label_printing/design/variables.py
 msgid "the label ID as printed, e.g. K7R-4XD"
 msgstr "die Label-ID wie gedruckt, z. B. K7R-4XD"
 
-#: label_printing/design/fields.py:33
-msgid "the unit, e.g. Stk"
-msgstr "die Einheit, z. B. Stk"
-
-#: label_printing/design/fields.py:37
+#: label_printing/design/variables.py
 msgid "its first part, e.g. K7R"
 msgstr "ihr erster Teil, z. B. K7R"
 
-#: label_printing/design/fields.py:38
+#: label_printing/design/variables.py
 msgid "its second part, e.g. 4XD"
 msgstr "ihr zweiter Teil, z. B. 4XD"
 
-#: label_printing/design/fields.py:39
+#: label_printing/design/variables.py
+msgid "what it belongs to"
+msgstr "wozu sie gehört"
+
+#: label_printing/design/variables.py
 msgid "for QR codes: the label ID via the label host"
 msgstr "für QR-Codes: die Label-ID über den Label-Host"
 
-#: label_printing/design/fields.py:40
+#: label_printing/design/variables.py
 msgid "what label IDs are called, e.g. ZAMid"
 msgstr "wie Label-IDs heißen, z. B. ZAMid"
-
-#: label_printing/design/fields.py:41
-msgid "what the ID belongs to"
-msgstr "wozu die ID gehört"
 
 #: label_printing/design/language.py:134
 msgid "A quote is not closed."
@@ -379,10 +378,10 @@ msgid "Elements: %s."
 msgstr "Elemente: %s."
 
 #: label_printing/design/language.py:234
-#, python-format, python-brace-format
-msgid "%s needs its content first: text in quotes or a {field}."
+#, python-format
+msgid "%s needs its content first: text in quotes or a {{ variable }}."
 msgstr ""
-"%s braucht zuerst seinen Inhalt: Text in Anführungszeichen oder ein {field}."
+"%s braucht zuerst seinen Inhalt: Text in Anführungszeichen oder eine {{ variable }}."
 
 #: label_printing/design/language.py:235
 msgid "image needs the name of a label image first."
@@ -409,6 +408,15 @@ msgstr "Nur row und column enthalten eingerückte Elemente."
 #, python-format
 msgid "The QR code does not fit: it needs %(mm).1f mm at least."
 msgstr "Der QR-Code passt nicht: Er braucht mindestens %(mm).1f mm."
+
+#: label_printing/design/layout.py:160
+msgid "There is no room left for this text."
+msgstr "Für diesen Text ist kein Platz mehr."
+
+#: label_printing/design/layout.py
+#, python-format
+msgid "There is no “%s”, at least not for this record."
+msgstr "Es gibt kein „%s“, zumindest nicht bei diesem Datensatz."
 
 #: label_printing/design/layout.py:451
 #, python-format

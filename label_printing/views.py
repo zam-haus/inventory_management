@@ -23,10 +23,9 @@ from django.views.decorators.http import require_POST, require_safe
 
 from inventory.models import LabelId, LocationLabelTemplate
 from . import dialog, editor, label_urls, services
-from .design import fields as design_fields
+from .design import variables as design_variables
 from .render import coloured
 from .layouts import get_layout
-from .layouts.designs import SAMPLES
 from .models import LabelMedium, PrintJob
 
 
@@ -158,16 +157,16 @@ def png_response(image, dpi, cache_control="private, max-age=60"):
 
 
 def template_subject(subject_type, pk):
-    """(subject, values) for a template's preview; items with their first location."""
+    """(subject, variables) for a template's preview; items with their first location."""
     obj = dialog.subject_object(subject_type, pk)
     if subject_type == "location":
-        return obj, design_fields.location_values(obj)
+        return obj, design_variables.location_variables(obj)
     if subject_type == "item":
         locations = dialog.item_locations(obj)
         subject = dialog.ItemAt(obj, locations[0] if locations else None)
-        return subject, design_fields.item_values(subject, label_urls.item_label_code(subject, create=False)
-                                                  or label_urls.PREVIEW_CODE)
-    return obj, design_fields.label_id_values(obj)
+        return subject, design_variables.item_variables(subject, label_urls.item_label_code(subject, create=False)
+                                                        or label_urls.PREVIEW_CODE)
+    return obj, design_variables.label_id_variables(obj)
 
 
 @require_safe
@@ -176,12 +175,12 @@ def template_preview(request, pk, subject_type, subject_pk):
     labels are public like the location page that shows them, and so are those of assigned label IDs: they only
     show what is on the object anyway. The others for who may print (label IDs: or see them)."""
     template = get_object_or_404(LocationLabelTemplate, pk=pk, subject_type=subject_type)
-    subject, values = template_subject(subject_type, subject_pk)
+    subject, variables = template_subject(subject_type, subject_pk)
     public = subject_type == "location" or (subject_type == "labelid" and subject.status == LabelId.Status.ASSIGNED)
     if not (public or request.user.has_perm("label_printing.print_label")
             or (subject_type == "labelid" and request.user.has_perm("inventory.view_labelid"))):
         raise Http404
-    image, _problems, canvas = editor.preview(template.description, subject_type, values)
+    image, _problems, canvas = editor.preview(template.description, variables)
     if image is None:
         raise Http404
     return png_response(image, canvas.dpi, f"{'public' if public else 'private'}, max-age=300")
@@ -191,11 +190,10 @@ def template_preview(request, pk, subject_type, subject_pk):
 @permission_required("inventory.view_locationlabeltemplate", raise_exception=True)
 @require_safe
 def template_sample(request, pk):
-    """A template's label with sample values of typical length (layouts.designs.SAMPLES), without a printer, for
+    """A template's label with sample variables of typical length (design.variables.samples), without a printer, for
     the admin's list of templates; no real records."""
     template = get_object_or_404(LocationLabelTemplate, pk=pk)
-    image, _problems, canvas = editor.preview(template.description, template.subject_type,
-                                              SAMPLES.get(template.subject_type, {}))
+    image, _problems, canvas = editor.preview(template.description, design_variables.samples(template.subject_type))
     if image is None:
         raise Http404
     return png_response(image, canvas.dpi, "private, max-age=3600")
@@ -208,13 +206,13 @@ def design_preview(request):
     """The admin's preview while a description is typed (label_template.js): JSON with the label as a PNG data URL,
     the problems by line, the size, and the sample records to choose from."""
     subject_type = request.POST.get("subject_type", "location")
-    records = design_fields.sample_records(subject_type)
+    records = design_variables.sample_records(subject_type)
     try:
-        values = records[int(request.POST.get("record") or 0)][1]
+        variables = records[int(request.POST.get("record") or 0)][1]
     except (IndexError, ValueError):
-        values = {name: f"{{{name}}}" for name in design_fields.names(subject_type)}
+        variables = design_variables.samples(subject_type)
     medium = LabelMedium.objects.select_related("printer", "stock").filter(pk=request.POST.get("medium") or 0).first()
-    image, problems, canvas = editor.preview(request.POST.get("description", ""), subject_type, values, medium)
+    image, problems, canvas = editor.preview(request.POST.get("description", ""), variables, medium)
     data = {"problems": [{"line": problem.line, "message": problem.message} for problem in problems],
             "records": [name for name, _values in records], "image": None}
     if image is not None:

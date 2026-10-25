@@ -82,53 +82,70 @@ def zebra_labels(apps, templates):
             description=description)
 
 
+# What the labels show: Django template variables (label_printing/design/texts.py, variables.py)
+QR = "{{ qr }}"
+CODE = "{{ location.unique_identifier }}"
+NAME = "{{ location.name }}"
+PATH = "{{ location.descriptive_identifier }}"
+ITEM = "{{ item.name }}"
+AMOUNT = "{{ item.sale_price|floatformat:2 }}"
+UNIT = "{{ item.measurement_unit.short }}"
+PRICE = f"{{% if item.sale_price is not None %}}{AMOUNT} € / {UNIT}{{% endif %}}"
+LABEL_ID = "{{ label_id }}"
+LABEL_ID_1 = '{{ label_id.code|slice:":3" }}'
+LABEL_ID_2 = '{{ label_id.code|slice:"3:" }}'
+LABEL_ID_NAME = "{{ label_id_name }}"
+
 # The ZPL templates in use (by name), described anew: (new name, description)
-SHELF = """# Fixed locations, 70 × 32 mm paper{note}
+def shelf(note, above="", below=""):
+    return f"""# Fixed locations, 70 × 32 mm paper{note}
 label 70 x 32  margin 1
 line  thickness 0.15
 row  gap 2
-  qr {{qr}}  ecc Q
+  qr {QR}  ecc Q
   column
     space{above}
-    text {{code}}  font mono  bold  invert  height 11{below}
+    text {CODE}  font mono  bold  invert  height 11{below}
     space
-text {{path}}  font condensed  center  height 3.5
+text {PATH}  font condensed  center  height 3.5
 """
+
+
+
 ARROW_UP = "\n    arrow up  width 14  height 6\n    space 1"
 ARROW_DOWN = "\n    space 1\n    arrow down  width 14  height 6"
 ZPL_DESIGNS = {
-    "70x32 static": ("Fester Standort", SHELF.format(note="", above="", below="")),
-    "70x32 static up": ("Fester Standort, Pfeil hoch",
-                        SHELF.format(note="; arrow up to the shelf", above=ARROW_UP, below="")),
-    "70x32 static down": ("Fester Standort, Pfeil runter",
-                          SHELF.format(note="; arrow down to the shelf", above="", below=ARROW_DOWN)),
-    "60x30 mobile": ("Mobil, mit Logo und Eigentum", """# Mobile locations, 60 × 30 mm paper
+    "70x32 static": ("Fester Standort", shelf("")),
+    "70x32 static up": ("Fester Standort, Pfeil hoch", shelf("; arrow up to the shelf", above=ARROW_UP)),
+    "70x32 static down": ("Fester Standort, Pfeil runter", shelf("; arrow down to the shelf", below=ARROW_DOWN)),
+    "60x30 mobile": ("Mobil, mit Logo und Eigentum", f"""# Mobile locations, 60 × 30 mm paper
 label 60 x 30  margin 1
 row  gap 2
-  qr {qr}  ecc Q
+  qr {QR}  ecc Q
   column  gap 1.5
-    text {code}  font mono  bold  invert  height 11
+    text {CODE}  font mono  bold  invert  height 11
     image "ZAM Logo"
 text "Eigentum Betreiberverein Makerspace+ für Erlangen e.V."  font condensed  center  height 2.6
 """),
-    "105x52 mobile": ("Mobil, mit Logo und Eigentum", """# Mobile locations, 105 × 52 mm polyester
+    "105x52 mobile": ("Mobil, mit Logo und Eigentum", f"""# Mobile locations, 105 × 52 mm polyester
 label 105 x 52  margin 1
 row  gap 3
-  qr {qr}  ecc Q  max 32
+  qr {QR}  ecc Q  max 32
   column  gap 4
-    text {code}  font condensed  bold  invert  height 18
+    text {CODE}  font condensed  bold  invert  height 18
     image "ZAM Logo" height 20
 text "Eigentum Betreiberverein ZAM e.V."  font condensed  bold  center  height 4.5
 """),
 }
 
-FALLBACK = """# Converted from a ZPL template: check it. The ZPL is kept below as comments.
-label {width} x {height}  margin 1
+def fallback(width, height):
+    return f"""# Converted from a ZPL template: check it. The ZPL is kept below as comments.
+label {width:g} x {height:g}  margin 1
 row  gap 2
-  qr {{qr}}
+  qr {QR}
   column  gap 1
-    text {{code}}  font mono  bold  invert
-    text {{path}}  font condensed  lines 2
+    text {CODE}  font mono  bold  invert
+    text {PATH}  font condensed  lines 2
 """
 GFA = re.compile(r"\^GFA,\d+,(\d+),(\d+),([^^~]*)")
 SMALL = {chr(ord("G") + index): index + 1 for index in range(19)}
@@ -191,12 +208,12 @@ def zamid_tape(tape):
     return f"""# ZAMid on {tape} mm tape, like the Brother design: the name turned, the QR code, the ID in two lines
 label height {tape}  margin 1
 row  gap {mm(tape * 0.08)}
-  text {{idname}}  rotate 270  font sans  weight 800
-  qr {{qr}}  quiet 1
+  text {LABEL_ID_NAME}  rotate 270  font sans  weight 800
+  qr {QR}  quiet 1
   column
-    text {{id1}}  font mono  bold  center
+    text {LABEL_ID_1}  font mono  bold  center
     line  thickness {mm(max(0.2, tape * 0.025))}  width {mm(tape * 0.22)}
-    text {{id2}}  font mono  bold  center
+    text {LABEL_ID_2}  font mono  bold  center
 """
 
 
@@ -204,12 +221,12 @@ def zamid_card(width, height):
     return f"""# ZAMid on {width} × {height} mm labels, like the Brother design
 label {width} x {height}  margin 1.5
 row  gap 1.5
-  text {{idname}}  rotate 270  font sans  weight 800
-  qr {{qr}}  quiet 1
+  text {LABEL_ID_NAME}  rotate 270  font sans  weight 800
+  qr {QR}  quiet 1
   column
-    text {{id1}}  font mono  bold  center
+    text {LABEL_ID_1}  font mono  bold  center
     line  thickness {mm(height * 0.025)}  width {mm(height * 0.3)}
-    text {{id2}}  font mono  bold  center
+    text {LABEL_ID_2}  font mono  bold  center
 """
 
 
@@ -217,8 +234,8 @@ def plain_tape(tape):
     return f"""# ZAMid on {tape} mm tape: QR code and ID
 label height {tape}  margin 1
 row  gap {mm(tape * 0.1)}
-  qr {{qr}}  quiet 1
-  text {{id}}  font mono  bold  height 60%
+  qr {QR}  quiet 1
+  text {LABEL_ID}  font mono  bold  height 60%
 """
 
 
@@ -226,33 +243,35 @@ def plain_card(width, height):
     return f"""# ZAMid on {width} × {height} mm labels: QR code and ID
 label {width} x {height}  margin 1.5
 row  gap 2
-  qr {{qr}}
+  qr {QR}
   column
-    text {{idname}}  height 30%  bottom
-    text {{id}}  font mono  bold  height 45%
+    text {LABEL_ID_NAME}  height 30%  bottom
+    text {LABEL_ID}  font mono  bold  height 45%
     space
 """
 
 
 def location_tape(tape):
-    return f"""# Locations on {tape} mm tape, as long as the path needs: QR code, code and path
-label height {tape}  margin 1 0.5
+    return f"""# Locations on {tape} mm tape, as long as the path needs: QR code, code, name and path
+label height {tape}  margin 0 0.5
 row  gap 1
-  qr {{qr}}  quiet 1
+  qr {QR}  quiet 1
   column  gap 0.5
-    text {{code}}  font mono  bold  invert
-    text {{path}}  font condensed
+    text {CODE}  size {mm(tape / 6)}  font mono  bold  invert
+    text {NAME}  size {mm(tape * 2 / 9)}  font condensed
+    text {PATH}  size {mm(tape / 9)}
 """
 
 
 def location_card(width, height):
-    return f"""# Locations on {width} × {height} mm labels: QR code, code and path
+    return f"""# Locations on {width} × {height} mm labels: QR code, code, name and path
 label {width} x {height}  margin 1.5
 row  gap 2
-  qr {{qr}}  max {mm(width * 0.45)}
+  qr {QR}  max {mm(width * 0.45)}
   column  gap 1
-    text {{code}}  font mono  bold  invert  height 40%
-    text {{path}}  font condensed  lines 4
+    text {CODE}  font mono  bold  invert  height 30%
+    text {NAME}  font condensed  lines 2  height 30%
+    text {PATH}  lines 3
 """
 
 
@@ -260,10 +279,10 @@ def item_tape(tape):
     return f"""# Bulk items on {tape} mm tape, as long as the name needs: QR code, name, price, ID and location
 label height {tape}  margin 1 0.5
 row  gap 1
-  qr {{qr}}  quiet 1
+  qr {QR}  quiet 1
   column  align left
-    text {{name}}  bold  height 55%
-    text "{{price}}  {{id}} {{location}}"  height 40%  bottom
+    text {ITEM}  bold  height 55%
+    text "{PRICE}  {LABEL_ID} {CODE}"  height 40%  bottom
 """
 
 
@@ -272,49 +291,49 @@ def item_card(width, height):
 label {width} x {height}  margin 1.5
 row  gap 2
   column  gap 0.5
-    text {{name}}  bold  lines 3  height 50%
-    text {{price}}  bold  height 25%
-    text "{{id}}  {{location}}"  font mono  height 15%  bottom
-  qr {{qr}}  max {mm(width * 0.4)}
+    text {ITEM}  bold  lines 3  height 50%
+    text "{PRICE}"  bold  height 25%
+    text "{LABEL_ID}  {CODE}"  font mono  height 15%  bottom
+  qr {QR}  max {mm(width * 0.4)}
 """
 
 
 PRICE_TAGS = [
-    ("""# Price tag for bulk items, 60 × 30 mm: name, price, QR code
+    (f"""# Price tag for bulk items, 60 × 30 mm: name, price, QR code
 label 60 x 30  margin 1.5
-text {name}  font condensed  bold  lines 2  height 8
+text {ITEM}  font condensed  bold  lines 2  height 8
 row  gap 2  margin 1 0 0 0
   row  border 0.5  shape bulge  padding 0.5 0  justify center
-    text "€ {amount}"  font condensed  bold
-    text "/ {unit}"  font condensed  size 3.5  margin 0 0 1.5 1  bottom
-  qr {qr}  ecc M
+    text "€ {AMOUNT}"  font condensed  bold
+    text "/ {UNIT}"  font condensed  size 3.5  margin 0 0 1.5 1  bottom
+  qr {QR}  ecc M
 """),
-    ("""# Price tag for bulk items on 12 mm tape, as long as the name needs: name, price, QR code
+    (f"""# Price tag for bulk items on 12 mm tape, as long as the name needs: name, price, QR code
 label height 12  margin 0.3
 row  gap 1
-  text {name}  font condensed  bold  height 55%
+  text {ITEM}  font condensed  bold  height 55%
   row  border 0.4  shape bulge  padding 0.2 0
-    text "€ {amount}"  font condensed  bold
-    text "/ {unit}"  font condensed  height 45%  margin 0 0 0 0.5  bottom
-  qr {qr}  quiet 1
+    text "€ {AMOUNT}"  font condensed  bold
+    text "/ {UNIT}"  font condensed  height 45%  margin 0 0 0 0.5  bottom
+  qr {QR}  quiet 1
 """),
-    ("""# Price tag for bulk items on 18 mm tape, as long as the name needs: the name, below it price and QR code
+    (f"""# Price tag for bulk items on 18 mm tape, as long as the name needs: the name, below it price and QR code
 label height 18  margin 0.5
-text {name}  font condensed  bold  height 30%
+text {ITEM}  font condensed  bold  height 30%
 row  gap 2  margin 0.5 0 0 0
   row  border 0.5  shape bulge  padding 0.3 0  width auto
-    text "€ {amount}"  font condensed  bold
-    text "/ {unit}"  font condensed  height 40%  margin 0 0 0 1  bottom
-  qr {qr}  ecc M
+    text "€ {AMOUNT}"  font condensed  bold
+    text "/ {UNIT}"  font condensed  height 40%  margin 0 0 0 1  bottom
+  qr {QR}  ecc M
 """),
-    ("""# Price tag for bulk items on 24 mm tape, as long as the name needs: the name, below it price and QR code
+    (f"""# Price tag for bulk items on 24 mm tape, as long as the name needs: the name, below it price and QR code
 label height 24  margin 0.5
-text {name}  font condensed  bold  height 30%
+text {ITEM}  font condensed  bold  height 30%
 row  gap 2  margin 0.5 0 0 0
   row  border 0.5  shape bulge  padding 0.3 0  width auto
-    text "€ {amount}"  font condensed  bold
-    text "/ {unit}"  font condensed  height 40%  margin 0 0 0 1  bottom
-  qr {qr}  ecc M
+    text "€ {AMOUNT}"  font condensed  bold
+    text "/ {UNIT}"  font condensed  height 40%  margin 0 0 0 1  bottom
+  qr {QR}  ecc M
 """),
 ]
 
@@ -327,12 +346,12 @@ def new_templates():
     """[(name, subject type, description)]"""
     found = []
     for width, height in CARDS:
-        found += [("QR-Code, Kennung und Ort", "location", location_card(width, height)),
+        found += [("QR-Code, Kennung, Name und Ort", "location", location_card(width, height)),
                   ("Name, Preis und QR-Code", "item", item_card(width, height)),
                   ("ZAMid", "labelid", zamid_card(width, height)),
                   ("ZAMid: QR + ID", "labelid", plain_card(width, height))]
     for tape in TAPES:
-        found += [("QR-Code, Kennung und Ort", "location", location_tape(tape)),
+        found += [("QR-Code, Kennung, Name und Ort", "location", location_tape(tape)),
                   ("Name, Preis und QR-Code", "item", item_tape(tape)),
                   ("ZAMid", "labelid", zamid_tape(tape)),
                   ("ZAMid: QR + ID", "labelid", plain_tape(tape))]
@@ -357,7 +376,7 @@ def labels_to_start_with(apps, schema_editor):
         if template.name in ZPL_DESIGNS:
             template.name, template.description = ZPL_DESIGNS[template.name]
         else:
-            template.description = (FALLBACK.format(width=template.label_width or 57, height=template.label_height or 32)
+            template.description = (fallback(template.label_width or 57, template.label_height or 32)
                                     + "\n" + as_comment(template.zpl_template))
         template.save()
     zebra_labels(apps, templates)

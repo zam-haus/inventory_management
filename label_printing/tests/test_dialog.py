@@ -97,7 +97,7 @@ class PrintDialogTests(SimulatedPrinters, InventoryData, TestCase):
     def setUpTestData(cls):
         cls.create_inventory()
         cls.zebra, cls.labels, cls.brother, cls.tape = create_printers(cls.zebra_server.port, cls.brother_server.port)
-        cls.template = LocationLabelTemplate.objects.create(name="Fach", description="label 57 x 32\nqr {qr}")
+        cls.template = LocationLabelTemplate.objects.create(name="Fach", description="label 57 x 32\nqr {{ qr }}")
         cls.labels.label_templates.add(cls.template)
         cls.user = create_user("printing", "label_printing.print_label", "inventory.add_stockchange")
 
