@@ -451,6 +451,19 @@ class AdminTests(InventoryData, TestCase):
         price, = {tuple(name for _url, name in sample) for sample in self.samples("Preis")}
         self.assertEqual(price, ("Schrauben M4",))
 
+    def test_list_samples_only_of_records_the_template_is_meant_for(self):
+        """By the template's rules: a price tag only for items with a price (Wechselstift has none)."""
+        from inventory.models import Item, ItemLocation
+        unpriced = Item.objects.create(name="Wechselstift", measurement_unit=self.unit)
+        ItemLocation.objects.create(item=unpriced, location=self.part, amount=5)
+        response = self.client.get(reverse("admin:inventory_locationlabeltemplate_changelist"), {"q": "Preis"})
+        found = {}
+        for name, data in re.findall(r'<a href="[^"]+">([^<]+)</a></th><td class="field-sample"><img [^>]*'
+                                     r'data-label-samples="([^"]+)"', response.content.decode()):
+            found.setdefault(name, set()).update(record for _url, record in json.loads(html.unescape(data)))
+        self.assertEqual(found["Preisschild"], {"Schrauben M4"})
+        self.assertEqual(found["Name, Preis und QR-Code"], {"Schrauben M4", "Wechselstift"})
+
     def test_list_samples_only_of_records_one_may_see(self):
         viewer = create_user("viewer", "inventory.view_locationlabeltemplate")
         viewer.is_staff = True

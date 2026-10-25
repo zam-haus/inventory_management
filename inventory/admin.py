@@ -17,7 +17,7 @@ from django.utils.html import format_html, format_html_join
 from django.utils.http import urlencode
 from django.utils.translation import gettext_lazy as _, ngettext
 from django.views.generic import FormView
-from label_printing import editor as label_editor, services as label_printing
+from label_printing import editor as label_editor, selection as label_selection, services as label_printing
 from label_printing.design import variables as label_variables
 from label_printing.layouts import designs as label_designs
 from label_printing.models import LabelMedium
@@ -177,18 +177,28 @@ class LocationLabelTemplateAdmin(admin.ModelAdmin):
                            'block; max-height: 4rem; max-width: 16rem; background: #fff; outline: 1px solid '
                            'var(--hairline-color)">', samples[0][0], samples[0][1], json.dumps(samples))
 
+    SAMPLE_CANDIDATES = 40  # random records of a kind to find a template's samples among
+    SAMPLES = 5
+
     def get_list_display(self, request):
-        """The samples with up to five random records of each kind, the same for each template of the kind on the
-        page; only records whose labels the user may see."""
-        records = {}
+        """The samples with up to five random records each that the template is meant for (its rules,
+        label_printing.selection), drawn once per kind of template on the page; only records whose labels the
+        user may see."""
+        candidates = {}  # kind → [(pk, name, the pks of the kind's templates meant for it)]
+
+        def meant(kind):
+            if kind not in candidates:
+                templates = list(models.LocationLabelTemplate.objects.filter(subject_type=kind))
+                candidates[kind] = [
+                    (subject.pk, name, set(label_selection.priorities(kind, subject, templates)))
+                    for name, subject in label_variables.sample_subjects(kind, self.SAMPLE_CANDIDATES, shuffled=True)
+                    if label_editor.may_preview(request.user, kind, subject)]
+            return candidates[kind]
 
         @admin.display(description=_("sample"))
         def sample(obj):
-            if obj.subject_type not in records:
-                records[obj.subject_type] = [
-                    (subject.pk, name) for name, subject in label_variables.sample_subjects(obj.subject_type, shuffled=True)
-                    if label_editor.may_preview(request.user, obj.subject_type, subject)]
-            return self.sample(obj, records[obj.subject_type])
+            records = [(pk, name) for pk, name, templates in meant(obj.subject_type) if obj.pk in templates]
+            return self.sample(obj, records[:self.SAMPLES])
         return [sample if name == "sample" else name for name in super().get_list_display(request)]
 
     @admin.display(description=_("variables"))
