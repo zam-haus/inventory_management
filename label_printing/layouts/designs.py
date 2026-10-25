@@ -46,7 +46,7 @@ def renders(subject_type, description, dpi, height, width, squeeze):
     if problems or design.height is None:
         return False
     try:
-        render_design(design, Context(dpi, design_variables.samples(subject_type), lambda name: None, squeeze,
+        render_design(design, Context(dpi, design_variables.placeholders(subject_type), lambda name: None, squeeze,
                                       strict=True), width, height)
     except TooSmall:
         return False

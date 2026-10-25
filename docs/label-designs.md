@@ -176,7 +176,8 @@ no resolution in a template):
 * Brother tape as wide as its height. Endless tape takes templates of any length; a medium with a
   label length only templates of that length;
 * and only where its QR codes come out big enough to scan at the printer's resolution, tried with a
-  sample record of typical length: 9 mm tape templates, for example, are not offered on the E550W (180 dpi).
+  made-up record (every property two words of lorem ipsum): 9 mm tape templates, for example, are not
+  offered on the E550W (180 dpi).
 
 Media offer the fitting active templates of the kind being printed. If templates are chosen for a medium (or
 for its label stock), only those are offered. Deactivated templates are neither offered nor printed.

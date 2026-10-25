@@ -134,6 +134,9 @@ template for the new locations and their sub-locations.
   **print priority** while it holds. A template is meant for a subject while one of its rules holds; its
   priority is the highest of those. Without rules it is meant for every subject of its kind, on request
   (priority 0). The list of templates shows the rules.
+* The list of templates shows each template's label with a few random records of its kind; with the
+  pointer on it, one after another (only records whose labels one may see). Where there are no records,
+  a made-up one: every property lorem ipsum, numbers random.
 * Templates can be **deactivated** (field or list action): they are then neither offered nor
   printed, not even by waiting jobs or the admin's print actions.
 * The page shows the label beside the description while it is typed, with real records and with

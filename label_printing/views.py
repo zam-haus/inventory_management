@@ -23,7 +23,7 @@ from django.utils.formats import date_format
 from django.utils.translation import gettext
 from django.views.decorators.http import require_POST, require_safe
 
-from inventory.models import LabelId, LocationLabelTemplate
+from inventory.models import LocationLabelTemplate
 from . import dialog, editor, selection, services
 from .design import variables as design_variables
 from .render import coloured
@@ -215,25 +215,30 @@ def template_preview(request, pk, subject_type, subject_pk):
                                  subject_type__in=selection.KINDS.get(subject_type, ()))
     subject = template_subject(subject_type, subject_pk, request.GET.get("location"))
     variables = selection.variables_for(template.subject_type, subject)
-    public = subject_type in ("location", "uniqueitem") or (
-        subject_type == "labelid" and subject.status == LabelId.Status.ASSIGNED)
-    if not (public or request.user.has_perm("label_printing.print_label")
-            or (subject_type == "labelid" and request.user.has_perm("inventory.view_labelid"))):
+    if not editor.may_preview(request.user, subject_type, subject):
         raise Http404
     image, _problems, canvas = editor.preview(template.description, variables)
     if image is None:
         raise Http404
-    return png_response(image, canvas.dpi, f"{'public' if public else 'private'}, max-age=300")
+    return png_response(image, canvas.dpi,
+                        f"{'public' if editor.public_preview(subject_type, subject) else 'private'}, max-age=300")
+
 
 
 @login_required
 @permission_required("inventory.view_locationlabeltemplate", raise_exception=True)
 @require_safe
 def template_sample(request, pk):
-    """A template's label with sample variables of typical length (design.variables.samples), without a printer, for
-    the admin's list of templates; no real records."""
+    """A template's label without a printer for the admin's list of templates: with the record ?record= of its kind
+    (inventory.admin picks a few at random), else made up (design.variables.placeholders)."""
     template = get_object_or_404(LocationLabelTemplate, pk=pk)
-    image, _problems, canvas = editor.preview(template.description, design_variables.samples(template.subject_type))
+    variables = design_variables.placeholders(template.subject_type)
+    if request.GET.get("record"):
+        subject = template_subject(template.subject_type, request.GET["record"])
+        if not editor.may_preview(request.user, template.subject_type, subject):
+            raise Http404
+        variables = selection.variables_for(template.subject_type, subject)
+    image, _problems, canvas = editor.preview(template.description, variables)
     if image is None:
         raise Http404
     return png_response(image, canvas.dpi, "private, max-age=3600")
@@ -246,15 +251,15 @@ def design_preview(request):
     """The admin's preview while a description is typed (label_template.js): JSON with the label as a PNG data URL,
     the problems by line, the size, and the sample records to choose from."""
     subject_type = request.POST.get("subject_type", "location")
-    records = design_variables.sample_records(subject_type)
+    records = design_variables.sample_subjects(subject_type)
     try:
-        variables = records[int(request.POST.get("record") or 0)][1]
+        variables = selection.variables_for(subject_type, records[int(request.POST.get("record") or 0)][1])
     except (IndexError, ValueError):
-        variables = design_variables.samples(subject_type)
+        variables = design_variables.placeholders(subject_type)
     medium = LabelMedium.objects.select_related("printer", "stock").filter(pk=request.POST.get("medium") or 0).first()
     image, problems, canvas = editor.preview(request.POST.get("description", ""), variables, medium)
     data = {"problems": [{"line": problem.line, "message": problem.message} for problem in problems],
-            "records": [name for name, _values in records], "image": None}
+            "records": [name for name, _subject in records], "image": None}
     if image is not None:
         data["image"] = "data:image/png;base64," + base64.b64encode(png(image, canvas.dpi)).decode("ascii")
         data["size"] = gettext("%(width)s × %(height)s dots at %(dpi)s dpi: %(width_mm).1f × %(height_mm).1f mm") % {

@@ -1,5 +1,8 @@
 """Label designs: the description language, the layout, and label templates in printing and the admin."""
+import html
 import io
+import json
+import re
 import shutil
 import tempfile
 import zipfile
@@ -18,6 +21,7 @@ from PIL import Image, ImageDraw
 from inventory.models import LabelId, LocationLabelTemplate
 from .. import services
 from ..design import Context, Problem, check, parse, render_design
+from ..design.variables import Placeholder
 from ..label_urls import ItemAt
 from ..image_import import import_images
 from ..layouts import get_layout, layouts_for
@@ -104,6 +108,17 @@ class LanguageTests(SimpleTestCase):
             (4, "There is no label image “Logo”.")])
         self.assertEqual(parse("label 50 x 20\ntext {code}")[1][0].message,
                          "text needs its content first: text in quotes or a {{ variable }}.")  # the fields of before
+
+    def test_placeholders_answer_any_property(self):
+        self.assertEqual(Placeholder("location.name"), Placeholder("location.name"))  # always the same
+        context = Context(203, {"location": Placeholder("location"), "item": Placeholder("item")})
+        design, _problems = parse('label 40 x 10\ntext "{{ location.parent_location.name|upper }}"\n'
+                                  'text "{{ item.sale_price|floatformat:2 }}"')
+        name, price = (context.text(element) for element in design.children)
+        self.assertEqual(name, Placeholder("location.parent_location.name").upper())
+        self.assertRegex(name, r"^[A-Z]+ [A-Z]+$")
+        self.assertRegex(price, r"^\d+\.\d\d$")
+        self.assertEqual(context.problems, [])
 
     def test_texts_are_django_templates(self):
         variables = {"location": {"name": "Regal 1", "parent": None}, "price": Decimal("1.5")}
@@ -417,6 +432,38 @@ class AdminTests(InventoryData, TestCase):
         self.assertEqual(image.height, 150)  # 12 mm tape on the nominal tape printer (P900W, 360 dpi)
         self.client.force_login(create_user("reader"))
         self.assertEqual(self.client.get(sample).status_code, 403)
+
+    def samples(self, query, user=None):
+        """The samples of the listed templates: [[(url, record name)]]."""
+        response = self.client.get(reverse("admin:inventory_locationlabeltemplate_changelist"), {"q": query})
+        return [json.loads(html.unescape(data))
+                for data in re.findall(r'data-label-samples="([^"]+)"', response.content.decode())]
+
+    def test_list_samples_are_random_records_of_the_kind(self):
+        samples = self.samples("Kennung")
+        self.assertTrue(samples)
+        records = [name for _url, name in samples[0]]
+        self.assertEqual(sorted(records), ["R303.a", "R303.b"])  # locations with a parent
+        for sample in samples:  # the same for every template on the page
+            self.assertEqual([name for _url, name in sample], records)
+            response = self.client.get(sample[0][0])
+            self.assertEqual((response.status_code, response["Content-Type"]), (200, "image/png"))
+        price, = {tuple(name for _url, name in sample) for sample in self.samples("Preis")}
+        self.assertEqual(price, ("Schrauben M4",))
+
+    def test_list_samples_only_of_records_one_may_see(self):
+        viewer = create_user("viewer", "inventory.view_locationlabeltemplate")
+        viewer.is_staff = True
+        viewer.save()
+        self.client.force_login(viewer)
+        for sample in self.samples("Preis"):  # item labels: for who may print; else made up
+            self.assertEqual(sample, [[sample[0][0], ""]])
+            self.assertNotIn("record=", sample[0][0])
+            self.assertEqual(self.client.get(sample[0][0]).status_code, 200)
+        template = LocationLabelTemplate.objects.filter(subject_type="item").first()
+        url = reverse("label_template_sample", args=[template.pk])
+        self.assertEqual(self.client.get(url, {"record": self.item.pk}).status_code, 404)
+        self.assertTrue(self.samples("Kennung")[0][0][1])  # location labels are public
 
     def test_preview_while_writing(self):
         url = reverse("label_design_preview")

@@ -5,6 +5,7 @@ kind of label; and the preview of a saved template for one location, item or lab
 """
 from django.utils.html import format_html_join
 
+from inventory.models import LabelId
 from . import drivers
 from .design import Context, check, parse, render_design
 from .design import variables as design_variables
@@ -49,6 +50,18 @@ def preview(description, variables, medium=None):
         image = coloured(image, medium.stock.background_color, medium.stock.print_color)
     return image, problems, canvas
 
+
+def public_preview(subject_type, subject):
+    """Labels anyone may see: they only show what is on the object anyway."""
+    return subject_type in ("location", "uniqueitem") or (
+        subject_type == "labelid" and subject.status == LabelId.Status.ASSIGNED)
+
+
+def may_preview(user, subject_type, subject):
+    """Whether the user may see the subject's label (views.template_preview, the admin's samples): public ones,
+    the others for who may print (label IDs: or see them)."""
+    return (public_preview(subject_type, subject) or user.has_perm("label_printing.print_label")
+            or (subject_type == "labelid" and user.has_perm("inventory.view_labelid")))
 
 def fitting_media(template):
     """Media of active printers with labels of the template's size."""

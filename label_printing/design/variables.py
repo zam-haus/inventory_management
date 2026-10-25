@@ -1,14 +1,15 @@
 """
 The variables of label designs per kind of label (texts.py): the label's subject itself, so templates use its
-fields and properties, and the QR code's content; their values for a subject, samples and sample records.
+fields and properties, and the QR code's content; their values for a subject, real records to show designs with,
+and made-up ones (Placeholder) where there are none.
 """
+import zlib
 from dataclasses import dataclass
-from decimal import Decimal
 
 from django.utils.translation import gettext_lazy as _
 
 from inventory.label_ids import naming
-from inventory.models import Item, LabelId, Location
+from inventory.models import Item, LabelId, Location, UniqueItem
 from .. import label_urls
 
 
@@ -89,45 +90,65 @@ def label_id_variables(lid):
     return {**common(), "label_id": lid, "qr": label_urls.label_id_content(lid.code)}
 
 
-def samples(subject_type):
-    """Variables of typical length without records: whether a template's QR code fits a printer's labels at all,
-    and its picture in the list of templates."""
-    location = {"unique_identifier": "WH-1.R303.a", "name": "Fach a", "descriptive_identifier": "R303.a",
-                "locatable_identifier": "R303.a", "purpose": ""}
-    label_id = LabelId(code=label_urls.PREVIEW_CODE)
+LOREM = ("lorem ipsum dolor sit amet consectetur adipiscing elit sed do eiusmod tempor incididunt ut labore et "
+         "dolore magna aliqua").split()
+
+
+class Placeholder(str):
+    """A made-up record where there is none: any attribute is another placeholder, its text two words of lorem
+    ipsum and its number (float, int: for filters like floatformat) a random one; always the same for the same
+    name, so whether a template fits a printer's labels does not change from one try to the next."""
+
+    def __new__(cls, name):
+        seed = zlib.crc32(name.encode())
+        words = (LOREM[(seed + offset) % len(LOREM)] for offset in range(2))
+        placeholder = super().__new__(cls, " ".join(words).capitalize())
+        placeholder._name = name
+        return placeholder
+
+    def __getattr__(self, attribute):
+        if attribute.startswith("_"):
+            raise AttributeError(attribute)
+        return Placeholder(f"{self._name}.{attribute}")
+
+    def __float__(self):
+        return zlib.crc32(self._name.encode()) % 10000 / 100
+
+    def __int__(self):
+        return zlib.crc32(self._name.encode()) % 1000
+
+
+def placeholders(subject_type):
+    """The variables of a made-up subject (Placeholder): whether a template's QR code fits a printer's labels at
+    all, and how a template looks where there are no records of its kind."""
+    code = label_urls.PREVIEW_CODE
     if subject_type == "location":
-        return {**common(), "location": location, "qr": "HTTPS://I.ZAM.HAUS/WH-1.R303.A"}
+        return location_variables(Placeholder("location"))
     if subject_type == "item":
-        item = {"name": "Artikel", "sale_price": Decimal("0.15"), "for_sale": True, "measurement_unit": {"short": "Stk"}}
-        return {**common(), "item": item, "location": location, "label_id": label_id,
-                "qr": "HTTPS://I.ZAM.HAUS/K7R4XD/WH-1.R303.A"}
+        return item_variables(label_urls.ItemAt(Placeholder("item"), Placeholder("location")), code)
     if subject_type == "uniqueitem":
-        unique_item = {"owner_first_name_display": "Robin", "has_owner": True, "item": {"name": "Bohrmaschine"}}
-        return {**common(), "unique_item": unique_item, "item": unique_item["item"], "location": location,
-                "label_id": label_id, "qr": "HTTPS://I.ZAM.HAUS/K7R4XD"}
+        return unique_item_variables(Placeholder("unique_item"), code)
     if subject_type == "labelid":
-        return {**common(), "label_id": label_id, "qr": "HTTPS://I.ZAM.HAUS/K7R4XD"}
+        return label_id_variables(LabelId(code=code))
     return common()
 
 
-def sample_records(subject_type, limit=5):
-    """A few real records to preview designs with: [(name, variables)]. Previews hand out no label IDs."""
+def sample_subjects(subject_type, limit=5, shuffled=False):
+    """A few real subjects to show designs with, the newest or random ones: [(name, subject)]; items at their
+    first location."""
+    order = "?" if shuffled else None
     if subject_type == "location":
-        locations = Location.active.exclude(parent_location=None).order_by("-pk")[:limit]
-        return [(location.unique_identifier, location_variables(location)) for location in locations]
+        locations = Location.active.exclude(parent_location=None).order_by(order or "-pk")[:limit]
+        return [(location.unique_identifier, location) for location in locations]
     if subject_type == "item":
-        records = []
-        for item in Item.active.filter(kind=Item.Kind.BULK).select_related("measurement_unit").order_by("-pk")[:limit]:
-            subject = label_urls.ItemAt(item, Location.active.filter(itemlocation__item=item).first())
-            code = label_urls.item_label_code(subject, create=False) or label_urls.PREVIEW_CODE
-            records.append((item.name, item_variables(subject, code)))
-        return records
+        items = Item.active.filter(kind=Item.Kind.BULK).select_related("measurement_unit").order_by(order or "-pk")
+        return [(item.name, label_urls.ItemAt(item, Location.active.filter(itemlocation__item=item)
+                                              .order_by("unique_identifier").first()))
+                for item in items[:limit]]
     if subject_type == "uniqueitem":
-        lids = LabelId.objects.filter(status=LabelId.Status.ASSIGNED, unique_item__isnull=False).select_related(
-            "unique_item__item", "unique_item__location").order_by("-assigned_at")[:limit]
-        return [(f"{lid.unique_item.item.name} {lid.display}", unique_item_variables(lid.unique_item, lid.code))
-                for lid in lids]
+        unique_items = UniqueItem.active.select_related("item", "location").order_by(order or "-pk")[:limit]
+        return [(str(unique_item), unique_item) for unique_item in unique_items]
     if subject_type == "labelid":
-        lids = LabelId.objects.filter(status=LabelId.Status.ASSIGNED).order_by("-assigned_at")[:limit]
-        return [(lid.display, label_id_variables(lid)) for lid in lids]
+        lids = LabelId.objects.filter(status=LabelId.Status.ASSIGNED).order_by(order or "-assigned_at")[:limit]
+        return [(lid.display, lid) for lid in lids]
     return []

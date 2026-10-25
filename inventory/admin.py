@@ -1,4 +1,5 @@
 import hashlib
+import json
 
 from dal import autocomplete
 from django import forms
@@ -17,6 +18,7 @@ from django.utils.http import urlencode
 from django.utils.translation import gettext_lazy as _, ngettext
 from django.views.generic import FormView
 from label_printing import editor as label_editor, services as label_printing
+from label_printing.design import variables as label_variables
 from label_printing.layouts import designs as label_designs
 from label_printing.models import LabelMedium
 from label_printing.selection import remember_label
@@ -95,6 +97,9 @@ class LocationLabelTemplateAdmin(admin.ModelAdmin):
     inlines = [LabelTemplateRuleInline]
     change_form_template = "label_printing/admin/label_template_change_form.html"
 
+    class Media:
+        js = ("label_printing/label_samples.js",)
+
     STARTER = (
         "# The size first (width x height in mm, or: label height 12 for any length),\n"
         "# then one element per line; indented elements are laid out in their row or column.\n"
@@ -134,12 +139,30 @@ class LocationLabelTemplateAdmin(admin.ModelAdmin):
         return obj.size_text
 
     @admin.display(description=_("sample"))
-    def sample(self, obj):
-        """The label with sample values; the URL changes with the description, so browsers fetch it anew."""
+    def sample(self, obj, records=()):
+        """The label with each of a few records [(pk, name)] (label_samples.js shows one after another while the
+        pointer is on it), else made up; the URLs change with the description, so browsers fetch it anew."""
         version = hashlib.sha1(obj.description.encode()).hexdigest()[:10]
-        url = f"{reverse('label_template_sample', args=[obj.pk])}?v={version}"
-        return format_html('<img src="{}" alt="" loading="lazy" style="display: block; max-height: 4rem; '
-                           'max-width: 16rem; background: #fff; outline: 1px solid var(--hairline-color)">', url)
+        url = reverse("label_template_sample", args=[obj.pk])
+        samples = [(f"{url}?{urlencode({'v': version, 'record': pk})}", name) for pk, name in records]
+        samples = samples or [(f"{url}?v={version}", "")]
+        return format_html('<img src="{}" title="{}" data-label-samples="{}" alt="" loading="lazy" style="display: '
+                           'block; max-height: 4rem; max-width: 16rem; background: #fff; outline: 1px solid '
+                           'var(--hairline-color)">', samples[0][0], samples[0][1], json.dumps(samples))
+
+    def get_list_display(self, request):
+        """The samples with up to five random records of each kind, the same for each template of the kind on the
+        page; only records whose labels the user may see."""
+        records = {}
+
+        @admin.display(description=_("sample"))
+        def sample(obj):
+            if obj.subject_type not in records:
+                records[obj.subject_type] = [
+                    (subject.pk, name) for name, subject in label_variables.sample_subjects(obj.subject_type, shuffled=True)
+                    if label_editor.may_preview(request.user, obj.subject_type, subject)]
+            return self.sample(obj, records[obj.subject_type])
+        return [sample if name == "sample" else name for name in super().get_list_display(request)]
 
     @admin.display(description=_("variables"))
     def variables_list(self, obj):
