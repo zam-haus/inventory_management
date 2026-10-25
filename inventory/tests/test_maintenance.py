@@ -52,6 +52,41 @@ class LabelPrintingTests(TestCase):
                 self.assertEqual((payload.count("^XA"), payload.count(f"^PQ{copies}"), payload.count("^GFA")), (2, 2, 2))
                 self.assertEqual(job.layout_key, f"design:{self.template.pk}")
 
+    def test_printing_labels_is_for_who_may(self):
+        """Printing labels is a privilege (label_printing.print_label, the local group), also in the admin."""
+        from django.contrib.auth.models import Permission
+        staff = get_user_model().objects.create_user(username="staff", is_staff=True)
+        staff.user_permissions.add(*Permission.objects.filter(codename__in=[
+            "view_location", "change_location", "add_location", "view_printer", "change_printer", "view_printjob"]))
+        location = self.locations[0]
+        self.client.force_login(staff)
+        def actions(url):
+            form = self.client.get(url).context["action_form"]  # none without any action
+            return set(dict(form.fields["action"].choices)) if form else set()
+        pages = {
+            reverse("admin:inventory_location_changelist"): {"send_to_printer_action", "send_to_printer_twice_action"},
+            reverse("admin:label_printing_printer_changelist"): {"test_print", "calibration_print"},
+            reverse("admin:label_printing_printjob_changelist"): {"reprint"},
+        }
+        for url, printing in pages.items():
+            with self.subTest(url=url):
+                self.assertFalse(printing & actions(url))
+        change = reverse("admin:inventory_location_change", args=[location.pk])
+        self.assertNotContains(self.client.get(change), "Print label")
+        self.assertEqual(self.client.get(reverse("admin:inventory_location_print-label", args=[location.pk])).status_code,
+                         403)
+        mass_add = self.client.get(reverse("admin:inventory_location_massadd")).context["form"]
+        self.assertFalse({"print", "print_multiple", "sub_print"} & set(mass_add.fields))
+        # With the permission, all of it
+        staff.user_permissions.add(Permission.objects.get(codename="print_label"))
+        staff = get_user_model().objects.get(pk=staff.pk)
+        self.client.force_login(staff)
+        for url, printing in pages.items():
+            with self.subTest(url=url, permitted=True):
+                self.assertEqual(printing & actions(url), printing)
+        self.assertContains(self.client.get(change), "Print label")
+        self.assertIn("print", self.client.get(reverse("admin:inventory_location_massadd")).context["form"].fields)
+
     def test_without_default_printer(self):
         Printer.objects.update(is_default=False)
         self.assertEqual(self.run_action(LocationAdmin(Location, admin.site).send_to_printer_action), [

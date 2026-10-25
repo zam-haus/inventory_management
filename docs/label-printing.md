@@ -74,9 +74,13 @@ Brother gets P-touch raster data. The code is in the app `label_printing`.
   * the dialog, while it follows the job; this also asks network printers for their status, at
     most every 20 seconds;
   * with a broker, a Celery task every ten seconds while jobs wait.
-* Printing requires `label_printing.print_label`, which migration `label_printing.0002` grants
-  to the local group. Without it, logged-in users see the button disabled; guests do not see it.
-  With no suitable or reachable printer, the button is disabled with the reason.
+* Printing labels is a privilege: it requires `label_printing.print_label`, which migration
+  `label_printing.0002` grants to the local group (for now only to it). That holds everywhere: the print
+  dialogs and their previews, and in the admin the location actions and **Print label** link, printing
+  after mass creation, the printers' test and calibration labels, reprinting jobs and printing label IDs.
+  Without it, logged-in users see the dialog's button disabled; guests do not see it; the admin leaves
+  out the actions and fields. With no suitable or reachable printer, the button is disabled with the
+  reason.
 
 ### What the QR codes hold
 

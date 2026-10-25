@@ -155,6 +155,10 @@ class PrinterAdmin(admin.ModelAdmin):
     inlines = [LabelMediumInline]
     actions = ["activate", "test_print", "calibration_print", "check_status"]
 
+    def has_print_label_permission(self, request):
+        """Printing labels is for who may (label_printing.print_label: the local group), also in the admin."""
+        return request.user.has_perm("label_printing.print_label")
+
     def formfield_for_foreignkey(self, db_field, request, **kwargs):
         if db_field.name == "loaded_medium":  # the printer's own labels
             printer_id = request.resolver_match.kwargs.get("object_id")
@@ -190,11 +194,11 @@ class PrinterAdmin(admin.ModelAdmin):
         reason = printer.unavailable_reason()
         return reason or printer.status_text or "–"
 
-    @admin.action(description=_("Print a test label"))
+    @admin.action(description=_("Print a test label"), permissions=["print_label"])
     def test_print(self, request, queryset):
         self.print_own_label(request, queryset, "test", gettext("test label"))
 
-    @admin.action(description=_("Print a calibration label (lines numbered by row)"))
+    @admin.action(description=_("Print a calibration label (lines numbered by row)"), permissions=["print_label"])
     def calibration_print(self, request, queryset):
         self.print_own_label(request, queryset, "calibration", gettext("calibration label"))
 
@@ -291,6 +295,10 @@ class PrintJobAdmin(admin.ModelAdmin):
                     "claimed_by", "outdated")
     list_filter = (OutdatedFilter, "status", "printer", "subject_type", "created_at")
     actions = ["reprint"]
+
+    def has_print_label_permission(self, request):
+        """Printing labels is for who may (label_printing.print_label: the local group), also in the admin."""
+        return request.user.has_perm("label_printing.print_label")
     search_fields = ("subject_label", "label_code")
     date_hierarchy = "created_at"
     readonly_fields = [field.name for field in PrintJob._meta.fields if field.name != "payload"] + ["message", "outdated"]
@@ -305,7 +313,7 @@ class PrintJobAdmin(admin.ModelAdmin):
             return ""
         return "; ".join(str(reason) for reason in services.outdated_reasons(job))
 
-    @admin.action(description=_("Print these labels again, as they are now"))
+    @admin.action(description=_("Print these labels again, as they are now"), permissions=["print_label"])
     def reprint(self, request, queryset):
         for job in queryset:
             try:

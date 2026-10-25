@@ -6,7 +6,7 @@ from django import forms
 from django.contrib import admin, messages
 from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib.auth.mixins import PermissionRequiredMixin
-from django.core.exceptions import ValidationError
+from django.core.exceptions import PermissionDenied, ValidationError
 from django.db import transaction
 from django.db.models import CharField, FileField, TextField
 from django.forms.models import _get_foreign_key
@@ -433,6 +433,8 @@ class LocationAdmin(ClaimOnAddMixin, SoftDeleteAdminMixin, admin.ModelAdmin):
 
     @method_decorator(staff_member_required)
     def send_to_printer_view(self, request, object_id=None):
+        if not may_print_labels(request.user):
+            raise PermissionDenied
         print_location_labels(request, [get_object_or_404(models.Location, pk=object_id)])
         return redirect(
             reverse(
@@ -442,13 +444,22 @@ class LocationAdmin(ClaimOnAddMixin, SoftDeleteAdminMixin, admin.ModelAdmin):
             )
         )
 
-    @admin.action(description=_("Print location labels"))
+    @admin.action(description=_("Print location labels"), permissions=["print_label"])
     def send_to_printer_action(self, request, queryset):
         print_location_labels(request, queryset, copies=1)
 
-    @admin.action(description=_("Print location labels twice (2x)"))
+    @admin.action(description=_("Print location labels twice (2x)"), permissions=["print_label"])
     def send_to_printer_twice_action(self, request, queryset):
         print_location_labels(request, queryset, copies=2)
+
+    def has_print_label_permission(self, request):
+        return may_print_labels(request.user)
+
+
+def may_print_labels(user):
+    """Printing labels is for who has label_printing.print_label (the local group, migration
+    label_printing.0002), also in the admin."""
+    return user.has_perm("label_printing.print_label")
 
 
 def print_location_labels(request, locations, copies=1):
@@ -539,6 +550,13 @@ class MassAddLocationsAdminView(PermissionRequiredMixin, FormView):
         context.update(admin.site.each_context(request))
         return self.render_to_response(context)
 
+    def get_form(self, form_class=None):
+        form = super().get_form(form_class)
+        if not may_print_labels(self.request.user):  # printing labels is for who may
+            for name in ("print", "print_multiple", "sub_print"):
+                del form.fields[name]
+        return form
+
     @transaction.atomic
     def form_valid(self, form):
         data = form.cleaned_data
@@ -558,7 +576,7 @@ class MassAddLocationsAdminView(PermissionRequiredMixin, FormView):
             )
             if data["label_template"]:
                 remember_label(location, data["label_template"])
-            if data["print"]:
+            if data.get("print"):
                 to_print.append(location)
 
             # create sub-locations
@@ -572,12 +590,12 @@ class MassAddLocationsAdminView(PermissionRequiredMixin, FormView):
                     )
                     if data["sub_label_template"]:
                         remember_label(child, data["sub_label_template"])
-                    if data["sub_print"]:
+                    if data.get("sub_print"):
                         children_to_print.append(child)
 
         # Printed once the locations are saved (the jobs start after the commit).
         if to_print:
-            print_location_labels(self.request, to_print, copies=data["print_multiple"] or 1)
+            print_location_labels(self.request, to_print, copies=data.get("print_multiple") or 1)
         if children_to_print:
             print_location_labels(self.request, children_to_print)
         return super().form_valid(form)
