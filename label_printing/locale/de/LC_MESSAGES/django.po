@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-25 22:45+0100\n"
+"POT-Creation-Date: 2026-10-25 23:48+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -222,7 +222,8 @@ msgstr "%(labels)s (%(subjects)s): auf %(printer)s."
 #: admin_printing.py:22
 #, python-format
 msgid "%(labels)s (%(subjects)s) wait for a printer with their labels."
-msgstr "%(labels)s (%(subjects)s) warten auf einen Drucker mit ihren Etiketten."
+msgstr ""
+"%(labels)s (%(subjects)s) warten auf einen Drucker mit ihren Etiketten."
 
 #: admin_printing.py:25
 #, python-format
@@ -383,7 +384,7 @@ msgstr "wie er zuerst heißt: sein Zweck, sonst sein Name"
 msgid "its code, e.g. WH-1.R303.a"
 msgstr "seine Kennung, z. B. WH-1.R303.a"
 
-#: design/variables.py:28 design/variables.py:37
+#: design/variables.py:28 design/variables.py:38
 msgid "its name"
 msgstr "sein Name"
 
@@ -392,36 +393,38 @@ msgid "where it is: the full path with codes"
 msgstr "wo er ist: der ganze Pfad mit Kennungen"
 
 #: design/variables.py:30
-msgid "the code within its area, e.g. R303.a"
-msgstr "die Kennung innerhalb seines Bereichs, z. B. R303.a"
+msgid ""
+"the short names from the top-level location down, e.g. HH-1.SK.K0520 (not on "
+"labels: use the code)"
+msgstr "die Kurznamen von oben nach unten, z. B. HH-1.SK.K0520 (nicht auf Etiketten: dort den Code)"
 
-#: design/variables.py:31
+#: design/variables.py:32
 msgid "its purpose"
 msgstr "sein Zweck"
 
-#: design/variables.py:32
+#: design/variables.py:33
 msgid "the name of the location it is in"
 msgstr "der Name des Orts, in dem er ist"
 
-#: design/variables.py:33
+#: design/variables.py:34
 msgid ""
 "for QR codes: the code via the label host, HTTPS://I.ZAM.HAUS/WH-1.R303.A"
 msgstr ""
 "für QR-Codes: die Kennung über den Label-Host, HTTPS://I.ZAM.HAUS/WH-1.R303.A"
 
-#: design/variables.py:36
+#: design/variables.py:37
 msgid "the item, with all its fields and properties, e.g.:"
 msgstr "der Artikel, mit all seinen Feldern und Eigenschaften, z. B.:"
 
-#: design/variables.py:38
+#: design/variables.py:39
 msgid "its price for items for sale, e.g. 0,15; else empty"
 msgstr "sein Preis bei Verkaufsartikeln, z. B. 0,15; sonst leer"
 
-#: design/variables.py:39
+#: design/variables.py:40
 msgid "its unit, e.g. Stk"
 msgstr "seine Einheit, z. B. Stk"
 
-#: design/variables.py:40
+#: design/variables.py:41
 msgid ""
 "the code of the location it is stored at (the first one); location is the "
 "location, if there is one"
@@ -429,11 +432,11 @@ msgstr ""
 "die Kennung des Orts, an dem er lagert (des ersten); location ist der Ort, "
 "wenn es einen gibt"
 
-#: design/variables.py:42 design/variables.py:53
+#: design/variables.py:43 design/variables.py:54
 msgid "its label ID as printed, e.g. K7R-4XD"
 msgstr "seine Label-ID wie gedruckt, z. B. K7R-4XD"
 
-#: design/variables.py:43
+#: design/variables.py:44
 msgid ""
 "for QR codes: the item's label ID and the location's code (…/K7R4XD/"
 "WH-1.R303.A), leading to the item there"
@@ -441,51 +444,51 @@ msgstr ""
 "für QR-Codes: die Label-ID des Artikels und die Kennung des Standorts (…/"
 "K7R4XD/WH-1.R303.A); führt zum Artikel dort"
 
-#: design/variables.py:47
+#: design/variables.py:48
 msgid "the unique item, with all its fields and properties, e.g.:"
 msgstr "das Einzelobjekt mit allen Feldern und Eigenschaften, z. B.:"
 
-#: design/variables.py:48
+#: design/variables.py:49
 msgid "its owner's first name, if it is not the ZAM's"
 msgstr "der Vorname seines Eigentümers, wenn es nicht dem ZAM gehört"
 
-#: design/variables.py:49
+#: design/variables.py:50
 msgid "whether it has an owner other than the ZAM (for rules)"
 msgstr "ob es einen anderen Eigentümer als das ZAM hat (für Regeln)"
 
-#: design/variables.py:50
+#: design/variables.py:51
 msgid "what it is: the item's name"
 msgstr "was es ist: der Name der Sache"
 
-#: design/variables.py:51
+#: design/variables.py:52
 msgid "its own name, if it has one, to tell it apart"
 msgstr "sein eigener Name, falls es einen hat, zur Unterscheidung"
 
-#: design/variables.py:52
+#: design/variables.py:53
 msgid "the code of the location it is at"
 msgstr "die Kennung des Standorts, an dem es ist"
 
-#: design/variables.py:54 design/variables.py:60
+#: design/variables.py:55 design/variables.py:61
 msgid "its first part, e.g. K7R"
 msgstr "ihr erster Teil, z. B. K7R"
 
-#: design/variables.py:55 design/variables.py:61
+#: design/variables.py:56 design/variables.py:62
 msgid "its second part, e.g. 4XD"
 msgstr "ihr zweiter Teil, z. B. 4XD"
 
-#: design/variables.py:56 design/variables.py:63
+#: design/variables.py:57 design/variables.py:64
 msgid "for QR codes: the label ID via the label host"
 msgstr "für QR-Codes: die Label-ID über den Label-Host"
 
-#: design/variables.py:59
+#: design/variables.py:60
 msgid "the label ID as printed, e.g. K7R-4XD"
 msgstr "die Label-ID wie gedruckt, z. B. K7R-4XD"
 
-#: design/variables.py:62
+#: design/variables.py:63
 msgid "what it belongs to"
 msgstr "wozu sie gehört"
 
-#: design/variables.py:66
+#: design/variables.py:67
 msgid "what label IDs are called, e.g. ZAMid"
 msgstr "wie Label-IDs heißen, z. B. ZAMid"
 
@@ -1467,7 +1470,9 @@ msgstr[1] "%(counter)s Etiketten:"
 msgid ""
 "Each label prints on a printer that has its labels and can print now; "
 "otherwise it waits for one, as in the print dialog."
-msgstr "Jedes Etikett druckt auf einem Drucker, der seine Etiketten hat und jetzt drucken kann; sonst wartet es auf einen, wie im Druckdialog."
+msgstr ""
+"Jedes Etikett druckt auf einem Drucker, der seine Etiketten hat und jetzt "
+"drucken kann; sonst wartet es auf einen, wie im Druckdialog."
 
 #: templates/label_printing/admin/image_import.html:23
 msgid ""
@@ -1736,6 +1741,9 @@ msgid ""
 msgstr ""
 "%(width)s × %(height)s Punkte bei %(dpi)s dpi: %(width_mm).1f × "
 "%(height_mm).1f mm"
+
+#~ msgid "the code within its area, e.g. R303.a"
+#~ msgstr "die Kennung innerhalb seines Bereichs, z. B. R303.a"
 
 #~ msgid "Printer and labels"
 #~ msgstr "Drucker und Etiketten"

@@ -27,7 +27,8 @@ VARIABLES = {
         Variable("location.unique_identifier", _("its code, e.g. WH-1.R303.a")),
         Variable("location.name", _("its name")),
         Variable("location.descriptive_identifier", _("where it is: the full path with codes")),
-        Variable("location.locatable_identifier", _("the code within its area, e.g. R303.a")),
+        Variable("location.locatable_identifier", _("the short names from the top-level location down, e.g. "
+                                                    "HH-1.SK.K0520 (not on labels: use the code)")),
         Variable("location.purpose", _("its purpose")),
         Variable("location.parent_location.name", _("the name of the location it is in")),
         Variable("qr", _("for QR codes: the code via the label host, HTTPS://I.ZAM.HAUS/WH-1.R303.A")),

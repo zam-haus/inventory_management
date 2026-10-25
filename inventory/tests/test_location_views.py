@@ -156,13 +156,13 @@ class LocationsMoveHereTests(TestCase):
         self.assertEqual(numeric.parent_location_id, self.parent.pk)
         self.assertEqual(self.box.parent_location_id, self.source.pk)
 
-    def test_ambiguous_identifier_requires_url(self):
-        Location.objects.create(
-            type=self.room_type, name="Ambiguous", short_name="SRC.U", parent_location=self.parent,
-        )
-        response = self.post("SRC.U")
-        self.assertContains(response, "Locations moved: 0. Errors: 1.")
-        self.assertContains(response, "Ambiguous identifier; use the location URL.")
+    def test_codes_come_before_paths(self):
+        # "SRC.U" is the code of one location and the short-name path of another: the code wins (inventory/codes.py).
+        coded = Location.objects.create(type=self.room_type, name="Coded", short_name="SRC.U", parent_location=self.source)
+        self.assertContains(self.post("SRC.U"), "Locations moved: 1. Errors: 0.")
+        coded.refresh_from_db()
+        self.unique.refresh_from_db()
+        self.assertEqual((coded.parent_location, self.unique.parent_location), (self.parent, self.source))
         self.assertContains(self.post(self.unique.get_absolute_url()), "Locations moved: 1. Errors: 0.")
 
     def test_empty_input_does_not_redirect_or_move(self):

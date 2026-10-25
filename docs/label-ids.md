@@ -10,6 +10,34 @@ titles, texts, the admin and the logo on printed labels. Code, database and
 settings always say "label ID", so another organization only changes that
 setting (and the hosts below).
 
+## Codes: what counts where
+
+Two kinds of codes lead somewhere: a **location's code** (`unique_identifier`: `K0525`, `R303`, `R303.a`; on
+location labels) and a **label ID** (ZAMid, on the labels of items and unique items, and of the few locations
+that got one). Everywhere they are read by one function, `inventory/codes.py` `resolve_code`: the resolver
+behind the QR codes (`i.zam.haus/…`, `/id/…`, the lookup `/id/?q=`), `?q=` of the location and item lists,
+the location fields (scan button, `/loc/lookup`) and *Move here*. In this order:
+
+1. an inventory location URL (`/loc/<pk>/…`), by its number;
+2. a location's code in any case, also as a label URL (`HTTPS://I.ZAM.HAUS/R303.A`), then a former code;
+3. a reserved container's code: it opens the container's activation;
+4. the full short-name path (`HH-1.SK.K0520`), still accepted, no longer shown;
+5. a label ID, with or without the dash and with look-alikes (`O`/`0`, `I`/`1`), also with the location of an
+   item label after it (`K7R4XD/WH-1.R303.A`, passed on as `?loc=`);
+6. in location fields, a number as the location's database ID;
+
+and, if nothing matched, the same input as typed by a scanner with another keyboard layout. A label ID
+in a location field must belong to a location. The item search keeps a typed location code as search text
+(short codes such as `LAS` are words, too); scanned label URLs and label IDs lead to their target there as
+well.
+
+Codes and label IDs never collide: new label IDs are never drawn equal to a location code
+(`services.is_location_code`), and a location code or former code that reads as an issued label ID is refused
+(`Location._validate_codes`, `LocationFormerCode.clean`). `manage.py label_id_check --collisions` lists
+codes that collide anyway (created around these checks).
+
+## Resolver and accesses
+
 * **Resolver:** `i.zam.haus/<id>`, `id.zam.haus/<id>` and `inventar.zam.haus/id/<id>`
   behave identically. Locally, use `localhost:8000/id/<id>`. The resolver
   accepts any typed or scanned form (`k7r 4xd`, lookalikes such as `O`/`0`) and
@@ -18,10 +46,10 @@ setting (and the hosts below).
   * Reserved IDs open the claim page.
   * Retired IDs, and IDs whose target was deleted, show an explanation (HTTP 410).
   * Typos list existing IDs that are likely meant.
-  * Location codes come first: location labels hold `HTTPS://I.ZAM.HAUS/<code>` (uppercase
-    for the QR code's alphanumeric mode). Codes and former codes are found in any case and
-    redirect to the location; they never differ only in case ([location structure](location-structure.md)).
-    New IDs are never drawn equal to a location code (`services.is_location_code`).
+  * Location codes come first (see [Codes: what counts where](#codes-what-counts-where)): location labels
+    hold `HTTPS://I.ZAM.HAUS/<code>` (uppercase for the QR code's alphanumeric mode). Codes and former codes
+    are found in any case and redirect to the location; they never differ only in case
+    ([location structure](location-structure.md)).
   * More than 30 misses from one client within 10 minutes are answered with 429.
 * **Last accesses:** the last label scans and web form entries (lookup form,
   inventory search box) of each ID, five by default (`LABEL_ID_ACCESS_KEEP`), are

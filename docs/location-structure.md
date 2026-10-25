@@ -121,7 +121,8 @@ are in [Standortregeln](standortregeln.md) (German).
   such as `R301.a`), `Location.save` keeps the old code of the location and of every part that
   includes it; deleting a location for good keeps its code without a location. Former codes are
   never given again (`taken_location_codes`, `Location.clean`, free numbers and letters) and still
-  find their location (`location_lookup`, location search, the location details list them); a
+  find their location (`inventory/codes.py`, see [label IDs](label-ids.md#codes-what-counts-where); the
+  location details list them); a
   location that gets one of its own former codes back uses it again. Admins edit them inline on
   the location and in their own list (filter: without location); removing one frees the code. The
   local group gets no permissions for them.

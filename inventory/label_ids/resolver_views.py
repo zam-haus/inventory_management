@@ -16,10 +16,10 @@ from django.shortcuts import render
 from django.urls import get_urlconf, reverse, set_urlconf
 from django.views.decorators.http import require_safe
 
-from ..location_lookup import locations_by_code, reserved_by_code
+from .. import codes
+from ..codes import locations_by_code
 from ..models import LabelId, LabelIdAccess
 from . import access, core, parsing, throttle
-from .targets import RELATED_TARGETS
 
 
 @contextmanager
@@ -81,39 +81,33 @@ def _page(request, state, status, **context):
     return render(request, "inventory/label_id/resolver.html", {"state": state, **context}, status=status)
 
 
-def _location(request, raw):
-    """For a location's code (or former code, in any case; codes differ in more than that): its page."""
-    code = parsing.strip_url(raw)
-    found = locations_by_code(code)
-    if len(found) == 1:
-        return HttpResponseRedirect(inventory_url(request, found[0].get_absolute_url))
-    # A container whose label was printed in advance: taken into use on its first scan.
-    if not found and (reserved := reserved_by_code(code)):
-        return HttpResponseRedirect(inventory_url(request, lambda: reverse("container_activate", args=[reserved.pk])))
-    return None
-
-
 def _resolve(request, raw, *, from_lookup=False):
-    """`raw` from the URL path, or from the lookup form if `from_lookup`."""
+    """`raw` from the URL path, or from the lookup form if `from_lookup`; read as everywhere (codes.resolve_code):
+    location codes first (label IDs that equal one are never issued), then label IDs."""
     if throttle.blocked(request):
         return _page(request, "throttled", 429)
-    # Location codes first; label IDs that equal one are never issued (services.generate_batch).
-    if response := _location(request, raw):
-        return response
-    try:
-        code = parsing.code_from_scan(raw)
-    except core.InvalidLabelId as e:
+    found = codes.resolve_code(raw)
+    if found.kind == codes.LOCATION:
+        return HttpResponseRedirect(inventory_url(request, found.location.get_absolute_url))
+    if found.kind == codes.RESERVED:
+        # A container whose label was printed in advance: taken into use on its first scan.
+        location = found.location
+        return HttpResponseRedirect(inventory_url(request, lambda: reverse("container_activate", args=[location.pk])))
+    if found.kind in (codes.INVALID, codes.AMBIGUOUS):
         throttle.hit(request)
-        reason = e.args[0]
+        reason = found.reason if found.kind == codes.INVALID else "malformed"
         suggestions = []
         if reason == "checksum":
             known = LabelId.objects.filter(pk__in=parsing.suggestions_for_scan(raw)).order_by("code")
             suggestions = [(lid.display, reverse("label_id_resolve", args=[lid.code])) for lid in known]
         return _page(request, reason, 404, q=raw, suggestions=suggestions)
+    code = found.code
+    if found.at is not None and not getattr(request, "label_id_forwarded", None):
+        request.label_id_forwarded = {"loc": str(found.at.pk)}  # an item label's location, typed or pasted
     if from_lookup:
         return HttpResponseRedirect(access_url(request, code, LabelIdAccess.Method.WEBFORM))
 
-    lid = LabelId.objects.select_related(*RELATED_TARGETS).filter(pk=code).first()
+    lid = found.lid
     if lid is None:
         throttle.hit(request)
         return _page(request, "unknown", 404, code=core.display(code))

@@ -3963,3 +3963,15 @@ msgstr "<a href=\"%(url)s?next=%(next)s\">Anmelden</a>, um ihn zu aktivieren."
 
 msgid "On a printer that has the labels, as in the print dialog."
 msgstr "Auf einem Drucker, der die Etiketten hat, wie im Druckdialog."
+
+#, python-format
+msgid "The code %(code)s reads as the label ID %(label_id)s; choose another one."
+msgstr "Der Code %(code)s liest sich als die ZAMid %(label_id)s; bitte einen anderen wählen."
+
+#, python-format
+msgid "%(code)s reads as the label ID %(label_id)s."
+msgstr "%(code)s liest sich als die ZAMid %(label_id)s."
+
+#, python-format
+msgid "%(code)s does not belong to a location."
+msgstr "%(code)s gehört zu keinem Standort."

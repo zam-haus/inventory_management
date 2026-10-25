@@ -723,6 +723,13 @@ class Location(SoftDeleteModel, ComputedFieldsModel):
             if entry.location_id is None or entry.location_id != owners[entry.upper]:
                 raise ValidationError({"short_name": _("The code %(code)s was used before and stays blocked.") % {
                     "code": entry.code}})
+        # Codes and label IDs are read alike (inventory/codes.py): a code must not read as an issued label ID.
+        from ..codes import reads_as_label_id
+        for code in codes.values():
+            if (lid := reads_as_label_id(code)) is not None:
+                raise ValidationError({"short_name": _(
+                    "The code %(code)s reads as the label ID %(label_id)s; choose another one.") % {
+                    "code": code, "label_id": lid.display}})
 
     def clean(self):
         if self.is_deleted and self.pk and (
@@ -1030,6 +1037,10 @@ class LocationFormerCode(models.Model):
     def clean(self):
         if self.code and Location.objects.filter(unique_identifier__iexact=self.code).exists():
             raise ValidationError({"code": _("%(code)s is the current code of a location.") % {"code": self.code}})
+        from ..codes import reads_as_label_id
+        if self.code and (lid := reads_as_label_id(self.code)) is not None:
+            raise ValidationError({"code": _("%(code)s reads as the label ID %(label_id)s.") % {
+                "code": self.code, "label_id": lid.display}})
 
     def __str__(self):
         return self.code

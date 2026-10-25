@@ -10,7 +10,7 @@ from django.utils.translation import gettext as _
 from django.views import View
 
 from . import forms, location_display
-from .location_lookup import NotActivated, location_from_label_id, resolve_location_reference
+from .location_lookup import NotActivated, resolve_location_reference
 from .models import Item, ItemImage, Location, UniqueItem
 
 
@@ -84,14 +84,12 @@ class MoveUniqueItemView(PermissionRequiredMixin, View):
 def location_lookup(request):
     """A typed or scanned location reference (label ID, label URL or identifier) as JSON for location fields."""
     raw = request.GET.get("q", "").strip()
-    location = location_from_label_id(raw)
-    if location is None:
-        try:
-            location = resolve_location_reference(raw)
-        except NotActivated as error:
-            return JsonResponse({"error": " ".join(error.messages), "activate_label": _("Activate it now"),
-                                 "activate_url": reverse("container_activate", args=[error.location.pk])}, status=404)
-        except ValidationError as error:
-            return JsonResponse({"error": " ".join(error.messages)}, status=404)
+    try:
+        location = resolve_location_reference(raw)
+    except NotActivated as error:
+        return JsonResponse({"error": " ".join(error.messages), "activate_label": _("Activate it now"),
+                             "activate_url": reverse("container_activate", args=[error.location.pk])}, status=404)
+    except ValidationError as error:
+        return JsonResponse({"error": " ".join(error.messages)}, status=404)
     return JsonResponse({"id": location.pk, "text": location.title_with_code,
                          "html": location_display.label_html(location)})

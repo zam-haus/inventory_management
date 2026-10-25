@@ -24,7 +24,7 @@ from django.views import View
 from django.views.generic import DetailView, ListView, TemplateView, UpdateView
 
 from . import forms, location_display, models
-from .location_lookup import reserved_by_code, resolve_location_reference
+from .location_lookup import resolve_location_reference
 from .permissions import (
     QUICK_ITEM_PERMISSIONS, UNIQUE_ITEM_CREATE_PERMISSIONS, ItemEditorPermissionMixin, location_deletion_denied,
     location_edit_denied, location_purpose_denied,
@@ -513,6 +513,8 @@ class UpdateItemView(ItemEditorPermissionMixin, ItemKindMixin, extra_views.Updat
 
 
 class SearchableItemListView(LabelIdSearchMixin, ListView):
+    # Label IDs and scanned labels lead to their target; a typed location code finds the items stored there.
+    location_codes = False
     model = models.Item
     queryset = models.Item.active.all()
     paginate_by = 25
@@ -555,7 +557,7 @@ class SearchableLocationListView(
         extra_views.SortableListMixin,
         ListView):
     search_fields = [
-        "locatable_identifier", "name", "descriptive_identifier",
+        "unique_identifier", "name", "descriptive_identifier",
         "purpose", "physical_description", "former_codes__code",
     ]
     search_date_fields = []
@@ -565,12 +567,6 @@ class SearchableLocationListView(
         "itemlocation_set", queryset=models.ItemLocation.objects.filter(item__is_deleted=False),
     ))
     paginate_by = 100
-
-    def get(self, request, *args, **kwargs):
-        # The code of a container whose label was printed in advance: take it into use.
-        if reserved := reserved_by_code(request.GET.get("q", "")):
-            return redirect("container_activate", pk=reserved.pk)
-        return super().get(request, *args, **kwargs)
 
 
 class StructureOverviewView(TemplateView):

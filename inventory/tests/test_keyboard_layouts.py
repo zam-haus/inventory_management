@@ -88,7 +88,7 @@ class ScannedLayoutMismatchTests(TestCase):
 
     def test_readings_of_different_locations_are_ambiguous(self):
         readings = [self.label_url(self.boxes[0]), self.label_url(self.boxes[1])]
-        with patch("inventory.location_lookup.layout_corrections", return_value=iter(readings)):
+        with patch("inventory.codes.layout_corrections", return_value=iter(readings)):
             with self.assertRaisesMessage(ValidationError, "Ambiguous scan"):
                 resolve_location_reference("httpsÖ--whatever")
 

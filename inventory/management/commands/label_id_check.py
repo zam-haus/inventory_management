@@ -3,21 +3,35 @@ from django.core.management.base import BaseCommand, CommandError
 from inventory.label_ids import core, parsing
 from inventory.label_ids.lookup import annotate_label_code
 from inventory.label_ids.targets import RELATED_TARGETS
-from inventory.models import UniqueItem, LabelId
+from inventory.codes import reads_as_label_id
+from inventory.models import LabelId, Location, LocationFormerCode, UniqueItem
 
 
 class Command(BaseCommand):
     help = ("Show the normalized form, validity, status and suggestions for typed or scanned IDs; "
-            "with --missing, list unique items in the inventory that have no active ID.")
+            "with --missing, list unique items in the inventory that have no active ID; "
+            "with --collisions, list location codes that read as issued IDs.")
 
     def add_arguments(self, parser):
         parser.add_argument("inputs", nargs="*")
         parser.add_argument("--missing", action="store_true",
                             help="List unique items in the inventory without an active ID (e.g. after it was retired).")
+        parser.add_argument("--collisions", action="store_true",
+                            help="List location codes and former codes that read as issued IDs (codes win when "
+                                 "scanned or typed, so such an ID cannot be reached by its code).")
 
-    def handle(self, *args, inputs, missing, **options):
-        if not inputs and not missing:
-            raise CommandError("Give IDs to check, or --missing.")
+    def handle(self, *args, inputs, missing, collisions, **options):
+        if not inputs and not missing and not collisions:
+            raise CommandError("Give IDs to check, or --missing or --collisions.")
+        if collisions:
+            codes = [(code, f"location #{pk}") for pk, code in Location.objects.values_list("pk", "unique_identifier")]
+            codes += [(code, "former code") for code in LocationFormerCode.objects.values_list("code", flat=True)]
+            found = 0
+            for code, kind in codes:
+                if (lid := reads_as_label_id(code)) is not None:
+                    found += 1
+                    self.stdout.write(f"{code} ({kind}) reads as the ID {lid.display}")
+            self.stdout.write(f"{found} collisions")
         if missing:
             unique_items = annotate_label_code(UniqueItem.active.select_related("item", "location")).filter(label_code__isnull=True)
             for unique_item in unique_items:

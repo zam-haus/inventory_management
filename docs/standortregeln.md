@@ -302,8 +302,5 @@ Lagerräume im Turm (`LAG3`, `LAG5`), die Treppenhäuser 1 und 2, der Flur beim 
 
 ## Noch nicht umgesetzt
 
-* Standortcodes über `i.zam.haus` auflösen, vor den ZAMids, und ZAMids sperren, die einer
-  Standortkennung entsprechen; frühere Kennungen gehören dazu.
-* Ort mit Code und Zweck statt mit Name anzeigen; Labels mit Code und Zweck.
 * Warnung beim Einlagern an brandlastfreien Orten.
 * Personen als Zuständige mit eigener Sichtbarkeit.

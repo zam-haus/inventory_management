@@ -31,7 +31,7 @@
                     {% endfor %}
                     {% if delete_root %}
                         <tr>
-                            <th scope="row"><strong>{% location_label object code=object.locatable_identifier %}</strong><div class="location-muted">{% trans "Deleted last, only when completely empty." %}</div></th>
+                            <th scope="row"><strong>{% location_label object %}</strong><div class="location-muted">{% trans "Deleted last, only when completely empty." %}</div></th>
                             <td>—</td><td>—</td>
                         </tr>
                     {% endif %}
