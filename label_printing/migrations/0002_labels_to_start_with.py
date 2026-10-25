@@ -287,15 +287,13 @@ def price_tag(indent, border, padding, options=""):
 
 
 def item_tape(tape):
-    return f"""# Bulk items on {tape} mm tape, as long as the name needs: QR code, name, price, ID and location
+    return f"""# Bulk items on {tape} mm tape, as long as the name needs: QR code, name, price
 label height {tape}  margin 1 0.5
 row  gap 1
   qr {QR}  quiet 1
   column  align left
     text {ITEM}  bold  height 55%
-    row  gap 1  height 45%
-{price_tag("      ", 0.3, 0.1)}      text "{LABEL_ID} {CODE}"  font mono
-"""
+{price_tag("    ", 0.3, 0.1, "  height 45%")}"""
 
 
 def item_card(width, height):
