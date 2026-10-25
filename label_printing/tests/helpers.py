@@ -59,12 +59,12 @@ def create_user(username="printer-user", *permissions):
     return user
 
 
-# The label templates the migrations make for every label size (label_printing 0002)
+# The label templates the migrations make for every label size (label_printing 0002, catalog/label_templates.json)
 GENERATED = {
     "location": "QR-Code, Kennung, Name und Ort",
     "item": "Name, Preis und QR-Code",
     "labelid": "ZAMid",
-    "labelid_plain": "ZAMid: QR + ID",
+    "uniqueitem": "ZAMid mit Eigentum",
 }
 
 

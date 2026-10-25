@@ -6,6 +6,7 @@ import re
 import shutil
 import tempfile
 import zipfile
+from pathlib import Path
 from decimal import Decimal
 
 from django.contrib.auth import get_user_model
@@ -414,8 +415,9 @@ class TemplateTests(InventoryData, TestCase):
                 with self.subTest(kind=kind, size=size):
                     template = generated(kind, size)
                     self.assertEqual(problems_of(template)[1], [])
-                    self.assertIn(f"design:{template.pk}", [layout.key for layout in
-                                                            layouts_for(template.subject_type, medium.printer, medium)])
+                    offered = [layout.key for layout in layouts_for(template.subject_type, medium.printer, medium)]
+                    # deactivated on the development server, e.g. items on 9 mm tape: not offered
+                    self.assertEqual(f"design:{template.pk}" in offered, template.is_active)
 
     def test_mistakes_and_too_small_labels_are_refused(self):
         broken = self.template('label 57 x 32\ntext "{% nope %}"')
@@ -608,15 +610,23 @@ class ZplTemplatesMigrationTests(TransactionTestCase):
                 executor.migrate(latest)
                 apps = executor.loader.project_state(latest).apps
                 Template = apps.get_model("inventory", "LocationLabelTemplate")
-                mobile, own = Template.objects.get(name="Mobil, mit Logo und Eigentum"), Template.objects.get(name="Eigene")
+                mobile = Template.objects.get(name="Mobil, mit Logo und Eigentum", label_width=105)
+                own = Template.objects.get(name="Eigene")
                 self.assertIn('image "ZAM Logo"', mobile.description)
                 self.assertEqual(parse(mobile.description)[1], [])
                 self.assertTrue(own.description.startswith("# Converted from a ZPL template"))
                 self.assertIn("# ^XA^FD$url^FS^XZ", own.description)
                 self.assertEqual((parse(own.description)[0].width, parse(own.description)[0].height), (50, 25))
                 self.assertTrue(Template.objects.filter(name="ZAMid", label_width=70, subject_type="labelid").exists())
-                # converted; for every label: location, item, ZAMid, ZAMid: QR + ID, ZAMid with owner; price tags
-                self.assertEqual(Template.objects.count(), 2 + 5 * 9 + 4)
+                # those of the development server (the ZPL template it replaces kept as it was), and the unknown one
+                from label_printing.migrations import __path__ as migrations_path
+                start = json.loads((Path(migrations_path[0]).parent / "catalog" / "label_templates.json").read_text())
+                self.assertEqual(Template.objects.count(), len(start) + 1)
+                self.assertEqual(mobile.pk, mobile_zpl.pk)
+                self.assertEqual(mobile.description, next(entry["description"] for entry in start
+                                                          if entry.get("replaces") == "105x52 mobile"))
+                item_9 = Template.objects.get(name="Name, Preis und QR-Code", label_height=9)
+                self.assertFalse(item_9.is_active)
                 rules = apps.get_model("inventory", "LabelTemplateRule").objects
                 self.assertEqual(list(rules.filter(template=mobile).values_list("condition", "priority")),
                                  [('location.type.category == "container"', 2), ("", 0)])

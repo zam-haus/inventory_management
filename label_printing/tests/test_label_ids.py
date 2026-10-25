@@ -26,8 +26,7 @@ class LabelIdLayoutTests(TestCase):
 
     def test_zamid_templates_for_every_label(self):
         for printer, medium, size in ((self.brother, self.tape, "tape12"), (self.zebra, self.labels, "57x32")):
-            self.assertEqual(self.keys(printer, medium), [f"design:{generated(kind, size).pk}"
-                                                          for kind in ("labelid", "labelid_plain")])
+            self.assertEqual(self.keys(printer, medium), [f"design:{generated('labelid', size).pk}"])
         wide = LabelMedium.objects.create(printer=self.brother, name="36", ptouch_tape=36)
         self.assertEqual(self.keys(self.brother, wide), [])  # the E550W has no 36 mm profile
 
@@ -42,7 +41,7 @@ class LabelIdLayoutTests(TestCase):
     def test_labels_fill_the_medium(self):
         for medium, size in ((self.labels, "57x32"), (self.tape, "tape12")):
             canvas = Canvas.for_medium(medium)
-            for kind in ("labelid", "labelid_plain"):
+            for kind in ("labelid",):
                 with self.subTest(medium=medium.name, kind=kind):
                     rendered = get_layout(f"design:{generated(kind, size).pk}").render(self.lid, canvas, medium)
                     self.assertEqual(rendered.image.height, canvas.height)

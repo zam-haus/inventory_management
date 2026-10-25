@@ -57,7 +57,7 @@ Brother gets P-touch raster data. The code is in the app `label_printing`.
   name, price per unit (items for sale) and a QR code.
 * **Unique items:** the **Label** button on a unique item's page prints the unique item: with the templates
   for unique items ("ZAMid mit Eigentum" for items of another owner) and the label ID templates by its ID
-  ("ZAMid", "ZAMid: QR + ID"). A unique item without a label ID gets one when it is first printed.
+  ("ZAMid"). A unique item without a label ID gets one when it is first printed.
 * **Label IDs (ZAMid):** the **Label** button on an ID's info page (`/id/<code>/info/`) prints the ID's
   label. Batches of reserved IDs: the admin action **Print labels** on selected IDs, or `manage.py
   label_id_labels --batch NAME --print PRINTER [--tape 12]` (the printer's short name), with the label
@@ -176,18 +176,21 @@ template for the new locations and their sub-locations.
 * **Import** takes many images at once, or ZIP archives of them.
 * Designs scale the images for each printer and turn them black and white (threshold or dither).
 
-Migration `label_printing.0002` described the ZPL templates there were in the language, named by
-what is on them ("Fester Standort", also with an arrow up or down, and "Mobil, mit Logo und
-Eigentum"), and stored their logo as the label image "ZAM Logo"; a template it did not know gets a
-plain design and its ZPL as comments. It also added templates for 57 × 32, 60 × 30, 70 × 32 and
-105 × 52 mm labels and for 9, 12, 18, 24 and 36 mm tape:
+Migration `label_printing.0002` brings the templates as tried out on the development server
+(`label_printing/catalog/label_templates.json`: name, size, description, active or not, quality,
+labels, rules). The ZPL templates there were become those named by what is on them ("Fester
+Standort", also with an arrow up or down, and "Mobil, mit Logo und Eigentum"; `replaces` in the
+file names the ZPL template), keeping their IDs, so locations and types keep their labels; their
+logo becomes the label image "ZAM Logo"; a template it did not know gets a plain design and its ZPL
+as comments. The other templates are for 57 × 32, 60 × 30, 70 × 32 and 105 × 52 mm labels and for
+9, 12, 18, 24 and 36 mm tape:
 * locations: "QR-Code, Kennung, Name und Ort" (QR code, code, name, path);
 * bulk items: "Name, Preis und QR-Code" (name, the price in a price tag frame as wide as the price,
   an empty one without a price, QR code, on labels also label ID and location; no name: a line to
-  write it on), and "Preisschild" (price with € in a price
-  tag frame, unit, name, QR code) on 60 × 30 mm labels and on 12, 18 and 24 mm tape;
+  write it on; deactivated on 9 mm tape), and "Preisschild" (price with € in a price tag frame,
+  unit, name, QR code) on 60 × 30 mm labels and on 12, 18 and 24 mm tape;
 * label IDs: "ZAMid" (lettering, QR code, ID in two lines; on tape with a margin of at least
-  1 mm at top and bottom) and "ZAMid: QR + ID";
+  1 mm at top and bottom);
 * unique items: "ZAMid mit Eigentum" (the ZAMid design and the owner's first name).
 
 Their rules:
@@ -201,7 +204,6 @@ Their rules:
 | Name, Preis und QR-Code | `item.kind == "bulk"` | 1 |
 | Preisschild | `item.kind == "bulk" and item.sale_price is not None` | 2 |
 | ZAMid | always | 2 |
-| ZAMid: QR + ID | always | 1 |
 | ZAMid mit Eigentum | `unique_item.has_owner` | 3 |
 
 Fonts:
