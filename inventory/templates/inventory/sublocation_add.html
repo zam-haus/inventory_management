@@ -33,7 +33,7 @@
         <section class="location-panel" aria-labelledby="sub-heading">
             <div class="location-panel-heading">
                 <h2 id="sub-heading">{% blocktrans with type=sub.name %}Add {{ type }}{% endblocktrans %}</h2>
-                <p class="location-muted mb-1">{% blocktrans with sub=sub.name %}{{ sub }}: lettered from the bottom up, starting with a.{% endblocktrans %}
+                <p class="location-muted mb-1">{% blocktrans with sub=sub.name %}{{ sub }}: lettered from the bottom up, starting with a. The top counts as one too if things are put on it: it gets the last letter.{% endblocktrans %}
                     {% trans "New ones get the next free letters; after z come aa, ab …" %}</p>
                 <p class="location-muted">{% trans "Already here:" %} {% for part in existing %}<code>{{ part.short_name }}</code>{% if not forloop.last %}, {% endif %}{% empty %}–{% endfor %}</p>
             </div>
@@ -44,6 +44,7 @@
                     <div class="location-actions mt-3">
                         <button class="btn btn-success" type="submit">{% icon "plus-lg" %} {% blocktrans with type=sub.name %}Add {{ type }}{% endblocktrans %}</button>
                     </div>
+                    {% if perms.label_printing.print_label %}<p class="form-text mt-2 mb-0">{% icon "tag" %} {% trans "Then the label print dialog opens with the labels of the new locations checked." %}</p>{% endif %}
                 </form>
             {% endif %}
         </section>

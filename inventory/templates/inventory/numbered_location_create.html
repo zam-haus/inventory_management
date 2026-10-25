@@ -67,6 +67,7 @@
                     <div class="location-actions mt-3">
                         <button class="btn btn-success" type="submit">{% icon "plus-lg" %} {% blocktrans with type=kind.name %}Add {{ type }}{% endblocktrans %}</button>
                     </div>
+                    {% if perms.label_printing.print_label %}<p class="form-text mt-2 mb-0">{% icon "tag" %} {% trans "Then the label print dialog opens with the labels of the new locations checked." %}</p>{% endif %}
                 </form>
             </section>
         {% endif %}

@@ -1559,6 +1559,10 @@ msgstr "Nochmal drucken"
 msgid "Queue %(count)s labels"
 msgstr "%(count)s Etiketten beauftragen"
 
+#: label_printing/templates/label_printing/form_attrs.html:19
+msgid "Queue 1 label"
+msgstr "1 Etikett beauftragen"
+
 #: label_printing/templates/label_printing/form_attrs.html:20
 #, python-format
 msgid "%(count)s at once"

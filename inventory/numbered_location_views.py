@@ -56,6 +56,7 @@ class NumberedLocationForm(forms.Form):
         sub = kind.sublocation_type
         if sub and sub.auto_sequence:
             self.fields["sublocations"].label = _("Number of %(type)s inside") % {"type": sub.name}
+            self.fields["sublocations"].help_text = on_top_hint(kind)
             self.fields["sublocations"].validators.append(MaxValueValidator(sub.MAX_SUBLOCATIONS))
             self.fields["sublocations"].widget.attrs["max"] = sub.MAX_SUBLOCATIONS
         else:
@@ -165,7 +166,7 @@ class NumberedLocationCreateView(PermissionRequiredMixin, FormView):
         if parts:
             text += " " + _("%(count)s %(type)s added.") % {"count": len(parts), "type": kind.sublocation_type.name}
         messages.success(self.request, text)
-        return purposes_url_or(self.request, location, parts)
+        return purposes_url_or(self.request, location, parts, [location] + parts)
 
     def reserve_new(self, area, kind, count, keep_reserved):
         """A new range of `count` numbers for `area`; behind a used-up range if possible, otherwise in a free gap."""
@@ -179,14 +180,12 @@ class NumberedLocationCreateView(PermissionRequiredMixin, FormView):
                                                   last=suggestion[1])
 
     def create_sublocations(self, location, count):
-        """Creates `count` sub-locations of the type's sub type in `location`; returns their codes."""
+        """Creates `count` sub-locations of the type's sub type in `location`; returns them."""
         sub = location.type.sublocation_type
         if not sub or not count:
             return []
-        names = sub.free_sublocation_names(location, count)
-        for name, short in names:
-            Location.objects.create(type=sub, name=name, short_name=short, parent_location=location)
-        return [short for _name, short in names]
+        return [Location.objects.create(type=sub, name=name, short_name=short, parent_location=location)
+                for name, short in sub.free_sublocation_names(location, count)]
 
 
 class ContainerCreateForm(forms.Form):
@@ -251,7 +250,7 @@ class ContainerCreateView(PermissionRequiredMixin, FormView):
             form.add_error(None, _("The number was taken in the meantime. Try again."))
             return self.form_invalid(form)
         messages.success(self.request, _("%(name)s (%(code)s) created.") % {"name": location.name, "code": short})
-        return redirect(with_print_dialog(self.request, location))
+        return redirect(with_print_dialog(self.request, location, [location]))
 
 
 class SublocationAddForm(forms.Form):
@@ -262,6 +261,7 @@ class SublocationAddForm(forms.Form):
         sub = parent.type.sublocation_type
         self.next = sub.free_sublocation_names(parent, 3)
         self.fields["count"].label = _("How many %(type)s to add?") % {"type": sub.name}
+        self.fields["count"].help_text = on_top_hint(parent.type)
         self.fields["count"].validators.append(MaxValueValidator(sub.MAX_SUBLOCATIONS))
         self.fields["count"].widget.attrs["max"] = sub.MAX_SUBLOCATIONS
 
@@ -290,11 +290,11 @@ class SublocationAddView(PermissionRequiredMixin, FormView):
         sub = self.parent.type.sublocation_type
         with transaction.atomic():
             names = sub.free_sublocation_names(self.parent, form.cleaned_data["count"])
-            for name, short in names:
-                Location.objects.create(type=sub, name=name, short_name=short, parent_location=self.parent)
+            parts = [Location.objects.create(type=sub, name=name, short_name=short, parent_location=self.parent)
+                     for name, short in names]
         messages.success(self.request, _("%(count)s %(type)s added: %(codes)s.") % {
             "count": len(names), "type": sub.name, "codes": ", ".join(short for _name, short in names)})
-        return purposes_url_or(self.request, self.parent, [short for _name, short in names])
+        return purposes_url_or(self.request, self.parent, parts, parts)
 
 
 class SublocationPurposeForm(forms.Form):
@@ -320,6 +320,7 @@ class SublocationPurposeView(PermissionRequiredMixin, FormView):
         if self.parent.type.sublocation_type is None:
             raise Http404
         self.codes = (request.GET.get("codes") or request.POST.get("codes") or "").split(",")
+        self.new = new_locations(request.GET.get("print") or request.POST.get("print") or "")
         return super().dispatch(request, *args, **kwargs)
 
     def parts(self):
@@ -333,7 +334,9 @@ class SublocationPurposeView(PermissionRequiredMixin, FormView):
 
     def get_context_data(self, **kwargs):
         return super().get_context_data(object=self.parent, sub=self.parent.type.sublocation_type,
-                                        codes=",".join(code for code in self.codes if code), **kwargs)
+                                        codes=",".join(code for code in self.codes if code),
+                                        new=",".join(map(str, self.new)),
+                                        done_url=with_print_dialog(self.request, self.parent, self.new), **kwargs)
 
     def form_valid(self, form):
         changed = 0
@@ -346,17 +349,40 @@ class SublocationPurposeView(PermissionRequiredMixin, FormView):
                     changed += 1
         if changed:
             messages.success(self.request, _("Purposes saved."))
-        return redirect(with_print_dialog(self.request, self.parent))
+        return redirect(with_print_dialog(self.request, self.parent, self.new))
 
 
-def purposes_url_or(request, location, codes):
-    """Where to go after adding compartments: their purposes, if the user may set them, else the location."""
-    if codes and request.user.has_perm("inventory.change_location"):
-        return redirect(reverse("sublocation_purposes", args=[location.pk]) + "?codes=" + ",".join(codes))
-    return redirect(with_print_dialog(request, location))
+def on_top_hint(kind):
+    """The hint at a count of compartments: the top of the shelf or cabinet is one too (numbered_location_order)."""
+    return _("The top of the %(type)s counts as one too if things are put on it: it gets the last letter.") % {
+        "type": kind.name}
 
 
-def with_print_dialog(request, location):
-    """A new location's page, opening the label print dialog for whoever may print (label_printing)."""
+def purposes_url_or(request, location, parts, new):
+    """Where to go after adding compartments `parts`: their purposes, if the user may set them, else the location;
+    either way then the label print dialog for the `new` locations."""
+    if parts and request.user.has_perm("inventory.change_location"):
+        codes = ",".join(part.short_name for part in parts)
+        url = reverse("sublocation_purposes", args=[location.pk]) + "?codes=" + codes
+        return redirect(url + ("&" + printing if (printing := print_query(request, new)) else ""))
+    return redirect(with_print_dialog(request, location, new))
+
+
+def new_locations(value):
+    """The pks in a comma-separated `print` parameter."""
+    return [int(pk) for pk in value.split(",") if pk.strip().isdigit()]
+
+
+def print_query(request, new):
+    """`print=<pks>` for the label print dialog with the `new` locations (or pks) checked; "" for whoever may not
+    print (label_printing) and if nothing is new."""
+    if not new or not request.user.has_perm("label_printing.print_label"):
+        return ""
+    return "print=" + ",".join(str(getattr(entry, "pk", entry)) for entry in new)
+
+
+def with_print_dialog(request, location, new):
+    """`location`'s page, opening the label print dialog with the labels of the `new` locations checked: the
+    location itself and its sub-locations."""
     url = location.get_absolute_url()
-    return url + "?print=1" if request.user.has_perm("label_printing.print_label") else url
+    return url + "?" + printing if (printing := print_query(request, new)) else url

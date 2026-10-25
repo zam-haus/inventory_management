@@ -30,28 +30,29 @@
         {% endif %}
         {% if sub %}
         <g fill="none" stroke="currentColor" stroke-width="1.5">
-            <rect x="420" y="50" width="100" height="140"/>
-            <line x1="420" y1="85" x2="520" y2="85"/>
+            <rect x="420" y="85" width="100" height="105"/>
             <line x1="420" y1="120" x2="520" y2="120"/>
             <line x1="420" y1="155" x2="520" y2="155"/>
             <line x1="410" y1="190" x2="530" y2="190"/>
-            <line x1="545" y1="185" x2="545" y2="58" marker-end="url(#numbering-arrow)"/>
+            <rect x="428" y="35" width="84" height="46" stroke-dasharray="5 4"/>
+            <line x1="545" y1="185" x2="545" y2="40" marker-end="url(#numbering-arrow)"/>
         </g>
         <g fill="currentColor" font-size="14" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-weight="600">
             <text x="470" y="177">{{ shelf }}.a</text>
             <text x="470" y="142">{{ shelf }}.b</text>
             <text x="470" y="107">{{ shelf }}.c</text>
-            <text x="470" y="72">{{ shelf }}.d</text>
+            <text x="470" y="56">{{ shelf }}.d</text>
         </g>
         <g fill="currentColor" font-size="12" text-anchor="middle" font-family="system-ui, sans-serif">
             <text x="470" y="18" font-weight="600">{{ sub.name }}</text>
+            <text x="470" y="73" font-size="11">{% trans "on top" %}</text>
             <text x="470" y="234">{% trans "from the bottom up" %}</text>
         </g>
         {% endif %}
     </svg>
     <figcaption id="numbering-order-caption" class="{% if parts_only %}visually-hidden{% else %}location-muted{% endif %}">
         {% if not parts_only %}{% trans "Neighbours get consecutive numbers, the lower one on the left; a new one is added at the end of the row." %}{% endif %}
-        {% if sub %}{% blocktrans with sub=sub.name %}{{ sub }}: lettered from the bottom up, starting with a.{% endblocktrans %}{% endif %}
+        {% if sub %}{% blocktrans with sub=sub.name %}{{ sub }}: lettered from the bottom up, starting with a. The top counts as one too if things are put on it: it gets the last letter.{% endblocktrans %}{% endif %}
     </figcaption>
 </figure>
 {% endwith %}

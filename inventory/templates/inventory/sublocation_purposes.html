@@ -38,10 +38,11 @@
                 {% csrf_token %}
                 <p class="location-muted">{% trans "Listed as they sit: the top one first, a at the bottom." %}</p>
                 <input type="hidden" name="codes" value="{{ codes }}">
+                {% if new %}<input type="hidden" name="print" value="{{ new }}">{% endif %}
                 {% bootstrap_form form %}
                 <div class="location-actions mt-3">
                     <button class="btn btn-warning" type="submit">{% icon "pencil" %} {% trans "Save purposes" %}</button>
-                    <a class="btn btn-secondary" href="{{ object.get_absolute_url }}">{% trans "Skip" %}</a>
+                    <a class="btn btn-secondary" href="{{ done_url }}">{% trans "Skip" %}</a>
                 </div>
             </form>
             </div>

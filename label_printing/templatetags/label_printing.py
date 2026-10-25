@@ -40,4 +40,15 @@ def label_print_dialog(context, obj, subject_type):
     return {"user": context.get("user"), "request": context.get("request"), "csrf_token": context.get("csrf_token"),
             "object": obj, "subject_type": subject_type, "form": form, "print_options": options, "modal": True,
             "options_id": f"label-print-options-{subject_type}",
-            "print_title": dialog.title(subject_type, obj)}
+            "print_title": dialog.title(subject_type, obj), **just_created(context, options)}
+
+
+def just_created(context, options):
+    """After locations were created (?print=<their pks>, numbered_location_views.with_print_dialog), the dialog
+    opens with just their labels checked: `print_new`, and `print_children` if any of them is a sub-location."""
+    request = context.get("request")
+    value = request.GET.get("print", "") if request else ""
+    new = {pk for pk in value.split(",") if pk.strip().isdigit()}
+    if not new or not options:
+        return {}
+    return {"print_new": new, "print_children": any(row["pk"] in new for row in options["rows"][1:])}

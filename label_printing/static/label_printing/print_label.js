@@ -171,7 +171,8 @@ function setUp(form, options) {
             parts.waitSummary.textContent = summary(rows, copies);
             parts.waitSummary.hidden = !parts.waitSummary.textContent;
             parts.submit.disabled = pending || !rows.length || items.some(item => !item.printer && !item.can_wait);
-            if (!pending) submitLabel.textContent = text.labelSubmitRows.replace('{count}', rows.length * copies);
+            const count = rows.length * copies;
+            if (!pending) submitLabel.textContent = count === 1 ? text.labelSubmitRow : text.labelSubmitRows.replace('{count}', count);
             return;
         }
         const current = chosen();
@@ -401,7 +402,7 @@ function setUp(form, options) {
     update();
     if (modal && window.bootstrap) {
         modal.addEventListener('show.bs.modal', open);
-        // After creating a location, its page opens the dialog right away (?print=1).
+        // After creating locations, the page opens the dialog right away (?print=<their pks>, checked by the server).
         const url = new URL(window.location.href);
         if (url.searchParams.has('print') && text.subject === 'location') {
             url.searchParams.delete('print');

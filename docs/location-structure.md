@@ -64,7 +64,8 @@ are in [Standortregeln](standortregeln.md) (German).
   *new* number, which reserves as many as are to be expected (`LocationNumberRange.reserve`:
   behind a used-up range if free, else `suggest`). Name and code come from the type's automatic
   naming (`Regal 301`, `R301`). A drawing on the page shows the order: neighbours left to right,
-  compartments from the bottom up. Only the fields of the chosen way count
+  compartments from the bottom up, the top of the shelf or cabinet as the last one (if things are put
+  on it; the count fields say so too). Only the fields of the chosen way count
   (`NumberedLocationForm.FIELDS_FOR`; `numbered_location.js` hides and disables the others), and
   the wish field shows the type's prefix in front.
 * **Creating containers** (`ContainerCreateView` in `inventory/numbered_location_views.py`, permission

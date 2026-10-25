@@ -64,8 +64,10 @@ Brother gets P-touch raster data. The code is in the app `label_printing`.
   ID template its rules put first on that medium; jobs of at most 20 labels. An ID's *printed at* is set
   once the printer reports the label printed. The ID's info page and its admin page show its label
   (`label_printing.selection.preferred_template`).
-* **After creating** a box, carton, pallet, shelf or compartments, the new location's page opens
-  the dialog right away (`?print=1`) for whoever may print.
+* **After creating** a box, carton, pallet, shelf or compartments (after their purposes, if asked
+  for), the location's page opens the dialog right away for whoever may print, with just the labels
+  of the new locations checked (`?print=<their pks>`): a new box alone gets the single dialog; a new
+  shelf with compartments, or compartments added to a shelf, get the overview.
 * The previews show the label as the printer gets it, in the tape's colours for Brother tapes
   from the label stock. After printing the dialog follows the job until the printer reports back.
 * **Waiting jobs** have no printer and no printer data yet. They are drawn for the printer that

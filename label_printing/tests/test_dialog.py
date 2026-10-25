@@ -1,3 +1,4 @@
+import re
 from decimal import Decimal
 from io import BytesIO
 from unittest.mock import patch
@@ -126,6 +127,19 @@ class PrintDialogTests(SimulatedPrinters, InventoryData, TestCase):
         self.assertContains(response, 'title="Prints on Zebra Lager." data-mark')  # the printer mark
         self.assertContains(response, "Copies per label")
         self.assertNotContains(response, 'name="wait"')
+
+    def test_after_creating_just_the_new_labels_are_checked(self):
+        def checked(query):
+            page = self.client.get(self.shelf.get_absolute_url() + query).content.decode()
+            children = re.search(r'<input[^>]*name="children"[^>]*>', page).group(0)
+            rows = [" checked" in box for box in re.findall(r'<input[^>]*name="row-\d+-print"[^>]*>', page)]
+            return " checked" in children, rows
+
+        self.assertEqual(checked(""), (False, [True, True, True]))
+        self.assertEqual(checked(f"?print={self.other_part.pk}"), (True, [False, False, True]))  # a compartment added
+        self.assertEqual(checked(f"?print={self.shelf.pk},{self.part.pk},{self.other_part.pk}"),
+                         (True, [True, True, True]))  # a new shelf with its compartments
+        self.assertEqual(checked(f"?print={self.shelf.pk}"), (False, [True, False, False]))  # just the location
 
     def test_print_a_location_and_its_compartments(self):
         """With its sub-locations: an overview, a row per label with its template, a job per label in a batch."""
@@ -272,9 +286,33 @@ class OpenAfterCreatingTests(InventoryData, TestCase):
     def test_new_locations_open_the_dialog_for_whoever_may_print(self):
         request = RequestFactory().get("/")
         request.user = create_user("printer", "label_printing.print_label")
-        self.assertEqual(with_print_dialog(request, self.part), self.part.get_absolute_url() + "?print=1")
+        self.assertEqual(with_print_dialog(request, self.shelf, [self.part, self.other_part]),
+                         self.shelf.get_absolute_url() + f"?print={self.part.pk},{self.other_part.pk}")
+        self.assertEqual(with_print_dialog(request, self.shelf, []), self.shelf.get_absolute_url())
         request.user = create_user("reader")
-        self.assertEqual(with_print_dialog(request, self.part), self.part.get_absolute_url())
+        self.assertEqual(with_print_dialog(request, self.part, [self.part]), self.part.get_absolute_url())
+
+    def test_the_new_locations_are_passed_on_by_the_purposes_page(self):
+        compartment = LocationType.objects.create(name="Fach/Schub", auto_name_prefix="Fach",
+                                                  auto_sequence="abcdefghijklmnopqrstuvwxyz")
+        self.shelf.type.sublocation_type = compartment
+        self.shelf.type.save()
+        self.client.force_login(create_user("builder", "inventory.add_location", "inventory.change_location",
+                                            "label_printing.print_label"))
+        page = self.client.get(reverse("sublocation_add", args=[self.shelf.pk]))
+        self.assertContains(page, "The top of the Room counts as one too")
+        self.assertContains(page, "Then the label print dialog opens")
+        response = self.client.post(reverse("sublocation_add", args=[self.shelf.pk]), {"count": 2})
+        new = list(self.shelf.children.filter(type=compartment).order_by("short_name"))
+        self.assertEqual([part.short_name for part in new], ["c", "d"])
+        printing = f"print={new[0].pk},{new[1].pk}"
+        purposes = reverse("sublocation_purposes", args=[self.shelf.pk]) + "?codes=c,d&" + printing
+        self.assertRedirects(response, purposes, fetch_redirect_response=False)
+        page = self.client.get(purposes)
+        self.assertContains(page, f'name="print" value="{new[0].pk},{new[1].pk}"')
+        self.assertContains(page, f'href="{self.shelf.get_absolute_url()}?{printing}"')  # skip
+        response = self.client.post(purposes, {"codes": "c,d", "print": f"{new[0].pk},{new[1].pk}"})
+        self.assertRedirects(response, f"{self.shelf.get_absolute_url()}?{printing}", fetch_redirect_response=False)
 
 
 @override_settings(**SETTINGS)
