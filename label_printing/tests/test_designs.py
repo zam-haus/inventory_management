@@ -293,7 +293,7 @@ class TemplateTests(InventoryData, TestCase):
         tape = self.template("label height 12\ntext {{ location.unique_identifier }}")
         wide = self.template("label height 24\ntext {{ location.unique_identifier }}")
         self.assertEqual((fixed.label_width, fixed.label_height, tape.label_width, tape.size_text),
-                         (57, 32, None, "height 12 mm, any length"))
+                         (57, 32, None, "12 mm tape"))
         keys = lambda printer, medium: [layout.key for layout in layouts_for("location", printer, medium)]
         self.assertIn(f"design:{fixed.pk}", keys(self.zebra, self.labels))
         self.assertNotIn(f"design:{tape.pk}", keys(self.zebra, self.labels))

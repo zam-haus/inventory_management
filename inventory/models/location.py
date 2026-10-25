@@ -356,7 +356,9 @@ class LocationLabelTemplate(models.Model):
         if self.label_height is None:
             return "–"
         if self.label_width is None:
-            return gettext("height %(height)s mm, any length") % {"height": f"{self.label_height:g}"}
+            # Tape, as long as the label needs: named like tape (label_printing.outcomes.size_text)
+            height = "3,5" if self.label_height == 3.5 else f"{self.label_height:g}"
+            return gettext("%(width)s mm tape") % {"width": height}
         return f"{self.label_width:g} × {self.label_height:g} mm"
 
     def __str__(self):

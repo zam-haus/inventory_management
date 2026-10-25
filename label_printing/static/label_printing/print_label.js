@@ -75,10 +75,65 @@ function setUp(form, options) {
         const url = previewUrl(options.rows[Number(row.dataset.row)], item);
         if (image.getAttribute('src') !== url) image.src = url;
         else realSize(image, item);
-        row.querySelectorAll('[data-missing]').forEach(mark => {
-            mark.hidden = item.printer !== '' || mark.dataset.missing !== item.missing;
-            mark.title = item.reason;
+        setMarks(row.querySelector('[data-marks]'), item);
+        const toggle = row.querySelector('[data-picker-toggle]');
+        if (toggle) toggle.textContent = select(row).selectedOptions[0]?.textContent || '';
+    }
+
+    // Printer and labels: green when there, struck through in red when they keep the label from printing now
+    function setMarks(marks, item) {
+        marks?.querySelectorAll('[data-mark]').forEach(mark => {
+            const missing = !item.printer && item.missing === mark.dataset.mark;
+            mark.classList.toggle('is-missing', missing);
+            mark.classList.toggle('is-ok', !missing);
+            mark.title = missing ? item.reason : (mark.dataset.mark === 'printer' ? item.printer : item.size);
         });
+    }
+
+    // The overview's choice of label: a menu with a preview of each (the select stays for the form)
+    function setUpPicker(row) {
+        const picker = row.querySelector('[data-picker]');
+        if (!picker) return;
+        const toggle = picker.querySelector('[data-picker-toggle]');
+        const menu = picker.querySelector('[data-picker-menu]');
+        select(row).hidden = true;
+        toggle.hidden = false;
+        const close = () => { menu.hidden = true; toggle.setAttribute('aria-expanded', 'false'); };
+        const choose = value => {
+            select(row).value = value;
+            select(row).dispatchEvent(new Event('change', {bubbles: true}));
+            close();
+            toggle.focus();
+        };
+        toggle.addEventListener('click', () => {
+            if (!menu.hidden) return close();
+            menu.replaceChildren(...[...select(row).children].flatMap(group => [
+                Object.assign(document.createElement('div'), {className: 'label-picker-group', textContent: group.label}),
+                ...[...group.children].map(option => {
+                    const item = outcome(option.value);
+                    const entry = Object.assign(document.createElement('button'), {
+                        type: 'button', className: `label-picker-item${option.selected ? ' is-chosen' : ''}`,
+                    });
+                    entry.setAttribute('role', 'menuitem');
+                    const image = Object.assign(document.createElement('img'), {
+                        alt: '', loading: 'lazy', src: previewUrl(options.rows[Number(row.dataset.row)], item),
+                    });
+                    const label = Object.assign(document.createElement('span'), {
+                        className: 'label-picker-text', textContent: option.textContent,
+                    });
+                    const marks = row.querySelector('[data-marks]').cloneNode(true);
+                    setMarks(marks, item);
+                    entry.append(image, label, marks);
+                    entry.addEventListener('click', () => choose(option.value));
+                    return entry;
+                }),
+            ]));
+            menu.hidden = false;
+            toggle.setAttribute('aria-expanded', 'true');
+            menu.querySelector('.is-chosen')?.focus();
+        });
+        picker.addEventListener('keydown', event => { if (event.key === 'Escape' && !menu.hidden) { event.stopPropagation(); close(); toggle.focus(); } });
+        document.addEventListener('click', event => { if (!picker.contains(event.target)) close(); });
     }
 
     // What the overview's labels wait for: "16 at once, 3 waiting for labels (…), 3 for a printer (…)"
@@ -159,10 +214,22 @@ function setUp(form, options) {
     // A tap anywhere on a row of the overview (but its template) switches it on or off.
     form.addEventListener('click', event => {
         const row = event.target.closest('[data-row]');
-        if (!row || event.target.closest('select, input, option')) return;
+        if (!row || event.target.closest('select, input, option, [data-picker], [data-apply-all]')) return;
         const box = printing(row);
         if (box.disabled) return;
         box.checked = !box.checked;
+        update();
+    });
+
+    // The first row's label for all rows that may have it
+    form.querySelector('[data-apply-all]')?.addEventListener('click', () => {
+        const value = select(parts.rows[0]).value;
+        parts.rows.slice(1).forEach(row => {
+            if (select(row) && [...select(row).options].some(option => option.value === value)) {
+                select(row).value = value;
+                rowState(row);
+            }
+        });
         update();
     });
 
@@ -316,6 +383,7 @@ function setUp(form, options) {
     }
 
     startOver();
+    parts.rows.forEach(setUpPicker);
     parts.rows.forEach(rowState);
     update();
     if (modal && window.bootstrap) {

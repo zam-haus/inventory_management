@@ -3560,8 +3560,8 @@ msgid "Empty: as long as the content (Brother tape)."
 msgstr "Leer: so lang wie der Inhalt (Brother-Band)."
 
 #: inventory/models/location.py
-msgid "height %(height)s mm, any length"
-msgstr "Höhe %(height)s mm, beliebig lang"
+msgid "%(width)s mm tape"
+msgstr "%(width)s-mm-Band"
 
 #: inventory/models/location.py
 msgid "label templates"

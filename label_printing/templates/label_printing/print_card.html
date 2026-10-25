@@ -3,5 +3,5 @@
     <span class="label-outcome-preview"><img src="{{ card.preview }}" alt="" loading="lazy" data-preview="{{ card.preview }}"></span>
     <span class="label-outcome-name">{{ card.name }}</span>
     <span class="label-outcome-size">{{ card.size }}</span>
-    <span class="label-outcome-state">{% if card.printer %}{{ card.printer }}{% else %}{{ card.reason }}{% endif %}</span>
+    <span class="label-outcome-state">{% include "label_printing/print_marks.html" with item=card %} {% if card.printer %}{{ card.printer }}{% else %}{{ card.reason }}{% endif %}</span>
 </label>

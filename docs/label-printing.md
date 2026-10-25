@@ -39,8 +39,11 @@ Brother gets P-touch raster data. The code is in the app `label_printing`.
     * Each row starts with its label in its real size (1 mm on the label is 1 mm on the screen, as far
       as the screen reports its size); long tape labels scroll sideways.
     * A tap anywhere on a row (but its template) switches it on or off.
-    * A printer or label mark beside the label says what keeps it from being printed now: the printer
-      (offline, an error), or the labels (not loaded, used up, none of this kind).
+    * The template is chosen from a menu with a preview of each; **use this label for all** (first row)
+      gives the first row's label to every row it is meant for.
+    * Marks for printer and labels beside each label (and on the single dialog's labels): green when
+      there, struck through in red when they keep it from being printed now: the printer (offline, an
+      error), or the labels (not loaded, used up, none of this kind).
     * Above the button a summary says what waits for what, e.g. "16 at once, 3 waiting for labels
       (TZe-231 …), 3 waiting for a printer (P-touch Werkstatt)"; the button says how many labels are
       queued, **copies per label** counted ("22 labels").

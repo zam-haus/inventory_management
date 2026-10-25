@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-25 15:19+0100\n"
+"POT-Creation-Date: 2026-10-25 15:25+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -463,52 +463,52 @@ msgstr "wie Label-IDs heißen, z. B. ZAMid"
 msgid "Price tags at %(location)s"
 msgstr "Preisschilder an %(location)s"
 
-#: label_printing/dialog.py:208
+#: label_printing/dialog.py:209
 msgid "No bulk items are stored here."
 msgstr "Hier lagern keine Mengenartikel."
 
-#: label_printing/dialog.py:212
-#: label_printing/templates/label_printing/print_fields.html:50
+#: label_printing/dialog.py:213
+#: label_printing/templates/label_printing/print_fields.html:54
 msgid "No label template is meant for this."
 msgstr "Dafür ist keine Etikettenvorlage vorgesehen."
 
-#: label_printing/dialog.py:214
+#: label_printing/dialog.py:215
 msgid "No printer is set up for these labels yet."
 msgstr "Für diese Etiketten ist noch kein Drucker eingerichtet."
 
-#: label_printing/dialog.py:220
+#: label_printing/dialog.py:221
 #: label_printing/templates/label_printing/print_button.html:1
 #: label_printing/templates/label_printing/print_fields.html:7
 #: label_printing/templates/label_printing/print_fields.html:45
 msgid "Label"
 msgstr "Etikett"
 
-#: label_printing/dialog.py:221 label_printing/dialog.py:308
+#: label_printing/dialog.py:222 label_printing/dialog.py:309
 msgid "Copies"
 msgstr "Anzahl"
 
-#: label_printing/dialog.py:222
+#: label_printing/dialog.py:223
 msgid "Location"
 msgstr "Standort"
 
-#: label_printing/dialog.py:223
+#: label_printing/dialog.py:224
 msgid "Also the sub-locations"
 msgstr "Auch die Unterorte"
 
-#: label_printing/dialog.py:246 label_printing/dialog.py:318
+#: label_printing/dialog.py:247 label_printing/dialog.py:319
 #, python-format
 msgid "At most %(max)d copies."
 msgstr "Höchstens %(max)d Stück."
 
-#: label_printing/dialog.py:263
+#: label_printing/dialog.py:264
 msgid "There is nothing to print."
 msgstr "Es gibt nichts zu drucken."
 
-#: label_printing/dialog.py:271
+#: label_printing/dialog.py:272
 msgid "These labels cannot be printed here."
 msgstr "Diese Etiketten lassen sich hier nicht drucken."
 
-#: label_printing/dialog.py:307
+#: label_printing/dialog.py:308
 msgid "Printer and labels"
 msgstr "Drucker und Etiketten"
 
@@ -1426,6 +1426,7 @@ msgid "Record"
 msgstr "Datensatz"
 
 #: label_printing/templates/label_printing/admin/label_template_change_form.html:11
+#: label_printing/templates/label_printing/print_marks.html:2
 msgid "Printer"
 msgstr "Drucker"
 
@@ -1559,7 +1560,9 @@ msgstr "%(count)s warten auf Drucker (%(names)s)"
 msgid ""
 "Waiting labels are printed as soon as they can be, within %(minutes)s "
 "minutes; otherwise they are not printed."
-msgstr "Wartende Etiketten werden gedruckt, sobald es geht, innerhalb von %(minutes)s Minuten; sonst werden sie nicht gedruckt."
+msgstr ""
+"Wartende Etiketten werden gedruckt, sobald es geht, innerhalb von "
+"%(minutes)s Minuten; sonst werden sie nicht gedruckt."
 
 #: label_printing/templates/label_printing/print_button.html:1
 msgid "Print price tags of the bulk items here"
@@ -1612,26 +1615,30 @@ msgstr "Empfohlen"
 msgid "More labels"
 msgstr "Weitere Etiketten"
 
-#: label_printing/templates/label_printing/print_fields.html:61
+#: label_printing/templates/label_printing/print_fields.html:52
+msgid "Use this label for all"
+msgstr "Dieses Etikett für alle"
+
+#: label_printing/templates/label_printing/print_fields.html:65
 msgid "Location on the label"
 msgstr "Standort auf dem Etikett"
 
-#: label_printing/templates/label_printing/print_fields.html:64
+#: label_printing/templates/label_printing/print_fields.html:68
 msgid "None (the QR code opens the item)"
 msgstr "Keiner (der QR-Code öffnet die Sache)"
 
-#: label_printing/templates/label_printing/print_fields.html:72
+#: label_printing/templates/label_printing/print_fields.html:76
 #, python-format
 msgid "Also its sub-location (%(count)s)"
 msgid_plural "Also its sub-locations (%(count)s)"
 msgstr[0] "Auch sein Unterort (%(count)s)"
 msgstr[1] "Auch seine Unterorte (%(count)s)"
 
-#: label_printing/templates/label_printing/print_fields.html:76
+#: label_printing/templates/label_printing/print_fields.html:80
 msgid "Copies per label"
 msgstr "Kopien pro Etikett"
 
-#: label_printing/templates/label_printing/print_fields.html:82
+#: label_printing/templates/label_printing/print_fields.html:86
 #, python-format
 msgid ""
 "No printer can print this label right now. If you go on, the job waits up to "

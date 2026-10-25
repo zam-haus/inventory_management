@@ -159,6 +159,7 @@ def presented(data):
                                 "chosen": key == row_data["chosen"]} for key, _priority, shown in row_data["outcomes"]]
         row_data["image"] = preview_url(row_data, by_key[row_data["chosen"]]) if row_data["chosen"] else ""
         row_data["more"] = any(not choice["shown"] for choice in row_data["choices"])
+        row_data["chosen_item"] = by_key.get(row_data["chosen"], {})
     first = data["rows"][0] if data["rows"] else None
     data["cards"] = [{**by_key[key], "shown": shown, "chosen": key == first["chosen"],
                       "preview": preview_url(first, by_key[key])}

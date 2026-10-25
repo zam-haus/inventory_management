@@ -35,17 +35,21 @@
             {% if row.outcomes %}
             <div class="label-overview-label">
                 <span class="label-overview-preview"><img src="{{ row.image }}" alt="" loading="lazy"></span>
-                <span class="label-overview-missing" data-missing="printer" hidden>{% icon "printer" %}</span>
-                <span class="label-overview-missing" data-missing="material" hidden>{% icon "tag" %}</span>
+                {% include "label_printing/print_marks.html" with item=row.chosen_item %}
             </div>
             {% endif %}
             <div class="label-overview-info">
                 <span class="label-overview-name">{{ row.name }}</span>
                 {% if row.outcomes %}
-                <select class="form-select form-select-sm" name="row-{{ forloop.counter0 }}-outcome" aria-label="{% trans 'Label' %}">
-                    <optgroup label="{% trans 'Recommended' %}">{% for choice in row.choices %}{% if choice.shown %}<option value="{{ choice.key }}"{% if choice.chosen %} selected{% endif %}>{{ choice.label }}</option>{% endif %}{% endfor %}</optgroup>
-                    {% if row.more %}<optgroup label="{% trans 'More labels' %}">{% for choice in row.choices %}{% if not choice.shown %}<option value="{{ choice.key }}"{% if choice.chosen %} selected{% endif %}>{{ choice.label }}</option>{% endif %}{% endfor %}</optgroup>{% endif %}
-                </select>
+                <div class="label-picker" data-picker>
+                    <select class="form-select form-select-sm" name="row-{{ forloop.counter0 }}-outcome" aria-label="{% trans 'Label' %}">
+                        <optgroup label="{% trans 'Recommended' %}">{% for choice in row.choices %}{% if choice.shown %}<option value="{{ choice.key }}"{% if choice.chosen %} selected{% endif %}>{{ choice.label }}</option>{% endif %}{% endfor %}</optgroup>
+                        {% if row.more %}<optgroup label="{% trans 'More labels' %}">{% for choice in row.choices %}{% if not choice.shown %}<option value="{{ choice.key }}"{% if choice.chosen %} selected{% endif %}>{{ choice.label }}</option>{% endif %}{% endfor %}</optgroup>{% endif %}
+                    </select>
+                    <button type="button" class="label-picker-toggle form-select form-select-sm" aria-haspopup="true" aria-expanded="false" data-picker-toggle hidden></button>
+                    <div class="label-picker-menu" role="menu" data-picker-menu hidden></div>
+                </div>
+                {% if forloop.first and print_options.rows|length > 1 %}<button type="button" class="btn btn-link btn-sm p-0 align-self-start" data-apply-all>{% trans "Use this label for all" %}</button>{% endif %}
                 {% else %}
                 <span class="label-overview-none">{% trans "No label template is meant for this." %}</span>
                 {% endif %}
