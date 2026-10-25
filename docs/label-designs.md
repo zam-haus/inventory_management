@@ -150,6 +150,10 @@ objects may be used, also along relations: `{{ location.parent_location.name }}`
 | `location.purpose` | `label_id` its label ID as printed | |
 | `qr` the code via the label host | `qr` its label ID and the location's code (`…/K7R4XD/WH-1.R303.A`), leading to the item there | `qr` the ID via the label host |
 
+Templates for **unique items** have `unique_item` (e.g. `unique_item.owner_first_name_display`, its owner's
+first name if it is not the ZAM's; `unique_item.has_owner`), `item` (what it is), `location`, `label_id` (its
+label ID) and `qr` (the ID via the label host).
+
 All labels also have `label_id_name`, what label IDs are called (ZAMid). The template page lists the variables
 too.
 
@@ -176,6 +180,10 @@ no resolution in a template):
 
 Media offer the fitting active templates of the kind being printed. If templates are chosen for a medium (or
 for its label stock), only those are offered. Deactivated templates are neither offered nor printed.
+
+Which of them are meant for a subject, and in which order, say the template's **rules**: conditions with the
+same variables as in `{% if %}`, each with a print priority ([label printing](label-printing.md#label-templates-and-images)).
+A unique item is also offered the label ID templates, by its label ID.
 
 ## Examples
 

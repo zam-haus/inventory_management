@@ -92,12 +92,14 @@ class LabelIdPrintingTests(SimulatedPrinters, TestCase):
         self.assertIsNone(self.lid.printed_at)
 
     def test_unique_item_and_info_pages_offer_printing(self):
-        for url in (self.unique_item.get_absolute_url(), reverse("label_id_info", args=[self.lid.code])):
-            with self.subTest(url=url):
-                response = self.client.get(url)
-                self.assertContains(response, reverse("print_labels", args=["labelid", self.lid.code]))
-                self.assertContains(response, 'id="label-print-modal-labelid"')
-                self.assertContains(response, f'<span class="label-print-subject">{self.lid.display}</span>')
+        # The unique item's page prints the unique item (its templates, and label ID templates by its ID) ...
+        response = self.client.get(self.unique_item.get_absolute_url())
+        self.assertContains(response, reverse("print_labels", args=["uniqueitem", self.unique_item.pk]))
+        self.assertContains(response, 'id="label-print-modal-uniqueitem"')
+        # ... the ID's page the label ID
+        response = self.client.get(reverse("label_id_info", args=[self.lid.code]))
+        self.assertContains(response, reverse("print_labels", args=["labelid", self.lid.code]))
+        self.assertContains(response, f'<span class="label-print-subject">{self.lid.display}</span>')
 
     def test_dialog_prints_and_goes_back(self):
         url = reverse("print_labels", args=["labelid", self.lid.code])

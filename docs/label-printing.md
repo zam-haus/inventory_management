@@ -16,9 +16,14 @@ Brother gets P-touch raster data. The code is in the app `label_printing`.
 ## Printing
 
 * **Location pages:** the **Label** button in the header opens the print dialog. It offers
-  labels, not printers: each active label template, with its size, e.g. "Preisschild" on
-  60 × 30 mm labels or "QR-Code, Kennung, Name und Ort" on 12 mm tape. Templates whose QR code would be
-  too small to scan at a printer's resolution are not offered on it (9 mm tape on the E550W).
+  labels, not printers: the active label templates meant for the location, each on its size of labels,
+  e.g. "Fester Standort" on 70 × 32 mm labels or "QR-Code, Kennung, Name und Ort" on 12 mm tape.
+  Templates whose QR code would be too small to scan at a printer's resolution are not offered on it
+  (9 mm tape on the E550W).
+  * Which templates are meant for a subject, and which comes first, say the templates' **rules**
+    (see [label templates](#label-templates-and-images)): the one of the highest print priority is
+    preselected (for a location: the one it was printed with last), the others above priority 0 are
+    shown, those of priority 0 under **more labels**, unless none ranks higher.
   * Each choice has a preview and either the printer it would print on or why no printer can
     print it now.
   * The server picks the printer: active, reachable, with these labels and, as far as it
@@ -28,21 +33,24 @@ Brother gets P-touch raster data. The code is in the app `label_printing`.
     minutes (`PRINT_WAIT_MAX`) and is printed as soon as a printer can (a print agent back online,
     the right tape loaded, labels of that size put into a printer). Otherwise it expires unprinted.
     The dialog follows the job as long as it waits. Without any active printer nothing waits.
-  * A location with sub-locations (e.g. a shelf with compartments) can print theirs in the same
-    job. The dialog remembers the label chosen last for each kind.
-  * More than ten labels at once (`PRINT_CONFIRM_LABELS`, sub-locations and copies counted) must
-    be confirmed; more than 50 (`PRINT_MAX_LABELS`) are refused.
-* **Price tags** (location pages): a label of each bulk item stored at the location, with the item
-  templates; by default only of the items with a sale price.
+  * **Also its sub-locations** (e.g. a shelf with its compartments) shows an overview instead: a row per
+    location, each with the template best for it preselected (the compartment's arrow it was printed with
+    last), to change or to leave out. Each label is a job of its own; the jobs of one print form a batch
+    that the dialog follows together ("12 of 30 labels printed, 2 waiting for a printer").
+* **Price tags** (location pages): the same overview with a row per bulk item stored at the location,
+  each with its best item template (a price tag for items with a sale price); **only items with a sale
+  price** chooses the rows.
 * **Item pages** (bulk items): the same, with the location the label is for. Item labels show
   name, price per unit (items for sale) and a QR code.
-* **Unique items (ZAMid):** the **Label** button on a unique item's page and on an ID's info page
-  (`/id/<code>/info/`) prints the ID's label: "ZAMid" (lettering, QR code, ID) or "ZAMid: QR + ID".
-  Batches: the admin action **Print labels** on selected IDs, or `manage.py label_id_labels --batch
-  NAME --print PRINTER [--tape 12]` (the printer's short name), with the medium's first ZAMid
-  template; jobs of at most 20 labels. An ID's *printed at* is set once the printer reports the
-  label printed. The ID's info page and its admin page show its label drawn from a ZAMid template
-  (`label_printing.outcomes.preview_template`); unique item pages have no label section of their own.
+* **Unique items:** the **Label** button on a unique item's page prints the unique item: with the templates
+  for unique items ("ZAMid mit Eigentum" for items of another owner) and the label ID templates by its ID
+  ("ZAMid", "ZAMid: QR + ID"). A unique item without a label ID gets one when it is first printed.
+* **Label IDs (ZAMid):** the **Label** button on an ID's info page (`/id/<code>/info/`) prints the ID's
+  label. Batches of reserved IDs: the admin action **Print labels** on selected IDs, or `manage.py
+  label_id_labels --batch NAME --print PRINTER [--tape 12]` (the printer's short name), with the label
+  ID template its rules put first on that medium; jobs of at most 20 labels. An ID's *printed at* is set
+  once the printer reports the label printed. The ID's info page and its admin page show its label
+  (`label_printing.selection.preferred_template`).
 * **After creating** a box, carton, pallet, shelf or compartments, the new location's page opens
   the dialog right away (`?print=1`) for whoever may print.
 * The previews show the label as the printer gets it, in the tape's colours for Brother tapes
@@ -110,21 +118,33 @@ for removing. The location from the label (`?loc=`) comes first and is marked in
 4. **Test label** (30 mm on tape) and **Check the printer status** are actions on the printer list.
 
 The location admin's print actions, its **Print label** button and printing after mass creation
-use the default printer and its default medium (a Zebra: its loaded labels), with the location's
-own template or its type's if the medium offers it.
+use the default printer and its default medium (a Zebra: its loaded labels), with the template the
+location was printed with last, else the one its rules put first. Mass creation may preselect a
+template for the new locations and their sub-locations.
 
 ### Label templates and images
 
-**Label templates** (admin → Inventory) are for locations, bulk items or unique items (ZAMid):
+**Label templates** (admin → Inventory) are for locations, items, unique items or label IDs (ZAMid):
 * Each is written in the label description language: [label designs](label-designs.md).
 * The name says what is on the label; its size comes from the description and is shown beside the
   name.
+* **Rules** (rows below the template) say which subjects it is meant for and how much: a condition as
+  in `{% if %}`, with the variables of the labels (`location.type.category == "container"`,
+  `item.kind == "bulk" and item.sale_price is not None`, `unique_item.has_owner`; empty: always), and the
+  **print priority** while it holds. A template is meant for a subject while one of its rules holds; its
+  priority is the highest of those. Without rules it is meant for every subject of its kind, on request
+  (priority 0). The list of templates shows the rules.
 * Templates can be **deactivated** (field or list action): they are then neither offered nor
   printed, not even by waiting jobs or the admin's print actions.
 * The page shows the label beside the description while it is typed, with real records and with
   the printer it is for chosen or none. Mistakes are listed by line, and a template with mistakes
   is not saved.
-* The location page shows the location's label (its template, else its type's).
+* The location page shows the location's label: with the template it was printed with last, else the
+  one its rules put first.
+* **Last labels** (`LastLabel`) remember the template each location was printed with last. Migration
+  `label_printing.0002` made the templates chosen before (`Location.label_template`, else the location
+  type's `default_label_template`) the locations' last labels, so they keep their labels; the rules decide
+  for new locations.
 
 **Label images** (admin → Label printing) are logos, safety signs and tool icons:
 * Each image is stored once in its full size and cut down on its page by dragging.
@@ -139,8 +159,23 @@ plain design and its ZPL as comments. It also added templates for 57 × 32, 60 �
 * locations: "QR-Code, Kennung, Name und Ort" (QR code, code, name, path);
 * bulk items: "Name, Preis und QR-Code", and "Preisschild" (price with € in a price tag frame, unit,
   name, QR code) on 60 × 30 mm labels and on 12, 18 and 24 mm tape;
-* unique items: "ZAMid" (lettering, QR code, ID in two lines; on tape with a margin of at least
-  1 mm at top and bottom) and "ZAMid: QR + ID".
+* label IDs: "ZAMid" (lettering, QR code, ID in two lines; on tape with a margin of at least
+  1 mm at top and bottom) and "ZAMid: QR + ID";
+* unique items: "ZAMid mit Eigentum" (the ZAMid design and the owner's first name).
+
+Their rules:
+
+| Template | Condition | Priority |
+|---|---|---|
+| QR-Code, Kennung, Name und Ort | always | 1 |
+| Fester Standort | `location.type.category != "container"`; always | 2; 0 |
+| Fester Standort, Pfeil hoch / runter | `location.type.category == "storage_unit"`; always | 1; 0 |
+| Mobil, mit Logo und Eigentum | `location.type.category == "container"`; always | 2; 0 |
+| Name, Preis und QR-Code | `item.kind == "bulk"` | 1 |
+| Preisschild | `item.kind == "bulk" and item.sale_price is not None` | 2 |
+| ZAMid | always | 2 |
+| ZAMid: QR + ID | always | 1 |
+| ZAMid mit Eigentum | `unique_item.has_owner` | 3 |
 
 Fonts:
 * Raleway and Roboto Mono (the ZAMid's),
@@ -270,8 +305,6 @@ The tests start the simulator on free ports (`label_printing/tests/helpers.py`).
 | `PRINT_JOB_LEASE` | 180 | seconds a job may be printing without a result |
 | `PRINT_AGENT_OFFLINE_AFTER` | 30 | seconds after an agent's last request that its printers count as offline |
 | `PRINT_MAX_COPIES` | 20 | most copies per job |
-| `PRINT_CONFIRM_LABELS` | 10 | more labels at once must be confirmed in the dialog |
-| `PRINT_MAX_LABELS` | 50 | most labels the dialog prints at once |
 | `PRINT_WAIT_MAX` | 300 | seconds a label no printer can print now may wait for one |
 | `PRINT_AGENT_MAX_PENDING` | 20 | agents that may wait for activation |
 | `PRINT_AGENT_MAX_PRINTERS` | 20 | printers an agent may register |

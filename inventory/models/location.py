@@ -87,15 +87,6 @@ class LocationType(models.Model):
         blank=True,
     )
 
-    default_label_template = models.ForeignKey(
-        "LocationLabelTemplate",
-        limit_choices_to={"subject_type": "location"},
-        null=True,
-        blank=True,
-        on_delete=models.SET_NULL,
-        verbose_name=_("default label template"),
-    )
-
     # Fixed building structure (docs/location-structure.md). With the unique flag a location of
     # this type has its own building-wide code; without it, it is a numbered part of its parent.
     class Structure(models.TextChoices):
@@ -306,9 +297,9 @@ class LocationType(models.Model):
 
 
 class LocationLabelTemplate(models.Model):
-    """A label design (label_printing.design) for locations, items or label IDs; the model's name is kept from
-    when templates were ZPL for locations only. Its size comes from the design's first line; names say what is
-    on the label, not its size."""
+    """A label design (label_printing.design) for locations, items, unique items or label IDs; the model's name is
+    kept from when templates were ZPL for locations only. Its size comes from the design's first line; names say
+    what is on the label, not its size. Its rules (LabelTemplateRule) say which subjects it is meant for."""
 
     class Meta:
         verbose_name = _("label template")
@@ -318,8 +309,10 @@ class LocationLabelTemplate(models.Model):
 
     class SubjectType(models.TextChoices):
         LOCATION = "location", _("location")
-        ITEM = "item", _("bulk item")
-        LABEL_ID = "labelid", _("unique item (ZAMid)")
+        ITEM = "item", _("item")
+        UNIQUE_ITEM = "uniqueitem", _("unique item")
+        # Also for unique items, by their label ID
+        LABEL_ID = "labelid", _("label ID (ZAMid)")
 
     name = models.CharField(_("name"), max_length=128)
     subject_type = models.CharField(_("labels for"), max_length=16, choices=SubjectType.choices,
@@ -358,6 +351,38 @@ class LocationLabelTemplate(models.Model):
     def __str__(self):
         return f"{self.name} ({self.size_text})"
 
+
+
+class LabelTemplateRule(models.Model):
+    """When a label template is meant for a subject, and how much (label_printing.selection): a condition over the
+    subject's variables as in {% if %}, e.g. location.type.category == "container" (empty: always), and the print
+    priority while it holds. The print dialog preselects the template of the highest priority, offers those above
+    0 and the others on request (unless none ranks higher). A template without rules is meant for every subject of
+    its kind, on request."""
+
+    class Meta:
+        verbose_name = _("rule")
+        verbose_name_plural = _("rules")
+        ordering = ("-priority", "pk")
+
+    template = models.ForeignKey(LocationLabelTemplate, on_delete=models.CASCADE, related_name="rules",
+                                 verbose_name=_("label template"))
+    condition = models.CharField(
+        _("condition"), max_length=500, blank=True,
+        help_text=_('As in {% if %} with the variables of the labels, e.g. location.type.category == "container"; '
+                    "empty: always."))
+    priority = models.PositiveSmallIntegerField(
+        _("print priority"), default=1,
+        help_text=_("The highest is preselected; 0: offered only on request, unless none ranks higher."))
+
+    def clean(self):
+        from label_printing.design.texts import condition_error
+
+        if error := condition_error(self.condition):
+            raise ValidationError({"condition": error})
+
+    def __str__(self):
+        return f"{self.priority}: {self.condition or gettext('always')}"
 
 class LocationAxis(models.Model):
     """A vertical axis of the site: locations in one axis lie roughly above each other."""
@@ -559,14 +584,6 @@ class Location(SoftDeleteModel, ComputedFieldsModel):
         _("overview photo"), upload_to=get_location_overview_upload_path, blank=True,
     )
 
-    label_template = models.ForeignKey(
-        "LocationLabelTemplate",
-        limit_choices_to={"subject_type": "location"},
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        verbose_name=_("label template"),
-    )
 
     parent_location = models.ForeignKey(
         "self",
@@ -923,11 +940,12 @@ class Location(SoftDeleteModel, ComputedFieldsModel):
         return self.name + f" [{self.short_name}]"
 
     def label_preview_url(self):
-        """The location's label (its template, else its type's) as an image (label_printing.views)."""
-        template_id = self.label_template_id or self.type.default_label_template_id
-        if self.pk is None or template_id is None:
-            return None
-        return reverse("label_template_preview", args=[template_id, "location", self.pk])
+        """The location's label as an image (label_printing.views): with the template it was printed with last,
+        else the one its rules put first (label_printing.selection)."""
+        from label_printing.selection import preferred_template
+
+        template = preferred_template("location", self) if self.pk else None
+        return reverse("label_template_preview", args=[template.pk, "location", self.pk]) if template else None
 
     def label_image_tag(self):
         url = self.label_preview_url()

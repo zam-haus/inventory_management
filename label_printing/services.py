@@ -16,8 +16,8 @@ from django.utils import timezone
 from django.utils.translation import gettext as _
 
 from inventory.label_ids import services as label_ids
-from inventory.models import Item, LabelId, Location
-from . import drivers, label_urls, messages
+from inventory.models import Item, LabelId, Location, UniqueItem
+from . import drivers, label_urls, messages, selection
 from .devices.io import TcpDevice
 from .devices.run import DONE, FAILED, SENT, Result, query_status, run_job
 from .layouts import Canvas, LabelTooSmall, NotRendered, get_layout, layouts_for
@@ -58,7 +58,7 @@ def render(layout, subjects, medium, preview=False, user=None, quality=Quality.S
 
 
 def submit(*, printer, medium, layout_key, subject_type, subjects, copies=1, user=None, request_id=None,
-           quality=None):
+           quality=None, batch=None):
     """Queue labels for `subjects` (all of `subject_type`); a known request_id returns its job instead.
     Without a quality, the layout's (a label template's), else the medium's."""
     if request_id and (job := PrintJob.objects.filter(request_id=request_id).first()):
@@ -95,7 +95,7 @@ def submit(*, printer, medium, layout_key, subject_type, subjects, copies=1, use
                 subject_id=pk if isinstance(pk := getattr(subjects[0], "pk", None), int) else None,
                 subject_label=label[:255],
                 label_code=rendered[0].label_code, snapshot=[label.snapshot for label in rendered],
-                copies=copies, pages=pages, quality=quality, payload=payload, request_id=request_id,
+                copies=copies, pages=pages, quality=quality, payload=payload, request_id=request_id, batch=batch,
             )
     except IntegrityError:
         if request_id:  # the same request, submitted twice at once
@@ -139,8 +139,10 @@ def finish(job, result):
     )
     job.printer.remember_status(result.printer_status)
     job.refresh_from_db()
-    if job.subject_type == "labelid" and job.status in (PrintJob.Status.DONE, PrintJob.Status.SENT):
-        label_ids.mark_printed(entry["code"] for entry in job.snapshot if entry.get("code"))
+    if job.status in (PrintJob.Status.DONE, PrintJob.Status.SENT):
+        if job.subject_type in ("labelid", "uniqueitem"):
+            label_ids.mark_printed(entry["code"] for entry in job.snapshot if entry.get("code"))
+        selection.remember_job(job)
     return job
 
 
@@ -188,6 +190,8 @@ def subject_refs(subjects):
             refs.append({"type": "item", "id": subject.item.pk, "location": getattr(subject.location, "pk", None)})
         elif isinstance(subject, LabelId):
             refs.append({"type": "labelid", "code": subject.code})
+        elif isinstance(subject, UniqueItem):
+            refs.append({"type": "uniqueitem", "id": subject.pk})
         else:
             refs.append({"type": "location", "id": subject.pk})
     return refs
@@ -205,13 +209,15 @@ def subjects_of_refs(refs):
             subjects.append(label_urls.ItemAt(item, location))
         elif ref["type"] == "labelid":
             subjects.append(LabelId.objects.get(code=ref["code"]))
+        elif ref["type"] == "uniqueitem":
+            subjects.append(UniqueItem.objects.select_related("item", "location").get(pk=ref["id"]))
         else:
             subjects.append(Location.active.get(pk=ref["id"]))
     return subjects
 
 
 def submit_outcome(outcome, *, subject_type, subjects, copies=1, user=None, request_id=None, quality=None,
-                   wait=False):
+                   wait=False, batch=None):
     """Print a label outcome (outcomes.py) on the printer that can print it now; else, with wait, queue a job
     that waits for one (PRINT_WAIT_MAX)."""
     if request_id and (job := PrintJob.objects.filter(request_id=request_id).first()):
@@ -220,14 +226,14 @@ def submit_outcome(outcome, *, subject_type, subjects, copies=1, user=None, requ
     if target is not None:
         return submit(printer=target.printer, medium=target.medium, layout_key=outcome.layout.key,
                       subject_type=subject_type, subjects=subjects, copies=copies, user=user, request_id=request_id,
-                      quality=quality)
+                      quality=quality, batch=batch)
     if not wait or not outcome.can_wait:
         raise PrintError(outcome.why_not or _("No printer can print this label now."))
     return queue_waiting(outcome, subject_type=subject_type, subjects=subjects, copies=copies, user=user,
-                         request_id=request_id, quality=quality)
+                         request_id=request_id, quality=quality, batch=batch)
 
 
-def queue_waiting(outcome, *, subject_type, subjects, copies, user, request_id, quality):
+def queue_waiting(outcome, *, subject_type, subjects, copies, user, request_id, quality, batch=None):
     if not 1 <= copies <= settings.PRINT_MAX_COPIES:
         raise PrintError(_("Print between 1 and %(max)d copies.") % {"max": settings.PRINT_MAX_COPIES})
     if quality and quality not in Quality.values:
@@ -242,7 +248,7 @@ def queue_waiting(outcome, *, subject_type, subjects, copies, user, request_id, 
             quality=quality or outcome.layout.quality or (outcome.targets[0].medium.quality if outcome.targets
                                                           else Quality.STANDARD),
             status=PrintJob.Status.WAITING,
-            outcome=outcome.key, request={"subjects": subject_refs(subjects)}, request_id=request_id,
+            outcome=outcome.key, request={"subjects": subject_refs(subjects)}, request_id=request_id, batch=batch,
             expires_at=timezone.now() + timedelta(seconds=settings.PRINT_WAIT_MAX),
         )
     except IntegrityError:
@@ -382,15 +388,11 @@ def default_target():
 
 
 def location_layout(location, printer, medium):
-    """The location's own template or its type's, if offered for the medium; else the first location template."""
-    layouts = layouts_for("location", printer, medium)
-    preferred = location.label_template_id or location.type.default_label_template_id
-    for layout in layouts:
-        if getattr(layout, "template", None) is not None and layout.template.pk == preferred:
-            return layout
-    if not layouts:
+    """The template for a location on the medium: its last one, else by the templates' rules (selection.py)."""
+    layout = selection.best_layout("location", location, layouts_for("location", printer, medium))
+    if layout is None:
         raise PrintError(_("No location label fits %(medium)s.") % {"medium": medium})
-    return layouts[0]
+    return layout
 
 
 def print_locations(locations, copies=1, user=None, printer=None, medium=None):
@@ -454,14 +456,14 @@ def reprint(job, user=None):
 
 
 def print_label_ids(lids, user=None, printer=None, medium=None, copies=1, chunk=20):
-    """Label ID labels on the default printer (or the given one), with its first label ID layout;
+    """Label ID labels on the default printer (or the given one), with the label ID template its rules put first;
     jobs of at most `chunk` labels, so long batches are not taken for stuck jobs."""
     if printer is None:
         printer, medium = default_target()
-    layouts = layouts_for("labelid", printer, medium)
-    if not layouts:
-        raise PrintError(_("No label ID label fits %(medium)s.") % {"medium": medium})
     lids = list(lids)
-    return [submit(printer=printer, medium=medium, layout_key=layouts[0].key, subject_type="labelid",
+    layout = selection.best_layout("labelid", lids[0], layouts_for("labelid", printer, medium)) if lids else None
+    if layout is None:
+        raise PrintError(_("No label ID label fits %(medium)s.") % {"medium": medium})
+    return [submit(printer=printer, medium=medium, layout_key=layout.key, subject_type="labelid",
                    subjects=lids[start:start + chunk], copies=copies, user=user)
             for start in range(0, len(lids), chunk)]

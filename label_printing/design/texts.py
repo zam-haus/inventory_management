@@ -8,6 +8,7 @@ import functools
 import re
 
 from django.template import Context as TemplateContext, Engine, TemplateSyntaxError
+from django.utils.translation import gettext as _
 
 ENGINE = Engine()
 # The same with a mark where a variable has no value, to show which (only in previews).
@@ -38,3 +39,23 @@ def missing(source, variables):
     """The variables without a value for these variables (there are none such, or None on the way), in order."""
     marked = compiled(source, marking=True).render(TemplateContext(variables, autoescape=False))
     return list(dict.fromkeys(MARKED.findall(marked)))
+
+
+def condition_source(condition):
+    """A rule's condition (inventory.LabelTemplateRule) as a template that renders "1" while it holds."""
+    return "{% if " + condition + " %}1{% endif %}" if condition.strip() else "1"
+
+
+def condition_error(condition):
+    """What is wrong with a rule's condition, or None."""
+    if "%}" in condition or "{%" in condition:
+        return _("Write the condition alone, without {% if %}.")
+    return syntax_error(condition_source(condition))
+
+
+def holds(condition, variables):
+    """Whether a rule's condition holds for these variables; a condition that fails holds not."""
+    try:
+        return render(condition_source(condition), variables) == "1"
+    except Exception:  # noqa: BLE001 - a property that raises means the rule is not met
+        return False

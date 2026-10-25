@@ -6,8 +6,10 @@ The labels to start with, from the inventory as it was (location label templates
   the sizes of the ZPL templates;
 * the ZPL templates described anew in the label description language (docs/label-designs.md), their logo as the
   label image "ZAM Logo"; templates it does not know get a plain design with their ZPL as comments;
-* label templates for locations, bulk items and unique items (ZAMid) for the Zebra labels in use and every
-  Brother tape width (templates a printer cannot print are not offered on it), and price tags.
+* label templates for locations, items, unique items and label IDs (ZAMid) for the Zebra labels in use and every
+  Brother tape width (templates a printer cannot print are not offered on it), and price tags;
+* the rules of all templates (which subjects they are meant for, with their print priority), and each location's
+  chosen template (else its type's) as the label it was printed with last (LastLabel).
 """
 import io
 import json
@@ -342,6 +344,56 @@ TAPES = [9, 12, 18, 24, 36]
 CARDS = [(57, 32), (60, 30), (70, 32), (105, 52)]
 
 
+OWNER = "{{ unique_item.owner_first_name_display }}"
+
+
+def owned_tape(tape):
+    return f"""# ZAMid of a unique item that is not the ZAM's, on {tape} mm tape: the ZAMid design and the owner
+label height {tape}  margin 1
+row  gap {mm(tape * 0.08)}
+  text {LABEL_ID_NAME}  rotate 270  font sans  weight 800
+  qr {QR}  quiet 1
+  column
+    text {LABEL_ID_1}  font mono  bold  center
+    line  thickness {mm(max(0.2, tape * 0.025))}  width {mm(tape * 0.22)}
+    text {LABEL_ID_2}  font mono  bold  center
+  column  align left
+    text "Eigentum"  font condensed  height 35%
+    text {OWNER}  font condensed  bold  height 55%
+"""
+
+
+def owned_card(width, height):
+    return f"""# ZAMid of a unique item that is not the ZAM's, on {width} × {height} mm labels: the ZAMid design, below it
+# the owner
+label {width} x {height}  margin 1.5
+row  gap 1.5  height 75%
+  text {LABEL_ID_NAME}  rotate 270  font sans  weight 800
+  qr {QR}  quiet 1
+  column
+    text {LABEL_ID_1}  font mono  bold  center
+    line  thickness {mm(height * 0.02)}  width {mm(height * 0.24)}
+    text {LABEL_ID_2}  font mono  bold  center
+text "Eigentum: {OWNER}"  font condensed  bold  center
+"""
+
+
+# Which subjects the templates are meant for (inventory.LabelTemplateRule): [(condition, print priority)]. The
+# highest priority is preselected; 0 is offered only on request. Unknown templates: on request.
+RULES = {
+    "QR-Code, Kennung, Name und Ort": [("", 1)],
+    "Fester Standort": [('location.type.category != "container"', 2), ("", 0)],
+    "Fester Standort, Pfeil hoch": [('location.type.category == "storage_unit"', 1), ("", 0)],
+    "Fester Standort, Pfeil runter": [('location.type.category == "storage_unit"', 1), ("", 0)],
+    "Mobil, mit Logo und Eigentum": [('location.type.category == "container"', 2), ("", 0)],
+    "Name, Preis und QR-Code": [('item.kind == "bulk"', 1)],
+    "Preisschild": [('item.kind == "bulk" and item.sale_price is not None', 2)],
+    "ZAMid": [("", 2)],
+    "ZAMid: QR + ID": [("", 1)],
+    "ZAMid mit Eigentum": [("unique_item.has_owner", 3)],
+}
+
+
 def new_templates():
     """[(name, subject type, description)]"""
     found = []
@@ -355,6 +407,8 @@ def new_templates():
                   ("Name, Preis und QR-Code", "item", item_tape(tape)),
                   ("ZAMid", "labelid", zamid_tape(tape)),
                   ("ZAMid: QR + ID", "labelid", plain_tape(tape))]
+    found += [("ZAMid mit Eigentum", "uniqueitem", owned_card(width, height)) for width, height in CARDS]
+    found += [("ZAMid mit Eigentum", "uniqueitem", owned_tape(tape)) for tape in TAPES]
     return found + [("Preisschild", "item", description) for description in PRICE_TAGS]
 
 
@@ -384,6 +438,17 @@ def labels_to_start_with(apps, schema_editor):
         width, height = size_of(description)
         Template.objects.create(name=name, subject_type=subject_type, description=description, label_width=width,
                                 label_height=height)
+    Rule = apps.get_model("inventory", "LabelTemplateRule")
+    Rule.objects.bulk_create([Rule(template=template, condition=condition, priority=priority)
+                              for template in Template.objects.all()
+                              for condition, priority in RULES.get(template.name, [("", 0)])])
+    # The template chosen for a location (else for its type) is preselected when it is printed again: existing
+    # locations keep their labels; the rules decide for new ones.
+    LastLabel = apps.get_model("label_printing", "LastLabel")
+    LastLabel.objects.bulk_create([
+        LastLabel(subject_type="location", subject_pk=str(pk), template_id=own or of_type)
+        for pk, own, of_type in apps.get_model("inventory", "Location").objects.values_list(
+            "pk", "label_template_id", "type__default_label_template_id") if own or of_type])
 
 
 def back(apps, schema_editor):
@@ -391,6 +456,8 @@ def back(apps, schema_editor):
     Template = apps.get_model("inventory", "LocationLabelTemplate")
     made = Template.objects.filter(name__in={name for name, _kind, _description in new_templates()})
     ids = list(made.values_list("pk", flat=True))
+    apps.get_model("label_printing", "LastLabel").objects.all().delete()
+    apps.get_model("inventory", "LabelTemplateRule").objects.all().delete()
     apps.get_model("inventory", "LocationType").objects.filter(default_label_template_id__in=ids).update(
         default_label_template=None)
     apps.get_model("inventory", "Location").objects.filter(label_template_id__in=ids).update(label_template=None)

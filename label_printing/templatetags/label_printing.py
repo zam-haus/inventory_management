@@ -20,7 +20,7 @@ def print_state(context, obj, subject_type):
     key = (subject_type, obj.pk)
     if key not in cache:
         options = dialog.options(subject_type, obj)
-        cache[key] = (True, options, dialog.unavailable_reason(options))
+        cache[key] = (True, options, dialog.unavailable_reason(subject_type, options))
     return cache[key]
 
 

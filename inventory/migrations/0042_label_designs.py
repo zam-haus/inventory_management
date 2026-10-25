@@ -3,8 +3,9 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-    """Label templates become label designs (label_printing.design) for locations, bulk items or unique items;
-    label_printing.0002 describes the ZPL templates anew, 0043 removes their ZPL."""
+    """Label templates become label designs (label_printing.design) for locations, items, unique items or label IDs,
+    with rules for which subjects they are meant; label_printing.0002 describes the ZPL templates anew, 0043 removes
+    their ZPL and the templates chosen per location type and location (now rules and the last label printed)."""
 
     dependencies = [
         ("inventory", "0041_admin_only_locks_purpose"),
@@ -19,8 +20,8 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name="locationlabeltemplate",
             name="subject_type",
-            field=models.CharField(choices=[("location", "location"), ("item", "bulk item"),
-                                            ("labelid", "unique item (ZAMid)")],
+            field=models.CharField(choices=[("location", "location"), ("item", "item"), ("uniqueitem", "unique item"),
+                                            ("labelid", "label ID (ZAMid)")],
                                    default="location", max_length=16, verbose_name="labels for"),
         ),
         migrations.AddField(
@@ -68,5 +69,50 @@ class Migration(migrations.Migration):
             field=models.ForeignKey(blank=True, limit_choices_to={"subject_type": "location"}, null=True,
                                     on_delete=django.db.models.deletion.SET_NULL,
                                     to="inventory.locationlabeltemplate", verbose_name="default label template"),
+        ),
+        migrations.CreateModel(
+            name="LabelTemplateRule",
+            fields=[
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                (
+                    "condition",
+                    models.CharField(
+                        blank=True,
+                        help_text='As in {% if %} with the variables of the labels, e.g. location.type.category == "container"; empty: always.',
+                        max_length=500,
+                        verbose_name="condition",
+                    ),
+                ),
+                (
+                    "priority",
+                    models.PositiveSmallIntegerField(
+                        default=1,
+                        help_text="The highest is preselected; 0: offered only on request, unless none ranks higher.",
+                        verbose_name="print priority",
+                    ),
+                ),
+                (
+                    "template",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="rules",
+                        to="inventory.locationlabeltemplate",
+                        verbose_name="label template",
+                    ),
+                ),
+            ],
+            options={
+                "verbose_name": "rule",
+                "verbose_name_plural": "rules",
+                "ordering": ("-priority", "pk"),
+            },
         ),
     ]

@@ -1,5 +1,6 @@
 import base64
 import io
+import uuid
 from pathlib import Path
 
 import markdown
@@ -9,6 +10,7 @@ from django.contrib import admin, messages
 from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib.auth.decorators import login_required, permission_required
 from django.contrib.auth.mixins import PermissionRequiredMixin
+from django.db import transaction
 from django.http import Http404, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
@@ -22,7 +24,7 @@ from django.utils.translation import gettext
 from django.views.decorators.http import require_POST, require_safe
 
 from inventory.models import LabelId, LocationLabelTemplate
-from . import dialog, editor, label_urls, services
+from . import dialog, editor, selection, services
 from .design import variables as design_variables
 from .render import coloured
 from .layouts import get_layout
@@ -60,10 +62,41 @@ def job_status(request, pk):
     return JsonResponse(job_data(job))
 
 
+def batch_data(batch, jobs):
+    """How the jobs of a print from the overview are getting on, all in one."""
+    counts = {status: sum(1 for job in jobs if job.status == status) for status in PrintJob.Status.values}
+    printed = counts[PrintJob.Status.DONE] + counts[PrintJob.Status.SENT]
+    parts = [gettext("%(printed)d of %(total)d labels printed") % {"printed": printed, "total": len(jobs)}]
+    if counts[PrintJob.Status.WAITING]:
+        parts.append(gettext("%(count)d waiting for a printer") % {"count": counts[PrintJob.Status.WAITING]})
+    failed = counts[PrintJob.Status.FAILED] + counts[PrintJob.Status.EXPIRED]
+    if failed:
+        parts.append(gettext("%(count)d not printed") % {"count": failed})
+    finished = all(job.is_finished for job in jobs)
+    return {"id": str(batch), "finished": finished, "ok": finished and not failed,
+            "message": ", ".join(parts) + ".", "jobs": [job_data(job) for job in jobs]}
+
+
+@require_safe
+@login_required
+def batch_status(request, batch):
+    """How the jobs of a print from the overview are getting on (see job_status)."""
+    services.expire_stale()
+    jobs = PrintJob.objects.filter(batch=batch).order_by("pk")
+    if not request.user.has_perm("label_printing.view_printjob"):
+        jobs = jobs.filter(user=request.user)
+    if not jobs:
+        raise Http404
+    if any(job.status == PrintJob.Status.WAITING for job in jobs):
+        services.dispatch_waiting()
+    return JsonResponse(batch_data(batch, list(jobs.all())))
+
+
 @method_decorator(never_cache, name="dispatch")
 class PrintLabelsView(PermissionRequiredMixin, View):
-    """Print labels of a location, an item, a label ID or the items at a location: the dialog's form as a page
-    (without JavaScript), and where the dialog posts to (JSON with the job, which the dialog then follows)."""
+    """Print labels of a location (and its sub-locations), an item, a unique item, a label ID or the items at a
+    location: the dialog's form as a page (without JavaScript), and where the dialog posts to (JSON with the job,
+    or the batch of an overview, which the dialog then follows)."""
     permission_required = "label_printing.print_label"
 
     def setup(self, request, *args, **kwargs):
@@ -72,9 +105,10 @@ class PrintLabelsView(PermissionRequiredMixin, View):
         self.obj = dialog.subject_object(self.subject_type, kwargs["pk"])
 
     def render_page(self, form, status=200):
+        print_options = dialog.options(self.subject_type, self.obj)
         return render(self.request, "label_printing/print_page.html", {
-            "form": form, "object": self.obj, "subject_type": self.subject_type,
-            "print_options": dialog.options(self.subject_type, self.obj),
+            "form": form, "object": self.obj, "subject_type": self.subject_type, "print_options": print_options,
+            "unavailable": dialog.unavailable_reason(self.subject_type, print_options),
             "options_id": f"label-print-options-{self.subject_type}",
             "print_title": dialog.title(self.subject_type, self.obj), "back_url": self.back_url(),
         }, status=status)
@@ -90,25 +124,34 @@ class PrintLabelsView(PermissionRequiredMixin, View):
     def post(self, request, subject_type, pk):
         wants_json = "application/json" in request.headers.get("Accept", "")
         form = dialog.PrintForm(request.POST, subject_type=subject_type, obj=self.obj)
-        job = None
+        jobs = []
         if form.is_valid():
-            data = form.cleaned_data
+            # A job per label; those of an overview as a batch, followed together
+            batch = uuid.uuid5(form.cleaned_data["request_id"], "batch") if form.overview and form.cleaned_data[
+                "request_id"] else (uuid.uuid4() if form.overview else None)
             try:
-                job = services.submit_outcome(form.chosen, subject_type=dialog.label_kind(subject_type),
-                                              subjects=form.subjects(),
-                                              copies=data["copies"], user=request.user, request_id=data["request_id"],
-                                              wait=True)
+                with transaction.atomic():
+                    for outcome, subject, request_id in form.jobs(request.user):
+                        jobs.append(services.submit_outcome(
+                            outcome, subject_type=outcome.layout.subject_type, subjects=[subject],
+                            copies=form.cleaned_data["copies"], user=request.user, request_id=request_id,
+                            wait=True, batch=batch))
             except services.PrintError as error:
+                jobs = []
                 form.add_error(None, str(error))
-        if job is None:
+        if not jobs:
             if wants_json:
                 return JsonResponse({"ok": False, "errors": form.errors.get_json_data()}, status=400)
             return self.render_page(form, status=400)
-        job.refresh_from_db()  # without a broker it is printed already
+        for job in jobs:
+            job.refresh_from_db()  # without a broker it is printed already
         if wants_json:
-            return JsonResponse({"ok": True, "job": job_data(job)})
-        level = messages.ERROR if job.status == PrintJob.Status.FAILED else messages.SUCCESS
-        messages.add_message(request, level, job_data(job)["message"])
+            if form.overview:
+                return JsonResponse({"ok": True, "batch": batch_data(jobs[0].batch, jobs)})
+            return JsonResponse({"ok": True, "job": job_data(jobs[0])})
+        data = batch_data(jobs[0].batch, jobs) if form.overview else job_data(jobs[0])
+        failed = any(job.status == PrintJob.Status.FAILED for job in jobs)
+        messages.add_message(request, messages.ERROR if failed else messages.SUCCESS, data["message"])
         return redirect(self.back_url())
 
 
@@ -123,17 +166,14 @@ def preview(request, subject_type, pk):
         layout = get_layout(request.GET.get("layout", ""))
     except ValueError:
         raise Http404 from None
-    if layout.subject_type != dialog.label_kind(subject_type) or not layout.supports(medium.printer, medium):
+    if (layout.subject_type not in selection.KINDS.get(dialog.label_kind(subject_type), ())
+            or not layout.supports(medium.printer, medium)):
         raise Http404
     if subject_type == "item":
         locations = {str(location.pk): location for location in dialog.item_locations(obj)}
         subject = dialog.ItemAt(obj, locations.get(request.GET.get("location", "")))
-    elif subject_type == "items":  # the first price tag
-        subject = dialog.sample_item(obj)
-        if subject is None:
-            raise Http404
     else:
-        subject = obj
+        subject = selection.subject_for(layout.subject_type, obj)
     try:
         rendered, = services.render(layout, [subject], medium, preview=True)
     except services.PrintError as error:
@@ -156,27 +196,27 @@ def png_response(image, dpi, cache_control="private, max-age=60"):
     return response
 
 
-def template_subject(subject_type, pk):
-    """(subject, variables) for a template's preview; items with their first location."""
+def template_subject(subject_type, pk, location=None):
+    """The subject of a template's preview; items at the given location, else their first."""
     obj = dialog.subject_object(subject_type, pk)
-    if subject_type == "location":
-        return obj, design_variables.location_variables(obj)
     if subject_type == "item":
-        locations = dialog.item_locations(obj)
-        subject = dialog.ItemAt(obj, locations[0] if locations else None)
-        return subject, design_variables.item_variables(subject, label_urls.item_label_code(subject, create=False)
-                                                        or label_urls.PREVIEW_CODE)
-    return obj, design_variables.label_id_variables(obj)
+        locations = {str(entry.pk): entry for entry in dialog.item_locations(obj)}
+        return dialog.ItemAt(obj, locations.get(location or "") or next(iter(locations.values()), None))
+    return obj
 
 
 @require_safe
 def template_preview(request, pk, subject_type, subject_pk):
-    """A template's label for one location, item or label ID, without a printer (editor.nominal_canvas). Location
-    labels are public like the location page that shows them, and so are those of assigned label IDs: they only
-    show what is on the object anyway. The others for who may print (label IDs: or see them)."""
-    template = get_object_or_404(LocationLabelTemplate, pk=pk, subject_type=subject_type)
-    subject, variables = template_subject(subject_type, subject_pk)
-    public = subject_type == "location" or (subject_type == "labelid" and subject.status == LabelId.Status.ASSIGNED)
+    """A template's label for one location, item, unique item or label ID, without a printer
+    (editor.nominal_canvas). Location labels are public like the location page that shows them, and so are those
+    of unique items and assigned label IDs: they only show what is on the object anyway. The others for who may
+    print (label IDs: or see them)."""
+    template = get_object_or_404(LocationLabelTemplate, pk=pk,
+                                 subject_type__in=selection.KINDS.get(subject_type, ()))
+    subject = template_subject(subject_type, subject_pk, request.GET.get("location"))
+    variables = selection.variables_for(template.subject_type, subject)
+    public = subject_type in ("location", "uniqueitem") or (
+        subject_type == "labelid" and subject.status == LabelId.Status.ASSIGNED)
     if not (public or request.user.has_perm("label_printing.print_label")
             or (subject_type == "labelid" and request.user.has_perm("inventory.view_labelid"))):
         raise Http404

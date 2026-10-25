@@ -23,9 +23,9 @@ from .targets import RELATED_TARGETS
 
 def label_preview_url(lid):
     """The ID's label, drawn from a ZAMid label template (label_printing), or None if there is none."""
-    from label_printing.outcomes import preview_template
+    from label_printing.selection import preferred_template
 
-    template = preview_template("labelid")
+    template = preferred_template("labelid", lid)
     return reverse("label_template_preview", args=[template.pk, "labelid", lid.code]) if template else None
 
 

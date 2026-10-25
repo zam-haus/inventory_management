@@ -19,6 +19,7 @@ from django.views.generic import FormView
 from label_printing import editor as label_editor, services as label_printing
 from label_printing.layouts import designs as label_designs
 from label_printing.models import LabelMedium
+from label_printing.selection import remember_label
 
 from . import models
 from .icons import icon
@@ -71,17 +72,27 @@ class LocationLabelTemplateForm(forms.ModelForm):
         return data
 
 
+class LabelTemplateRuleInline(admin.TabularInline):
+    """Which subjects the template is meant for, and how much (label_printing.selection); without rules: every
+    subject of its kind, on request."""
+    model = models.LabelTemplateRule
+    extra = 0
+    fields = ("condition", "priority")
+    formfield_overrides = {CharField: {"widget": forms.TextInput(attrs={"size": 70, "spellcheck": "false"})}}
+
+
 class LocationLabelTemplateAdmin(admin.ModelAdmin):
     """Label templates: a label design written in the description language (docs/label-designs.md), with a
     preview the server renders while it is typed (label_printing/editor.py)."""
     model = models.LocationLabelTemplate
     form = LocationLabelTemplateForm
-    list_display = ("name", "sample", "subject_type", "size", "quality", "is_active")
+    list_display = ("name", "sample", "subject_type", "size", "rules_list", "quality", "is_active")
     list_filter = ("is_active", "subject_type", "quality")
     search_fields = ("name", "description")
     fields = ("name", "subject_type", "is_active", "quality", "description", "variables_list", "fitting_media")
     actions = ["activate", "deactivate"]
     readonly_fields = ("variables_list", "fitting_media")
+    inlines = [LabelTemplateRuleInline]
     change_form_template = "label_printing/admin/label_template_change_form.html"
 
     STARTER = (
@@ -107,6 +118,16 @@ class LocationLabelTemplateAdmin(admin.ModelAdmin):
         count = queryset.update(is_active=False)
         self.message_user(request, ngettext("%(count)d label template is inactive.", "%(count)d label templates are inactive.",
                                             count) % {"count": count})
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).prefetch_related("rules")
+
+    @admin.display(description=_("rules"))
+    def rules_list(self, obj):
+        rules = list(obj.rules.all())
+        if not rules:
+            return _("every one, on request")
+        return format_html_join("", "<div>{}</div>", ((str(rule),) for rule in rules))
 
     @admin.display(description=_("size"), ordering="label_width")
     def size(self, obj):
@@ -402,9 +423,9 @@ class MassAddLocationsForm(forms.Form):
         label=_("Location type"), required=True, queryset=models.LocationType.objects.all()
     )
     label_template = forms.ModelChoiceField(
-        label=_("Overwrite default location label template"),
-        required=False,
-        queryset=models.LocationLabelTemplate.objects.all(),
+        label=_("Label template"), required=False,
+        queryset=models.LocationLabelTemplate.objects.filter(subject_type="location", is_active=True),
+        help_text=_("Preselected for these locations from now on; empty: by the templates' rules."),
     )
     sequence_start = forms.CharField(label=_("Sequence start"), max_length=32)
     count = forms.IntegerField(label=_("Count"))
@@ -418,9 +439,9 @@ class MassAddLocationsForm(forms.Form):
         queryset=models.LocationType.objects.all(),
     )
     sub_label_template = forms.ModelChoiceField(
-        label=_("Overwrite default sub-location label template"),
-        required=False,
-        queryset=models.LocationLabelTemplate.objects.all(),
+        label=_("Sub-location label template"), required=False,
+        queryset=models.LocationLabelTemplate.objects.filter(subject_type="location", is_active=True),
+        help_text=_("Preselected for these locations from now on; empty: by the templates' rules."),
     )
     sub_count = forms.IntegerField(label=_("Sub-location count"), required=False)
     sub_print = forms.BooleanField(label=_("Print sub-location labels"), required=False)
@@ -471,9 +492,10 @@ class MassAddLocationsAdminView(PermissionRequiredMixin, FormView):
                 short_name=short_name,
                 type=loc_type,
                 parent_location=data["parent_location"],
-                label_template=data["label_template"],
                 physical_description=data["physical_description"] or "",
             )
+            if data["label_template"]:
+                remember_label(location, data["label_template"])
             if data["print"]:
                 to_print.append(location)
 
@@ -485,8 +507,9 @@ class MassAddLocationsAdminView(PermissionRequiredMixin, FormView):
                         short_name=short_name,
                         type=sub_type,
                         parent_location=location,
-                        label_template=data["sub_label_template"],
                     )
+                    if data["sub_label_template"]:
+                        remember_label(child, data["sub_label_template"])
                     if data["sub_print"]:
                         children_to_print.append(child)
 

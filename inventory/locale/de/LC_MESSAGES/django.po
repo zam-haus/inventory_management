@@ -3640,3 +3640,39 @@ msgstr "Muster"
 
 msgid "size"
 msgstr "Größe"
+
+msgid "rule"
+msgstr "Regel"
+
+msgid "rules"
+msgstr "Regeln"
+
+msgid "every one, on request"
+msgstr "für alle, auf Anfrage"
+
+msgid "Label template"
+msgstr "Etikettenvorlage"
+
+msgid "Sub-location label template"
+msgstr "Etikettenvorlage der Unterstandorte"
+
+msgid "Preselected for these locations from now on; empty: by the templates' rules."
+msgstr "Ab jetzt für diese Standorte vorausgewählt; leer: nach den Regeln der Vorlagen."
+
+msgid "label ID (ZAMid)"
+msgstr "Label-ID (ZAMid)"
+
+msgid "condition"
+msgstr "Bedingung"
+
+msgid "As in {% if %} with the variables of the labels, e.g. location.type.category == \"container\"; empty: always."
+msgstr "Wie in {% if %} mit den Variablen der Etiketten, z. B. location.type.category == \"container\"; leer: immer."
+
+msgid "print priority"
+msgstr "Druckpriorität"
+
+msgid "The highest is preselected; 0: offered only on request, unless none ranks higher."
+msgstr "Die höchste wird vorausgewählt; 0: nur auf Anfrage angeboten, außer keine ist höher."
+
+msgid "always"
+msgstr "immer"

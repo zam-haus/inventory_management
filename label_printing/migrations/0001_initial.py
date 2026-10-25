@@ -824,4 +824,59 @@ class Migration(migrations.Migration):
                 name="label_print_printer_ae3fd3_idx",
             ),
         ),
+        migrations.AddField(
+            model_name="printjob",
+            name="batch",
+            field=models.UUIDField(
+                blank=True,
+                db_index=True,
+                editable=False,
+                null=True,
+                verbose_name="batch",
+            ),
+        ),
+        migrations.CreateModel(
+            name="LastLabel",
+            fields=[
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                (
+                    "subject_type",
+                    models.CharField(max_length=32, verbose_name="subject type"),
+                ),
+                ("subject_pk", models.CharField(max_length=64, verbose_name="subject")),
+                (
+                    "printed_at",
+                    models.DateTimeField(
+                        default=django.utils.timezone.now, verbose_name="printed at"
+                    ),
+                ),
+                (
+                    "template",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="+",
+                        to="inventory.locationlabeltemplate",
+                        verbose_name="label template",
+                    ),
+                ),
+            ],
+            options={
+                "verbose_name": "last label",
+                "verbose_name_plural": "last labels",
+                "constraints": [
+                    models.UniqueConstraint(
+                        fields=("subject_type", "subject_pk"),
+                        name="last_label_per_subject",
+                    )
+                ],
+            },
+        ),
     ]

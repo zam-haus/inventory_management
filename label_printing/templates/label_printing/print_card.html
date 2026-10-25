@@ -1,0 +1,7 @@
+{# A label to choose in the print dialog (print_fields.html): its preview, name, size, and the printer or why none can print it now. #}<label class="label-outcome{% if not card.printer %} is-unavailable{% endif %}" data-outcome="{{ card.key }}">
+    <input class="label-outcome-input" type="radio" name="outcome" value="{{ card.key }}"{% if form.outcome.value == card.key or not form.outcome.value and card.chosen %} checked{% endif %}>
+    <span class="label-outcome-preview"><img src="{{ card.preview }}" alt="" loading="lazy" data-preview="{{ card.preview }}"></span>
+    <span class="label-outcome-name">{{ card.name }}</span>
+    <span class="label-outcome-size">{{ card.size }}</span>
+    <span class="label-outcome-state">{% if card.printer %}{{ card.printer }}{% else %}{{ card.reason }}{% endif %}</span>
+</label>

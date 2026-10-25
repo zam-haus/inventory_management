@@ -11,7 +11,7 @@
 {% block content %}
     <h1 class="h3 mt-3">{% icon "tag" %} {% trans "Print labels" %}</h1>
     <p><a href="{{ back_url }}">{{ print_title }}</a></p>
-    {% if print_options.outcomes %}
+    {% if not unavailable %}
         {{ print_options|json_script:options_id }}
         <form method="post" class="label-print-page" {% include 'label_printing/form_attrs.html' %}>
             {% include 'label_printing/print_fields.html' %}
@@ -22,6 +22,6 @@
         </form>
         <script src="{% static 'label_printing/print_label.js' %}" defer></script>
     {% else %}
-        <p class="alert alert-info">{% trans "No printer is set up for these labels yet." %}</p>
+        <p class="alert alert-info">{{ unavailable }}</p>
     {% endif %}
 {% endblock %}

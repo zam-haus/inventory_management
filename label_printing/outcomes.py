@@ -149,12 +149,3 @@ def waited_for(found, job):
         return outcome
     return next((other for other in found.values() if other.layout.key == job.layout_key and other.target()),
                 outcome)
-
-
-def preview_template(subject_type):
-    """The template that shows a subject's label outside the print dialog (e.g. a label ID's page): the first
-    that can be printed now, else the first offered, else the first active one; None if there is none."""
-    found = outcomes(subject_type)
-    for outcome in [outcome for outcome in found if outcome.target()] + found:
-        return outcome.layout.template
-    return LocationLabelTemplate.objects.filter(subject_type=subject_type, is_active=True).first()

@@ -22,6 +22,7 @@ from ..label_urls import ItemAt
 from ..image_import import import_images
 from ..layouts import get_layout, layouts_for
 from ..models import LabelImage
+from ..selection import remember_label
 from .helpers import GENERATED, SETTINGS, create_printers, create_user, generated
 from .test_dialog import InventoryData
 
@@ -432,17 +433,24 @@ class AdminTests(InventoryData, TestCase):
     def test_template_form(self):
         add = reverse("admin:inventory_locationlabeltemplate_add")
         self.assertContains(self.client.get(add), "label 70 x 32")  # a starter description
-        response = self.client.post(add, {"name": "Neu", "subject_type": "location", "quality": "standard", "description": "label 50 x 20\ntext '{% nope %}'"})
+        rules = {"rules-TOTAL_FORMS": "1", "rules-INITIAL_FORMS": "0", "rules-0-condition": "location.type.category ==",
+                 "rules-0-priority": "2"}
+        data = {"name": "Neu", "subject_type": "location", "quality": "standard", **rules,
+                "description": "label 50 x 20\ntext '{% nope %}'"}
+        response = self.client.post(add, data)
         self.assertContains(response, "Line 2: Invalid block tag: &#x27;nope&#x27;")
-        self.client.post(add, {"name": "Neu", "subject_type": "location", "quality": "standard", "description": "label 50 x 20\ntext {{ location.unique_identifier }}"})
+        self.assertContains(response, "Unexpected end of expression")  # the rule's condition
+        data |= {"description": "label 50 x 20\ntext {{ location.unique_identifier }}",
+                 "rules-0-condition": 'location.type.category == "container"'}
+        self.client.post(add, data)
         template = LocationLabelTemplate.objects.get(name="Neu")
         self.assertEqual((template.label_width, template.label_height), (50, 20))
+        self.assertEqual([str(rule) for rule in template.rules.all()], ['2: location.type.category == "container"'])
         self.assertContains(self.client.get(reverse("label_design_help")), "Label designs")
 
     def test_location_page_shows_its_label(self):
         template = LocationLabelTemplate.objects.create(name="T", description="label 57 x 32\ntext {{ location.unique_identifier }}")
-        self.part.label_template = template
-        self.part.save()
+        remember_label(self.part, template)  # printed with it last
         self.client.logout()
         url = self.part.label_preview_url()
         self.assertContains(self.client.get(self.part.get_absolute_url()), url)
@@ -466,9 +474,18 @@ class ZplTemplatesMigrationTests(TransactionTestCase):
             executor.migrate(before)
             apps = executor.loader.project_state(before[:1]).apps
             Template = apps.get_model("inventory", "LocationLabelTemplate")
-            Template.objects.create(name="105x52 mobile", label_width=105, label_height=52,
-                                    zpl_template="^XA^FO405,190^GFA,8,8,2,HFF0,\n,:FF00!^FS^FD$url^FS^XZ")
-            Template.objects.create(name="Eigene", label_width=50, label_height=25, zpl_template="^XA^FD$url^FS^XZ")
+            mobile_zpl = Template.objects.create(name="105x52 mobile", label_width=105, label_height=52,
+                                                 zpl_template="^XA^FO405,190^GFA,8,8,2,HFF0,\n,:FF00!^FS^FD$url^FS^XZ")
+            own = Template.objects.create(name="Eigene", label_width=50, label_height=25,
+                                          zpl_template="^XA^FD$url^FS^XZ")
+            room = apps.get_model("inventory", "LocationType").objects.create(name="Raum", unique=True,
+                                                                              default_label_template=mobile_zpl)
+            Location = apps.get_model("inventory", "Location")
+            hall = Location.objects.create(name="Halle", short_name="HAL", type=room, label_template=own,
+                                           unique_identifier="HAL", locatable_identifier="HAL",
+                                           descriptive_identifier="Halle [HAL]")
+            room_2 = Location.objects.create(name="Raum 2", short_name="R2", type=room, unique_identifier="R2",
+                                             locatable_identifier="R2", descriptive_identifier="Raum 2 [R2]")
             with override_settings(MEDIA_ROOT=media):
                 executor = MigrationExecutor(connection)
                 executor.migrate(latest)
@@ -481,7 +498,17 @@ class ZplTemplatesMigrationTests(TransactionTestCase):
                 self.assertIn("# ^XA^FD$url^FS^XZ", own.description)
                 self.assertEqual((parse(own.description)[0].width, parse(own.description)[0].height), (50, 25))
                 self.assertTrue(Template.objects.filter(name="ZAMid", label_width=70, subject_type="labelid").exists())
-                self.assertEqual(Template.objects.count(), 2 + 4 * 9 + 4)  # converted, for every label, price tags
+                # converted; for every label: location, item, ZAMid, ZAMid: QR + ID, ZAMid with owner; price tags
+                self.assertEqual(Template.objects.count(), 2 + 5 * 9 + 4)
+                rules = apps.get_model("inventory", "LabelTemplateRule").objects
+                self.assertEqual(list(rules.filter(template=mobile).values_list("condition", "priority")),
+                                 [('location.type.category == "container"', 2), ("", 0)])
+                self.assertEqual(list(rules.filter(template=own).values_list("condition", "priority")), [("", 0)])
+                # the template chosen for the location: preselected as its last label
+                last = apps.get_model("label_printing", "LastLabel").objects
+                self.assertEqual(last.get(subject_type="location", subject_pk=str(hall.pk)).template_id, own.pk)
+                # else its type's
+                self.assertEqual(last.get(subject_type="location", subject_pk=str(room_2.pk)).template_id, mobile.pk)
                 stock = apps.get_model("label_printing", "LabelStock")
                 self.assertEqual(sorted(stock.objects.filter(language="zpl").values_list("name", flat=True)),
                                  ["Etikett 105 × 52 mm Polyester", "Etikett 50 × 25 mm"])

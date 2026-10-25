@@ -1,22 +1,52 @@
-{% load i18n %}{# The fields of the print form: which label (outcomes), then where and how often; print_label.js follows the job. #}
+{% load i18n %}{# The fields of the print form: which label, or a row per label (overview); then where and how often. print_label.js follows the job. #}
 {% csrf_token %}
 <input type="hidden" name="request_id" value="">
 {% if form.non_field_errors %}<div class="alert alert-danger">{{ form.non_field_errors|join:" " }}</div>{% endif %}
-<fieldset class="mb-3">
+{% if subject_type != "items" %}
+<fieldset class="mb-3" data-single>
     <legend class="form-label fs-6">{% trans "Label" %}</legend>
     <div class="label-outcomes" data-outcomes>
-        {% for outcome in print_options.outcomes %}
-        <label class="label-outcome{% if not outcome.printer %} is-unavailable{% endif %}" data-outcome="{{ outcome.key }}">
-            <input class="label-outcome-input" type="radio" name="outcome" value="{{ outcome.key }}"{% if form.outcome.value == outcome.key %} checked{% endif %} required>
-            <span class="label-outcome-preview"><img src="{{ outcome.preview }}" alt="" loading="lazy" data-preview="{{ outcome.preview }}"></span>
-            <span class="label-outcome-name">{{ outcome.name }}</span>
-            <span class="label-outcome-size">{{ outcome.size }}</span>
-            <span class="label-outcome-state">{% if outcome.printer %}{{ outcome.printer }}{% else %}{{ outcome.reason }}{% endif %}</span>
-        </label>
-        {% endfor %}
+        {% for card in print_options.cards %}{% if card.shown %}{% include "label_printing/print_card.html" %}{% endif %}{% endfor %}
     </div>
+    {% if print_options.more %}
+    <details class="label-outcomes-more mt-2" data-more{% for card in print_options.cards %}{% if card.chosen and not card.shown %} open{% endif %}{% endfor %}>
+        <summary>{% blocktrans count count=print_options.more %}One more label{% plural %}{{ count }} more labels{% endblocktrans %}</summary>
+        <div class="label-outcomes mt-2">
+            {% for card in print_options.cards %}{% if not card.shown %}{% include "label_printing/print_card.html" %}{% endif %}{% endfor %}
+        </div>
+    </details>
+    {% endif %}
     <div class="invalid-feedback d-block" data-error-for="outcome">{{ form.outcome.errors|join:" " }}</div>
 </fieldset>
+{% endif %}
+{% if subject_type == "items" or print_options.children %}
+<fieldset class="mb-3" data-overview{% if subject_type != "items" %} hidden{% endif %}>
+    <legend class="form-label fs-6">{% trans "Labels" %}</legend>
+    {% if subject_type == "items" and print_options.priced %}
+    <div class="form-check mb-2">
+        <input class="form-check-input" type="checkbox" id="label-print-priced-{{ subject_type }}" data-priced-only checked>
+        <label class="form-check-label" for="label-print-priced-{{ subject_type }}">{% blocktrans count count=print_options.priced %}Only the item with a sale price ({{ count }}){% plural %}Only items with a sale price ({{ count }}){% endblocktrans %}</label>
+    </div>
+    {% endif %}
+    <div class="label-overview">
+        {% for row in print_options.rows %}
+        <div class="label-overview-row" data-row="{{ forloop.counter0 }}">
+            <input class="form-check-input" type="checkbox" name="row-{{ forloop.counter0 }}-print" aria-label="{% blocktrans with name=row.name %}Print {{ name }}{% endblocktrans %}"{% if not row.outcomes %} disabled{% elif subject_type != "items" or not print_options.priced or row.priced %} checked{% endif %}>
+            <span class="label-overview-name">{{ row.name }}</span>
+            {% if row.outcomes %}
+            <select class="form-select form-select-sm" name="row-{{ forloop.counter0 }}-outcome" aria-label="{% trans 'Label' %}">
+                <optgroup label="{% trans 'Recommended' %}">{% for choice in row.choices %}{% if choice.shown %}<option value="{{ choice.key }}"{% if choice.chosen %} selected{% endif %}>{{ choice.label }}</option>{% endif %}{% endfor %}</optgroup>
+                {% if row.more %}<optgroup label="{% trans 'More labels' %}">{% for choice in row.choices %}{% if not choice.shown %}<option value="{{ choice.key }}"{% if choice.chosen %} selected{% endif %}>{{ choice.label }}</option>{% endif %}{% endfor %}</optgroup>{% endif %}
+            </select>
+            <span class="label-overview-preview"><img src="{{ row.image }}" alt="" loading="lazy"></span>
+            {% else %}
+            <span class="label-overview-none">{% trans "No label template is meant for this." %}</span>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+</fieldset>
+{% endif %}
 <div class="label-print-options">
     {% if subject_type == "item" %}
     <div class="mb-3">
@@ -33,24 +63,12 @@
         <input class="form-check-input" type="checkbox" name="children" id="label-print-children-{{ subject_type }}"{% if request.GET.print %} checked{% endif %}>
         <label class="form-check-label" for="label-print-children-{{ subject_type }}">{% blocktrans count count=print_options.children %}Also its sub-location ({{ count }}){% plural %}Also its sub-locations ({{ count }}){% endblocktrans %}</label>
     </div>
-    {% elif subject_type == "items" %}
-    <div class="mb-3">
-        <p class="mb-1">{% blocktrans count count=print_options.items %}A price tag for the bulk item stored here.{% plural %}A price tag for each of the {{ count }} bulk items stored here.{% endblocktrans %}</p>
-        <div class="form-check">
-            <input class="form-check-input" type="checkbox" name="priced" id="label-print-priced"{% if print_options.priced %} checked{% endif %}>
-            <label class="form-check-label" for="label-print-priced">{% blocktrans count count=print_options.priced %}Only the item with a sale price ({{ count }}){% plural %}Only items with a sale price ({{ count }}){% endblocktrans %}</label>
-        </div>
-    </div>
     {% endif %}
     <div class="mb-3">
         <label class="form-label" for="label-print-copies-{{ subject_type }}">{% trans "Copies" %}</label>
         <input class="form-control label-print-copies{% if form.copies.errors %} is-invalid{% endif %}" type="number" id="label-print-copies-{{ subject_type }}" name="copies" value="1" min="1" max="{{ print_options.max_copies }}" inputmode="numeric" required>
         <div class="invalid-feedback" data-error-for="copies">{{ form.copies.errors|join:" " }}</div>
     </div>
-</div>
-<div class="form-check alert alert-warning mb-2" data-confirm{% if not form.confirm.errors %} hidden{% endif %}>
-    <input class="form-check-input ms-0 me-2" type="checkbox" name="confirm" id="label-print-confirm-{{ subject_type }}">
-    <label class="form-check-label" for="label-print-confirm-{{ subject_type }}" data-error-for="confirm">{{ form.confirm.errors|join:" " }}</label>
 </div>
 <div class="alert alert-warning small mb-2" data-wait-note hidden>{% blocktrans with minutes=print_options.wait_minutes %}No printer can print this label right now. If you go on, the job waits up to {{ minutes }} minutes and is printed as soon as a printer can: when it is back online or the right labels are loaded. Otherwise it is not printed.{% endblocktrans %}</div>
 <div class="label-print-status" role="status" aria-live="polite" data-print-status hidden></div>

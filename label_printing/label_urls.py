@@ -56,6 +56,25 @@ def item_label_code(subject, user=None, create=True):
     return label_ids.generate_and_claim(subject.item, user, batch="print").code
 
 
+def unique_item_label_id(unique_item):
+    """The unique item's label ID, or None."""
+    return LabelId.objects.assigned().filter(unique_item=unique_item).order_by("assigned_at", "code").first()
+
+
+def unique_item_label_code(unique_item, user=None, create=True):
+    """The code of the unique item's label ID: the one it has, else a new one claimed for it (without create,
+    e.g. for previews: None)."""
+    lid = unique_item_label_id(unique_item)
+    if lid is not None or not create:
+        return lid.code if lid else None
+    return label_ids.generate_and_claim(unique_item, user, batch="print").code
+
+
+def unique_item_snapshot(unique_item, code):
+    return {"type": "uniqueitem", "id": unique_item.pk, "name": unique_item.item.name, "code": code,
+            "owner": unique_item.owner_first_name_display or "", "qr": label_id_content(code)}
+
+
 def price_amount(item):
     """"1,50" for items for sale with a price, else ""."""
     if not item.for_sale or item.sale_price is None:

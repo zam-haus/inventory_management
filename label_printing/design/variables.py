@@ -41,6 +41,17 @@ VARIABLES = {
         Variable("qr", _("for QR codes: the item's label ID and the location's code (…/K7R4XD/WH-1.R303.A), "
                          "leading to the item there")),
     ],
+    "uniqueitem": [
+        Variable("unique_item", _("the unique item, with all its fields and properties, e.g.:")),
+        Variable("unique_item.owner_first_name_display", _("its owner's first name, if it is not the ZAM's")),
+        Variable("unique_item.has_owner", _("whether it has an owner other than the ZAM (for rules)")),
+        Variable("item.name", _("what it is: the item's name")),
+        Variable("location.unique_identifier", _("the code of the location it is at")),
+        Variable("label_id", _("its label ID as printed, e.g. K7R-4XD")),
+        Variable('label_id.code|slice:":3"', _("its first part, e.g. K7R")),
+        Variable('label_id.code|slice:"3:"', _("its second part, e.g. 4XD")),
+        Variable("qr", _("for QR codes: the label ID via the label host")),
+    ],
     "labelid": [
         Variable("label_id", _("the label ID as printed, e.g. K7R-4XD")),
         Variable('label_id.code|slice:":3"', _("its first part, e.g. K7R")),
@@ -67,6 +78,13 @@ def item_variables(subject, code):
             "qr": label_urls.item_qr(subject, code)}
 
 
+def unique_item_variables(unique_item, code):
+    """For a unique item and the code of its label ID (in previews a stand-in)."""
+    label_id = LabelId.objects.filter(code=code).first() or LabelId(code=code)
+    return {**common(), "unique_item": unique_item, "item": unique_item.item, "location": unique_item.location,
+            "label_id": label_id, "qr": label_urls.label_id_content(code)}
+
+
 def label_id_variables(lid):
     return {**common(), "label_id": lid, "qr": label_urls.label_id_content(lid.code)}
 
@@ -83,6 +101,10 @@ def samples(subject_type):
         item = {"name": "Artikel", "sale_price": Decimal("0.15"), "for_sale": True, "measurement_unit": {"short": "Stk"}}
         return {**common(), "item": item, "location": location, "label_id": label_id,
                 "qr": "HTTPS://I.ZAM.HAUS/K7R4XD/WH-1.R303.A"}
+    if subject_type == "uniqueitem":
+        unique_item = {"owner_first_name_display": "Robin", "has_owner": True, "item": {"name": "Bohrmaschine"}}
+        return {**common(), "unique_item": unique_item, "item": unique_item["item"], "location": location,
+                "label_id": label_id, "qr": "HTTPS://I.ZAM.HAUS/K7R4XD"}
     if subject_type == "labelid":
         return {**common(), "label_id": label_id, "qr": "HTTPS://I.ZAM.HAUS/K7R4XD"}
     return common()
@@ -100,6 +122,11 @@ def sample_records(subject_type, limit=5):
             code = label_urls.item_label_code(subject, create=False) or label_urls.PREVIEW_CODE
             records.append((item.name, item_variables(subject, code)))
         return records
+    if subject_type == "uniqueitem":
+        lids = LabelId.objects.filter(status=LabelId.Status.ASSIGNED, unique_item__isnull=False).select_related(
+            "unique_item__item", "unique_item__location").order_by("-assigned_at")[:limit]
+        return [(f"{lid.unique_item.item.name} {lid.display}", unique_item_variables(lid.unique_item, lid.code))
+                for lid in lids]
     if subject_type == "labelid":
         lids = LabelId.objects.filter(status=LabelId.Status.ASSIGNED).order_by("-assigned_at")[:limit]
         return [(lid.display, label_id_variables(lid)) for lid in lids]

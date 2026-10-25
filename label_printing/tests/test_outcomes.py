@@ -50,8 +50,9 @@ class OutcomeTests(InventoryData, TestCase):
         options = dialog.options("location", self.part)
         item = next(item for item in options["outcomes"] if item["key"] == self.on_tape)
         self.assertEqual((item["printer"], item["reason"], item["can_wait"]), ("", "Loaded: 24 mm tape.", True))
-        self.assertIn(f"medium={self.tape.pk}", item["preview"])  # previewed as it would print
-        self.assertEqual(dialog.unavailable_reason(options), "")  # the dialog opens: labels may wait
+        card = next(card for card in options["cards"] if card["key"] == self.on_tape)
+        self.assertIn(f"medium={self.tape.pk}", card["preview"])  # previewed as it would print
+        self.assertEqual(dialog.unavailable_reason("location", options), "")  # the dialog opens: labels may wait
 
     def test_the_printer_that_can_print_is_chosen(self):
         other = Printer.objects.create(name="P-touch Lager", slug="ptouch2", language="ptouch", model="E550W", dpi=180,
@@ -92,9 +93,11 @@ class OutcomeTests(InventoryData, TestCase):
 
     def test_nothing_set_up(self):
         Printer.objects.all().delete()
-        LocationLabelTemplate.objects.all().delete()
-        self.assertEqual(dialog.unavailable_reason(dialog.options("location", self.part)),
+        self.assertEqual(dialog.unavailable_reason("location", dialog.options("location", self.part)),
                          "No printer is set up for these labels yet.")
+        LocationLabelTemplate.objects.all().delete()
+        self.assertEqual(dialog.unavailable_reason("location", dialog.options("location", self.part)),
+                         "No label template is meant for this.")
 
 
 @override_settings(**SETTINGS)

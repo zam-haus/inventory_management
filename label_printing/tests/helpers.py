@@ -6,7 +6,7 @@ from ..models import LabelMedium, Printer
 
 SETTINGS = dict(LANGUAGE_CODE="en", DEFAULT_URL="https://inv.zam.haus", LABEL_ID_BASE_URL="https://i.zam.haus/",
                 PRINT_JOB_MAX_AGE=120, PRINT_JOB_LEASE=180, PRINT_AGENT_OFFLINE_AFTER=30,
-                PRINT_MAX_COPIES=20, PRINT_CONFIRM_LABELS=10, PRINT_MAX_LABELS=50, CELERY_TASK_ALWAYS_EAGER=True)
+                PRINT_MAX_COPIES=20, CELERY_TASK_ALWAYS_EAGER=True)
 
 
 class SimulatedPrinters:

@@ -436,6 +436,8 @@ class PrintJob(models.Model):
                               on_delete=models.SET_NULL, related_name="+")
     claimed_by = models.CharField(_("processed by"), max_length=64, blank=True)
     request_id = models.UUIDField(null=True, blank=True, unique=True, editable=False)
+    # The jobs of one print from the dialog's overview (one job per label), followed together
+    batch = models.UUIDField(_("batch"), null=True, blank=True, editable=False, db_index=True)
     # A waiting job: the label outcome asked for (outcomes.py), its subjects and options, until when it waits.
     outcome = models.CharField(_("label"), max_length=96, blank=True)
     request = models.JSONField(default=dict, blank=True, editable=False)
@@ -457,6 +459,25 @@ class PrintJob(models.Model):
     def message(self):
         """The outcome in words: the error, or the plain status."""
         return messages.describe(self.code, self.detail) or self.get_status_display()
+
+
+class LastLabel(models.Model):
+    """The label template a subject was printed with last (selection.py preselects it): e.g. the arrow up or
+    down for a compartment, which no rule could tell."""
+
+    class Meta:
+        verbose_name = _("last label")
+        verbose_name_plural = _("last labels")
+        constraints = [models.UniqueConstraint(fields=["subject_type", "subject_pk"], name="last_label_per_subject")]
+
+    subject_type = models.CharField(_("subject type"), max_length=32)
+    subject_pk = models.CharField(_("subject"), max_length=64)
+    template = models.ForeignKey("inventory.LocationLabelTemplate", on_delete=models.CASCADE, related_name="+",
+                                 verbose_name=_("label template"))
+    printed_at = models.DateTimeField(_("printed at"), default=timezone.now)
+
+    def __str__(self):
+        return f"{self.subject_type} {self.subject_pk}: {self.template}"
 
 
 class LabelImage(models.Model):

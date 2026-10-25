@@ -22,7 +22,7 @@ class Migration(migrations.Migration):
 
     dependencies = [
         ("accounts", "0005_team_code_color_parent"),
-        ("inventory", "0043_remove_zpl_template"),
+        ("inventory", "0043_remove_old_label_fields"),
     ]
 
     operations = [

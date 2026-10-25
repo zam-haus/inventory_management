@@ -1,7 +1,9 @@
-// The print dialogs (label_printing/print_dialog.html, one per kind on a page; also the fallback page): which
-// label to print (the server picks the printer), each with its preview; labels no printer can print now are
-// greyed but may wait for one. Many labels at once must be confirmed. After printing the dialog follows the job
-// until the printer reports back, or until a waiting job expires.
+// The print dialogs (label_printing/print_dialog.html, one per kind on a page; also the fallback page). For one
+// subject: which label to print (the server picks the printer), the templates its rules recommend shown, others
+// on request; labels no printer can print now are greyed but may wait for one. For several (a location with its
+// sub-locations, the items at a location): an overview, a row per label with its best template, each printed as a
+// job of its own. After printing the dialog follows the job (or the batch of jobs) until the printers report back,
+// or until waiting jobs expire.
 (() => {
     if (window.labelPrintDialogs) return;  // each dialog includes this script
     window.labelPrintDialogs = true;
@@ -16,23 +18,20 @@ function setUp(form, options) {
     const modal = form.closest('.modal');
     const fields = {
         location: form.elements.location, copies: form.elements.copies, requestId: form.elements.request_id,
-        children: form.elements.children, priced: form.elements.priced, confirm: form.elements.confirm,
+        children: form.elements.children,
     };
     const parts = {
+        single: form.querySelector('[data-single]'),
+        overview: form.querySelector('[data-overview]'),
         outcomes: [...form.querySelectorAll('[data-outcome]')],
+        rows: [...form.querySelectorAll('[data-row]')],
+        pricedOnly: form.querySelector('[data-priced-only]'),
         qrNote: form.querySelector('[data-qr-note]'),
         waitNote: form.querySelector('[data-wait-note]'),
-        confirm: form.querySelector('[data-confirm]'),
-        confirmText: form.querySelector('[data-error-for="confirm"]'),
         status: form.querySelector('[data-print-status]'),
         submit: form.querySelector('[data-print-submit]'),
     };
     const submitLabel = parts.submit.querySelector('span');
-    // Per device: the label chosen last for each kind (private windows may forbid storage).
-    const storage = {
-        get(key) { try { return window.localStorage.getItem(`label-print:${key}`); } catch { return null; } },
-        set(key, value) { try { window.localStorage.setItem(`label-print:${key}`, value); } catch { /* not kept */ } },
-    };
     let pending = false;
     let polling = null;
 
@@ -48,40 +47,42 @@ function setUp(form, options) {
 
     const outcome = key => options.outcomes.find(item => item.key === key);
     const chosen = () => outcome(form.querySelector('[name=outcome]:checked')?.value);
+    const overview = () => Boolean(parts.overview) && (!parts.single || Boolean(fields.children?.checked));
+    const printing = row => row.querySelector('[type=checkbox]');
+    const select = row => row.querySelector('select');
+    const wanted = () => parts.rows.filter(row => printing(row).checked && select(row));
 
-    function choose(key) {
-        const radio = form.querySelector(`[name=outcome][value="${CSS.escape(key)}"]`);
-        if (radio) radio.checked = true;
-        update();
+    // A row's preview with the label chosen for it: as the printer gets it, else without a printer
+    function previewUrl(data, item) {
+        if (item.query) return `${data.preview}${data.preview.includes('?') ? '&' : '?'}${item.query}`;
+        return data.template_preview.replace('{template}', item.template);
     }
 
-    // How many labels it will be: subjects × copies
-    function labels() {
-        const subjects = (fields.priced?.checked ? options.priced : options.labels)
-            + (fields.children?.checked ? options.children : 0);
-        return subjects * (parseInt(fields.copies.value, 10) || 1);
+    function rowPreview(row) {
+        const image = row.querySelector('img');
+        const item = outcome(select(row)?.value);
+        if (image && item) image.src = previewUrl(options.rows[Number(row.dataset.row)], item);
     }
 
-    // More than confirm_labels labels must be confirmed; more than max_labels cannot be printed at once.
-    function count() {
-        const total = labels();
-        const ask = total > options.confirm_labels;
-        parts.confirm.hidden = !ask;
-        if (!ask) fields.confirm.checked = false;
-        parts.confirmText.textContent = (total > options.max_labels ? text.labelTooMany : text.labelConfirm)
-            .replace('{count}', total).replace('{max}', options.max_labels);
-        fields.confirm.disabled = total > options.max_labels;
-        return !ask || (total <= options.max_labels && fields.confirm.checked);
-    }
-
-    // The button says what will happen: print on a printer, or wait for one (the note says what waiting means).
+    // The button says what will happen: print on a printer, or wait for one (the note says what waiting means);
+    // in the overview, how many labels.
     function update() {
+        const several = overview();
+        if (parts.single) parts.single.hidden = several;
+        if (parts.overview) parts.overview.hidden = !several;
+        if (several) {
+            const rows = wanted();
+            const items = rows.map(row => outcome(select(row).value)).filter(Boolean);
+            parts.waitNote.hidden = !items.some(item => !item.printer);
+            const labels = rows.length * (parseInt(fields.copies.value, 10) || 1);
+            parts.submit.disabled = pending || !rows.length || items.some(item => !item.printer && !item.can_wait);
+            if (!pending) submitLabel.textContent = text.labelPrintRows.replace('{count}', labels);
+            return;
+        }
         const current = chosen();
         parts.outcomes.forEach(card => card.classList.toggle('is-chosen', current && card.dataset.outcome === current.key));
-        const waits = Boolean(current && !current.printer && current.can_wait);
-        parts.waitNote.hidden = !waits;
-        const counted = count();
-        parts.submit.disabled = pending || !current || (!current.printer && !current.can_wait) || !counted;
+        parts.waitNote.hidden = !(current && !current.printer && current.can_wait);
+        parts.submit.disabled = pending || !current || (!current.printer && !current.can_wait);
         if (!pending) {
             submitLabel.textContent = !current ? text.labelPrint
                 : current.printer ? text.labelPrintOn.replace('{printer}', current.printer)
@@ -94,14 +95,12 @@ function setUp(form, options) {
         parts.outcomes.forEach(card => {
             const image = card.querySelector('img');
             const url = new URL(image.dataset.preview, window.location.href);
-            if (fields.location && url.pathname.endsWith('.png') && url.searchParams.has('medium')) {
-                url.searchParams.set('location', fields.location.value);
-            }
+            if (fields.location && url.pathname.endsWith('.png')) url.searchParams.set('location', fields.location.value);
             image.src = url.pathname + url.search;
         });
     }
 
-    // Item labels: where the QR code leads (the item's label ID, with the location as an argument)
+    // Item labels: where the QR code leads (the item's label ID, with the location's code)
     function qrNote() {
         if (!parts.qrNote || !fields.location) return;
         const location = options.locations.find(item => String(item.id) === fields.location.value);
@@ -111,20 +110,23 @@ function setUp(form, options) {
             : (location ? text.labelQrNew : text.labelQrNewNoLocation));
     }
 
-    function remember() {
-        if (chosen()) storage.set(`outcome:${text.subject}`, chosen().key);
-    }
-
     form.addEventListener('input', event => {
         if (event.target === fields.copies) update();
     });
 
     form.addEventListener('change', event => {
-        if (['outcome', 'children', 'priced', 'confirm', 'copies'].includes(event.target.name)) update();
+        const row = event.target.closest('[data-row]');
+        if (row && event.target.tagName === 'SELECT') rowPreview(row);
+        if (event.target === parts.pricedOnly) {
+            parts.rows.forEach(entry => {
+                if (select(entry)) printing(entry).checked = !parts.pricedOnly.checked || options.rows[Number(entry.dataset.row)].priced;
+            });
+        }
         if (event.target === fields.location) {
             previews();
             qrNote();
         }
+        update();
     });
 
     function showStatus(message, kind) {
@@ -146,7 +148,6 @@ function setUp(form, options) {
             if (target && form.elements[name]) {
                 if (form.elements[name].classList) form.elements[name].classList.add('is-invalid');
                 target.textContent = message;
-                if (name === 'confirm') parts.confirm.hidden = false;
             } else {
                 general.push(message);
             }
@@ -164,13 +165,36 @@ function setUp(form, options) {
         fields.requestId.value = newRequestId();
     }
 
-    function follow(job) {
+    function finish() {
+        setBusy(false);
+        startOver();
+        submitLabel.textContent = text.labelAgain;
+    }
+
+    // Asks `url` again and again until `done(answer)` says the jobs are finished; waiting jobs are followed until
+    // they expire, then as long as any job.
+    function poll(url, current, show, done) {
         window.clearTimeout(polling);
-        const finish = () => {
-            setBusy(false);
-            startOver();
-            submitLabel.textContent = text.labelAgain;
+        const waiting = current.jobs ? current.jobs.filter(job => job.expires_at) : (current.expires_at ? [current] : []);
+        const deadline = Math.max(Date.now(), ...waiting.map(job => Date.parse(job.expires_at))) + 90000;
+        const ask = async () => {
+            try {
+                const response = await fetch(url, {credentials: 'same-origin', headers: {Accept: 'application/json'}});
+                const answer = await response.json();
+                if (answer.finished) return done(answer);
+                show(answer);
+            } catch { /* try again */ }
+            if (Date.now() > deadline) {
+                showStatus(text.labelStillWaiting, 'warning');
+                finish();
+                return;
+            }
+            polling = window.setTimeout(ask, waiting.length ? 2000 : 1000);
         };
+        polling = window.setTimeout(ask, 700);
+    }
+
+    function follow(job) {
         const progress = current => (current.status === 'processing' ? text.labelPrinting
             : current.status === 'waiting' ? current.message : text.labelWaiting);
         if (job.finished) {
@@ -180,33 +204,25 @@ function setUp(form, options) {
             return;
         }
         showStatus(progress(job), 'info');
-        // A waiting job is followed until it expires, then as long as any job.
-        const until = () => (job.expires_at ? Date.parse(job.expires_at) : Date.now()) + 90000;
-        const deadline = job.status === 'waiting' ? until() : Date.now() + 90000;
-        const poll = async () => {
-            try {
-                const response = await fetch(options.status_url.replace(/0\.json$/, `${job.id}.json`), {
-                    credentials: 'same-origin', headers: {Accept: 'application/json'},
-                });
-                const current = await response.json();
-                if (current.finished) return follow(current);
-                showStatus(progress(current), 'info');
-            } catch { /* try again */ }
-            if (Date.now() > deadline) {
-                showStatus(text.labelStillWaiting, 'warning');
-                finish();
-                return;
-            }
-            polling = window.setTimeout(poll, job.status === 'waiting' ? 2000 : 1000);
-        };
-        polling = window.setTimeout(poll, 700);
+        poll(options.status_url.replace(/0\.json$/, `${job.id}.json`), job,
+            current => showStatus(progress(current), 'info'), follow);
+    }
+
+    function followBatch(batch) {
+        if (batch.finished) {
+            showStatus(batch.message, batch.ok ? 'success' : 'warning');
+            finish();
+            return;
+        }
+        showStatus(batch.message, 'info');
+        poll(options.batch_url.replace(/[0-]{36}\.json$/, `${batch.id}.json`), batch,
+            current => showStatus(current.message, 'info'), followBatch);
     }
 
     form.addEventListener('submit', async event => {
         event.preventDefault();
         if (pending) return;
         clearErrors();
-        remember();
         setBusy(true);
         showStatus(text.labelWaiting, 'info');
         let result = null;
@@ -218,11 +234,12 @@ function setUp(form, options) {
             result = await response.json().catch(() => null);
         } catch {
             showStatus(text.labelNetworkError, 'danger');
-            setBusy(false);  // same request ID: a job that did arrive is not printed twice
+            setBusy(false);  // same request ID: jobs that did arrive are not printed twice
             return;
         }
         if (result && result.ok) {
-            follow(result.job);
+            if (result.batch) followBatch(result.batch);
+            else follow(result.job);
             return;
         }
         showStatus('', 'info');
@@ -241,11 +258,6 @@ function setUp(form, options) {
         qrNote();
     }
 
-    // The label chosen last, else the first one printable now
-    const stored = storage.get(`outcome:${text.subject}`);
-    const first = options.outcomes.find(item => item.key === stored) || options.outcomes.find(item => item.printer)
-        || options.outcomes[0];
-    if (first && !form.querySelector('[name=outcome]:checked')) choose(first.key);
     startOver();
     update();
     if (modal && window.bootstrap) {

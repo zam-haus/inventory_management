@@ -16,6 +16,5 @@
       data-label-queue="{% trans 'Wait for a printer' %}"
       data-label-wait-ended="{% trans 'No printer could print it in time, so it was not printed.' %}"
       data-label-again="{% trans 'Print again' %}"
-      data-label-confirm="{% blocktrans with count='{count}' %}That is {{ count }} labels. Print them all?{% endblocktrans %}"
-      data-label-too-many="{% blocktrans with count='{count}' max='{max}' %}That would be {{ count }} labels; at most {{ max }} can be printed at once.{% endblocktrans %}"
+      data-label-print-rows="{% blocktrans with count='{count}' %}Print {{ count }} labels{% endblocktrans %}"
       data-subject="{{ subject_type }}"

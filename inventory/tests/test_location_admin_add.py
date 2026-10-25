@@ -15,9 +15,10 @@ from ..models import Location, LocationLabelTemplate, LocationType
 class LocationAdminAddTests(TestCase):
     @classmethod
     def setUpTestData(cls):
-        template = LocationLabelTemplate.objects.create(
+        cls.template = LocationLabelTemplate.objects.create(
             name="Small", description="label 50 x 25\nqr {{ qr }}")
-        cls.room = LocationType.objects.create(name="Room", unique=True, default_label_template=template)
+        LocationLabelTemplate.objects.exclude(pk=cls.template.pk).update(is_active=False)
+        cls.room = LocationType.objects.create(name="Room", unique=True)
         cls.user = get_user_model().objects.create_user(username="admin", is_staff=True, is_superuser=True)
 
     def setUp(self):
@@ -39,4 +40,4 @@ class LocationAdminAddTests(TestCase):
         response = self.client.get(reverse("admin:inventory_location_change", args=[location.pk]))
 
         self.assertContains(response, reverse("label_template_preview",
-                                              args=[self.room.default_label_template_id, "location", location.pk]))
+                                              args=[self.template.pk, "location", location.pk]))

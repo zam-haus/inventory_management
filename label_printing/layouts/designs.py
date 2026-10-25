@@ -117,6 +117,11 @@ class DesignLayout(Layout):
         if self.subject_type == "item":
             code = label_urls.item_label_code(subject, user, create=not preview) or label_urls.PREVIEW_CODE
             return design_variables.item_variables(subject, code), label_urls.item_snapshot(subject, code), code
+        if self.subject_type == "uniqueitem":
+            code = (label_urls.unique_item_label_code(subject, user, create=not preview)
+                    or label_urls.PREVIEW_CODE)
+            return (design_variables.unique_item_variables(subject, code),
+                    label_urls.unique_item_snapshot(subject, code), code)
         return design_variables.label_id_variables(subject), label_urls.label_id_snapshot(subject), subject.code
 
     def render(self, subject, canvas, medium, *, preview=False, user=None):

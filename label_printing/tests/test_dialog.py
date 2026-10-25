@@ -120,20 +120,33 @@ class PrintDialogTests(SimulatedPrinters, InventoryData, TestCase):
         self.assertContains(response, f'"key": "{outcome_key("location", "tape12")}"')
         self.assertContains(response, "Also its sub-locations (2)")
         self.assertContains(response, "data-wait-note hidden")  # what waiting means, for labels no printer can print now
+        self.assertContains(response, "data-overview hidden")  # the sub-locations, if they are printed too
         self.assertNotContains(response, 'name="wait"')
 
     def test_print_a_location_and_its_compartments(self):
-        response = self.post("location", self.shelf, {"outcome": outcome_key("location", "tape12"), "copies": 1,
-                                                      "children": "on",
-                                                      "request_id": str(uuid4())})
+        """With its sub-locations: an overview, a row per label with its template, a job per label in a batch."""
+        key = outcome_key("location", "tape12")
+        rows = {f"row-{index}-{field}": value for index in range(3)
+                for field, value in (("print", "on"), ("outcome", key))}
+        response = self.post("location", self.shelf, {"copies": 1, "children": "on", "request_id": str(uuid4()),
+                                                      **rows})
         data = response.json()
         self.assertTrue(data["ok"], data)
-        job = PrintJob.objects.get(pk=data["job"]["id"])
-        self.assertEqual((job.pages, job.user, job.subject_type), (3, self.user, "location"))
-        self.assertEqual([entry["code"] for entry in job.snapshot], ["R303", "R303.a", "R303.b"])
+        jobs = list(PrintJob.objects.order_by("pk"))
+        self.assertEqual([(job.pages, job.user, job.subject_type, job.batch) for job in jobs],
+                         [(1, self.user, "location", jobs[0].batch)] * 3)
+        self.assertEqual([job.snapshot[0]["code"] for job in jobs], ["R303", "R303.a", "R303.b"])
         self.assertEqual(len(self.brother_output.printed), 3)
-        status = self.client.get(reverse("print_job_status", args=[job.pk])).json()
-        self.assertEqual((status["status"], status["message"]), ("done", "printed"))
+        status = self.client.get(reverse("print_batch_status", args=[jobs[0].batch])).json()
+        self.assertEqual((status["finished"], status["message"]), (True, "3 of 3 labels printed."))
+        self.assertEqual(data["batch"]["id"], str(jobs[0].batch))
+        # Only the rows chosen; each with its own template
+        PrintJob.objects.all().delete()
+        self.post("location", self.shelf, {"copies": 1, "children": "on", "row-1-print": "on",
+                                           "row-1-outcome": f"design:{self.template.pk}@57x32"})
+        job, = PrintJob.objects.all()
+        self.assertEqual((job.snapshot[0]["code"], job.layout_key), ("R303.a", f"design:{self.template.pk}"))
+        self.assertEqual(self.post("location", self.shelf, {"copies": 1, "children": "on"}).status_code, 400)  # none chosen
 
     def test_print_an_item_label(self):
         data = self.post("item", self.item, {"outcome": outcome_key("item", "57x32"), "copies": 2,
@@ -151,40 +164,27 @@ class PrintDialogTests(SimulatedPrinters, InventoryData, TestCase):
     def test_price_tags_of_the_bulk_items_at_a_location(self):
         nuts = Item.objects.create(name="Muttern M4", measurement_unit=self.unit, for_sale=True, sale_price=Decimal("0.05"))
         ItemLocation.objects.create(item=nuts, location=self.part, amount=50)
-        response = self.client.get(self.part.get_absolute_url())
-        self.assertContains(response, 'id="label-print-modal-items"')
-        self.assertContains(response, "A price tag for each of the 2 bulk items stored here.")
-        key = outcome_key("item", "57x32")
-        preview = self.client.get(reverse("print_preview", args=["items", self.part.pk]),
-                                  {"medium": self.labels.pk, "layout": key.split("@")[0]})
-        self.assertEqual(preview["Content-Type"], "image/png")
-        data = self.post("items", self.part, {"outcome": key, "copies": 1}).json()
-        job = PrintJob.objects.get(pk=data["job"]["id"])
-        self.assertEqual((job.subject_type, job.pages), ("item", 2))
-        self.assertEqual([(entry["name"], entry["location"]) for entry in job.snapshot],
-                         [("Muttern M4", "R303.a"), ("Schrauben M4", "R303.a")])
-        # Only those with a sale price
         ItemLocation.objects.create(item=Item.objects.create(name="Kabelbinder", measurement_unit=self.unit),
                                     location=self.part, amount=10)
-        data = self.post("items", self.part, {"outcome": key, "copies": 1, "priced": "on"}).json()
-        names = [entry["name"] for entry in PrintJob.objects.get(pk=data["job"]["id"]).snapshot]
-        self.assertEqual(names, ["Muttern M4", "Schrauben M4"])
-        self.assertEqual(dialog.options("items", self.part)["priced"], 2)
+        response = self.client.get(self.part.get_absolute_url())
+        self.assertContains(response, 'id="label-print-modal-items"')
+        self.assertContains(response, "Only items with a sale price (2)")
+        options = dialog.options("items", self.part)
+        self.assertEqual([(row["name"], row["priced"]) for row in options["rows"]],
+                         [("Kabelbinder", False), ("Muttern M4 (0.05 € / Stk)", True), ("Schrauben M4 (0.15 € / Stk)", True)])
+        content = response.content.decode()
+        self.assertIn('name="row-0-print" aria-label="Print Kabelbinder">', content)  # not preselected
+        self.assertIn('name="row-1-print" aria-label="Print Muttern M4 (0.05 € / Stk)" checked>', content)
+        key = outcome_key("item", "57x32")
+        preview = self.client.get(f"{options['rows'][1]['preview']}&medium={self.labels.pk}&layout={key.split('@')[0]}")
+        self.assertEqual(preview["Content-Type"], "image/png")
+        data = self.post("items", self.part, {"copies": 1, "row-1-print": "on", "row-1-outcome": key,
+                                              "row-2-print": "on", "row-2-outcome": key}).json()
+        jobs = PrintJob.objects.filter(batch=data["batch"]["id"]).order_by("pk")
+        self.assertEqual([(job.subject_type, job.snapshot[0]["name"], job.snapshot[0]["location"]) for job in jobs],
+                         [("item", "Muttern M4", "R303.a"), ("item", "Schrauben M4", "R303.a")])
         # Where no bulk items are stored, the button says so
         self.assertContains(self.client.get(self.shelf.get_absolute_url()), "No bulk items are stored here.")
-
-    def test_many_labels_are_confirmed_and_at_most_50(self):
-        key = outcome_key("location", "tape12")
-        response = self.post("location", self.part, {"outcome": key, "copies": 11})
-        self.assertEqual(response.json()["errors"]["confirm"][0],
-                         {"message": "That is 11 labels. Print them all?", "code": "confirm"})
-        response = self.post("location", self.shelf, {"outcome": key, "copies": 20, "children": "on", "confirm": "on"})
-        self.assertEqual(response.json()["errors"]["copies"][0]["message"],
-                         "That would be 60 labels; at most 50 can be printed at once.")
-        self.assertFalse(PrintJob.objects.exists())
-        with patch("label_printing.tasks.process_job.delay"):
-            response = self.post("location", self.part, {"outcome": key, "copies": 11, "confirm": "on"})
-        self.assertEqual(PrintJob.objects.get(pk=response.json()["job"]["id"]).pages, 11)
 
     def test_errors_are_shown_in_the_dialog(self):
         cases = [

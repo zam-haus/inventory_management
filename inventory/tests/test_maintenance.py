@@ -24,7 +24,7 @@ class LabelPrintingTests(TestCase):
     @classmethod
     def setUpTestData(cls):
         template = LocationLabelTemplate.objects.create(name="Box", description="label 57 x 32\ntext {{ location.unique_identifier }}")
-        kind = LocationType.objects.create(name="Room", unique=True, default_label_template=template)
+        kind = LocationType.objects.create(name="Room", unique=True)
         cls.locations = [Location.objects.create(name=f"Room {n}", short_name=f"R{n}", type=kind) for n in (1, 2)]
         cls.printer = Printer.objects.create(name="Zebra", slug="zebra", language="zpl", host="192.0.2.1",
                                              is_default=True)
