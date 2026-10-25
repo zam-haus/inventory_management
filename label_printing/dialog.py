@@ -77,7 +77,7 @@ def item_locations(item):
 
 
 def sub_locations(location):
-    return list(Location.active.filter(parent_location=location).order_by("unique_identifier"))
+    return list(Location.active.filter(parent_location=location).select_related("type").order_by("unique_identifier"))
 
 
 def items_at(location):
@@ -133,9 +133,10 @@ def preview_urls(subject_type, subject):
     return on_medium, without + query
 
 
-def row(subject_type, subject, found):
-    """A row of the dialog: its subject, the outcomes meant for it ([key, priority, shown], the preselected first)."""
-    ranked = selection.rank(found, label_kind(subject_type), subject)
+def row(subject_type, subject, found, rules=None, last_labels=None):
+    """A row of the dialog: its subject, the outcomes meant for it ([key, priority, shown], the preselected first).
+    `rules` and `last_labels`: read once for all rows (selection.rank)."""
+    ranked = selection.rank(found, label_kind(subject_type), subject, rules, last_labels)
     on_medium, without = preview_urls(subject_type, subject)
     return {"name": subject_name(subject), "pk": str(subject_pk(subject)),
             # locations shown as everywhere (title, name, code chip)
@@ -187,6 +188,10 @@ def options(subject_type, obj):
     printer, else why not) and whether a job may wait for a printer; and the rows, a row per label (for a
     location also its sub-locations, printed on request)."""
     found = dialog_outcomes(subject_type)
+    rows = subjects(subject_type, obj, children=subject_type == "location")
+    # Read once for all rows (an overview of a level has hundreds)
+    rules = selection.rules_of([outcome.layout.template for outcome in found])
+    last_labels = selection.last_template_pks(label_kind(subject_type), rows)
     data = {"outcomes": [{"key": outcome.key, "name": outcome.name, "size": outcome.size,
                           "printer": str(target.printer) if (target := outcome.target()) else "",
                           "reason": outcome.why_not, "can_wait": outcome.can_wait,
@@ -198,8 +203,7 @@ def options(subject_type, obj):
                           # the preview's dots per inch, to show it in its real size
                           "dpi": medium.printer.dpi if medium else preview_dpi(outcome.layout.template)}
                          for outcome in found],
-            "rows": [row(subject_type, subject, found)
-                     for subject in subjects(subject_type, obj, children=subject_type == "location")],
+            "rows": [row(subject_type, subject, found, rules, last_labels) for subject in rows],
             "max_copies": settings.PRINT_MAX_COPIES, "wait_minutes": settings.PRINT_WAIT_MAX // 60,
             "submit_url": reverse("print_labels", args=[subject_type, obj.pk]),
             "status_url": reverse("print_job_status", args=[0]),

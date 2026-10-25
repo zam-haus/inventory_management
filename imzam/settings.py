@@ -337,6 +337,12 @@ CHANGE_LOG_SHOWN = int(os.getenv("CHANGE_LOG_SHOWN", "5"))
 CHANGE_LOG_ACTOR_GROUP = os.getenv("CHANGE_LOG_ACTOR_GROUP", "Aktive")
 
 
+# Per process. Django's default keeps 300 entries, fewer than the thumbnails of one large location page
+# (sorl-thumbnail's key-value store): they pushed each other out and were read from the database every time.
+CACHES = {"default": {"BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+                      "OPTIONS": {"MAX_ENTRIES": int(os.getenv("CACHE_MAX_ENTRIES", "20000"))}}}
+
+
 # Overwrite default settings with local_settings.py configuration
 if not os.getenv("IGNORE_LOCAL_SETTINGS", False):
     try:

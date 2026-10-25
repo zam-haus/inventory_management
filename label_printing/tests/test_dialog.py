@@ -398,3 +398,39 @@ class QualityChoiceTests(InventoryData, TestCase):
         with self.assertRaises(services.PrintError):
             services.submit(printer=self.zebra, medium=self.labels, layout_key=self.on_labels, subject_type="location",
                             subjects=[self.part], quality="best")
+
+
+@override_settings(**SETTINGS)
+class OverviewQueryTests(InventoryData, TestCase):
+    """An overview's rows (a level with hundreds of sub-locations, the items at a location) cost no queries each:
+    rules and last labels are read once, variables only for conditions that need them."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.create_inventory()
+        create_printers()
+        for template in LocationLabelTemplate.objects.filter(subject_type__in=["location", "item"]):
+            template.rules.create(condition='location.type.name != "nope"' if template.subject_type == "location"
+                                  else "item.for_sale", priority=1)
+
+    def queries(self, subject_type, obj):
+        from django.db import connection
+        from django.test.utils import CaptureQueriesContext
+        dialog.options(subject_type, obj)  # caches of the layouts (drawable sizes) filled
+        with CaptureQueriesContext(connection) as context:
+            dialog.options(subject_type, obj)
+        return len(context.captured_queries)
+
+    def add_rows(self, count):
+        start = Location.objects.count()
+        for index in range(start, start + count):
+            Location.objects.create(name=f"Fach {index}", short_name=f"x{index}", type=self.part.type,
+                                    parent_location=self.shelf)
+            item = Item.objects.create(name=f"Mutter {index}", measurement_unit=self.unit, sale_price=Decimal("0.10"))
+            ItemLocation.objects.create(item=item, location=self.shelf, amount=1)
+
+    def test_rows_cost_no_queries_each(self):
+        self.add_rows(2)
+        few = {kind: self.queries(kind, self.shelf) for kind in ("location", "items")}
+        self.add_rows(20)
+        self.assertEqual({kind: self.queries(kind, self.shelf) for kind in ("location", "items")}, few)

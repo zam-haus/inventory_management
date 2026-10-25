@@ -3,9 +3,11 @@ The variables of label designs per kind of label (texts.py): the label's subject
 fields and properties, and the QR code's content; their values for a subject, real records to show designs with,
 and made-up ones (Placeholder) where there are none.
 """
+import functools
 import zlib
 from dataclasses import dataclass
 
+from django.utils.functional import SimpleLazyObject
 from django.utils.translation import gettext_lazy as _
 
 from inventory.label_ids import naming
@@ -76,7 +78,13 @@ def location_variables(location):
 
 
 def item_variables(subject, code):
-    """For an item at a location (label_urls.ItemAt) and the code of its label ID (in previews a stand-in)."""
+    """For an item at a location (label_urls.ItemAt) and the code of its label ID (in previews a stand-in); `code`
+    may be a function, so that the label ID is only looked up when a label or rule uses it."""
+    if callable(code):
+        code = functools.cache(code)
+        return {**common(), "item": subject.item, "location": subject.location,
+                "label_id": SimpleLazyObject(lambda: LabelId.objects.filter(code=code()).first() or LabelId(code=code())),
+                "qr": SimpleLazyObject(lambda: label_urls.item_qr(subject, code()))}
     label_id = LabelId.objects.filter(code=code).first() or LabelId(code=code)
     return {**common(), "item": subject.item, "location": subject.location, "label_id": label_id,
             "qr": label_urls.item_qr(subject, code)}

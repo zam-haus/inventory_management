@@ -36,8 +36,9 @@ def variables_for(kind, subject):
     if kind == "location":
         return design_variables.location_variables(subject)
     if kind == "item":
-        code = label_urls.item_label_code(subject, create=False) or label_urls.PREVIEW_CODE
-        return design_variables.item_variables(subject, code)
+        # Looked up only if a rule asks for the label ID or the QR code (one query per item otherwise)
+        return design_variables.item_variables(
+            subject, lambda: label_urls.item_label_code(subject, create=False) or label_urls.PREVIEW_CODE)
     if kind == "uniqueitem":
         lid = label_urls.unique_item_label_id(subject)
         return design_variables.unique_item_variables(subject, lid.code if lid else label_urls.PREVIEW_CODE)
@@ -52,19 +53,26 @@ def rules_of(templates):
     return found
 
 
-def priorities(subject_type, subject, templates):
-    """{template pk: priority} of those of `templates` meant for the subject (a rule holds, or it has none)."""
+def priorities(subject_type, subject, templates, rules=None):
+    """{template pk: priority} of those of `templates` meant for the subject (a rule holds, or it has none).
+    `rules`: rules_of(templates), read once for many subjects (the print dialog's rows)."""
     variables, found = {}, {}
-    rules = rules_of(templates)
+    rules = rules_of(templates) if rules is None else rules
+
+    def holds(condition, kind):
+        if not condition.strip():  # holds for every subject: no variables needed
+            return True
+        if kind not in variables:  # worked out once per kind, and only for a condition
+            variables[kind] = variables_for(kind, subject)
+        return texts.holds(condition, variables[kind])
+
     for template in templates:
         if template.subject_type not in KINDS[subject_type]:
             continue
         if template.pk not in rules:  # without rules: for every subject of its kind, on request
             found[template.pk] = 0
             continue
-        holding = [priority for condition, priority in rules[template.pk]
-                   if texts.holds(condition, variables.setdefault(template.subject_type,
-                                                                  variables_for(template.subject_type, subject)))]
+        holding = [priority for condition, priority in rules[template.pk] if holds(condition, template.subject_type)]
         if holding:
             found[template.pk] = max(holding)
     return found
@@ -90,6 +98,19 @@ def last_template_pk(subject_type, subject):
     kind, pk = subject_key(subject_type, subject)
     key = LastLabel.objects.filter(subject_type=kind, subject_pk=pk).values_list("layout_key", flat=True).first()
     return int(key.removeprefix("design:")) if key and key.removeprefix("design:").isdigit() else None
+
+
+def last_template_pks(subject_type, subjects):
+    """{subject pk (str): template pk} of the subjects' last labels, in one query (see last_template_pk)."""
+    if subject_type not in REMEMBERED:
+        return {}
+    keys = [str(subject.pk) for subject in subjects if getattr(subject, "pk", None) is not None]
+    found = {}
+    for pk, key in LastLabel.objects.filter(subject_type=subject_type, subject_pk__in=keys).values_list(
+            "subject_pk", "layout_key"):
+        if key and key.removeprefix("design:").isdigit():
+            found[pk] = int(key.removeprefix("design:"))
+    return found
 
 
 def remember_label(subject, template, subject_type="location"):
@@ -119,12 +140,13 @@ class Ranked:
     preselected: bool = False
 
 
-def rank(outcomes, subject_type, subject):
+def rank(outcomes, subject_type, subject, rules=None, last_labels=None):
     """The outcomes (outcomes.py) meant for the subject, the preselected first, then by priority (those that
-    can be printed now first among equals), each marked shown or on request."""
+    can be printed now first among equals), each marked shown or on request. For many subjects, `rules`
+    (rules_of) and `last_labels` (last_template_pks) are read once."""
     templates = {outcome.layout.template.pk: outcome.layout.template for outcome in outcomes
                  if getattr(outcome.layout, "template", None) is not None}
-    found = priorities(subject_type, subject, list(templates.values()))
+    found = priorities(subject_type, subject, list(templates.values()), rules)
     ranked = [Ranked(outcome, found[outcome.layout.template.pk]) for outcome in outcomes
               if getattr(outcome.layout, "template", None) is not None and outcome.layout.template.pk in found]
     ranked.sort(key=lambda entry: (-entry.priority, entry.outcome.target() is None))
@@ -133,7 +155,8 @@ def rank(outcomes, subject_type, subject):
     top = ranked[0].priority
     for entry in ranked:
         entry.shown = entry.priority > 0 or entry.priority == top
-    last = last_template_pk(subject_type, subject)
+    last = (last_labels.get(str(subject.pk)) if last_labels is not None and subject_type in REMEMBERED
+            else last_template_pk(subject_type, subject))
     chosen = next((entry for entry in ranked if entry.outcome.layout.template.pk == last), ranked[0])
     chosen.preselected = chosen.shown = True
     return [chosen] + [entry for entry in ranked if entry is not chosen]
