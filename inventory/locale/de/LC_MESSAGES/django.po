@@ -3767,3 +3767,11 @@ msgstr "Von %(location)s: Dieser Standort hat keine eigenen Teams und übernimmt
 
 msgid "Rooms, areas and levels with their own code never take teams over from above."
 msgstr "Räume, Bereiche und Ebenen mit eigenem Code übernehmen nie Teams von oben."
+
+msgid ""
+"Optional, to tell it apart from others of the item, e.g. “blue” or “spare for "
+"the workshop”. It is shown between the item's name and its label ID."
+msgstr ""
+"Optional, um es von anderen Exemplaren der Sache zu unterscheiden, z. B. „blau“ "
+"oder „Ersatz für die Werkstatt“. Er steht zwischen dem Namen der Sache und "
+"ihrer ZAMid."

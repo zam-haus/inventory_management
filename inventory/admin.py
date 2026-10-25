@@ -779,7 +779,7 @@ class UniqueItemEventInline(CappedInlineMixin, admin.TabularInline):
 class UniqueItemAdmin(admin.ModelAdmin):
     list_display = ("__str__", "label_code_display", "location", "responsible_team", "disposed_at")
     list_filter = ("item", "responsible_team", ("disposed_at", admin.EmptyFieldListFilter))
-    search_fields = ("item__name", "notes", "owner_first_name")
+    search_fields = ("item__name", "name", "notes", "owner_first_name")
     autocomplete_fields = ("item", "location", "responsible_user", "owner_user")
     readonly_fields = ("label_code_display",)
     inlines = [UniqueItemImageInline, UniqueItemFileInline, UniqueItemEventInline]

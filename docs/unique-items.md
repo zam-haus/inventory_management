@@ -23,6 +23,9 @@ stock entries and unique items; its kind can only change while it has neither.
   unique items to the local group (photos and files use the item permissions they
   already have). The admin generates an ID when a
   unique item is added without `?label_id=`.
+* **Name:** optional, to tell unique items of one item apart ("blue", "spare for the workshop").
+  A unique item is always shown as the item's name, its own name if it has one, and its label ID:
+  "Akkuschrauber blau K7R-4XD" (`UniqueItem.__str__`); lists under the item show name and ID.
 * **Details:** briefing requirement (*Einweisungspflicht*; empty uses the item's):
   green (check mark) free to use, no briefing required; yellow (exclamation mark) use with care, ask if in
   doubt; red (cross) use only after a briefing. Lists show the coloured icon with
@@ -67,8 +70,8 @@ stock entries and unique items; its kind can only change while it has neither.
 * `manage.py label_id_check --missing` lists unique items whose ID was retired and
   that need a replacement label.
 * **Item search:** for items tracked as unique items, the locations column lists
-  each unique item's label ID and location; searching for a location name or
-  identifier also finds them.
+  each unique item's name, label ID and location; searching for a unique item's name, or for a
+  location name or identifier, also finds them.
 * **URLs:** `/item/unique/<pk>` (with `/update` and `/dispose`) and
   `/item/unique/create?item=<pk>&location=<pk>`; new items take `?kind=bulk` or
   `?kind=unique` on `/item/create`.

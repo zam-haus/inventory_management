@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-25 19:38+0100\n"
+"POT-Creation-Date: 2026-10-25 20:21+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -395,7 +395,7 @@ msgstr ""
 "die Kennung des Orts, an dem er lagert (des ersten); location ist der Ort, "
 "wenn es einen gibt"
 
-#: design/variables.py:42 design/variables.py:52
+#: design/variables.py:42 design/variables.py:53
 msgid "its label ID as printed, e.g. K7R-4XD"
 msgstr "seine Label-ID wie gedruckt, z. B. K7R-4XD"
 
@@ -424,30 +424,34 @@ msgid "what it is: the item's name"
 msgstr "was es ist: der Name der Sache"
 
 #: design/variables.py:51
+msgid "its own name, if it has one, to tell it apart"
+msgstr "sein eigener Name, falls es einen hat, zur Unterscheidung"
+
+#: design/variables.py:52
 msgid "the code of the location it is at"
 msgstr "die Kennung des Standorts, an dem es ist"
 
-#: design/variables.py:53 design/variables.py:59
+#: design/variables.py:54 design/variables.py:60
 msgid "its first part, e.g. K7R"
 msgstr "ihr erster Teil, z. B. K7R"
 
-#: design/variables.py:54 design/variables.py:60
+#: design/variables.py:55 design/variables.py:61
 msgid "its second part, e.g. 4XD"
 msgstr "ihr zweiter Teil, z. B. 4XD"
 
-#: design/variables.py:55 design/variables.py:62
+#: design/variables.py:56 design/variables.py:63
 msgid "for QR codes: the label ID via the label host"
 msgstr "für QR-Codes: die Label-ID über den Label-Host"
 
-#: design/variables.py:58
+#: design/variables.py:59
 msgid "the label ID as printed, e.g. K7R-4XD"
 msgstr "die Label-ID wie gedruckt, z. B. K7R-4XD"
 
-#: design/variables.py:61
+#: design/variables.py:62
 msgid "what it belongs to"
 msgstr "wozu sie gehört"
 
-#: design/variables.py:65
+#: design/variables.py:66
 msgid "what label IDs are called, e.g. ZAMid"
 msgstr "wie Label-IDs heißen, z. B. ZAMid"
 

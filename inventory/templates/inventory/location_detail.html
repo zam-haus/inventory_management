@@ -225,7 +225,7 @@
                             {% for unique_item in unique_items %}
                                 <li class="location-item">
                                     <div class="location-item-info">
-                                        <h3 class="fs-6"><a href="{{ unique_item.get_absolute_url }}">{{ unique_item.item }} {% if unique_item.label_code %}<span class="unique-item-code">{{ unique_item.label_display }}</span>{% else %}#{{ unique_item.pk }}{% endif %}</a></h3>
+                                        <h3 class="fs-6"><a href="{{ unique_item.get_absolute_url }}">{{ unique_item.item }}{% if unique_item.name %} {{ unique_item.name }}{% endif %} {% if unique_item.label_code %}<span class="unique-item-code">{{ unique_item.label_display }}</span>{% else %}#{{ unique_item.pk }}{% endif %}</a></h3>
                                         {% if unique_item.notes %}<p class="location-item-description location-muted">{{ unique_item.notes|markdown_plain|truncatechars:160 }}</p>{% endif %}
                                     </div>
                                     <div class="location-amount">{% usage_level unique_item.effective_usage_level %}</div>

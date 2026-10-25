@@ -119,7 +119,7 @@
                     </div>
                     {% for unique_item in group.list %}
                         <article class="item">
-                            <h3>{{ unique_item.item }}</h3>
+                            <h3>{{ unique_item.item }}{% if unique_item.name %} {{ unique_item.name }}{% endif %}</h3>
                             <div class="facts">
                                 <span><strong>{{ label_id_name }}:</strong> {% if unique_item.label_code %}{{ unique_item.label_display }}{% else %}–{% endif %}</span>
                                 <span><strong>{% trans "Location identifier" %}:</strong> {{ unique_item.location.unique_identifier }}</span>

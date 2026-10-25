@@ -536,6 +536,7 @@ class SearchableItemListView(LabelIdSearchMixin, ListView):
                     Q(itemlocation__location__is_deleted=False, itemlocation__location__name__icontains=query) |
                     in_inventory & Q(unique_items__location__unique_identifier__icontains=query) |
                     in_inventory & Q(unique_items__location__name__icontains=query) |
+                    in_inventory & Q(unique_items__name__icontains=query) |
                     Q(itemimage__ocr_text__icontains=query)
                 ).distinct()
             return queryset

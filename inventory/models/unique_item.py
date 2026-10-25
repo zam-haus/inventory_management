@@ -37,6 +37,12 @@ class UniqueItem(models.Model):
         "Item", on_delete=models.PROTECT, related_name="unique_items", verbose_name=_("item"),
         limit_choices_to={"kind": "unique"},
     )
+    # Optional, to tell unique items of one item apart; shown between the item and the label ID (__str__).
+    name = models.CharField(
+        _("name"), max_length=100, blank=True,
+        help_text=_("Optional, to tell it apart from others of the item, e.g. “blue” or “spare for the workshop”. "
+                    "It is shown between the item's name and its label ID."),
+    )
     # Empty only once the unique item has been disposed (see the constraint below).
     location = models.ForeignKey(
         "Location", on_delete=models.PROTECT, null=True, blank=True, related_name="unique_items",
@@ -99,8 +105,8 @@ class UniqueItem(models.Model):
         ]
 
     def __str__(self):
-        code = self.label_display
-        return f"{self.item} {code}" if code else f"{self.item} #{self.pk}"
+        """The item, its own name if it has one, and its label ID: "Akkuschrauber blau K7R-4XD"."""
+        return " ".join(part for part in (str(self.item), self.name, self.label_display or f"#{self.pk}") if part)
 
     def get_absolute_url(self):
         return reverse("view_unique_item", kwargs={"pk": self.pk})

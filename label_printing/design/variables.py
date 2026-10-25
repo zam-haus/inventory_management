@@ -48,6 +48,7 @@ VARIABLES = {
         Variable("unique_item.owner_first_name_display", _("its owner's first name, if it is not the ZAM's")),
         Variable("unique_item.has_owner", _("whether it has an owner other than the ZAM (for rules)")),
         Variable("item.name", _("what it is: the item's name")),
+        Variable("unique_item.name", _("its own name, if it has one, to tell it apart")),
         Variable("location.unique_identifier", _("the code of the location it is at")),
         Variable("label_id", _("its label ID as printed, e.g. K7R-4XD")),
         Variable('label_id.code|slice:":3"', _("its first part, e.g. K7R")),

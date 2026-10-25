@@ -1034,7 +1034,7 @@ class UniqueItemForm(NewItemAlongsideMixin, ModelForm):
     class Meta:
         model = UniqueItem
         fields = [
-            "item", "location", "usage_level", "warranty_until", "notes",
+            "item", "name", "location", "usage_level", "warranty_until", "notes",
             "responsible_team", "responsible_user", "owner_user", "owner_first_name", "owner_contact",
             "purchase_date", "purchase_price", "procurement_source",
         ]
@@ -1086,6 +1086,7 @@ class UniqueItemForm(NewItemAlongsideMixin, ModelForm):
     def layout_fields(self):
         return [
             "item",
+            "name",
             "location",
             "usage_level",
             "notes",

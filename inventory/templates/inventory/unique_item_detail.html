@@ -18,7 +18,7 @@
         <div class="item-heading" data-action-row>
             <div class="item-heading-text">
                 <p class="item-eyebrow">{% trans "Unique item" %}{% if object.item.category %} · {{ object.item.category }}{% endif %}</p>
-                <h1><a class="unique-item-of" href="{{ object.item.get_absolute_url }}">{{ object.item }}</a> {% if lid %}<span class="unique-item-code">{{ lid.display }}</span>{% else %}<span class="item-muted">#{{ object.pk }}</span>{% endif %}</h1>
+                <h1><a class="unique-item-of" href="{{ object.item.get_absolute_url }}">{{ object.item }}</a>{% if object.name %} {{ object.name }}{% endif %} {% if lid %}<span class="unique-item-code">{{ lid.display }}</span>{% else %}<span class="item-muted">#{{ object.pk }}</span>{% endif %}</h1>
             </div>
             {% if not object.is_disposed %}
             <div class="item-actions gap-2" data-action-group>

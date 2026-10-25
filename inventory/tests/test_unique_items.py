@@ -275,6 +275,22 @@ class UniqueItemViewTests(UniqueItemFixture, TestCase):
         moved = unique_item.events.get(type=UniqueItemEvent.Type.MOVED)
         self.assertEqual((moved.actor, moved.to_location), (self.member, self.shelf))
 
+    def test_an_optional_name_between_item_and_label_id(self):
+        self.assertEqual(str(self.unique_item), "Fire extinguisher K7R-4XD")  # without a name
+        self.client.force_login(self.member)
+        for url in (reverse("update_unique_item", args=[self.unique_item.pk]), reverse("create_unique_item")):
+            self.assertContains(self.client.get(url), 'name="name"')
+        data = {"location": self.location.pk, "name": "Workshop spare", "owner_first_name": "",
+                "files-TOTAL_FORMS": "0", "files-INITIAL_FORMS": "0", "images-TOTAL_FORMS": "0", "images-INITIAL_FORMS": "0"}
+        self.assertEqual(self.client.post(reverse("update_unique_item", args=[self.unique_item.pk]), data).status_code, 302)
+        unique_item = UniqueItem.objects.get(pk=self.unique_item.pk)
+        self.assertEqual(str(unique_item), "Fire extinguisher Workshop spare K7R-4XD")
+        self.assertContains(self.client.get(unique_item.get_absolute_url()), "</a> Workshop spare <span class=\"unique-item-code\">")
+        self.assertContains(self.client.get(self.location.get_absolute_url()), "Fire extinguisher Workshop spare <span")
+        self.assertContains(self.client.get(self.extinguisher.get_absolute_url()), "Workshop spare <span class=\"unique-item-code\">")
+        found = self.client.get(reverse("index_items"), {"q": "workshop spare"}, follow=True)
+        self.assertContains(found, "Workshop spare")
+
     def test_files_are_attached(self):
         self.client.force_login(self.member)
         data = {"location": self.location.pk, "files-TOTAL_FORMS": "1", "files-INITIAL_FORMS": "0", "images-TOTAL_FORMS": "0", "images-INITIAL_FORMS": "0",

@@ -163,7 +163,8 @@ what it is called first, `location.title`, its code after or below it, inverted 
 (`font mono  bold  invert`, with `width auto` in a column: as wide as the code). A text that comes out as nothing
 at all takes no room and draws nothing, not even its inverted box (e.g. the code of an item stored nowhere).
 
-Templates for **unique items** have `unique_item` (e.g. `unique_item.owner_first_name_display`, its owner's
+Templates for **unique items** have `unique_item` (e.g. `unique_item.name`, its own name if it has one;
+`unique_item.owner_first_name_display`, its owner's
 first name if it is not the ZAM's; `unique_item.has_owner`), `item` (what it is), `location`, `label_id` (its
 label ID) and `qr` (the ID via the label host).
 

@@ -152,7 +152,7 @@
                     {% for unique_item in unique_items %}
                         <li>
                             <div class="item-location-heading">
-                                <h3><a href="{{ unique_item.get_absolute_url }}">{% if unique_item.label_code %}<span class="unique-item-code">{{ unique_item.label_display }}</span>{% else %}#{{ unique_item.pk }}{% endif %}</a></h3>
+                                <h3><a href="{{ unique_item.get_absolute_url }}">{% if unique_item.name %}{{ unique_item.name }} {% endif %}{% if unique_item.label_code %}<span class="unique-item-code">{{ unique_item.label_display }}</span>{% else %}#{{ unique_item.pk }}{% endif %}</a></h3>
                                 {# The item's briefing requirement applies, unless this one sets a different one. #}
                                 {% if unique_item.usage_level and unique_item.usage_level != object.usage_level %}
                                     <span class="unique-item-differs"><span class="item-muted">{% trans "differs" %}</span> {% usage_level unique_item.usage_level %}</span>
