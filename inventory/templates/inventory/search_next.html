@@ -1,0 +1,7 @@
+{% load i18n %}
+{# After the results: search.js loads the next page when this comes into view; without JavaScript it is a link. #}
+{% if next_url %}
+    <p class="search-next" data-search-next="{{ next_url }}"><a href="{{ next_url }}">{% trans "More results" %}</a></p>
+{% elif capped %}
+    <p class="search-more">{% trans "There are more results than shown. Add words to narrow the search." %}</p>
+{% endif %}

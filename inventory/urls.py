@@ -20,7 +20,7 @@ from .stock_change_views import StockChangeView
 
 
 urlpatterns = [
-    path("", views.index, name="index"),
+    path("", views.SearchView.as_view(), name="index"),
     path("loc/dissolve/<int:pk>", DissolveLocationView.as_view(), name="location_dissolve"),
     path("loc/move-here/<int:pk>", views.LocationsMoveHereView.as_view(), name="locations_move_here"),
     path("loc/<int:pk>/overview/", LocationOverviewUpdateView.as_view(), name="location_overview_update"),

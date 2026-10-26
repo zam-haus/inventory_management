@@ -1,12 +1,13 @@
 # Camera scanning
 
 Every page has a QR scan button beside the logo in the navbar, also on narrow
-screens; the home page (`/`) also offers **Scan QR code** next to the item and
-location search. Scanning a label opens the link in its QR code, such as a location
+screens; the home page (`/`, the [search](search.md)) also has one beside its search
+field. Scanning a label opens the link in its QR code, such as a location
 page or a label ID. Only links to hosts this site serves are opened, matched like
 Django's `ALLOWED_HOSTS` (plus the host the page was loaded from, the label ID hosts
-and earlier domains on old labels; `inventory/link_scanner.py`); other codes are
-shown as "not a link to this inventory". The scanner scripts are loaded on every
+and earlier domains on old labels; `inventory/link_scanner.py`); other QR codes are
+shown as "not a link to this inventory". A product barcode (EAN-13, EAN-8) is searched
+for, which finds the items with that barcode. The scanner scripts are loaded on every
 page by `templates/base.html` (`link_scanner.js` for these buttons).
 
 Every location search field outside the admin (moving a location or unique item,

@@ -3975,3 +3975,61 @@ msgstr "%(code)s liest sich als die ZAMid %(label_id)s."
 #, python-format
 msgid "%(code)s does not belong to a location."
 msgstr "%(code)s gehört zu keinem Standort."
+
+msgid "document"
+msgstr "Dokument"
+
+msgid "photo description"
+msgstr "Fotobeschreibung"
+
+msgid "text on a photo"
+msgstr "Text auf einem Foto"
+
+msgid "Found in"
+msgstr "Gefunden in"
+
+msgid "Nothing found."
+msgstr "Nichts gefunden."
+
+#, python-format
+msgid "Open %(query)s"
+msgstr "%(query)s öffnen"
+
+#, python-format
+msgid "%(count)s result"
+msgid_plural "%(count)s results"
+msgstr[0] "%(count)s Treffer"
+msgstr[1] "%(count)s Treffer"
+
+#, python-format
+msgid "and %(count)s more place"
+msgid_plural "and %(count)s more places"
+msgstr[0] "und %(count)s weiterer Ort"
+msgstr[1] "und %(count)s weitere Orte"
+
+msgid "There are more results than shown. Add words to narrow the search."
+msgstr "Es gibt mehr Treffer als angezeigt. Weitere Wörter grenzen die Suche ein."
+
+msgid "The search cannot be reached right now. The results shown are older."
+msgstr "Die Suche ist gerade nicht erreichbar. Die angezeigten Treffer sind älter."
+
+msgid "More results"
+msgstr "Weitere Treffer"
+
+#, python-format
+msgid "More than %(count)s result"
+msgid_plural "More than %(count)s results"
+msgstr[0] "Mehr als %(count)s Treffer"
+msgstr[1] "Mehr als %(count)s Treffer"
+
+#, python-format
+msgid "Show the photo of %(name)s"
+msgid_plural "Show the %(count)s photos of %(name)s"
+msgstr[0] "Foto von %(name)s zeigen"
+msgstr[1] "Die %(count)s Fotos von %(name)s zeigen"
+
+msgid "Hold the QR code of a label in front of the camera to open it, or a product barcode (EAN) to search for it."
+msgstr "Halte den QR-Code eines Etiketts vor die Kamera, um ihn zu öffnen, oder einen Produkt-Barcode (EAN), um danach zu suchen."
+
+msgid "Scan QR code or barcode"
+msgstr "QR-Code oder Barcode scannen"

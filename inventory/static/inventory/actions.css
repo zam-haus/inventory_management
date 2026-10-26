@@ -60,6 +60,15 @@
     .app-navbar .navbar-collapse { order: 1; }
 }
 .navbar-scan { justify-content: center; width: var(--app-navbar-item); padding: 0; font-size: 1.35rem; line-height: 1; }
+/* The search field the magnifier opens (navbar.js): right of the magnifier, over the navbar's other items. navbar.js
+   sets where the magnifier ends (--navbar-search-left, --navbar-search-top). */
+.app-navbar > .container-fluid { position: relative; }
+.navbar-search { position: absolute; z-index: 2; top: var(--navbar-search-top, .5rem); left: var(--navbar-search-left, 0);
+    right: calc(var(--bs-gutter-x, 1.5rem) * .5); display: flex; height: var(--app-navbar-item); background: var(--bs-light);
+    animation: navbar-search-open .15s ease-out; }
+.navbar-search .form-control { height: 100%; }
+@keyframes navbar-search-open { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0); } }
+@media (prefers-reduced-motion: reduce) { .navbar-search { animation: none; } }
 
 /* Inline Bootstrap Icons ({% icon %}, inventory/icons.py) sit on the text baseline like a glyph. */
 .bi { vertical-align: -.125em; flex-shrink: 0; }

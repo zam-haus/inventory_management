@@ -27,9 +27,9 @@ the location fields (scan button, `/loc/lookup`) and *Move here*. In this order:
 6. in location fields, a number as the location's database ID;
 
 and, if nothing matched, the same input as typed by a scanner with another keyboard layout. A label ID
-in a location field must belong to a location. The item search keeps a typed location code as search text
-(short codes such as `LAS` are words, too); scanned label URLs and label IDs lead to their target there as
-well.
+in a location field must belong to a location. The [search](search.md) and the item search keep a typed
+location code as search text (short codes such as `LAS` are words, too); scanned label URLs and label IDs
+lead to their target there as well.
 
 Codes and label IDs never collide: new label IDs are never drawn equal to a location code
 (`services.is_location_code`), and a location code or former code that reads as an issued label ID is refused

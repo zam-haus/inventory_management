@@ -1,0 +1,35 @@
+{% extends 'base.html' %}
+{% load i18n static icons %}
+
+{% block title %}{% if query %}{{ query }} · {% endif %}{% trans "ZAM inventory" %}{% endblock %}
+
+{% block bootstrap5_extra_head %}
+    {{ block.super }}
+    <link rel="stylesheet" href="{% static 'inventory/search.css' %}">
+{% endblock %}
+
+{# The search field says enough; the heading is for screen readers only. #}
+{% block page_header %}<h1 class="visually-hidden">{% trans "Search" %}</h1>{% endblock %}
+
+{% block content %}
+<div class="search-page">
+    {# Sent as usual on Enter (a typed or scanned code opens its page); search.js shows results while typing. #}
+    <form class="search-bar" method="get" action="{% url 'index' %}" role="search" data-live-search>
+        <div class="input-group input-group-lg">
+            <span class="input-group-text" aria-hidden="true">{% icon "search" %}</span>
+            <input type="search" class="form-control" name="q" value="{{ query }}" aria-label="{% trans 'Search' %}"
+                   placeholder="{% blocktrans with name=label_id_name %}Name, identifier or {{ name }}{% endblocktrans %}" enterkeyhint="search" autocomplete="off" autofocus>
+        </div>
+        {% include 'inventory/scan_link_button.html' with classes="btn btn-lg btn-secondary search-scan" icon_only=True %}
+    </form>
+    <p class="search-error text-danger" role="alert" hidden data-search-error>{% trans "The search cannot be reached right now. The results shown are older." %}</p>
+    <p class="visually-hidden" role="status" data-search-status></p>
+    <div id="search-results" data-photos-label="{% trans 'Photos' %}" data-close-label="{% trans 'Close photo' %}"
+         data-previous-label="{% trans 'Previous photo' %}" data-next-label="{% trans 'Next photo' %}">{% include 'inventory/search_results.html' %}</div>
+</div>
+{% endblock %}
+
+{% block bootstrap5_extra_script %}
+    {{ block.super }}
+    <script src="{% static 'inventory/search.js' %}"></script>
+{% endblock %}

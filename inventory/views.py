@@ -23,7 +23,7 @@ from django.utils.translation import gettext_lazy as _
 from django.views import View
 from django.views.generic import DetailView, ListView, TemplateView, UpdateView
 
-from . import forms, location_display, models
+from . import forms, location_display, models, search
 from .location_lookup import resolve_location_reference
 from .permissions import (
     QUICK_ITEM_PERMISSIONS, UNIQUE_ITEM_CREATE_PERMISSIONS, ItemEditorPermissionMixin, location_deletion_denied,
@@ -33,14 +33,41 @@ from .stock_change_views import mark_last_stock
 from .structure_overview import structure_overview
 from .label_ids import services
 from .label_ids.lookup import annotate_label_code
-from .label_ids.search import LabelIdSearchMixin
+from .label_ids.search import LabelIdSearchMixin, url_for_query
 from .location_lookup import location_from_reference
 
 
 logger = logging.getLogger(__name__)
 
-def index(request):
-    return render(request, "inventory/index.html")
+class SearchView(TemplateView):
+    """The home page: one search over locations, items and unique items (docs/search.md). A scanned or typed
+    code (label ID, label URL) leads to what it belongs to; codes of locations stay search text and find the
+    location first. ?offset= starts at a later page. With ?partial=1 only the results, for searching as you
+    type (a code is offered as a link there instead) and, with an offset, only the further entries."""
+    template_name = "inventory/search.html"
+
+    def get(self, request, *args, **kwargs):
+        query = request.GET.get("q", "").strip()
+        partial = bool(request.GET.get("partial"))
+        try:
+            offset = int(request.GET.get("offset", 0))
+        except ValueError:
+            offset = 0
+        code_url = url_for_query(request, query, location_codes=False) if not offset else None
+        if code_url and not partial:
+            return redirect(code_url)
+        result = search.search(query, offset)
+        next_url = None
+        if result.next_offset is not None:
+            next_url = f"{reverse('index')}?{urlencode({'q': query, 'offset': result.next_offset})}"
+        context = self.get_context_data(query=query, code_url=code_url, words=result.words, offset=offset,
+                                        entries=search.render.entries(result.hits), next_url=next_url,
+                                        capped=result.capped)
+        if partial:
+            template = "inventory/search_more.html" if offset else "inventory/search_results.html"
+            return render(request, template, context)
+        return self.render_to_response(context)
+
 
 def filter_locations(qs, query):
     """Locations matching a search; a pasted or scanned label URL or label ID finds its location, too."""

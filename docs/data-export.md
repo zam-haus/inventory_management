@@ -55,7 +55,8 @@ that is not personal, such as the change log without who acted, or location type
 
 The rules are in [`inventory/public_export.py`](../inventory/public_export.py): every model is
 listed as exported or excluded; of exported models, the fields to replace are listed, and all
-others are kept (see [New models and fields](#new-models-and-fields)).
+others are kept (see [New models and fields](#new-models-and-fields)). The [search](search.md)
+follows the same rules: it never finds a field the export replaces or a row it leaves out.
 
 ## Before publishing
 

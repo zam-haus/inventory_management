@@ -129,6 +129,18 @@ class UnreviewedData(Exception):
     pass
 
 
+def publishable(label, field):
+    """Whether the export keeps this field as it is: its model is exported and the field not replaced.
+    The search finds only such fields (inventory/search/fields.py)."""
+    spec = EXPORTED_MODELS.get(label)
+    return spec is not None and field not in spec.get("replace", {})
+
+
+def export_filter(label):
+    """The export's filter for the rows of this model, e.g. no internal files; {} for all rows."""
+    return dict(EXPORTED_MODELS.get(label, {}).get("filter", {}))
+
+
 def serialized_fields(model):
     """The field names Django's serializers write for this model."""
     return {f.name for f in model._meta.local_fields if f.serialize and not f.primary_key} | {

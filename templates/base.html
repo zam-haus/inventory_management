@@ -3,6 +3,7 @@
 {% load i18n %}
 {% load django_bootstrap5 %}
 {% load static %}
+{% load icons %}
 
 {% block bootstrap5_extra_head %}
     {{ block.super }}
@@ -17,10 +18,12 @@
     {# Sticks to the top, slides away while scrolling down and comes back on scrolling up (navbar.js). #}
     <nav class="navbar navbar-expand-sm bg-light border-bottom sticky-top app-navbar">
       <div class="container-fluid">
-        {# The QR scanner stays beside the logo on narrow screens too (link_scanner.js). #}
+        {# The QR scanner (link_scanner.js) and the search stay beside the logo on narrow screens too. #}
         <div class="d-flex align-items-center gap-2 me-sm-3">
           <a class="navbar-brand py-0 me-0" href="{% url 'index' %}"><img src="{% static favicon_dir|add:'/favicon.svg' %}" alt="{% trans 'ZAM inventory' %}" width="40" height="40"></a>
           {% include 'inventory/scan_link_button.html' with classes="btn btn-sm btn-secondary navbar-scan" icon_only=True %}
+          {# Opens the search field below (navbar.js); without JavaScript it leads to the search, the home page. #}
+          <a class="btn btn-sm btn-secondary navbar-scan" href="{% url 'index' %}" aria-label="{% trans 'Search' %}" data-navbar-search aria-controls="navbar-search" aria-expanded="false">{% icon "search" %}</a>
         </div>
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNavAltMarkup" aria-controls="navbarNavAltMarkup" aria-expanded="false" aria-label="{% trans 'Toggle navigation' %}">
           <span class="navbar-toggler-icon"></span>
@@ -62,6 +65,10 @@
           <a class="btn btn-sm btn-secondary" href="{% if oidc_enabled %}{% url 'oidc_authentication_init' %}{% else %}{% url 'login' %}{% endif %}?next={{ request.get_full_path|urlencode }}">{% trans 'Login' %}</a>
           {% endif %}
         </div>
+        <form class="navbar-search" id="navbar-search" method="get" action="{% url 'index' %}" role="search" hidden>
+          <input type="search" class="form-control" name="q" aria-label="{% trans 'Search' %}"
+                 placeholder="{% blocktrans with name=label_id_name %}Name, identifier or {{ name }}{% endblocktrans %}" enterkeyhint="search" autocomplete="off">
+        </form>
       </div>
     </nav>
 

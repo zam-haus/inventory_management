@@ -78,5 +78,5 @@ class UnavailableActionsStayVisibleTests(TestCase):
     def test_scan_button_waits_for_javascript(self):
         # A technical reason: guests see it disabled with the explanation, too.
         response = self.client.get(reverse("index"))
-        self.assertContains(response, 'title="Das braucht JavaScript.">')
+        self.assertContains(response, 'title="Das braucht JavaScript."')
         self.assertContains(response, 'data-scan-link disabled')

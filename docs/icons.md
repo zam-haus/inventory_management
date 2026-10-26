@@ -13,6 +13,11 @@ there for each icon a script needs. To add an icon, copy its SVG from the
 Bootstrap Icons site into that folder; unknown names raise an error (see
 `inventory/tests/test_icons.py`).
 
+Two icons are our own, drawn in the style of Bootstrap Icons and kept in the same folder: `box-star`
+(Bootstrap's `box` with a star on its side: one single, individually tracked object, next to the
+`boxes` of counted items) and `eurobox-open` (a Euro container with its lid open, on a 64 grid, its
+lines thickened to match the others at 16 px).
+
 Agreed meaning of each icon, so the same action always looks the same. *Reserved*
 icons are agreed but not shown yet (those places have text buttons); vendor them
 when they are first used:
@@ -33,6 +38,11 @@ when they are first used:
 | Print (labels; a label's printer mark in the print dialog) | `printer` | done |
 | Levels-and-axes overview of the building | `grid-3x3` | done |
 | Search | `search` | done |
+| Item (counted, *Sache*) | `boxes` | done |
+| Unique item (*Einzelobjekt*) | `box-star` (own) | done |
+| Location: building part (level, room, area) and others | `geo-alt` | done |
+| Location: storage unit (*Lagermöbel*: shelf, cabinet, …) | `bookshelf` | done |
+| Location: container (*Behälter*: Euro box, carton, …) | `eurobox-open` (own) | done |
 | Edit (item, unique item, purpose) | `pencil` | done |
 | Add | `plus-lg` | done |
 | Move a location or unique item | `arrows-move` | done |
