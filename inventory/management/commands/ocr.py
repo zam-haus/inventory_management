@@ -62,7 +62,7 @@ class Command(BaseCommand):
     def handle(self, *args, rerun=False, since=None, batch_size=50, workers=4, **kwargs):
         self.get_logger()
         since_parsed = self.parse_since_argument(since)
-        images = self.get_images_filtered(rerun, since_parsed).order_by("pk")
+        images = self.get_images_filtered(rerun, since_parsed).order_by("ocr_timestamp")
         total = images.count()
         logger.info(f"Running OCR on {total} images in batches of {batch_size}")
         logger.info("")
