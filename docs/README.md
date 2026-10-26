@@ -15,6 +15,7 @@ How the ZAM inventory works, feature by feature. Setup is covered in the
 * [Search](search.md): one search over locations, items and unique items, results while typing; never internal information
 * [Text recognition on photos](ocr.md): text lines found by a detection model and read by Tesseract, EAN barcodes; for the search
 * [Item and location trees](trees.md): items by category and the location tree, to browse
+* [Cleaning up items and categories](item-cleanup.md): export for outside processing, proposals reviewed change by change and applied
 * [Camera scanning](camera-scanning.md): QR and barcode scanning in the browser
 * [Permissions](permissions.md): model permissions, the local group and network detection
 * [Label printing](label-printing.md): printers, label media, the print queue, print agent and simulator;

@@ -1,0 +1,6 @@
+{% load i18n icons %}{# Notes on one change on the review page (review.html); whether it is accepted is its checkbox. With notes: those on the proposal (category operations; an item's are above its fields). #}
+{% if change.stale %}<div class="cleanup-stale">{% translate "Changed since the export" %}</div>{% endif %}
+{% if change.modified %}<div class="cleanup-stale">{% translate "Accepted with changes; proposed was:" %} {{ change.proposed|truncatechars:300 }}</div>{% endif %}
+{% for note in notes %}<div class="cleanup-stale">{{ note }}</div>{% endfor %}
+{% if change.unchanged %}<div class="cleanup-done">{% icon "check-lg" %} {% translate "Already applied" %}</div>{% endif %}
+{% if change.problem %}<div class="cleanup-problem">{% translate "Cannot be carried out:" %} {{ change.problem }}</div>{% endif %}

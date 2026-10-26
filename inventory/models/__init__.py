@@ -15,6 +15,7 @@ from .stock import (
 from .unique_item import UniqueItem, get_unique_item_upload_path
 from .label_id import LabelId, LabelIdAccess, LabelIdImmutable
 from .change_log import ChangeLog
+from .cleanup import CleanupImport
 
 __all__ = [
     "BarcodeType", "Category", "Document", "Item", "ItemBarcode", "ItemFile", "ItemImage", "MeasurementUnit",
@@ -24,4 +25,5 @@ __all__ = [
     "UniqueItem", "get_unique_item_upload_path",
     "LabelId", "LabelIdAccess", "LabelIdImmutable",
     "ChangeLog",
+    "CleanupImport",
 ]

@@ -34,6 +34,7 @@ class ChangeLog(models.Model):
         ADMIN = "admin", _("Admin")
         DISSOLUTION = "dissolution", _("Location dissolution")
         PRINT = "print", _("Label printing")
+        CLEANUP = "cleanup", _("Cleanup import")
         OTHER = "other", _("Other")
 
     class Direction(models.TextChoices):

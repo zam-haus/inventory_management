@@ -170,6 +170,11 @@ class Category(ComputedFieldsModel):
         help_text=_("Further words the category choice finds it by, separated by commas: synonyms, compound "
                     "words, brands."),
     )
+    naming = models.TextField(
+        _("naming"), blank=True,
+        help_text=_("How items in this category are named, as a pattern with an example, e.g. "
+                    "“Holzschraube <Durchmesser> × <Länge> mm, <Kopfform>: Holzschraube 4 × 40 mm, Senkkopf”."),
+    )
     parent_category = models.ForeignKey(
         "self",
         verbose_name=_("parent category"),

@@ -51,7 +51,8 @@ for tracked fields; it is not logged.
 
 Who acted comes from the request (`inventory.actor.CurrentActorMiddleware`), or `acting_as(user)`
 outside requests. `change_context()` sets the source and, for stock changes, the reasons; with
-`log=False` nothing is logged inside it.
+`log=False` nothing is logged inside it. Changes applied from a [cleanup import](item-cleanup.md) have the source
+*Cleanup import* and the proposal's reason as note.
 
 ## Who sees what
 

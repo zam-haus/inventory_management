@@ -3,12 +3,18 @@
 // description's first line, not its "Nicht hier" hints); hits on the name come first, then on the path and
 // keywords; an entry found by a keyword names it. Without a search the list shows the tree,
 // indented, each entry with the first line of its description. The chosen category's description
-// shows below the field; a category filter (data-category-filter) applies on choosing. Listens on the
+// shows below the field, and its naming (how its items are named), if it has one; a category filter (data-category-filter) applies on choosing. Listens on the
 // document, so that fields in forms loaded later and forms being reset are covered too.
 (() => {
     const show = select => {
         const description = select.parentElement.querySelector('[data-category-description]');
         if (description) description.textContent = select.selectedOptions[0]?.dataset.description || '';
+        const naming = select.parentElement.querySelector('[data-category-naming]');
+        if (naming) {
+            const text = select.selectedOptions[0]?.dataset.naming || '';
+            naming.querySelector('span').textContent = text;
+            naming.hidden = !text;
+        }
     };
     const chosen = select => {
         if (select.matches('[data-category-filter]')) select.form?.requestSubmit();

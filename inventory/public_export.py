@@ -38,6 +38,7 @@ EXCLUDED_MODELS = {
     "admin.logentry": "who changed what in the admin",
     "sessions.session": "login sessions",
     "inventory.labelidaccess": "who scanned which label when",
+    "inventory.cleanupimport": "uploaded cleanup proposals, who uploaded and applied them",
     "auth.permission": "created by migrate",
     "contenttypes.contenttype": "created by migrate",
     "thumbnail.kvstore": "thumbnail cache, rebuilt on demand",

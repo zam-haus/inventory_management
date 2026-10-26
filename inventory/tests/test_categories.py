@@ -7,11 +7,12 @@ from django.test import TestCase, TransactionTestCase
 from django.urls import reverse
 
 from .. import search
-from ..forms import BulkItemForm
+from ..forms import BulkItemForm, NewItemForm, UniqueKindItemForm
 from ..label_ids.forms import NewItemForm as ClaimNewItemForm
 from ..models import Category, Item, MeasurementUnit
 
 tree_migration = importlib.import_module("inventory.migrations.0048_category_tree")
+naming_migration = importlib.import_module("inventory.migrations.0049_cleanup_import")
 
 
 def paths(nodes, above=()):
@@ -27,6 +28,15 @@ def computed_full_name(category):
 
 class CategoryTreeTests(TestCase):
     """The tree the migration creates (0048_category_tree)."""
+
+    def test_default_categories_have_their_naming(self):
+        """0049_cleanup_import: the naming of the default categories that have one, each of them in the tree."""
+        tree = dict(paths(tree_migration.TREE))
+        for full_name, naming in naming_migration.NAMING.items():
+            with self.subTest(full_name):
+                self.assertIn(full_name, tree)
+                self.assertEqual(Category.objects.get(full_name=full_name).naming, naming)
+                self.assertIn(": ", naming)  # a pattern, then an example
 
     def test_every_category_of_the_tree_exists_with_its_description(self):
         for full_name, description in paths(tree_migration.TREE):
@@ -71,6 +81,26 @@ class CategoryFormTests(TestCase):
         self.assertIn(">Türbeschläge › Türbänder &amp; Bandzubehör</option>", html)
         self.assertIn(f'data-description="{hinges.description[:30]}', html.replace("&amp;", "&"))
         self.assertIn("data-category-description>Einbohr-", html)  # the chosen one's description, without JS
+
+    def test_the_chosen_categorys_naming_shows_below_it(self):
+        hinges = Category.objects.get(full_name="Beschläge/Türbeschläge/Türbänder & Bandzubehör")
+        hinges.naming = "<Art>band <Länge> mm: Einbohrband 13 mm"
+        hinges.save()
+        html = str(BulkItemForm(instance=Item(name="Einbohrband", category=hinges))["category"])
+        self.assertIn('data-naming="&lt;Art&gt;band &lt;Länge&gt; mm: Einbohrband 13 mm"', html)  # for the script
+        # Below the field, without the script too (the widget speaks German here).
+        self.assertIn('<div class="form-text category-naming" data-category-naming><strong>Benennung:</strong> '
+                      '<span>&lt;Art&gt;band &lt;Länge&gt; mm: Einbohrband 13 mm</span></div>', html)
+        other = Category.objects.exclude(pk=hinges.pk).first()
+        self.assertIn("data-category-naming hidden>", str(BulkItemForm(instance=Item(category=other))["category"]))
+
+    def test_the_category_comes_before_the_name(self):
+        for form in (BulkItemForm(), UniqueKindItemForm(), NewItemForm()):
+            with self.subTest(form=type(form).__name__):
+                fields = list(form.fields)
+                self.assertLess(fields.index("category"), fields.index("name"))
+                layout = [pointer.name for pointer in form.helper.layout.get_field_names()]
+                self.assertLess(layout.index("category"), layout.index("name"))
 
     def test_options_carry_what_the_search_shows(self):
         drawers = Category.objects.get(full_name="Beschläge/Möbelbeschläge/Rohrkappen & Stopfen")

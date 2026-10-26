@@ -20,6 +20,9 @@ render these buttons with `{% disabled_action %}`
 (`inventory/templatetags/actions.py`), which also takes other reasons, such as a
 location type that cannot be moved, and renders nothing for guests.
 
+The [cleanup](item-cleanup.md) of items and categories in the admin checks the permissions of each
+change it applies.
+
 Item metadata, photos, barcodes and stock entries have separate model permissions.
 For example, creating an item at a location requires `add_item` and
 `add_itemlocation`. Unique items are covered in [Unique items](unique-items.md), including

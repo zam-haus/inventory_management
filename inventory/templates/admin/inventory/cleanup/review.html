@@ -1,0 +1,240 @@
+{% extends "admin/base_site.html" %}
+{% load i18n admin_urls static icons %}
+
+{% block extrastyle %}{{ block.super }}<link rel="stylesheet" href="{% static "admin/css/forms.css" %}">
+<style>
+    .cleanup-meta { color: var(--body-quiet-color); }
+    .cleanup table { width: 100%; margin-bottom: 1rem; }
+    .cleanup td, .cleanup th { vertical-align: top; }
+    .cleanup td.cleanup-check { width: 9.5rem; }
+    /* Yes, later, no: a segmented control; the chosen one coloured. */
+    .cleanup-decide { display: inline-flex; margin: 0; padding: 0; border: 1px solid var(--hairline-color); border-radius: 6px; overflow: hidden; }
+    .cleanup-decide label { display: inline-flex; align-items: center; padding: .15rem .45rem; font-size: .75rem; cursor: pointer; }
+    .cleanup-decide label + label { border-left: 1px solid var(--hairline-color); }
+    .cleanup-decide input { position: absolute; opacity: 0; pointer-events: none; }
+    .cleanup-decide label:has(input:focus-visible) { outline: 2px solid var(--link-fg); outline-offset: -2px; }
+    .cleanup-decide .is-accept:has(input:checked) { background: #2e7d32; color: #fff; }
+    .cleanup-decide .is-defer:has(input:checked) { background: #e0a800; color: #000; }
+    .cleanup-decide .is-decline:has(input:checked) { background: #ba2121; color: #fff; }
+    .cleanup-decide:disabled label { cursor: default; }
+    .cleanup .cleanup-item th { background: var(--darkened-bg); font-size: .8rem; }
+    .cleanup .cleanup-field { width: 7rem; color: var(--body-quiet-color); }
+    .cleanup .cleanup-diff { white-space: pre-wrap; overflow-wrap: anywhere; }
+    .cleanup .cleanup-diff + .cleanup-diff { margin-top: .35rem; padding-top: .35rem; border-top: 1px dashed var(--hairline-color); }
+    .cleanup del { background: #fbe1e1; color: #8a1c1c; text-decoration: line-through; }
+    .cleanup ins { background: #ddf4e1; color: #14532d; text-decoration: none; }
+    .cleanup-reason { margin: .25rem 0 0; color: var(--body-quiet-color); font-style: italic; }
+    .cleanup-status { width: 14rem; }
+    .cleanup-problem { color: var(--error-fg); }
+    .cleanup-stale { color: #9a6700; font-weight: 600; }
+    .cleanup-done { color: var(--message-success-fg, #2e7d32); font-weight: 600; }
+    .cleanup-unchanged td:not(.cleanup-check):not(.cleanup-status) { color: var(--body-quiet-color); }
+    /* A change not accepted (deferred or declined) is greyed out at once, also before saving. */
+    .cleanup tr:has(.cleanup-decide input[value="accept"]:not(:checked)) > td:not(.cleanup-check) { opacity: .5; }
+    .cleanup thead th { font-size: .75rem; }
+    .cleanup-details { margin: .25rem 0 0; padding-left: 1.2rem; }
+    .cleanup-tools { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; margin: .5rem 0; }
+    .cleanup-tools a.selected { font-weight: 700; text-decoration: underline; }
+    .cleanup-filters { margin: 1rem 0; padding: .25rem .75rem; border: 1px solid var(--hairline-color); border-radius: 6px; }
+    .cleanup-confidence input[type="range"] { width: 10rem; vertical-align: middle; }
+    .cleanup-confidence output { display: inline-block; min-width: 2ch; text-align: right; font-variant-numeric: tabular-nums; }
+    .cleanup-bulk { display: inline-flex; flex-wrap: wrap; gap: .35rem; align-items: center; }
+    .cleanup .submit-row { position: sticky; bottom: 0; z-index: 2; }
+    .cleanup .cleanup-item th { font-weight: normal; }
+    /* Confidence and type of a proposal; an uncertain one stands out. */
+    .cleanup-badge { display: inline-block; margin-left: .35rem; padding: 0 .4rem; border-radius: 999px; font-size: .7rem;
+        background: var(--darkened-bg); border: 1px solid var(--hairline-color); color: var(--body-quiet-color); white-space: nowrap; }
+    .cleanup-badge.is-uncertain { border-color: #e0a800; color: #9a6700; font-weight: 600; }
+    /* Accept with changes: the value to apply instead of the proposed one. */
+    .cleanup-modify { margin-top: .35rem; }
+    .cleanup-modify summary { cursor: pointer; color: var(--link-fg); font-size: .8rem; }
+    .cleanup-modify input, .cleanup-modify textarea { width: 100%; box-sizing: border-box; margin-top: .25rem; }
+    .cleanup .cleanup-item th > a { font-weight: 700; }
+    /* The item's photos; the one its proposal is based on (its source) marked, with what it says below. */
+    .cleanup-photos { display: flex; flex-wrap: wrap; gap: .35rem; margin: .4rem 0 0; }
+    .cleanup-photos img { display: block; width: 64px; height: 64px; object-fit: cover; border-radius: 4px; background: var(--hairline-color); }
+    .cleanup-photos a { border-radius: 6px; outline: 3px solid transparent; outline-offset: 1px; }
+    .cleanup-photos a.cleanup-source-photo { outline-color: #e0a800; }
+    .cleanup-source { margin: .4rem 0 0; }
+    .cleanup-source-label { font-weight: 700; }
+    .cleanup-evidence { max-height: 14em; overflow: auto; margin-top: .25rem; padding: .35rem .5rem; border-left: 3px solid #e0a800;
+        background: var(--message-warning-bg, #fff3bf); white-space: pre-wrap; overflow-wrap: anywhere; font-size: .8rem; }
+    /* Narrow screens: each change below its decision, the notes below it. */
+    @media (max-width: 767px) {
+        .cleanup table, .cleanup tbody { display: block; }
+        .cleanup tr { display: grid; grid-template-columns: minmax(0, 1fr); }
+        .cleanup td, .cleanup th { display: block; width: auto; }
+        .cleanup td.cleanup-check { width: auto; }
+        .cleanup td.cleanup-field, .cleanup td.cleanup-status { width: auto; padding-block: 0 .25rem; }
+        .cleanup thead tr { display: block; }
+        .cleanup thead th:not(:first-child) { display: none; }
+    }
+</style>
+{% endblock %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+  <a href="{% url 'admin:index' %}">{% translate 'Home' %}</a>
+  &rsaquo; <a href="{% url 'admin:app_list' app_label=opts.app_label %}">{{ opts.app_config.verbose_name }}</a>
+  &rsaquo; <a href="{% url opts|admin_urlname:'changelist' %}">{{ opts.verbose_name_plural|capfirst }}</a>
+  &rsaquo; {{ title }}
+</div>
+{% endblock %}
+
+{% block content %}
+<div id="content-main" class="cleanup">
+    <p class="cleanup-meta">
+        {% blocktranslate with when=cleanup.created_at|date:"SHORT_DATETIME_FORMAT" who=cleanup.created_by.get_username|default:"–" %}Uploaded {{ when }} by {{ who }}.{% endblocktranslate %}
+        {% if cleanup.exported_at %}{% blocktranslate with when=cleanup.exported_at|date:"SHORT_DATETIME_FORMAT" %}Made from the export of {{ when }}.{% endblocktranslate %}{% endif %}
+        {% if cleanup.applied_at %}<strong>{% blocktranslate with when=cleanup.applied_at|date:"SHORT_DATETIME_FORMAT" who=cleanup.applied_by.get_username|default:"–" %}Applied {{ when }} by {{ who }}.{% endblocktranslate %}</strong>{% endif %}
+    </p>
+    {% if result %}
+        <p>{% blocktranslate count count=result.applied|length %}{{ count }} change was applied.{% plural %}{{ count }} changes were applied.{% endblocktranslate %}
+           {% if result.skipped %}{% blocktranslate count count=result.skipped|length %}{{ count }} accepted change was skipped.{% plural %}{{ count }} accepted changes were skipped.{% endblocktranslate %}{% endif %}</p>
+    {% endif %}
+    {% if editable %}
+        <p>{% blocktranslate %}Every change is accepted (“Yes”) unless you defer it (“Later”: decide later) or decline it (“No”). Category changes are carried out first, in their order; a change that needs one not accepted (e.g. an item moved into a category whose creation is deferred) is skipped. Item fields changed since the export are deferred at first. The import can be applied again and again: changes accepted later are carried out then; those applied show as already applied.{% endblocktranslate %}</p>
+    {% endif %}
+    {% if plan.errors %}
+        <div class="errornote">{% translate "Not understood in the file:" %}<ul>{% for error in plan.errors %}<li>{{ error }}</li>{% endfor %}</ul></div>
+    {% endif %}
+
+    {# Filters: what the page lists and what the buttons for all changes cover (category tree and items alike). #}
+    <div class="cleanup-filters">
+        {% for group in link_groups %}
+            <div class="cleanup-tools cleanup-links">{% for label, url, selected in group %}<a href="{{ url }}"{% if selected %} class="selected" aria-current="true"{% endif %}>{{ label }}</a>{% endfor %}</div>
+        {% endfor %}
+        <form method="get" class="cleanup-tools cleanup-confidence" data-confidence>
+            {% for name, value in keep.items %}<input type="hidden" name="{{ name }}" value="{{ value }}">{% endfor %}
+            <label>{% translate "Confidence from" %} <input type="range" name="min" min="0" max="100" step="5" value="{{ filters.low }}"> <output>{{ filters.low }}</output> %</label>
+            <label>{% translate "up to" %} <input type="range" name="max" min="0" max="100" step="5" value="{{ filters.high }}"> <output>{{ filters.high }}</output> %</label>
+            <button type="submit" class="button">{% translate "Filter" %}</button>
+            <span class="cleanup-meta">{% translate "Changes without a confidence are left out unless the whole range is chosen." %}</span>
+        </form>
+        <script>
+            // The confidence range: shows its values while moving, filters when let go (without the script: Filter).
+            for (const form of document.querySelectorAll("[data-confidence]")) {
+                form.addEventListener("input", event => {
+                    event.target.closest("label")?.querySelector("output")?.replaceChildren(event.target.value);
+                });
+                form.addEventListener("change", () => form.requestSubmit());
+            }
+        </script>
+    </div>
+
+    <form method="post">
+        {% csrf_token %}
+        <input type="hidden" name="shown" value="{{ shown_keys }}">
+        <h2>{% translate "Category tree" %} ({{ plan.categories|length }})</h2>
+        {% if plan.categories %}
+            <div class="cleanup-tools">
+                {% blocktranslate with ok=category_counts.ok deferred=category_counts.deferred declined=category_counts.declined problems=category_counts.problem done=category_counts.unchanged %}{{ ok }} to carry out, {{ deferred }} deferred, {{ declined }} declined, {{ problems }} cannot be carried out, {{ done }} already applied{% endblocktranslate %}
+            </div>
+            <div class="cleanup-tools">{% include "admin/inventory/cleanup/bulk.html" with scope="categories" count=category_scope filtered=filters.active %}</div>
+            <table>
+                <thead><tr><th scope="col">{% translate "Decision" %}</th><th scope="col">{% translate "Change" %}</th><th scope="col">{% translate "Remark" %}</th></tr></thead>
+                <tbody>
+                {% for change in categories %}
+                    <tr class="cleanup-{{ change.status }}">
+                        <td class="cleanup-check">{% include "admin/inventory/cleanup/decide.html" %}</td>
+                        <td>{{ change.text }}{% include "admin/inventory/cleanup/badges.html" %}
+                            {% if change.details %}<ul class="cleanup-details">{% for line in change.details %}<li>{{ line }}</li>{% endfor %}</ul>{% endif %}
+                            {% if change.reason %}<p class="cleanup-reason">{{ change.reason }}</p>{% endif %}</td>
+                        <td class="cleanup-status">{% include "admin/inventory/cleanup/status.html" with notes=change.notes %}</td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <p>{% translate "No changes to the category tree." %}</p>
+        {% endif %}
+
+        <h2>{% translate "Items" %} ({{ plan.items|length }})</h2>
+        <div class="cleanup-tools">
+            {% blocktranslate with ok=item_counts.ok deferred=item_counts.deferred declined=item_counts.declined problems=item_counts.problem unchanged=item_counts.unchanged %}{{ ok }} fields to change, {{ deferred }} deferred, {{ declined }} declined, {{ problems }} cannot be changed, {{ unchanged }} already applied (not shown){% endblocktranslate %}
+        </div>
+        <div class="cleanup-tools">{% include "admin/inventory/cleanup/bulk.html" with scope="items" count=item_scope filtered=filters.active %}</div>
+        <table>
+            {% if rows %}<thead><tr><th scope="col">{% translate "Decision" %}</th><th scope="col">{% translate "Field" %}</th><th scope="col">{% translate "Before and after" %}</th><th scope="col">{% translate "Remark" %}</th></tr></thead>{% endif %}
+            {% for row in rows %}
+                <tbody>
+                    <tr class="cleanup-item"><th colspan="4"><a href="{{ row.item.get_absolute_url }}" target="_blank" rel="noopener">{{ row.item }}</a> <span class="cleanup-meta">#{{ row.item.pk }}</span>{% with change=row.changes.0 %}{% include "admin/inventory/cleanup/badges.html" %}{% endwith %}
+                        {% with reason=row.changes.0.reason %}{% if reason %}<p class="cleanup-reason">{{ reason }}</p>{% endif %}{% endwith %}
+                        {% if row.photos %}<div class="cleanup-photos">{% for photo in row.photos %}<a href="{{ photo.image.url }}" target="_blank" rel="noopener"{% if photo.pk == row.source_photo %} class="cleanup-source-photo"{% endif %} title="{{ photo.description }}"><img src="{% url 'admin:inventory_cleanupimport_photo' photo.pk %}" alt="{{ photo.description }}" width="64" height="64" loading="lazy"></a>{% endfor %}</div>{% endif %}
+                        {% if row.source_label %}<div class="cleanup-source"><span class="cleanup-source-label">{% blocktranslate with source=row.source_label %}Source: {{ source }}{% endblocktranslate %}</span>
+                            {% if row.evidence %}<div class="cleanup-evidence">{{ row.evidence }}</div>{% endif %}</div>{% endif %}
+                        {% if row.source_problem %}<div class="cleanup-stale">{{ row.source_problem }}</div>{% endif %}
+                        {% for note in row.changes.0.notes %}<div class="cleanup-stale">{{ note }}</div>{% endfor %}</th></tr>
+                    {% for change in row.changes %}
+                        <tr class="cleanup-{{ change.status }}">
+                            <td class="cleanup-check">{% include "admin/inventory/cleanup/decide.html" %}</td>
+                            <td class="cleanup-field">{{ change.label }}</td>
+                            <td>{% with diff=change.diff %}
+                                <div class="cleanup-diff">{% if change.before %}{% if change.op == "category" %}<del>{{ change.before }}</del>{% else %}{{ diff.0 }}{% endif %}{% else %}<em>{% translate "empty" %}</em>{% endif %}</div>
+                                <div class="cleanup-diff">{% if change.after %}{% if change.op == "category" %}<ins>{{ change.after }}</ins>{% else %}{{ diff.1 }}{% endif %}{% else %}<em>{% if change.op == "category" %}{% translate "no category" %}{% else %}{% translate "empty" %}{% endif %}</em>{% endif %}</div>
+                            {% endwith %}
+                            {% if editable and change.op != "category" %}
+                                <details class="cleanup-modify"{% if change.modified %} open{% endif %}>
+                                    <summary>{% translate "Accept with changes" %}</summary>
+                                    {% if change.op == "name" %}<input type="text" name="modify:{{ change.key }}" value="{{ change.after }}" maxlength="512" data-modify="{{ change.key }}" data-proposed="{{ change.proposed }}" aria-label="{% translate 'Name to apply' %}">
+                                    {% else %}<textarea name="modify:{{ change.key }}" rows="4" data-modify="{{ change.key }}" data-proposed="{{ change.proposed }}" aria-label="{% translate 'Description to apply' %}">{{ change.after }}</textarea>{% endif %}
+                                </details>
+                            {% endif %}</td>
+                            <td class="cleanup-status">{% include "admin/inventory/cleanup/status.html" %}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            {% empty %}
+                <tbody><tr><td>{% translate "No item changes here." %}</td></tr></tbody>
+            {% endfor %}
+        </table>
+        {% if everything %}
+            <div class="cleanup-tools"><button type="submit" class="button" name="goto" value="1">{% translate "Show page by page" %}</button></div>
+        {% elif page.paginator.num_pages > 1 %}
+            <div class="cleanup-tools">
+                {% blocktranslate with number=page.number count=page.paginator.num_pages %}Page {{ number }} of {{ count }}{% endblocktranslate %}
+                {% if page.has_previous %}<button type="submit" class="button" name="goto" value="{{ page.previous_page_number }}">{% translate "Previous page" %}</button>{% endif %}
+                {% if page.has_next %}<button type="submit" class="button" name="goto" value="{{ page.next_page_number }}">{% translate "Next page" %}</button>{% endif %}
+                <button type="submit" class="button" name="goto" value="all">{% translate "All on one page" %}</button>
+            </div>
+        {% endif %}
+
+        {% if editable %}
+            <div class="submit-row">
+                <input type="submit" value="{% translate 'Save decisions' %}">
+                <button type="submit" class="button default" name="action" value="apply"
+                        onclick="return confirm(this.dataset.confirm)" data-confirm="{% translate 'Apply the accepted changes now (with your decisions on this page)? This cannot be undone here.' %}"
+                        {% if not applying %}disabled{% endif %}>{% blocktranslate count count=applying %}Apply {{ count }} change{% plural %}Apply {{ count }} changes{% endblocktranslate %}</button>
+            </div>
+        {% endif %}
+        <script>
+            // The decisions as one JSON field (those other than accepting): Django takes at most 1000 fields, and all
+            // changes on one page can be many more (admin.save_decisions). Without this script, each is sent on its
+            // own. Changed texts likewise (only those that differ from the proposal).
+            const form = document.currentScript.closest("form");
+            form.addEventListener("submit", () => {
+                const decisions = {};
+                for (const group of form.querySelectorAll(".cleanup-decide[data-key]")) {
+                    const chosen = group.querySelector("input:checked");
+                    if (chosen && chosen.value !== "accept") decisions[group.dataset.key] = chosen.value;
+                    group.querySelectorAll("input").forEach(input => input.removeAttribute("name"));
+                }
+                const accepted = Object.assign(document.createElement("input"), {type: "hidden", name: "decisions"});
+                accepted.value = JSON.stringify(decisions);
+                const fields = [...form.querySelectorAll("[data-modify]")];
+                const modified = Object.assign(document.createElement("input"), {type: "hidden", name: "modified"});
+                modified.value = JSON.stringify(Object.fromEntries(fields.filter(field => field.value.trim() !== field.dataset.proposed.trim())
+                    .map(field => [field.dataset.modify, field.value])));
+                fields.forEach(field => field.removeAttribute("name"));
+                form.append(accepted, modified);
+            });
+            // Changing a text accepts it.
+            form.addEventListener("input", event => {
+                const key = event.target.dataset?.modify;
+                const accept = key && document.getElementById(`accept-${key}`);
+                if (accept) accept.checked = true;
+            });
+        </script>
+    </form>
+</div>
+{% endblock %}

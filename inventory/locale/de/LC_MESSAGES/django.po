@@ -3218,9 +3218,6 @@ msgstr "Standorte dieses Typs werden nur im Admin angelegt, bearbeitet und gelö
 msgid "Purpose, physical description and overview photo can be changed here."
 msgstr "Zweck, physische Beschreibung und Übersichtsfoto lassen sich hier bearbeiten."
 
-
-
-
 msgid "number range"
 msgstr "Nummernkreis"
 
@@ -3236,16 +3233,8 @@ msgstr "Überschneidet sich mit dem Kreis %(range)s von %(location)s."
 msgid "Number"
 msgstr "Nummer"
 
-
 msgid "%(name)s created."
 msgstr "%(name)s angelegt."
-
-
-
-
-
-
-
 
 msgid "number ranges per area"
 msgstr "Nummernkreise pro Bereich"
@@ -3277,17 +3266,11 @@ msgstr "Nummerierten Standort anlegen"
 msgid "%(type)s: numbered from %(ranges)s (%(name)s)."
 msgstr "%(type)s: nummeriert aus %(ranges)s (%(name)s)."
 
-
-
-
 msgid "Add a location with a number from the number range here"
 msgstr "Standort mit einer Nummer aus dem Nummernkreis hier anlegen"
 
-
-
 msgid "There is no room for %(count)s more numbers here. Ask the inventory admins."
 msgstr "Hier ist kein Platz für %(count)s weitere Nummern. Bitte die Inventar-Admins um Hilfe."
-
 
 msgid "%(type)s: no numbers reserved here yet."
 msgstr "%(type)s: hier sind noch keine Nummern reserviert."
@@ -3396,7 +3379,6 @@ msgstr "%(count)s × %(type)s hinzugefügt: %(codes)s."
 
 msgid "Add %(type)s with the next free letters"
 msgstr "%(type)s mit den nächsten freien Buchstaben hinzufügen"
-
 
 msgid "Already here:"
 msgstr "Schon vorhanden:"
@@ -4117,3 +4099,500 @@ msgstr "Der Standort konnte nicht geladen werden."
 
 msgid "Menu"
 msgstr "Menü"
+
+# Cleanup of items and categories (inventory/cleanup)
+msgid " and "
+msgstr " und "
+
+msgid "%(applied)s changes applied, %(skipped)s accepted ones skipped."
+msgstr "%(applied)s Änderungen übernommen, %(skipped)s angenommene übersprungen."
+
+msgid "%(category)s is deleted, but these are in no part: %(left)s. List them, or set “keep”: true."
+msgstr "%(category)s wird gelöscht, aber in keinem Teil stehen: %(left)s. Führe sie auf oder setze „keep“: true."
+
+msgid "%(child)s is listed in two parts."
+msgstr "%(child)s steht in zwei Teilen."
+
+msgid "%(child)s is not directly below %(category)s."
+msgstr "%(child)s liegt nicht direkt unter %(category)s."
+
+msgid "%(into)s is inside %(category)s, which would be deleted."
+msgstr "%(into)s liegt in %(category)s, das gelöscht würde."
+
+msgid "%(what)s must be a list of ids."
+msgstr "%(what)s muss eine Liste von IDs sein."
+
+msgid "%(what)s must be a text."
+msgstr "%(what)s muss ein Text sein."
+
+msgid "A category cannot move into itself or one of its subcategories."
+msgstr "Eine Kategorie kann nicht in sich selbst oder eine ihrer Unterkategorien verschoben werden."
+
+msgid "A category is named by its id (a number) or its ref (a string), not by %(value)s."
+msgstr "Eine Kategorie wird mit ihrer id (einer Zahl) oder ihrer ref (einem Text) angegeben, nicht mit %(value)s."
+
+msgid "A category name must not contain “/”."
+msgstr "Ein Kategoriename darf kein „/“ enthalten."
+
+msgid "A name may be at most %(max)s characters long."
+msgstr "Ein Name darf höchstens %(max)s Zeichen lang sein."
+
+msgid "A name must be a text that is not empty."
+msgstr "Ein Name muss ein nicht leerer Text sein."
+
+msgid "A new category needs a “ref”: a text you choose, unique within the file."
+msgstr "Eine neue Kategorie braucht eine „ref“: einen frei gewählten Text, eindeutig in der Datei."
+
+msgid "Accept"
+msgstr "Annehmen"
+
+msgid "Applied %(when)s by %(who)s."
+msgstr "Übernommen am %(when)s von %(who)s."
+
+msgid "Apply the accepted changes now (with your decisions on this page)? This cannot be undone here."
+msgstr "Die angenommenen Änderungen jetzt übernehmen (mit deinen Entscheidungen auf dieser Seite)? Das lässt sich hier nicht rückgängig machen."
+
+msgid "Cannot be carried out:"
+msgstr "Nicht ausführbar:"
+
+msgid "Category tree"
+msgstr "Kategoriebaum"
+
+msgid "Change %(category)s"
+msgstr "%(category)s ändern"
+
+msgid "Changed since the export"
+msgstr "Seit dem Export geändert"
+
+msgid "Clean up item names, descriptions and categories and the category tree outside, e.g. with a script or an AI tool: export the items and categories, have proposals made in the format the export describes, and upload them here. Nothing changes yet: the next page lists every proposed change to accept or decline."
+msgstr "Namen, Beschreibungen und Kategorien der Sachen und den Kategoriebaum außerhalb aufräumen, z. B. mit einem Skript oder einem KI-Werkzeug: Sachen und Kategorien exportieren, Vorschläge im Format machen lassen, das der Export beschreibt, und sie hier hochladen. Dabei ändert sich noch nichts: Die nächste Seite listet jede vorgeschlagene Änderung zum Annehmen oder Ablehnen."
+
+msgid "Cleanup import"
+msgstr "Aufräum-Import"
+
+msgid "Create “%(name)s” %(place)s"
+msgstr "„%(name)s“ anlegen %(place)s"
+
+msgid "Delete %(category)s"
+msgstr "%(category)s löschen"
+
+msgid "Each part is an object with ref, name, items and categories."
+msgstr "Jeder Teil ist ein Objekt mit ref, name, items und categories."
+
+msgid "Export items and categories"
+msgstr "Sachen und Kategorien exportieren"
+
+msgid "Item %(id)s is listed in two parts."
+msgstr "Sache %(id)s steht in zwei Teilen."
+
+msgid "Item %(id)s is not directly in %(category)s."
+msgstr "Sache %(id)s ist nicht direkt in %(category)s."
+
+msgid "Item %(id)s is proposed twice; only the first proposal counts."
+msgstr "Für Sache %(id)s gibt es zwei Vorschläge; nur der erste zählt."
+
+msgid "Item %(id)s: nothing to change."
+msgstr "Sache %(id)s: nichts zu ändern."
+
+msgid "Item proposal %(number)s has no id."
+msgstr "Vorschlag %(number)s für Sachen hat keine id."
+
+msgid "Its creation cannot be carried out."
+msgstr "Ihr Anlegen ist nicht ausführbar."
+
+msgid "Its creation was declined."
+msgstr "Ihr Anlegen wurde abgelehnt."
+
+msgid "Its items cannot go to the category itself."
+msgstr "Ihre Sachen können nicht in die Kategorie selbst kommen."
+
+msgid "Join %(categories)s into %(into)s"
+msgstr "%(categories)s in %(into)s zusammenführen"
+
+msgid "Keywords"
+msgstr "Stichwörter"
+
+msgid "Keywords: %(keywords)s"
+msgstr "Stichwörter: %(keywords)s"
+
+msgid "Made from the export of %(when)s."
+msgstr "Aus dem Export vom %(when)s."
+
+msgid "Move %(category)s %(place)s"
+msgstr "%(category)s verschieben %(place)s"
+
+msgid "Next page"
+msgstr "Nächste Seite"
+
+msgid "No changes to the category tree."
+msgstr "Keine Änderungen am Kategoriebaum."
+
+msgid "No item changes here."
+msgstr "Hier keine Änderungen an Sachen."
+
+msgid "No operation before creates the category “%(ref)s”."
+msgstr "Keine Operation davor legt die Kategorie „%(ref)s“ an."
+
+msgid "Not understood in the file:"
+msgstr "In der Datei nicht verstanden:"
+
+msgid "Nothing in it moves."
+msgstr "Darin wird nichts verschoben."
+
+msgid "Nothing to join: only the target is listed."
+msgstr "Nichts zusammenzuführen: Nur das Ziel ist aufgeführt."
+
+msgid "Only version %(version)s of the format is supported."
+msgstr "Nur Version %(version)s des Formats wird unterstützt."
+
+msgid "Page %(number)s of %(count)s"
+msgstr "Seite %(number)s von %(count)s"
+
+msgid "Part “%(name)s” would be inside a category that is deleted or moved into it."
+msgstr "Teil „%(name)s“ läge in einer Kategorie, die gelöscht oder in ihn verschoben wird."
+
+msgid "Previous page"
+msgstr "Vorherige Seite"
+
+msgid "Proposals file"
+msgstr "Datei mit Vorschlägen"
+
+msgid "Save decisions"
+msgstr "Entscheidungen speichern"
+
+msgid "Split %(category)s into %(parts)s"
+msgstr "%(category)s aufteilen in %(parts)s"
+
+msgid "Split %(parts)s off %(category)s"
+msgstr "%(parts)s von %(category)s abteilen"
+
+msgid "The JSON file with the proposals (format: see the export)."
+msgstr "Die JSON-Datei mit den Vorschlägen (Format: siehe Export)."
+
+msgid "The description"
+msgstr "Die Beschreibung"
+
+msgid "The file does not say when its export was taken (“exported_at”), so items changed since cannot be recognized."
+msgstr "Die Datei sagt nicht, wann ihr Export entstand („exported_at“); seither geänderte Sachen sind deshalb nicht zu erkennen."
+
+msgid "The file holds no cleanup proposals (\"kind\": \"%(kind)s\" is missing)."
+msgstr "Die Datei enthält keine Aufräum-Vorschläge (\"kind\": \"%(kind)s\" fehlt)."
+
+msgid "The file is not JSON: %(error)s"
+msgstr "Die Datei ist kein JSON: %(error)s"
+
+msgid "The keywords"
+msgstr "Die Stichwörter"
+
+msgid "The ref “%(ref)s” is used twice."
+msgstr "Die ref „%(ref)s“ kommt doppelt vor."
+
+msgid "There is no category %(id)s (any more)."
+msgstr "Es gibt keine Kategorie %(id)s (mehr)."
+
+msgid "There is no item %(id)s (any more)."
+msgstr "Es gibt keine Sache %(id)s (mehr)."
+
+msgid "Unknown operation; one of: %(ops)s."
+msgstr "Unbekannte Operation; möglich sind: %(ops)s."
+
+msgid "Upload cleanup proposals"
+msgstr "Aufräum-Vorschläge hochladen"
+
+msgid "Uploaded %(when)s by %(who)s."
+msgstr "Hochgeladen am %(when)s von %(who)s."
+
+msgid "You lack the permission for this."
+msgstr "Dafür fehlt dir die Berechtigung."
+
+msgid "\"%(section)s\" must be a list."
+msgstr "\"%(section)s\" muss eine Liste sein."
+
+msgid "all"
+msgstr "alle"
+
+msgid "all fields"
+msgstr "alle Felder"
+
+msgid "applied"
+msgstr "übernommen"
+
+msgid "applied by"
+msgstr "übernommen von"
+
+msgid "at the top level"
+msgstr "auf oberster Ebene"
+
+msgid "cannot be carried out"
+msgstr "nicht ausführbar"
+
+msgid "changed since the export"
+msgstr "seit dem Export geändert"
+
+msgid "cleanup import"
+msgstr "Aufräum-Import"
+
+msgid "cleanup imports"
+msgstr "Aufräum-Importe"
+
+msgid "declined"
+msgstr "abgelehnt"
+
+msgid "empty"
+msgstr "leer"
+
+msgid "exported"
+msgstr "exportiert"
+
+msgid "in “%(path)s”"
+msgstr "in „%(path)s“"
+
+msgid "into “%(path)s”"
+msgstr "nach „%(path)s“"
+
+msgid "no category"
+msgstr "keine Kategorie"
+
+msgid "proposals"
+msgstr "Vorschläge"
+
+msgid "result"
+msgstr "Ergebnis"
+
+msgid "to the top level"
+msgstr "auf die oberste Ebene"
+
+msgid "top level"
+msgstr "oberste Ebene"
+
+msgid "uploaded"
+msgstr "hochgeladen"
+
+msgid "uploaded by"
+msgstr "hochgeladen von"
+
+msgid "“categories” of a part"
+msgstr "„categories“ eines Teils"
+
+msgid "“ids” must list the categories to join."
+msgstr "„ids“ muss die zusammenzuführenden Kategorien aufführen."
+
+msgid "“items” of a part"
+msgstr "„items“ eines Teils"
+
+msgid "“keep” must be true or false."
+msgstr "„keep“ muss true oder false sein."
+
+msgid "“parts” must list the new categories."
+msgstr "„parts“ muss die neuen Kategorien aufführen."
+
+msgid "%(count)s subcategory"
+msgid_plural "%(count)s subcategories"
+msgstr[0] "%(count)s Unterkategorie"
+msgstr[1] "%(count)s Unterkategorien"
+
+msgid "%(count)s change was applied."
+msgid_plural "%(count)s changes were applied."
+msgstr[0] "%(count)s Änderung wurde übernommen."
+msgstr[1] "%(count)s Änderungen wurden übernommen."
+
+msgid "%(count)s accepted change was skipped."
+msgid_plural "%(count)s accepted changes were skipped."
+msgstr[0] "%(count)s angenommene Änderung wurde übersprungen."
+msgstr[1] "%(count)s angenommene Änderungen wurden übersprungen."
+
+msgid "Apply %(count)s change"
+msgid_plural "Apply %(count)s changes"
+msgstr[0] "%(count)s Änderung übernehmen"
+msgstr[1] "%(count)s Änderungen übernehmen"
+
+msgid "%(count)s entry stays in %(category)s."
+msgid_plural "%(count)s entries stay in %(category)s."
+msgstr[0] "%(count)s Eintrag bleibt in %(category)s."
+msgstr[1] "%(count)s Einträge bleiben in %(category)s."
+
+msgid "“%(text)s”"
+msgstr "„%(text)s“"
+
+msgid "Field"
+msgstr "Feld"
+
+msgid "Before and after"
+msgstr "Vorher und nachher"
+
+msgid "Remark"
+msgstr "Hinweis"
+
+msgid "as in the file"
+msgstr "wie in der Datei"
+
+msgid "least confident first"
+msgstr "unsicherste zuerst"
+
+msgid "most confident first"
+msgstr "sicherste zuerst"
+
+msgid "by type"
+msgstr "nach Art"
+
+msgid "typo"
+msgstr "Tippfehler"
+
+msgid "naming"
+msgstr "Benennung"
+
+msgid "structure"
+msgstr "Struktur"
+
+msgid "other"
+msgstr "Sonstiges"
+
+msgid "accepted with changes"
+msgstr "mit Änderungen angenommen"
+
+msgid "its name"
+msgstr "ihr Name"
+
+msgid "its description"
+msgstr "ihre Beschreibung"
+
+msgid "its category"
+msgstr "ihre Kategorie"
+
+msgid "how similar items are named or sorted"
+msgstr "wie ähnliche Sachen benannt oder einsortiert sind"
+
+msgid "No source given."
+msgstr "Keine Quelle angegeben."
+
+msgid "The item has no photo %(id)s."
+msgstr "Die Sache hat kein Foto %(id)s."
+
+msgid "photo %(number)s of %(count)s"
+msgstr "Foto %(number)s von %(count)s"
+
+msgid "The item has no barcode %(id)s."
+msgstr "Die Sache hat keinen Barcode %(id)s."
+
+msgid "The item has no document %(id)s."
+msgstr "Die Sache hat kein Dokument %(id)s."
+
+msgid "all types"
+msgstr "alle Arten"
+
+msgid "The naming"
+msgstr "Die Benennung"
+
+msgid "Naming"
+msgstr "Benennung"
+
+msgid "The confidence must be a number from 0 to 1, not %(value)s."
+msgstr "Die Konfidenz muss eine Zahl von 0 bis 1 sein, nicht %(value)s."
+
+msgid "Unknown type %(value)s; one of: %(types)s."
+msgstr "Unbekannte Art %(value)s; möglich sind: %(types)s."
+
+msgid "Unknown source %(value)s; one of: %(sources)s."
+msgstr "Unbekannte Quelle %(value)s; möglich sind: %(sources)s."
+
+msgid "modified changes"
+msgstr "geänderte Änderungen"
+
+msgid "How items in this category are named, as a pattern with an example, e.g. “Holzschraube <Durchmesser> × <Länge> mm, <Kopfform>: Holzschraube 4 × 40 mm, Senkkopf”."
+msgstr "Wie Sachen in dieser Kategorie benannt werden, als Muster mit Beispiel, z. B. „Holzschraube <Durchmesser> × <Länge> mm, <Kopfform>: Holzschraube 4 × 40 mm, Senkkopf“."
+
+msgid "How sure the proposal is"
+msgstr "Wie sicher der Vorschlag ist"
+
+msgid "confidence %(percent)s %%"
+msgstr "Konfidenz %(percent)s %%"
+
+msgid "Source: %(source)s"
+msgstr "Quelle: %(source)s"
+
+msgid "Accept with changes"
+msgstr "Mit Änderungen annehmen"
+
+msgid "Name to apply"
+msgstr "Zu übernehmender Name"
+
+msgid "Description to apply"
+msgstr "Zu übernehmende Beschreibung"
+
+msgid "Show page by page"
+msgstr "Seitenweise anzeigen"
+
+msgid "All on one page"
+msgstr "Alle auf einer Seite"
+
+msgid "Accepted with changes; proposed was:"
+msgstr "Mit Änderungen angenommen; vorgeschlagen war:"
+
+msgid "deferred"
+msgstr "zurückgestellt"
+
+msgid "Its creation is deferred."
+msgstr "Ihr Anlegen ist zurückgestellt."
+
+msgid "Applied before and changed since; it is not applied again."
+msgstr "Schon übernommen und seither geändert; wird nicht erneut übernommen."
+
+msgid "Join into %(into)s"
+msgstr "In %(into)s zusammenführen"
+
+msgid "Split into %(parts)s"
+msgstr "Aufteilen in %(parts)s"
+
+msgid "Delete category %(id)s"
+msgstr "Kategorie %(id)s löschen"
+
+msgid "decisions"
+msgstr "Entscheidungen"
+
+msgid "Later"
+msgstr "Später"
+
+msgid "Already applied"
+msgstr "Bereits angewendet"
+
+msgid "Decision"
+msgstr "Entscheidung"
+
+msgid "Defer: decide later"
+msgstr "Zurückstellen: später entscheiden"
+
+msgid "Decline"
+msgstr "Ablehnen"
+
+msgid "Every change is accepted (“Yes”) unless you defer it (“Later”: decide later) or decline it (“No”). Category changes are carried out first, in their order; a change that needs one not accepted (e.g. an item moved into a category whose creation is deferred) is skipped. Item fields changed since the export are deferred at first. The import can be applied again and again: changes accepted later are carried out then; those applied show as already applied."
+msgstr "Jede Änderung ist angenommen („Ja“), solange du sie nicht zurückstellst („Später“: später entscheiden) oder ablehnst („Nein“). Änderungen am Kategoriebaum werden zuerst ausgeführt, in ihrer Reihenfolge; eine Änderung, die eine nicht angenommene braucht (z. B. eine Sache in eine Kategorie, deren Anlegen zurückgestellt ist), wird übersprungen. Felder von Sachen, die seit dem Export geändert wurden, sind zunächst zurückgestellt. Der Import lässt sich immer wieder übernehmen: Später angenommene Änderungen werden dann ausgeführt; übernommene stehen als bereits angewendet da."
+
+msgid "Confidence from"
+msgstr "Konfidenz von"
+
+msgid "up to"
+msgstr "bis"
+
+msgid "Changes without a confidence are left out unless the whole range is chosen."
+msgstr "Änderungen ohne Konfidenz fehlen, außer der ganze Bereich ist gewählt."
+
+msgid "%(ok)s to carry out, %(deferred)s deferred, %(declined)s declined, %(problems)s cannot be carried out, %(done)s already applied"
+msgstr "%(ok)s auszuführen, %(deferred)s zurückgestellt, %(declined)s abgelehnt, %(problems)s nicht ausführbar, %(done)s bereits angewendet"
+
+msgid "%(ok)s fields to change, %(deferred)s deferred, %(declined)s declined, %(problems)s cannot be changed, %(unchanged)s already applied (not shown)"
+msgstr "%(ok)s Felder zu ändern, %(deferred)s zurückgestellt, %(declined)s abgelehnt, %(problems)s nicht änderbar, %(unchanged)s bereits angewendet (nicht angezeigt)"
+
+msgid "%(count)s item field changed since the export; its proposal is deferred."
+msgid_plural "%(count)s item fields changed since the export; their proposals are deferred."
+msgstr[0] "%(count)s Feld einer Sache wurde seit dem Export geändert; sein Vorschlag ist zurückgestellt."
+msgstr[1] "%(count)s Felder von Sachen wurden seit dem Export geändert; ihre Vorschläge sind zurückgestellt."
+
+msgid "The %(count)s filtered change:"
+msgid_plural "All %(count)s filtered changes:"
+msgstr[0] "Die %(count)s gefilterte Änderung:"
+msgstr[1] "Alle %(count)s gefilterten Änderungen:"
+
+msgid "The %(count)s change:"
+msgid_plural "All %(count)s changes:"
+msgstr[0] "Die %(count)s Änderung:"
+msgstr[1] "Alle %(count)s Änderungen:"

@@ -12,7 +12,8 @@ styles in `actions.css`).
   Items without a category come last, under *Without category*. A category's counts include its
   subcategories: counted items (`boxes`), then unique items (`box-star`). Its name leads to
   its page (`/category/<id>/`): all its items, those right in it first, then those of its subcategories by
-  subcategory (each by name), 50 a page, shown like search results; above them its path and subcategories.
+  subcategory (each by name), 50 a page, shown like search results; above them its path, its naming (how its
+  items are named, [cleanup](item-cleanup.md#naming-of-categories)) and subcategories.
   Item and unique item pages show the item's category path above the title: *Items* (the tree, opened at
   the category), then each category down to its own, each linked to its page.
 * **Locations** (`/loc/`): every location below its parent, in the order of their codes, numbers by value

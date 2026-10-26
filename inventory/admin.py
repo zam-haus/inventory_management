@@ -53,7 +53,7 @@ admin.site.register(models.BarcodeType)
 
 class CategoryAdmin(admin.ModelAdmin):
     model = models.Category
-    fields = ("name", "description", "keywords", "parent_category")
+    fields = ("name", "description", "keywords", "naming", "parent_category")
     list_display = ("full_name", "item_count")
     search_fields = ("full_name", "description", "keywords")
 
@@ -754,3 +754,6 @@ class UniqueItemAdmin(admin.ModelAdmin):
     def has_delete_permission(self, request, obj=None):
         # Unique items leave the inventory by being disposed; their history stays.
         return False
+
+
+from .cleanup import admin as cleanup_admin  # noqa: E402,F401  (registers the cleanup imports)

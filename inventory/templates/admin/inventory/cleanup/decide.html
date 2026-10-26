@@ -1,0 +1,8 @@
+{% load i18n icons %}{# The decision on one change (review.html): accept, defer (not now, to decide later) or decline; applied already: nothing to decide. #}
+{% if change.unchanged %}<span class="cleanup-done" title="{% translate 'Already applied' %}">{% icon "check-lg" %}</span>
+{% else %}<fieldset class="cleanup-decide" data-key="{{ change.key }}"{% if not editable %} disabled{% endif %}>
+    <legend class="visually-hidden">{% translate "Decision" %}</legend>
+    <label class="is-accept" title="{% translate 'Accept' %}"><input type="radio" name="decide:{{ change.key }}" value="accept" id="accept-{{ change.key }}"{% if change.decision == "accept" %} checked{% endif %}>{% translate "Yes" %}</label>
+    <label class="is-defer" title="{% translate 'Defer: decide later' %}"><input type="radio" name="decide:{{ change.key }}" value="deferred"{% if change.decision == "deferred" %} checked{% endif %}>{% translate "Later" %}</label>
+    <label class="is-decline" title="{% translate 'Decline' %}"><input type="radio" name="decide:{{ change.key }}" value="declined"{% if change.decision == "declined" %} checked{% endif %}>{% translate "No" %}</label>
+</fieldset>{% endif %}

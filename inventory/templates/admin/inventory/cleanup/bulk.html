@@ -1,0 +1,8 @@
+{% load i18n %}{# Decide all changes of a section that the filters let through (all pages): scope and count from review.html. #}
+{% if editable and count %}
+    <span class="cleanup-bulk">{% if filtered %}{% blocktranslate count count=count %}The {{ count }} filtered change:{% plural %}All {{ count }} filtered changes:{% endblocktranslate %}{% else %}{% blocktranslate count count=count %}The {{ count }} change:{% plural %}All {{ count }} changes:{% endblocktranslate %}{% endif %}
+        <button type="submit" class="button" name="action" value="accept_all:{{ scope }}">{% translate "Yes" %}</button>
+        <button type="submit" class="button" name="action" value="defer_all:{{ scope }}">{% translate "Later" %}</button>
+        <button type="submit" class="button" name="action" value="decline_all:{{ scope }}">{% translate "No" %}</button>
+    </span>
+{% endif %}

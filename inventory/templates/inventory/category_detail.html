@@ -17,6 +17,8 @@
     </nav>
     <h1>{{ object.name }}</h1>
     {% if object.description %}<p class="category-description">{{ object.description }}</p>{% endif %}
+    {# How its items are named (Category.naming), for whoever adds one. #}
+    {% if object.naming %}<p class="category-description"><strong>{% translate "Naming" %}:</strong> {{ object.naming }}</p>{% endif %}
 {% endblock %}
 
 {% block content %}

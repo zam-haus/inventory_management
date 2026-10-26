@@ -1,0 +1,3 @@
+{% load i18n %}{# Confidence and type of the proposal of a change (review.html). #}
+{% if change.confidence is not None %}{% widthratio change.confidence 1 100 as percent %}<span class="cleanup-badge{% if change.confidence < 0.5 %} is-uncertain{% endif %}" title="{% translate 'How sure the proposal is' %}">{% blocktranslate %}confidence {{ percent }} %{% endblocktranslate %}</span>{% endif %}
+{% for label in change.type_labels %}<span class="cleanup-badge">{{ label }}</span>{% endfor %}

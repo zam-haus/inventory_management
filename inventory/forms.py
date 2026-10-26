@@ -152,7 +152,8 @@ class BaseItemForm(ModelForm):
 
     class Meta:
         model = Item
-        fields = ["kind", "name", "category", "description"]
+        # The category before the name: its naming (how its items are named) shows below it (CategorySelect).
+        fields = ["kind", "category", "name", "description"]
         widgets = {
             "kind": RadioSelect,
             "category": CategorySelect,
@@ -274,7 +275,7 @@ class BulkItemForm(BaseItemForm):
 
     class Meta(BaseItemForm.Meta):
         fields = [
-            "kind", "name", "category", "description", "measurement_unit", "for_sale", "sale_price",
+            "kind", "category", "name", "description", "measurement_unit", "for_sale", "sale_price",
             "last_purchase_date", "last_purchase_price", "procurement_source",
         ]
         widgets = {**BaseItemForm.Meta.widgets, "for_sale": ForSaleSelect}
@@ -282,8 +283,8 @@ class BulkItemForm(BaseItemForm):
     def layout_fields(self):
         return [
             "kind",
-            "name",
             "category",
+            "name",
             "description",
             layout.Div(
                 layout.Div(
@@ -308,15 +309,15 @@ class UniqueKindItemForm(BaseItemForm):
 
     class Meta(BaseItemForm.Meta):
         fields = [
-            "kind", "name", "category", "description", "usage_level",
+            "kind", "category", "name", "description", "usage_level",
             "last_purchase_date", "last_purchase_price", "procurement_source",
         ]
 
     def layout_fields(self):
         return [
             "kind",
-            "name",
             "category",
+            "name",
             "description",
             "usage_level",
             bootstrap.FieldWithButtons("barcode_data"),
@@ -336,7 +337,7 @@ class NewItemForm(BaseItemForm):
 
     class Meta(BaseItemForm.Meta):
         fields = [
-            "kind", "name", "category", "description", "measurement_unit", "for_sale", "sale_price", "usage_level",
+            "kind", "category", "name", "description", "measurement_unit", "for_sale", "sale_price", "usage_level",
             "last_purchase_date", "last_purchase_price", "procurement_source",
         ]
         widgets = {**BaseItemForm.Meta.widgets, "for_sale": ForSaleSelect}
@@ -363,8 +364,8 @@ class NewItemForm(BaseItemForm):
                   "or machines. This item describes them; enter the first one below and add more later.").format(
                     name=label_id_naming.name()),
             )),
-            "name",
             "category",
+            "name",
             "description",
             layout.Div(
                 layout.Div("measurement_unit", css_class="col"),

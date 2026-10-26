@@ -4,6 +4,7 @@ from django.contrib.admin.widgets import get_select2_language
 from django.forms import Media, Select
 from django.urls import reverse
 from django.utils.html import format_html
+from django.utils.safestring import mark_safe
 from django.utils.translation import gettext
 
 from . import location_display
@@ -81,11 +82,11 @@ class CategorySelect(Select):
     Item category: with JavaScript (and jQuery on the page) a Select2 field that searches name, path,
     description and keywords and lists the tree indented, each entry with the first line of its description
     (category_select.js); without, a list grouped by top category. The chosen category's description shows
-    below the field, so that it is clear what belongs there; describe=False leaves it out (filters). Use it
-    for every category field outside the admin.
+    below the field, so that it is clear what belongs there, and its naming (how its items are named), if it has
+    one; describe=False leaves both out (filters). Use it for every category field outside the admin.
     """
 
-    chosen_description = ""
+    chosen_description = chosen_naming = ""
 
     @property
     def media(self):
@@ -107,7 +108,7 @@ class CategorySelect(Select):
     def optgroups(self, name, value, attrs=None):
         selected = {str(v) for v in value if v is not None}
         groups, by_top = [], {}
-        self.chosen_description = ""  # for render(), which would otherwise query the categories again
+        self.chosen_description = self.chosen_naming = ""  # for render(), which would otherwise query again
         for index, (option_value, label) in enumerate(self.choices):
             category = getattr(option_value, "instance", None)
             if category is None:  # the empty choice
@@ -119,13 +120,13 @@ class CategorySelect(Select):
                 by_top[top] = []
                 groups.append((top, by_top[top], index))
             if str(option_value) in selected:
-                self.chosen_description = category.description
+                self.chosen_description, self.chosen_naming = category.description, category.naming
             option = self.create_option(name, option_value, " › ".join(path) or top, str(option_value) in selected,
                                         index, subindex=len(by_top[top]))
             # Select drops attrs given to create_option.
             option["attrs"].update({"data-name": category.name, "data-path": " › ".join([top, *path]),
                                     "data-depth": len(path), "data-description": category.description,
-                                    "data-keywords": category.keywords})
+                                    "data-keywords": category.keywords, "data-naming": category.naming})
             by_top[top].append(option)
         return groups
 
@@ -133,8 +134,10 @@ class CategorySelect(Select):
         html = super().render(name, value, attrs, renderer)
         if not self.describe:
             return html
-        return format_html('{}<div class="form-text category-description" data-category-description>{}</div>',
-                           html, self.chosen_description)
+        return format_html('{}<div class="form-text category-description" data-category-description>{}</div>'
+                           '<div class="form-text category-naming" data-category-naming{}><strong>{}:</strong> '
+                           '<span>{}</span></div>', html, self.chosen_description,
+                           "" if self.chosen_naming else mark_safe(" hidden"), gettext("Naming"), self.chosen_naming)
 
 
 NEW_ITEM_PREFIX = "new:"

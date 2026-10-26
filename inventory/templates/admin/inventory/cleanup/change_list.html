@@ -1,0 +1,9 @@
+{% extends "admin/change_list.html" %}
+{% load i18n %}
+
+{% block object-tools-items %}
+    {% if may_export %}
+        <li><a href="{% url 'admin:inventory_cleanupimport_export' %}">{% translate "Export items and categories" %}</a></li>
+    {% endif %}
+    {{ block.super }}
+{% endblock %}
