@@ -157,7 +157,7 @@ class ReservedContainerTests(TestCase):
         self.client.force_login(self.member)
         target = self.activate_url()
         for url in (reverse("label_id_resolve", args=["K0525"]), reverse("label_id_resolve", args=["k0525"]),
-                    reverse("label_id_lookup") + "?q=K0525", reverse("index_locations") + "?q=k0525"):
+                    reverse("label_id_lookup") + "?q=K0525", reverse("index") + "?q=k0525"):
             with self.subTest(url=url):
                 self.assertRedirects(self.client.get(url), target, fetch_redirect_response=False)
 

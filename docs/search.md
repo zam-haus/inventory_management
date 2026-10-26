@@ -7,22 +7,33 @@ there (`navbar.js`): with a mouse and keyboard it goes straight to the search pa
 while the pointer rests on the magnifier (speculation rules), so that it opens at once. On touch screens it
 opens a search field right of it, over the navbar's other items, and Enter shows the results: phones open the
 keyboard only for a field tapped on the same page, so a new page would need a second tap. On the search page
-the magnifier goes to the page's field. The item and location lists (`/item/`, `/loc/`) keep
-their own filters; the print button of the location list builds on the location filter.
+the magnifier goes to the page's field. To browse instead, *Items* and *Locations* in the navbar show
+[trees](trees.md); an old link with a search there (`/item/?q=`, `/loc/?q=`) comes here.
 
 ## Using it
 
+* **The field stays at hand:** below the navbar, it slides away with it while scrolling down and comes back
+  with it on scrolling up.
 * **Results while typing:** from two characters on, the results follow the typed words shortly after
   typing stops (`search.js`). Without JavaScript the form is sent as usual.
 * **Scanning:** the QR scan buttons beside the field and in the navbar open a scanned label; a scanned
   product barcode (EAN) is searched for ([Camera scanning](camera-scanning.md)).
-* **Codes:** Enter on a label ID or a scanned label URL opens what it belongs to (and counts as a web
-  form access of the label ID, see [Label IDs](label-ids.md)); while typing, such a code is offered as a
-  button. Codes of locations stay search text: `HW` or `WH-1.R303` find that location first.
-* **One list:** locations, items and unique items mixed, those whose name (or purpose, or code) matches
-  first. An item shows where it is stored with its stock, a unique item its label ID and location, a
-  location the path above it. The words are marked; matches elsewhere are named, e.g. "Found in text on
-  a photo".
+* **Codes:** Enter on a label ID, a scanned label URL or a location's code (`HW`, `WH-1.R303`, also a former
+  one) opens what it belongs to (a label ID counts as a web form access, see [Label IDs](label-ids.md)); while
+  typing, such a code is offered as a button. Part of a label
+  ID (from three symbols, with or without the dash: `K7R`, `k7r-4`) finds what it belongs to.
+* **Location codes from their start:** a word finds the codes that start with it, or one of whose parts does
+  (after a dot): *R006* finds R006, R006.a, R006.b, *R00* finds R000 to R009 with their compartments, *R3*
+  also HW.R3. The location with exactly that code comes first. A single symbol matches a code only whole.
+* **One list:** locations, items and unique items mixed, those whose name (or purpose, or code, or label
+  ID) matches first; locations by code. Each shows the icon of its kind before its name (an item tracked as unique
+  items that of unique items). An item shows where it is stored with its stock or its unique items (named as
+  everywhere: item, own name, label ID), a unique item its label ID after its name and its location, a location
+  the path above it. A unique item's name leads to that unique item; a place's name leads to it, its code chip opens it in brief
+  ([locations](locations.md)). The words are marked; matches elsewhere are named, e.g. "Found in text on a
+  photo".
+* **Copying:** only the title, the places and the code chips can be clicked, so the text can be selected and
+  copied. A click elsewhere in a row opens the result, unless text was selected.
 * **Words:** every word must match. A word may match where an entry is, so that *Schraubendreher
   Holzwerkstatt* finds the screwdrivers in the wood workshop and its shelves, but at least one word must
   match the entry itself: *Holzwerkstatt* alone finds the workshop, not everything stored in it.
@@ -30,7 +41,7 @@ their own filters; the print button of the location list builds on the location 
   JavaScript a "More results" link). After 500 results, more words narrow the search.
 * **Keyboard:** the up and down arrow keys move between the results (down from the field to the first, up
   from the first back to it). The current result is marked and its photos open large below it; left and
-  right go through them, Escape closes them, Enter opens the result.
+  right go through them, Escape closes them. Enter and space open the result.
 * **Photos:** the photo of a result (with the number of photos when there are more) opens them large below
   it. Swipe sideways through them, up or down to the photos of the next or previous result with photos.
   Items show their own photos, then those of their unique items; locations their overview photo. The

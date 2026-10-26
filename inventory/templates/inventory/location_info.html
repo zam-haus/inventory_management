@@ -1,0 +1,19 @@
+{% load i18n icons locations thumbnail %}
+{# A location in brief, loaded into the location window (location_info_modal.html, location_info.js). #}
+<div class="modal-header">
+    <h2 class="modal-title fs-5" id="location-info-title">{% location_label object %}</h2>
+    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{% trans 'Close' %}"></button>
+</div>
+<div class="modal-body">
+    {# Where it is: the locations above it, each opening its own brief view. #}
+    <nav class="location-info-path" aria-label="{% trans 'Location path' %}">
+        {% for ancestor in object.ancestors %}<a href="{{ ancestor.get_absolute_url }}">{{ ancestor.title }}</a> <span class="loc-code">{{ ancestor.short_name }}</span> <span aria-hidden="true">›</span> {% endfor %}<span aria-current="location">{{ object.title }}</span>
+    </nav>
+    {% if object.overview_photo %}
+        {% thumbnail object.overview_photo "640x480" as im %}<img class="location-info-photo" src="{{ im.url }}" alt="{% trans 'Overview photo' %}">{% endthumbnail %}
+    {% endif %}
+    {% if object.physical_description %}<p class="location-info-description">{{ object.physical_description|linebreaksbr }}</p>{% endif %}
+</div>
+<div class="modal-footer">
+    <a class="btn btn-info" href="{{ object.get_absolute_url }}" data-location-open>{% icon "chevron-right" %} {% trans "Open location" %}</a>
+</div>

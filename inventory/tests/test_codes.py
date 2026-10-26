@@ -81,21 +81,19 @@ class ResolveCodeTests(InventoryFixture, TestCase):
         self.assertRedirects(self.client.get(reverse("label_id_lookup"), {"q": "k0001"}),
                              reverse("container_activate", args=[self.reserved.pk]), fetch_redirect_response=False)
 
-    def test_list_searches(self):
-        locations = reverse("index_locations")
+    def test_old_list_searches_lead_to_the_search(self):
+        for url in (reverse("index_locations"), reverse("index_items")):
+            with self.subTest(url=url):
+                self.assertRedirects(self.client.get(url, {"q": "R303"}), f"{reverse('index')}?q=R303",
+                                     fetch_redirect_response=False)
+        # The search leads every code to what it belongs to: location codes, labels and label IDs.
+        search = reverse("index")
         for raw, location in self.readings():
             with self.subTest(raw=raw):
-                response = self.client.get(locations, {"q": raw}, follow=True)
+                response = self.client.get(search, {"q": raw}, follow=True)
                 expected = location.get_absolute_url() if location else self.item.get_absolute_url()
                 self.assertEqual(response.redirect_chain[-1][0].split("?")[0], expected)
-        # In the item search a typed location code finds the items stored there; label IDs and labels lead on.
-        items = reverse("index_items")
-        self.assertEqual(self.client.get(items, {"q": "R303"}).status_code, 200)
-        self.assertRedirects(self.client.get(items, {"q": "HTTPS://I.ZAM.HAUS/R303.A"}), self.part.get_absolute_url(),
-                             fetch_redirect_response=False)
-        self.assertEqual(self.client.get(items, {"q": self.item_id.display}, follow=True).redirect_chain[-1][0]
-                         .split("?")[0], self.item.get_absolute_url())
-        self.assertEqual(self.client.get(locations, {"q": "Regal"}).status_code, 200)  # text stays a search
+        self.assertEqual(self.client.get(search, {"q": "Regal"}).status_code, 200)  # text stays a search
 
     def test_location_fields_and_move_here(self):
         lookup = reverse("location_lookup")

@@ -153,7 +153,7 @@ properties yet; the admin shows and filters the new fields.
 
 ## Overview
 
-*Levels and axes* (`/loc/structure/`, `StructureOverviewView`, linked from the location list,
+*Levels and axes* (`/loc/structure/`, `StructureOverviewView`, linked from the [location tree](trees.md),
 public like the other location pages) draws the structure from the database: levels across, axes
 down, grouped by house. Each level, room and area shows its purpose (or name), then its code
 (linked to its page), description, team badges and the fire-load mark; rooms, areas and outdoor

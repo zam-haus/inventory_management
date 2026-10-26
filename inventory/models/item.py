@@ -190,6 +190,19 @@ class Category(ComputedFieldsModel):
     def __str__(self):
         return self.full_name
 
+    @property
+    def ancestors(self):
+        """Parent categories from the top-level one down to the direct parent."""
+        chain, seen, parent = [], {self.pk}, self.parent_category
+        while parent is not None and parent.pk not in seen:
+            chain.append(parent)
+            seen.add(parent.pk)
+            parent = parent.parent_category
+        return chain[::-1]
+
+    def get_absolute_url(self):
+        return reverse("view_category", kwargs={"pk": self.pk})
+
 
 def get_item_upload_path(instance, filename):
     return f"items/{instance.item.id}/{datetime.now().isoformat()}_{filename}"

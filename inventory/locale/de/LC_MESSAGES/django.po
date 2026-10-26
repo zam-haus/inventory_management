@@ -4048,3 +4048,72 @@ msgstr "Stichwörter"
 
 msgid "Further words the category choice finds it by, separated by commas: synonyms, compound words, brands."
 msgstr "Weitere Wörter, über die die Kategorieauswahl sie findet, durch Kommas getrennt: Synonyme, zusammengesetzte Wörter, Marken."
+
+msgid "Open all"
+msgstr "Alle aufklappen"
+
+msgid "Close all"
+msgstr "Alle zuklappen"
+
+msgid "Without category"
+msgstr "Ohne Kategorie"
+
+#, python-format
+msgid "%(count)s item"
+msgid_plural "%(count)s items"
+msgstr[0] "%(count)s Sache"
+msgstr[1] "%(count)s Sachen"
+
+#, python-format
+msgid "%(count)s sub-location"
+msgid_plural "%(count)s sub-locations"
+msgstr[0] "%(count)s Unterstandort"
+msgstr[1] "%(count)s Unterstandorte"
+
+#, python-format
+msgid "%(count)s storage unit"
+msgid_plural "%(count)s storage units"
+msgstr[0] "%(count)s Lagermöbel"
+msgstr[1] "%(count)s Lagermöbel"
+
+#, python-format
+msgid "%(count)s container"
+msgid_plural "%(count)s containers"
+msgstr[0] "%(count)s Behälter"
+msgstr[1] "%(count)s Behälter"
+
+msgid "Category path"
+msgstr "Kategoriepfad"
+
+msgid "Subcategories"
+msgstr "Unterkategorien"
+
+msgid "In this category"
+msgstr "Direkt in dieser Kategorie"
+
+msgid "No items in this category yet."
+msgstr "In dieser Kategorie gibt es noch keine Sachen."
+
+msgid "Previous items"
+msgstr "Vorherige Sachen"
+
+msgid "More items"
+msgstr "Weitere Sachen"
+
+msgid "Pages"
+msgstr "Seiten"
+
+#, python-format
+msgid "%(count)s unique item"
+msgid_plural "%(count)s unique items"
+msgstr[0] "%(count)s Einzelobjekt"
+msgstr[1] "%(count)s Einzelobjekte"
+
+msgid "Open location"
+msgstr "Standort öffnen"
+
+msgid "The location could not be loaded."
+msgstr "Der Standort konnte nicht geladen werden."
+
+msgid "Menu"
+msgstr "Menü"

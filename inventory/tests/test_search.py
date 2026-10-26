@@ -132,21 +132,72 @@ class SearchTests(MediaMixin, TestCase):
 
     def test_entries_show_where_they_are(self):
         content = self.client.get(reverse("index"), {"q": "schraubendreher"}).content.decode()
-        self.assertIn("5 pc · Regal 3", content)
-        self.assertIn("2 pc · Metallwerkstatt", content)
+        # The places are links of their own (the window in brief, location_info.js); the text stays selectable.
+        self.assertIn(f'5 pc · <a class="search-place" href="{self.rack.get_absolute_url()}">Regal 3</a>', content)
+        self.assertIn(f'2 pc · <a class="search-place" href="{self.metal.get_absolute_url()}">Metallwerkstatt</a>', content)
+        self.assertNotIn('<a class="search-entry"', content)
         content = self.client.get(reverse("index"), {"q": "regal"}).content.decode()
         self.assertIn("Holzwerkstatt [HW]", content)  # the path above
+
+    def test_unique_items_lead_there_directly(self):
+        content = self.client.get(reverse("index"), {"q": "akkuschrauber"}).content.decode()
+        # Named as everywhere: the item, its own name if any, its label ID.
+        self.assertIn(f'<a href="{self.unique.get_absolute_url()}">Akkuschrauber blau '
+                      '<span class="unique-item-code">K7R-4XD</span>'
+                      '</a> · ', content)
+        # Its own result carries the label ID after the name; its place line only the location.
+        heading = content[content.index(f'<a class="search-link" href="{self.unique.get_absolute_url()}">'):]
+        heading = heading[:heading.index("</a>")]
+        self.assertIn('<span class="unique-item-code">K7R-4XD</span>', heading)
+
+    def test_the_kind_on_photos(self):
+        ItemImage.objects.create(item=self.drill, image=png(), description="Packung")
+        content = self.client.get(reverse("index"), {"q": "bohrer"}).content.decode()
+        self.assertIn('<span class="search-kind" aria-hidden="true"><svg', content)
+        self.assertIn('class="bi bi-boxes"', content[content.index('class="search-kind"'):])
+
+    def test_part_of_a_label_id(self):
+        for part in ("K7R", "k7r-4", "7R4X"):
+            with self.subTest(part=part):
+                hits = search.search(part).hits
+                self.assertEqual([(hit.kind, hit.pk, hit.sources) for hit in hits], [("unique", self.unique.pk, ("label",))])
+        self.assertEqual(search.search("K7").hits, [])  # from three symbols on
+        response = self.client.get(reverse("index"), {"q": "K7R"})
+        self.assertContains(response, "Found in ZAMid")
 
     def test_codes(self):
         response = self.client.get(reverse("index"), {"q": self.label.code})
         self.assertRedirects(response, f"/id/{self.label.code}?via=webform", fetch_redirect_response=False)
         response = self.client.get(reverse("index"), {"q": self.label.code, "partial": "1"})
         self.assertContains(response, f'href="/id/{self.label.code}?via=webform"')
-        # A location's code stays search text and finds the location first.
-        response = self.client.get(reverse("index"), {"q": "hw"})
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(found("hw"), [("location", "Holzwerkstatt")])
+        # A location's code leads to it, too; while typing, it is offered as a link.
+        self.assertRedirects(self.client.get(reverse("index"), {"q": "hw"}), self.wood.get_absolute_url(),
+                             fetch_redirect_response=False)
+        self.assertContains(self.client.get(reverse("index"), {"q": "hw", "partial": "1"}),
+                            f'href="{self.wood.get_absolute_url()}"')
+        self.assertEqual(found("hw"), [("location", "Holzwerkstatt"), ("location", "Regal 3")])  # HW, then HW.R3
         self.assertEqual(found("r3"), [("location", "Regal 3")])
+
+    def test_codes_from_their_start(self):
+        rack = LocationType.objects.create(name="Numbered rack", unique=True)
+        compartment = LocationType.objects.create(name="Compartment")
+        r006 = Location.objects.create(type=rack, name="Regal 6", short_name="R006")
+        for code in ("b", "a"):
+            Location.objects.create(type=compartment, name=f"Fach {code}", short_name=code, parent_location=r006)
+        Location.objects.create(type=rack, name="Regal 5", short_name="R005")
+        Location.objects.create(type=rack, name="Regal 10", short_name="R010")
+        codes = lambda query: [entry.code for entry in search.render.entries(search.search(query).hits)
+                               if entry.kind == "location"]
+        # The location with exactly that code first, then those below it.
+        self.assertEqual(codes("r006"), ["R006", "R006.a", "R006.b"])
+        self.assertEqual(sorted(codes("R00")), ["R005", "R006", "R006.a", "R006.b"])
+        self.assertEqual(codes("hw.r3"), ["HW.R3"])
+        # Typed and sent, the code opens its location; while typing it is offered, above the results.
+        self.assertRedirects(self.client.get(reverse("index"), {"q": "R006"}), r006.get_absolute_url(),
+                             fetch_redirect_response=False)
+        partial = self.client.get(reverse("index"), {"q": "R006", "partial": "1"})
+        self.assertContains(partial, f'href="{r006.get_absolute_url()}"')
+        self.assertEqual([entry.code for entry in partial.context["entries"]], ["R006", "R006.a", "R006.b"])
 
     def test_partial_is_only_the_results(self):
         content = self.client.get(reverse("index"), {"q": "bohrer", "partial": "1"}).content.decode()
@@ -229,7 +280,9 @@ class SearchTests(MediaMixin, TestCase):
         icons = {entry.title: entry.icon for entry in search.render.entries(search.search("werkbank").hits)}
         self.assertEqual(icons, {"Werkbankregal": "bookshelf", "Werkbankkiste": "eurobox-open"})
         icons = {(entry.kind, entry.title): entry.icon for entry in search.render.entries(search.search("akku").hits)}
-        self.assertEqual(icons, {("item", "Akkuschrauber"): "boxes", ("unique", "Akkuschrauber"): "box-star"})
+        # An item tracked as unique items has their icon, too.
+        self.assertEqual(icons, {("item", "Akkuschrauber"): "box-star", ("unique", "Akkuschrauber"): "box-star"})
+        self.assertEqual(search.render.entries(search.search("bohrer").hits)[0].icon, "boxes")
         self.assertEqual(search.render.entries(search.search("holzwerkstatt").hits)[0].icon, "geo-alt")
         content = self.client.get(reverse("index"), {"q": "werkbank"}).content.decode()
         self.assertIn('class="bi bi-eurobox-open"', content)

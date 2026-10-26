@@ -7,7 +7,7 @@ from django.test import TestCase, TransactionTestCase
 from django.urls import reverse
 
 from .. import search
-from ..forms import BulkItemForm, ItemFilterForm
+from ..forms import BulkItemForm
 from ..label_ids.forms import NewItemForm as ClaimNewItemForm
 from ..models import Category, Item, MeasurementUnit
 
@@ -116,32 +116,10 @@ class CategoryFilterTests(TestCase):
         cls.lookalike = Category.objects.create(name="Beschläge alt")
         cls.old = Item.objects.create(name="Altes Band", measurement_unit=unit, category=cls.lookalike)
 
-    def listed(self, **params):
-        response = self.client.get(reverse("index_items"), params)
-        self.assertEqual(response.status_code, 200)
-        return {item.name for item in response.context["page_obj"]}
-
-    def test_filter_includes_subcategories(self):
-        fittings = Category.objects.get(full_name="Beschläge")
-        self.assertEqual(self.listed(category=fittings.pk), {"Einbohrband 15 mm", "Wandhaken"})
-        hooks = Category.objects.get(full_name="Beschläge/Haken & Ösen")
-        self.assertEqual(self.listed(category=hooks.pk), {"Wandhaken"})
-
-    def test_unknown_filter_lists_everything(self):
-        self.assertEqual(self.listed(category="nonsense"), {"Einbohrband 15 mm", "Wandhaken", "Spax 4x40", "Altes Band"})
-
     def test_search_finds_items_by_a_category_above(self):
-        self.assertEqual(self.listed(q="Türbeschläge"), {"Einbohrband 15 mm"})
         names = {title for _kind, title in
                  [(entry.kind, entry.title) for entry in search.render.entries(search.search("Türbeschläge").hits)]}
         self.assertEqual(names, {"Einbohrband 15 mm"})
-
-    def test_filter_form_keeps_the_choice(self):
-        hooks = Category.objects.get(full_name="Beschläge/Haken & Ösen")
-        html = str(ItemFilterForm({"category": hooks.pk})["category"])
-        self.assertIn(f'value="{hooks.pk}" data-name=', html.replace(" selected", ""))
-        self.assertIn("selected", html)
-        self.assertNotIn("data-category-description", html)  # filters show no description
 
 
 class CategoryTreeMigrationTests(TransactionTestCase):

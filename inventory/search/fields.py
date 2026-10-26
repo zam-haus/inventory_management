@@ -17,6 +17,8 @@ WANTED = {
     "inventory.itemimage": ("description", "ocr_text"),
     "inventory.itemfile": ("description",),
     "inventory.uniqueitem": ("name", "notes"),
+    "inventory.locationformercode": ("code",),
+    "inventory.labelid": ("code",),
 }
 
 

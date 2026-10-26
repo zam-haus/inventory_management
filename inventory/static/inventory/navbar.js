@@ -10,7 +10,7 @@
     let pending = false;
 
     const show = () => navbar.classList.remove('is-hidden');
-    const busy = () => navbar.querySelector('.navbar-collapse.show, .navbar-collapse.collapsing, .dropdown-menu.show')
+    const busy = () => navbar.querySelector('.dropdown-menu.show')
         || navbar.contains(document.activeElement);
 
     function update() {
@@ -60,7 +60,7 @@
     }
     let closedAt = 0;  // a tap on the magnifier first blurs the field: it closes, and the tap must not reopen it
 
-    // Right of the magnifier, in its row (also while the menu below is open).
+    // Right of the magnifier, in its row.
     function place() {
         const box = button.getBoundingClientRect();
         const container = form.parentElement.getBoundingClientRect();

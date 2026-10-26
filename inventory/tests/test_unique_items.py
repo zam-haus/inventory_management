@@ -290,8 +290,8 @@ class UniqueItemViewTests(UniqueItemFixture, TestCase):
         self.assertContains(self.client.get(unique_item.get_absolute_url()), "</a> Workshop spare <span class=\"unique-item-code\">")
         self.assertContains(self.client.get(self.location.get_absolute_url()), "Fire extinguisher Workshop spare <span")
         self.assertContains(self.client.get(self.extinguisher.get_absolute_url()), "Workshop spare <span class=\"unique-item-code\">")
-        found = self.client.get(reverse("index_items"), {"q": "workshop spare"}, follow=True)
-        self.assertContains(found, "Workshop spare")
+        found = self.client.get(reverse("index"), {"q": "workshop spare"})
+        self.assertIn(unique_item, [entry.obj for entry in found.context["entries"]])
 
     def test_files_are_attached(self):
         self.client.force_login(self.member)
@@ -370,9 +370,9 @@ class UniqueItemViewTests(UniqueItemFixture, TestCase):
         self.assertFalse(Item.objects.filter(name="Ladder").exists())
 
     def test_breadcrumbs(self):
-        # Items have none for now (theirs would follow the categories); the heading leads to the item.
+        # Items follow their categories (test_trees); the heading leads to the item.
         response = self.client.get(self.unique_item.get_absolute_url())
-        self.assertNotContains(response, "item-breadcrumb")
+        self.assertContains(response, f'<a href="{reverse("index_items")}#cat-none">Items</a>', html=True)
         self.assertContains(response, f'<a class="unique-item-of" href="{self.extinguisher.get_absolute_url()}">'
                                       'Fire extinguisher</a>', html=True)
         drawer = Location.objects.create(name="Drawer", short_name="D2", type=self.kind, parent_location=self.shelf)
@@ -380,7 +380,8 @@ class UniqueItemViewTests(UniqueItemFixture, TestCase):
         content = response.content.decode()
         def crumb(location):
             return (f'<span class="loc-label"><span class="loc-title">{location.title}</span> '
-                    f'<span class="loc-code">{location.short_name}</span></span>')
+                    f'<span class="loc-code" data-location-info="{location.pk}" role="button" tabindex="0" '
+                    f'title="Location in brief">{location.short_name}</span></span>')
         for location in (self.location, self.shelf):
             self.assertInHTML(f'<a href="{location.get_absolute_url()}">{crumb(location)}</a>', content)
         self.assertInHTML(f'<a href="{drawer.get_absolute_url()}" aria-current="page">{crumb(drawer)}</a>', content)

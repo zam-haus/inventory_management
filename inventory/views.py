@@ -13,18 +13,19 @@ from django.contrib.auth.views import redirect_to_login
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.db import IntegrityError, transaction
 from django.forms import all_valid
-from django.db.models import Prefetch, Q
+from django.core.paginator import Paginator
+from django.db.models import Case, Prefetch, Q, Value, When
+from django.db.models.functions import Coalesce, Lower
 from django.http import FileResponse, Http404, HttpResponseForbidden, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse, reverse_lazy
 from django.utils import timezone
-from django.utils.functional import cached_property
 from django.utils.html import format_html, format_html_join
 from django.utils.translation import gettext_lazy as _
 from django.views import View
-from django.views.generic import DetailView, ListView, TemplateView, UpdateView
+from django.views.generic import DetailView, TemplateView, UpdateView
 
-from . import forms, location_display, models, search
+from . import forms, location_display, models, search, trees
 from .location_lookup import resolve_location_reference
 from .permissions import (
     QUICK_ITEM_PERMISSIONS, UNIQUE_ITEM_CREATE_PERMISSIONS, ItemEditorPermissionMixin, location_deletion_denied,
@@ -34,7 +35,7 @@ from .stock_change_views import mark_last_stock
 from .structure_overview import structure_overview
 from .label_ids import services
 from .label_ids.lookup import annotate_label_code
-from .label_ids.search import LabelIdSearchMixin, url_for_query
+from .label_ids.search import url_for_query
 from .location_lookup import location_from_reference
 
 
@@ -42,8 +43,8 @@ logger = logging.getLogger(__name__)
 
 class SearchView(TemplateView):
     """The home page: one search over locations, items and unique items (docs/search.md). A scanned or typed
-    code (label ID, label URL) leads to what it belongs to; codes of locations stay search text and find the
-    location first. ?offset= starts at a later page. With ?partial=1 only the results, for searching as you
+    code (label ID, label URL, a location's code, also a former one) leads to what it belongs to. ?offset= starts
+    at a later page. With ?partial=1 only the results, for searching as you
     type (a code is offered as a link there instead) and, with an offset, only the further entries."""
     template_name = "inventory/search.html"
 
@@ -54,7 +55,7 @@ class SearchView(TemplateView):
             offset = int(request.GET.get("offset", 0))
         except ValueError:
             offset = 0
-        code_url = url_for_query(request, query, location_codes=False) if not offset else None
+        code_url = url_for_query(request, query) if not offset else None
         if code_url and not partial:
             return redirect(code_url)
         result = search.search(query, offset)
@@ -114,10 +115,8 @@ class PrintableInventoryView(PermissionRequiredMixin, View):
         if "locations" in request.GET:
             form = forms.PrintableInventoryForm(request.GET)
         elif query:
-            # Coming from the location list: preselect its search results.
-            search = SearchableLocationListView()
-            search.setup(request)
-            form = forms.PrintableInventoryForm(initial={"locations": list(search.get_queryset().values_list("pk", flat=True))})
+            # A search for locations: preselect them.
+            form = forms.PrintableInventoryForm(initial={"locations": list(matching_locations(query).values_list("pk", flat=True))})
         else:
             form = forms.PrintableInventoryForm()
         context = {"form": form, "include_children": include_children, "query": query}
@@ -388,6 +387,33 @@ class DetailItemView(DetailView):
         return context
 
 
+class CategoryView(DetailView):
+    """A category with all its items (docs/trees.md): those right in it first, then those of its subcategories,
+    by subcategory; 50 a page."""
+    model = models.Category
+    template_name = "inventory/category_detail.html"
+    PAGE = 50
+
+    def get_context_data(self, **kwargs):
+        category = self.object
+        items = (models.Item.active
+                 .filter(Q(category=category) | Q(category__full_name__startswith=f"{category.full_name}/"))
+                 .annotate(nested=Case(When(category=category, then=Value(0)), default=Value(1)))
+                 .select_related("category")
+                 .order_by("nested", "category__full_name", Lower(Coalesce("name", Value(""))), "pk"))
+        page = Paginator(items, self.PAGE).get_page(self.request.GET.get("page"))
+        entries = {entry.obj.pk: entry for entry in search.render.entries(
+            [search.Hit("item", item.pk, 0, ()) for item in page])}
+        groups = []  # (category, its path below this one, entries), in the page's order
+        for item in page:
+            if not groups or groups[-1][0] != item.category:
+                groups.append((item.category, item.category.full_name[len(category.full_name) + 1:], []))
+            groups[-1][2].append(entries[item.pk])
+        subcategories = models.Category.objects.filter(parent_category=category)
+        return super().get_context_data(page_obj=page, groups=groups, words=[],
+                                        subcategories=subcategories, **kwargs)
+
+
 def category_json(request, pk):
     c = models.Category.objects.get(pk=pk)
     return JsonResponse({
@@ -540,69 +566,53 @@ class UpdateItemView(ItemEditorPermissionMixin, ItemKindMixin, extra_views.Updat
         return self.object.get_absolute_url()
 
 
-class SearchableItemListView(LabelIdSearchMixin, ListView):
-    # Label IDs and scanned labels lead to their target; a typed location code finds the items stored there.
-    location_codes = False
-    model = models.Item
-    queryset = models.Item.active.all()
-    paginate_by = 25
-    template_name = "inventory/item_list.html"
+def matching_locations(query):
+    """Locations matching every word of a query in a code, name, path, purpose, description or former code
+    (the printable inventory's ?q=)."""
+    fields = ("unique_identifier", "name", "descriptive_identifier", "purpose", "physical_description",
+              "former_codes__code")
+    locations = models.Location.active.all()
+    for word in query.split():
+        condition = Q()
+        for name in fields:
+            condition |= Q(**{f"{name}__icontains": word})
+        locations = locations.filter(condition)
+    return locations.distinct()
 
-    @cached_property
-    def filter_form(self):
-        return forms.ItemFilterForm(self.request.GET)
+
+class LocationInfoView(DetailView):
+    """A location in brief, for the window links to locations open (location_info.js): its path, title and code,
+    overview photo and description, and the way to its page."""
+    queryset = models.Location.active.select_related("type", "parent_location")
+    template_name = "inventory/location_info.html"
+
+
+class TreeView(TemplateView):
+    """A tree to browse (docs/trees.md). A search typed into an old link (?q=) goes to the search."""
+
+    def get(self, request, *args, **kwargs):
+        query = request.GET.get("q", "").strip()
+        if query:
+            return redirect(f"{reverse('index')}?{urlencode({'q': query})}")
+        return super().get(request, *args, **kwargs)
+
+
+class ItemTreeView(TreeView):
+    """/item/: the items by category, those without one at the end."""
+    template_name = "inventory/item_tree.html"
 
     def get_context_data(self, **kwargs):
-        return {**super().get_context_data(**kwargs), "filter_form": self.filter_form}
-
-    def get_queryset(self):
-        try:
-            queryset = super().get_queryset().prefetch_related(Prefetch(
-                "itemlocation_set", queryset=models.ItemLocation.objects.filter(location__is_deleted=False).select_related("location"),
-            ), Prefetch(
-                "itemimage_set", queryset=models.ItemImage.objects.select_related("unique_item"),
-            ), Prefetch(
-                "unique_items", to_attr="active_unique_items",
-                queryset=annotate_label_code(models.UniqueItem.active.select_related("location"))
-                .order_by("location__locatable_identifier", "pk"),
-            ))
-            queryset = self.filter_form.filter(queryset)
-            query = self.request.GET.get('q')
-            if query:
-                in_inventory = Q(unique_items__disposed_at__isnull=True)
-                queryset = queryset.filter(
-                    Q(name__icontains=query) |
-                    Q(description__icontains=query) |
-                    Q(category__full_name__icontains=query) |
-                    Q(itemlocation__location__is_deleted=False, itemlocation__location__unique_identifier__icontains=query) |
-                    Q(itemlocation__location__is_deleted=False, itemlocation__location__name__icontains=query) |
-                    in_inventory & Q(unique_items__location__unique_identifier__icontains=query) |
-                    in_inventory & Q(unique_items__location__name__icontains=query) |
-                    in_inventory & Q(unique_items__name__icontains=query) |
-                    Q(itemimage__ocr_text__icontains=query)
-                ).distinct()
-            return queryset
-        except Exception:
-            logger.exception("Failed to search inventory items")
-            return self.model.objects.none()
+        sprite, tree = trees.item_tree()
+        return super().get_context_data(sprite=sprite, tree=tree, **kwargs)
 
 
-class SearchableLocationListView(
-        LabelIdSearchMixin,
-        extra_views.SearchableListMixin,
-        extra_views.SortableListMixin,
-        ListView):
-    search_fields = [
-        "unique_identifier", "name", "descriptive_identifier",
-        "purpose", "physical_description", "former_codes__code",
-    ]
-    search_date_fields = []
-    sort_fields = ["unique_identifier"]
-    model = models.Location
-    queryset = models.Location.active.prefetch_related(Prefetch(
-        "itemlocation_set", queryset=models.ItemLocation.objects.filter(item__is_deleted=False),
-    ))
-    paginate_by = 100
+class LocationTreeView(TreeView):
+    """/loc/: all locations as a tree, the top level open."""
+    template_name = "inventory/location_tree.html"
+
+    def get_context_data(self, **kwargs):
+        sprite, tree = trees.location_tree()
+        return super().get_context_data(sprite=sprite, tree=tree, **kwargs)
 
 
 class StructureOverviewView(TemplateView):

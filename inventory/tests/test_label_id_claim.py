@@ -90,12 +90,15 @@ class ClaimTests(InventoryFixture, TestCase):
 
     def test_search_jumps_to_id(self):
         services.claim(self.lid.code, self.item, None)
+        response = self.client.get(reverse("index"), {"q": "k7r-4xd"})
+        self.assertEqual(response.status_code, 302)
+        self.assertTrue(response["Location"].startswith("/id/K7R4XD?via="))
+        self.assertEqual(self.client.get(reverse("index"), {"q": "Drill"}).status_code, 200)
+        # The old lists' searches lead there.
         for url in (reverse("index_items"), reverse("index_locations")):
             with self.subTest(url):
-                response = self.client.get(url, {"q": "k7r-4xd"})
-                self.assertEqual(response.status_code, 302)
-                self.assertTrue(response["Location"].startswith("/id/K7R4XD?via="))
-                self.assertEqual(self.client.get(url, {"q": "Drill"}).status_code, 200)
+                chain = self.client.get(url, {"q": "k7r-4xd"}, follow=True).redirect_chain
+                self.assertTrue(chain[1][0].startswith("/id/K7R4XD?via="))
 
     def test_item_autocomplete(self):
         url = reverse("label_id_item_autocomplete")

@@ -25,7 +25,8 @@ stock entries and unique items; its kind can only change while it has neither.
   unique item is added without `?label_id=`.
 * **Name:** optional, to tell unique items of one item apart ("blue", "spare for the workshop").
   A unique item is always shown as the item's name, its own name if it has one, and its label ID:
-  "Akkuschrauber blau K7R-4XD" (`UniqueItem.__str__`); lists under the item show name and ID.
+  "Akkuschrauber blau K7R-4XD" (`UniqueItem.__str__`), in every list too, also under the item itself
+  (`UniqueItem.name_html`, the label ID in monospace; without one its number, "#12").
 * **Details:** briefing requirement (*Einweisungspflicht*; empty uses the item's):
   green (check mark) free to use, no briefing required; yellow (exclamation mark) use with care, ask if in
   doubt; red (cross) use only after a briefing. Lists show the coloured icon with

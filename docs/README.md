@@ -13,6 +13,7 @@ How the ZAM inventory works, feature by feature. Setup is covered in the
 * [Unique items](unique-items.md): single objects (*Einzelobjekte*) with their own label ID and owner
 * [Label IDs](label-ids.md): permanent IDs on labels (shown as *ZAMid*), resolver, lifecycle and label PNGs
 * [Search](search.md): one search over locations, items and unique items, results while typing; never internal information
+* [Item and location trees](trees.md): items by category and the location tree, to browse
 * [Camera scanning](camera-scanning.md): QR and barcode scanning in the browser
 * [Permissions](permissions.md): model permissions, the local group and network detection
 * [Label printing](label-printing.md): printers, label media, the print queue, print agent and simulator;

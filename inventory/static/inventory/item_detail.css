@@ -6,7 +6,8 @@
 }
 
 .item-header { padding: .5rem 0 1.5rem; }
-.item-breadcrumb { margin-bottom: 1.25rem; font-size: .9rem; }
+/* The category path (category_breadcrumb.html), like a location's path. */
+.item-breadcrumb { display: flex; flex-wrap: wrap; gap: .35rem .65rem; align-items: baseline; margin-bottom: 1.25rem; font-size: .9rem; }
 .item-breadcrumb a { display: inline-block; padding: .35rem 0; }
 .item-heading { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1.25rem; }
 .item-heading-text { min-width: 0; flex: 1 1 auto; }

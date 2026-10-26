@@ -1,0 +1,12 @@
+{% load i18n %}{# The category path of an item page: the items tree, opened at the category, then its categories down to `category`. #}
+<nav aria-label="{% trans 'Category path' %}" class="item-breadcrumb">
+    <a href="{% url 'index_items' %}#cat-{% if category %}{{ category.pk }}{% else %}none{% endif %}">{% trans "Items" %}</a>
+    {% if category %}
+        {% for ancestor in category.ancestors %}
+            <span aria-hidden="true">/</span>
+            <a href="{{ ancestor.get_absolute_url }}">{{ ancestor.name }}</a>
+        {% endfor %}
+        <span aria-hidden="true">/</span>
+        <a href="{{ category.get_absolute_url }}">{{ category.name }}</a>
+    {% endif %}
+</nav>

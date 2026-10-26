@@ -1,0 +1,26 @@
+{% extends 'base.html' %}
+{% load i18n static icons %}
+
+{% block title %}{% trans "Locations" %}{% endblock %}
+
+{% block bootstrap5_extra_head %}
+    {{ block.super }}
+    <link rel="stylesheet" href="{% static 'inventory/tree.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="tree-page">
+    <div class="tree-actions">
+        {% include 'inventory/tree_toggles.html' %}
+        <a href="{% url 'structure_overview' %}" class="btn btn-info tree-actions-end">{% icon "grid-3x3" %} <span class="action-label">{% trans "Levels and axes" %}</span></a>
+    </div>
+    {# All locations, the top level open (inventory/trees.py, docs/trees.md). #}
+    {{ sprite }}
+    <ul class="tree" data-tree>{{ tree }}</ul>
+</div>
+{% endblock %}
+
+{% block bootstrap5_extra_script %}
+    {{ block.super }}
+    <script src="{% static 'inventory/tree.js' %}"></script>
+{% endblock %}

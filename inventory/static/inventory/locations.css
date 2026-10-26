@@ -21,6 +21,10 @@
 }
 .loc-label > .loc-code:first-child { margin-left: 0; }
 a .loc-code, a.loc-code, .loc-code a { color: #fff; }
+/* A chip that shows its location in brief (location_info.js). */
+.loc-code[data-location-info] { cursor: pointer; }
+.loc-code[data-location-info]:hover { background: #46515c; }
+.loc-code[data-location-info]:focus-visible { outline: 2px solid var(--bs-link-color); outline-offset: 1px; }
 /* A link around a label underlines the title only, not the space and chip after it. */
 a:has(> .loc-label) { text-decoration: none; }
 a > .loc-label > .loc-title { text-decoration: underline; }
@@ -34,3 +38,11 @@ a:has(> .loc-label):hover > .loc-label > .loc-title { text-decoration-thickness:
 .team-badges { display: inline-flex; flex: 0 0 auto; gap: .2rem; }
 .team-badge { display: inline-flex; align-items: center; justify-content: center; min-width: 1.4rem; height: 1.25rem; padding: 0 .3rem; border-radius: .25rem; background: var(--team-bg); color: var(--team-fg); box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .25); font-family: monospace; font-size: .75rem; font-weight: 700; line-height: 1; }
 .team-badge-plain { --team-bg: transparent; --team-fg: inherit; }
+
+/* A location in brief, in the window its code chip opens (location_info.html, location_info.js). */
+.location-info-path { margin-bottom: .75rem; color: #59636e; font-size: .9rem; overflow-wrap: anywhere; }
+.location-info-photo { display: block; max-width: 100%; height: auto; margin-bottom: .75rem; border-radius: .35rem; }
+.location-info-description { margin-bottom: 0; }
+
+/* A unique item's label ID in its name (UniqueItem.name_html). */
+.unique-item-code { font-family: monospace; font-size: 1.05em; letter-spacing: .04em; white-space: nowrap; }

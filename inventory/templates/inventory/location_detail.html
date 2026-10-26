@@ -25,6 +25,7 @@
             <div class="location-heading-text">
                 <h1 class="location-title-row">
                     {# What people call it first (its purpose, else its name); its code below. #}
+                    <span class="title-kind" aria-hidden="true">{% icon object|icon_name %}</span>
                     <span class="location-title-name">{{ object.title }}{% if object.subtitle %} <span class="loc-name">{{ object.subtitle }}</span>{% endif %}
                         {# Right after the last word, so it wraps with the text; only for whoever may change it. #}
                         {% if not purpose_denied %}<a href="#location-purpose-editor" class="btn btn-sm btn-warning location-edit-purpose" data-field-editor-open="location-purpose-editor" data-bs-toggle="tooltip" title="{% trans 'Edit purpose' %}">{% icon "pencil" %} <span class="action-label">{% trans "Purpose" %}</span></a>{% endif %}</span>
@@ -226,7 +227,7 @@
                             {% for unique_item in unique_items %}
                                 <li class="location-item">
                                     <div class="location-item-info">
-                                        <h3 class="fs-6"><a href="{{ unique_item.get_absolute_url }}">{{ unique_item.item }}{% if unique_item.name %} {{ unique_item.name }}{% endif %} {% if unique_item.label_code %}<span class="unique-item-code">{{ unique_item.label_display }}</span>{% else %}#{{ unique_item.pk }}{% endif %}</a></h3>
+                                        <h3 class="fs-6"><a href="{{ unique_item.get_absolute_url }}">{{ unique_item.name_html }}</a></h3>
                                         {% if unique_item.notes %}<p class="location-item-description location-muted">{{ unique_item.notes|markdown_plain|truncatechars:160 }}</p>{% endif %}
                                     </div>
                                     <div class="location-amount">{% usage_level unique_item.effective_usage_level %}</div>

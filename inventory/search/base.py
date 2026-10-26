@@ -9,7 +9,7 @@ NAME_KEYS = {"name", "purpose", "code"}
 class Hit:
     kind: str  # location, item or unique (a unique item)
     pk: int
-    score: int  # 2: the name (or code) matches; 1: other text
+    score: int  # 3: exactly its code; 2: the name (or code) matches; 1: other text
     sources: tuple  # where else the words were found (render.SOURCE_LABELS)
     rank: int = 0  # place among the hits of its kind, in the backend's order
     snippets: dict = field(default_factory=dict)  # source → excerpt, from search services only

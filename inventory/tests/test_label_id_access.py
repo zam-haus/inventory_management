@@ -81,8 +81,7 @@ class AccessTests(InventoryFixture, TestCase):
     def test_lookup_form_and_search_box_are_web_form_entries(self):
         self.client.force_login(self.member)
         self.scan("/?q=k7r-4xd", host="id.zam.haus")
-        response = self.client.get(reverse("index_items"), {"q": "K7R 4XD"})
-        self.client.get(response["Location"])
+        self.client.get(reverse("index"), {"q": "K7R 4XD"}, follow=True)
         self.assertEqual(self.accesses(), [("webform", "ada"), ("webform", "ada")])
 
     def test_only_known_methods_on_get_are_recorded(self):

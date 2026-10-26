@@ -2,11 +2,13 @@
 import json
 from dataclasses import dataclass, field
 
+from django.conf import settings
 from django.db.models import F, Prefetch, Q
 from django.utils.translation import gettext_lazy as _
 
 from ..label_ids.lookup import annotate_label_code
-from ..models import Item, ItemImage, ItemLocation, Location, LocationType, UniqueItem
+from ..location_display import icon_name
+from ..models import Item, ItemImage, ItemLocation, Location, UniqueItem
 
 SOURCE_LABELS = {
     "description": _("description"),
@@ -22,11 +24,6 @@ KINDS = {
     "item": ("boxes", _("Item")),
     "unique": ("box-star", _("Unique item")),
 }
-# Locations by what they are (LocationType.category); others, such as rooms, keep the pin.
-LOCATION_ICONS = {
-    LocationType.Category.STORAGE_UNIT: "bookshelf",
-    LocationType.Category.CONTAINER: "eurobox-open",
-}
 MAX_PLACES = 3
 
 
@@ -34,7 +31,8 @@ MAX_PLACES = 3
 class Place:
     location: Location
     amount: str = ""  # stock of an item, e.g. "3 pc"
-    label: str = ""  # a unique item's label ID
+    label: str = ""  # a unique item of an item, named as everywhere (UniqueItem.name_html)
+    url: str = ""  # the unique item's page, so that its label ID leads there directly
 
 
 @dataclass
@@ -44,6 +42,7 @@ class Entry:
     title: str
     subtitle: str = ""
     code: str = ""  # a location's code
+    label: str = ""  # a unique item's label ID (or its number), after its name
     where: str = ""  # the path above a location
     photos: list = field(default_factory=list)  # (image file, description), the first one as thumbnail
     places: list = field(default_factory=list)
@@ -54,7 +53,9 @@ class Entry:
     @property
     def icon(self):
         if self.kind == "location":
-            return LOCATION_ICONS.get(self.obj.type.category, KINDS["location"][0])
+            return icon_name(self.obj)
+        if self.kind == "item" and self.obj.kind == Item.Kind.UNIQUE:
+            return KINDS["unique"][0]
         return KINDS[self.kind][0]
 
     @property
@@ -110,7 +111,8 @@ def load(hits):
 
 
 def entry(hit, obj):
-    sources = [SOURCE_LABELS[source] for source in hit.sources if source in SOURCE_LABELS]
+    labels = {**SOURCE_LABELS, "label": settings.LABEL_ID_NAME}  # its label ID, by the name it has here (ZAMid)
+    sources = [labels[source] for source in hit.sources if source in labels]
     common = {"kind": hit.kind, "obj": obj, "sources": sources, "snippets": hit.snippets}
     if hit.kind == "location":
         parent = obj.parent_location
@@ -119,12 +121,12 @@ def entry(hit, obj):
                      photos=[(obj.overview_photo, obj.title)] if obj.overview_photo else [], **common)
     if hit.kind == "item":
         places = [Place(entry.location, amount=entry.amount_text) for entry in obj.search_places]
-        places += [Place(unique_item.location, label=unique_item.label_display or f"#{unique_item.pk}")
+        places += [Place(unique_item.location, label=unique_item.name_html, url=unique_item.get_absolute_url())
                    for unique_item in obj.search_unique_items]
         return Entry(title=str(obj), photos=photos(obj.search_images), places=places[:MAX_PLACES],
                      more_places=max(0, len(places) - MAX_PLACES), **common)
-    return Entry(title=str(obj.item), subtitle=obj.name, photos=photos(obj.search_images),
-                 places=[Place(obj.location, label=obj.label_display)], **common)
+    return Entry(title=str(obj.item), subtitle=obj.name, label=obj.label_display or f"#{obj.pk}",
+                 photos=photos(obj.search_images), places=[Place(obj.location)], **common)
 
 
 def entries(hits):

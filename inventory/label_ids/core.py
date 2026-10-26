@@ -18,6 +18,15 @@ class InvalidLabelId(ValueError):
     """Raised for malformed input or a wrong check symbol."""
 
 
+def normalize_part(raw: str):
+    """Part of an ID as typed, canonical (no dash or spaces, look-alikes mapped), for finding IDs by a part of
+    them; None if it cannot be part of one."""
+    s = raw.strip().translate(_STRIP).upper().translate(_LOOKALIKE)
+    if not s or len(s) > ID_LEN or any(c not in VALUE for c in s):
+        return None
+    return s
+
+
 def check_symbol(payload: str) -> str:
     s = sum((i + 1) * VALUE[c] for i, c in enumerate(payload))
     return ALPHABET[(-s * 26) % N]

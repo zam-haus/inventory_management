@@ -1,0 +1,30 @@
+{% extends 'base.html' %}
+{% load i18n static actions %}
+
+{% block title %}{% trans "Items" %}{% endblock %}
+
+{% block bootstrap5_extra_head %}
+    {{ block.super }}
+    <link rel="stylesheet" href="{% static 'inventory/tree.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="tree-page">
+    <div class="tree-actions">
+        {% include 'inventory/tree_toggles.html' %}
+        {% if perms.inventory.add_item %}
+            <a href="{% url 'create_item' %}" class="btn btn-success tree-actions-end">{% trans "Create New Item" %}</a>
+        {% elif user.is_authenticated %}
+            <span class="tree-actions-end">{% disabled_action _("Create New Item") classes="btn btn-success" %}</span>
+        {% endif %}
+    </div>
+    {# The items by category, those without one at the end (inventory/trees.py, docs/trees.md). #}
+    {{ sprite }}
+    <ul class="tree" data-tree>{{ tree }}</ul>
+</div>
+{% endblock %}
+
+{% block bootstrap5_extra_script %}
+    {{ block.super }}
+    <script src="{% static 'inventory/tree.js' %}"></script>
+{% endblock %}

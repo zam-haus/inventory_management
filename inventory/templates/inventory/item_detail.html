@@ -16,10 +16,11 @@
 
 {% block page_header %}
     <header class="item-header">
+        {% include "inventory/category_breadcrumb.html" with category=object.category %}
         <div class="item-heading" data-action-row>
             <div class="item-heading-text">
-                <p class="item-eyebrow">{% if object.tracks_unique_items %}{% trans "Item with unique items" %}{% else %}{% trans "Bulk item" %}{% endif %}{% if object.category %} · {{ object.category }}{% endif %}</p>
-                <h1>{{ object }}</h1>
+                <p class="item-eyebrow">{% if object.tracks_unique_items %}{% trans "Item with unique items" %}{% else %}{% trans "Bulk item" %}{% endif %}</p>
+                <h1><span class="title-kind" aria-hidden="true">{% if object.tracks_unique_items %}{% icon "box-star" %}{% else %}{% icon "boxes" %}{% endif %}</span>{{ object }}</h1>
             </div>
             <div class="item-actions" data-action-group>
                 {% include 'inventory/stock_take_panel.html' %}
@@ -153,7 +154,7 @@
                     {% for unique_item in unique_items %}
                         <li>
                             <div class="item-location-heading">
-                                <h3><a href="{{ unique_item.get_absolute_url }}">{% if unique_item.name %}{{ unique_item.name }} {% endif %}{% if unique_item.label_code %}<span class="unique-item-code">{{ unique_item.label_display }}</span>{% else %}#{{ unique_item.pk }}{% endif %}</a></h3>
+                                <h3><a href="{{ unique_item.get_absolute_url }}">{{ unique_item.name_html }}</a></h3>
                                 {# The item's briefing requirement applies, unless this one sets a different one. #}
                                 {% if unique_item.usage_level and unique_item.usage_level != object.usage_level %}
                                     <span class="unique-item-differs"><span class="item-muted">{% trans "differs" %}</span> {% usage_level unique_item.usage_level %}</span>

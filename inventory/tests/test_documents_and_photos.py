@@ -1,7 +1,6 @@
 import io
 import shutil
 import tempfile
-from decimal import Decimal
 
 from django.contrib.auth import get_user_model
 from django.core.files.base import ContentFile
@@ -16,7 +15,7 @@ from django.utils import timezone
 from PIL import Image
 
 from ..icons import icon
-from ..models import ItemFile, ItemImage, ItemLocation, UniqueItem
+from ..models import ItemFile, ItemImage, UniqueItem
 from .test_unique_items import UniqueItemFixture, grant
 from ..label_ids import services
 from ..label_ids.testing import SETTINGS, make_id, local_group
@@ -157,54 +156,6 @@ class PhotoTests(MediaMixin, UniqueItemFixture, TestCase):
         for url in (self.unique_item.get_absolute_url(), self.location.get_absolute_url()):
             content = self.client.get(url).content.decode()
             self.assertLess(content.index("Dent on the side"), content.index("Type photo"), url)
-
-
-@override_settings(**SETTINGS)
-class ItemListTests(UniqueItemFixture, TestCase):
-    @classmethod
-    def setUpTestData(cls):
-        cls.create_unique_items()
-        cls.second = UniqueItem.objects.create(item=cls.extinguisher, location=cls.shelf)
-        cls.gone = UniqueItem.objects.create(item=cls.extinguisher, location=cls.shelf)
-        cls.gone.dispose(UniqueItem.DisposalReason.SCRAPPED)
-
-    def test_ids_and_locations_in_the_location_column(self):
-        response = self.client.get(reverse("index_items"))
-        self.assertContains(response, f'<a href="{self.unique_item.get_absolute_url()}">K7R-4XD</a>', html=True)
-        self.assertContains(response, f'<a href="{self.second.get_absolute_url()}">#{self.second.pk}</a>', html=True)
-        self.assertContains(response, f'title="{self.shelf.descriptive_identifier}"')
-        self.assertNotContains(response, self.gone.get_absolute_url())
-
-    def test_photos_of_unique_items_are_listed(self):
-        media = tempfile.mkdtemp()
-        self.addCleanup(shutil.rmtree, media)
-        with override_settings(MEDIA_ROOT=media):
-            ItemImage.objects.create(item=self.extinguisher, image=png("red"), description="Type photo")
-            ItemImage.objects.create(item=self.extinguisher, unique_item=self.second, image=png("blue"), description="Dent")
-            ItemImage.objects.create(item=self.extinguisher, unique_item=self.gone, image=png("green"), description="Gone")
-            content = self.client.get(reverse("index_items")).content.decode()
-            self.assertLess(content.index('alt="Type photo"'), content.index('alt="Dent"'))
-            self.assertNotIn('alt="Gone"', content)
-            # More photos do not mean more queries (thumbnails are created on the first view).
-            url = reverse("index_items")
-            self.client.get(url)
-            before = self.count_queries(url)
-            ItemImage.objects.create(item=self.extinguisher, unique_item=self.unique_item, image=png("yellow"))
-            self.client.get(url)
-            self.assertEqual(self.count_queries(url), before)
-
-    def count_queries(self, url):
-        queries = []
-        with connection.execute_wrapper(lambda execute, sql, *args: queries.append(sql) or execute(sql, *args)):
-            self.client.get(url)
-        return len(queries)
-
-    def test_search_by_location_of_unique_items(self):
-        response = self.client.get(reverse("index_items"), {"q": "Shelf"})
-        self.assertEqual(list(response.context["object_list"]), [self.extinguisher])
-        ItemLocation.objects.create(item=self.item, location=self.location, amount=Decimal(3))
-        names = [item.name for item in self.client.get(reverse("index_items"), {"q": "Workshop"}).context["object_list"]]
-        self.assertEqual(sorted(names), ["Drill", "Fire extinguisher"])
 
 
 class DocumentMigrationTests(TransactionTestCase):

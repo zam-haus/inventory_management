@@ -20,7 +20,7 @@ from .keyboard_layouts import layout_corrections
 from .location_lookup import scan_prefixes
 from .permissions import location_deletion_denied
 from .models import (
-    USAGE_LEVEL_DESCRIPTIONS, BarcodeType, Category, Item, ItemBarcode, ItemFile, ItemImage, ItemLocation, Location, LocationType, ChangeLog,
+    USAGE_LEVEL_DESCRIPTIONS, BarcodeType, Item, ItemBarcode, ItemFile, ItemImage, ItemLocation, Location, LocationType, ChangeLog,
     UniqueItem, UsageLevel, LabelId,
 )
 from .widgets import NEW_ITEM_PREFIX, AutocompleteSelect, CategorySelect, ItemOrNewSelect, LocationSelect
@@ -685,22 +685,6 @@ class AdminItemLocationForm(ModelForm):
         widgets = {
             'location': autocomplete.ModelSelect2(url='location-autocomplete')
         }
-
-class ItemFilterForm(Form):
-    """Filters of the item list: a category includes its subcategories."""
-
-    category = ModelChoiceField(
-        Category.objects.all(), required=False, empty_label=_("All categories"), label=_("Category"),
-        widget=CategorySelect(describe=False, attrs={"class": "form-select", "data-category-filter": "",
-                                                     "aria-label": _("Category"),
-                                                     "data-placeholder": _("All categories")}),
-    )
-
-    def filter(self, items):
-        if self.is_valid() and (category := self.cleaned_data["category"]):
-            items = items.filter(Q(category=category) | Q(category__full_name__startswith=f"{category.full_name}/"))
-        return items
-
 
 class ItemLocationForm(ModelForm):
     class Meta:

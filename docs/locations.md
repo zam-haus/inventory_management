@@ -20,6 +20,11 @@ A UX rule for every page, list and dialog (`inventory/location_display.py`, `{% 
 * Location fields (`widgets.LocationSelect`) show their suggestions the same way, with the parent
   below; their autocompletes give HTML only to them (`?html=1`), the admin's fields get the path as
   text. The breadcrumb shows the path with each location's title and short name.
+* **In brief:** a location's code chip opens it in a window (`location_info.js`, `/loc/<id>/info/`; click,
+  Enter or space): the path with the titles and short names of the locations above it, its title and code,
+  overview photo and description, and *Open location*. Its name still leads to its page. Closing the window
+  returns the focus to the chip. Chips in the suggestions of location fields only show the code, as a click
+  there chooses the location (`label_html(info=False)`).
 
 Label templates follow the rule too: `{{ location.title }}` first, the code after or below it inverted in
 monospace ([label designs](label-designs.md)). The stored path (`descriptive_identifier`, "Halle [HAL] Regal 301

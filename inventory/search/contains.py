@@ -9,10 +9,12 @@ from functools import reduce
 from operator import or_
 from typing import Callable
 
-from django.db.models import BooleanField, Case, Exists, F, OuterRef, Q, Value, When
-from django.db.models.functions import Coalesce, Lower, NullIf
+from django.db.models import BooleanField, Case, CharField, Exists, F, OuterRef, Q, Value, When
+from django.db.models.functions import Cast, Coalesce, Lower
 
-from ..models import Category, Item, ItemBarcode, ItemFile, ItemImage, ItemLocation, Location, UniqueItem
+from ..label_ids import core
+from ..models import (Category, Item, ItemBarcode, ItemFile, ItemImage, ItemLocation, LabelId, Location,
+                      LocationFormerCode, UniqueItem)
 from .base import NAME_KEYS, Hit
 from .fields import exported_rows, searchable
 
@@ -30,6 +32,30 @@ def related(model, owner, *conditions, **lookups):
     return Exists(model.objects.filter(exported_rows(model), *conditions, **{owner: OuterRef("pk")}, **lookups))
 
 
+def label(owner, word):
+    """Whether its label ID (assigned) contains the word, from three symbols on ("K7R" finds K7R-4XD). Compared as
+    text: LabelIdField itself only takes whole IDs."""
+    part = core.normalize_part(word)
+    if part is None or len(part) < 3:
+        return Q(pk__in=[])
+    codes = LabelId.objects.assigned().annotate(text=Cast("code", CharField())).filter(**{owner: OuterRef("pk")},
+                                                                                      text__contains=part)
+    return Exists(codes)
+
+
+def code_start(field, word):
+    """A code that starts with the word, or one of whose parts does (HW.R3 for R3). A single symbol only
+    whole, so that "a" does not find every compartment a."""
+    if len(word) < 2:
+        return Q(**{f"{field}__iexact": word})
+    return Q(**{f"{field}__istartswith": word}) | Q(**{f"{field}__icontains": f".{word}"})
+
+
+def exact_code(word):
+    """The location with exactly this code, first among those whose codes start with it."""
+    return Q(unique_identifier__iexact=word) | Q(locatable_identifier__iexact=word) | Q(short_name__iexact=word)
+
+
 def any_of(conditions):
     return reduce(or_, conditions)
 
@@ -45,6 +71,7 @@ ITEM_SOURCES = [
     Source("photo", ItemImage, "description", lambda w: related(ItemImage, "item", GENERAL, description__icontains=w)),
     Source("photo_text", ItemImage, "ocr_text", lambda w: related(ItemImage, "item", GENERAL, ocr_text__icontains=w)),
     Source("file", ItemFile, "description", lambda w: related(ItemFile, "item", GENERAL, description__icontains=w)),
+    Source("label", LabelId, "code", lambda w: label("item", w)),
 ]
 
 UNIQUE_SOURCES = [
@@ -55,16 +82,20 @@ UNIQUE_SOURCES = [
     Source("photo", ItemImage, "description", lambda w: related(ItemImage, "unique_item", description__icontains=w)),
     Source("photo_text", ItemImage, "ocr_text", lambda w: related(ItemImage, "unique_item", ocr_text__icontains=w)),
     Source("file", ItemFile, "description", lambda w: related(ItemFile, "unique_item", description__icontains=w)),
+    Source("label", LabelId, "code", lambda w: label("unique_item", w)),
 ]
 
 LOCATION_SOURCES = [
     Source("name", Location, "name", lambda w: Q(name__icontains=w)),
     Source("purpose", Location, "purpose", lambda w: Q(purpose__icontains=w)),
-    # Codes match whole, so that "R3" does not find R30 to R39.
+    # Codes from their start or from a part (after a dot): R006 finds R006 and R006.a, R00 finds R001 to R009.
     Source("code", Location, "short_name", lambda w: Q(short_name__iexact=w)),
-    Source("code", Location, "unique_identifier", lambda w: Q(unique_identifier__iexact=w)),
-    Source("code", Location, "locatable_identifier", lambda w: Q(locatable_identifier__iexact=w)),
+    Source("code", Location, "unique_identifier", lambda w: code_start("unique_identifier", w)),
+    Source("code", Location, "locatable_identifier", lambda w: code_start("locatable_identifier", w)),
+    # A code it had before still finds it (renamed or moved).
+    Source("code", LocationFormerCode, "code", lambda w: related(LocationFormerCode, "location", code__iexact=w)),
     Source("description", Location, "physical_description", lambda w: Q(physical_description__icontains=w)),
+    Source("label", LabelId, "code", lambda w: label("location", w)),
 ]
 
 
@@ -76,16 +107,16 @@ def item_path(word):
 
 
 KINDS = [
-    # kind, entries, sources, path of one word, name to sort by
+    # kind, entries, sources, path of one word, what to sort by, exact hit of one word (ranks first)
     ("location", lambda: Location.active.all(), LOCATION_SOURCES,
-     lambda w: Q(descriptive_identifier__icontains=w), Coalesce(NullIf("purpose", Value("")), "name")),
-    ("item", lambda: Item.active.all(), ITEM_SOURCES, item_path, Coalesce("name", Value(""))),
+     lambda w: Q(descriptive_identifier__icontains=w), F("unique_identifier"), exact_code),  # by code, as in the tree
+    ("item", lambda: Item.active.all(), ITEM_SOURCES, item_path, Coalesce("name", Value("")), None),
     ("unique", lambda: UniqueItem.active.filter(item__is_deleted=False), UNIQUE_SOURCES,
-     lambda w: Q(location__descriptive_identifier__icontains=w), F("item__name")),
+     lambda w: Q(location__descriptive_identifier__icontains=w), F("item__name"), None),
 ]
 
 
-def find(kind, queryset, sources, path, sort_name, words, limit):
+def find(kind, queryset, sources, path, sort_name, words, limit, exact=None):
     sources = [source for source in sources if searchable(source.model, source.field)]
     with_path = searchable(Location, "descriptive_identifier")
 
@@ -102,10 +133,12 @@ def find(kind, queryset, sources, path, sort_name, words, limit):
 
     keys = list(dict.fromkeys(source.key for source in sources))
     hits = {f"hit_{key}": hit({key}) for key in keys}
-    named = hit(NAME_KEYS & set(keys))
-    rows = (queryset.annotate(**hits, named=named, sort_name=Lower(sort_name))
-            .order_by("-named", "sort_name", "pk").values("pk", "named", *hits)[:limit])
-    return [Hit(kind, row["pk"], 2 if row["named"] else 1,
+    named = hit((NAME_KEYS | {"label"}) & set(keys))
+    exactly = (Case(When(any_of(exact(word) for word in words), then=Value(True)), default=Value(False),
+                    output_field=BooleanField()) if exact else Value(False, output_field=BooleanField()))
+    rows = (queryset.annotate(**hits, named=named, exactly=exactly, sort_name=Lower(sort_name))
+            .order_by("-exactly", "-named", "sort_name", "pk").values("pk", "named", "exactly", *hits)[:limit])
+    return [Hit(kind, row["pk"], 3 if row["exactly"] else 2 if row["named"] else 1,
                 tuple(key for key in keys if row[f"hit_{key}"] and key not in NAME_KEYS), rank)
             for rank, row in enumerate(rows)]
 
@@ -114,8 +147,8 @@ def search(words, limit):
     """The first `limit` hits of each kind in their order (hits on the name first, then by name), and whether
     any kind has more. The caller merges them, so a page of results never needs more of a kind than this."""
     hits, more = [], False
-    for kind, entries, sources, path, sort_name in KINDS:
-        found = find(kind, entries(), sources, path, sort_name, words, limit + 1)
+    for kind, entries, sources, path, sort_name, exact in KINDS:
+        found = find(kind, entries(), sources, path, sort_name, words, limit + 1, exact)
         more |= len(found) > limit
         hits += found[:limit]
     return hits, more

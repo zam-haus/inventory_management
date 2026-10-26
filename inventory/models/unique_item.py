@@ -13,6 +13,7 @@ from django.core.exceptions import ValidationError
 from django.db import models
 from django.urls import reverse
 from django.utils import timezone
+from django.utils.html import format_html
 from django.utils.translation import gettext_lazy as _
 
 from ..actor import acting_as
@@ -107,6 +108,14 @@ class UniqueItem(models.Model):
     def __str__(self):
         """The item, its own name if it has one, and its label ID: "Akkuschrauber blau K7R-4XD"."""
         return " ".join(part for part in (str(self.item), self.name, self.label_display or f"#{self.pk}") if part)
+
+    @property
+    def name_html(self):
+        """Like __str__, the way every list names it: the item, its own name if it has one, and its label ID (or
+        its number while it has none)."""
+        code = format_html('<span class="unique-item-code">{}</span>', self.label_display) if self.label_code \
+            else f"#{self.pk}"
+        return format_html("{}{} {}", self.item, f" {self.name}" if self.name else "", code)
 
     def get_absolute_url(self):
         return reverse("view_unique_item", kwargs={"pk": self.pk})

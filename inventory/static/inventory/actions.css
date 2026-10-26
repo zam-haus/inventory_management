@@ -40,7 +40,7 @@
 .action-menu-item > .bi { width: 1.15em; height: 1.15em; }
 .action-menu-reason { grid-column: 2; font-size: .8rem; }
 
-/* Navbar: logo, QR scanner, menu button, login/logout and the user menu share one height.
+/* Navbar: logo, QR scanner, search, the … menu, login and the user menu share one height.
    The scanner is a square grey button with a white icon. */
 /* Sticky navbar that slides away while scrolling down (navbar.js). */
 .app-navbar { transition: transform .2s ease-out; }
@@ -53,13 +53,28 @@
 /* Fixed heights (not min-height) and a block logo, so iOS Safari sizes them exactly alike. */
 .app-navbar .navbar-brand img { display: block; width: var(--app-navbar-item); height: var(--app-navbar-item); }
 .app-navbar .btn-sm { display: inline-flex; align-items: center; height: var(--app-navbar-item); padding-block: 0; }
-/* Narrow screens only (wider ones show the links instead of the menu button). The opened menu
-   goes below the whole first row, so logo, menu button and user menu stay where they were. */
-@media (max-width: 575.98px) {
-    .app-navbar .navbar-toggler { display: inline-flex; align-items: center; height: var(--app-navbar-item); padding-block: 0; }
-    .app-navbar .navbar-collapse { order: 1; }
-}
 .navbar-scan { justify-content: center; width: var(--app-navbar-item); padding: 0; font-size: 1.35rem; line-height: 1; }
+/* Items and Locations: the icon of their kind and their name; on narrow screens the icon only, as large as the
+   buttons beside it (the names are in the … menu, too). */
+.app-nav { gap: .25rem; }
+.app-nav .nav-link { display: inline-flex; align-items: center; gap: .4rem; }
+@media (max-width: 575.98px) {
+    .app-nav .nav-link { justify-content: center; width: var(--app-navbar-item); height: var(--app-navbar-item); padding: 0;
+        font-size: 1.35rem; }
+    .app-nav-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; }
+}
+/* The … menu (narrow screens, at the right end): Items, Locations, Admin, the user and Logout. Wider screens show no menu
+   button and only its Admin link, in the bar; the user has a menu of their own there. */
+.app-menu-list .action-menu-item > span:only-child { grid-column: 2; }
+@media (max-width: 575.98px) { .app-menu { order: 1; } }  /* after Login */
+@media (min-width: 576px) {
+    .app-menu > [data-bs-toggle] { display: none; }
+    .app-menu-list { position: static; display: flex; min-width: 0; margin: 0; padding: 0; border: 0; background: none; }
+    .app-menu-list .dropdown-item { display: block; min-height: 0; padding: var(--bs-nav-link-padding-y) var(--bs-navbar-nav-link-padding-x);
+        color: var(--bs-navbar-color); background: none; }
+    .app-menu-list .dropdown-item:hover, .app-menu-list .dropdown-item:focus { color: var(--bs-navbar-hover-color); }
+    .app-menu-list .app-menu-narrow { display: none; }
+}
 /* The search field the magnifier opens (navbar.js): right of the magnifier, over the navbar's other items. navbar.js
    sets where the magnifier ends (--navbar-search-left, --navbar-search-top). */
 .app-navbar > .container-fluid { position: relative; }
@@ -72,3 +87,7 @@
 
 /* Inline Bootstrap Icons ({% icon %}, inventory/icons.py) sit on the text baseline like a glyph. */
 .bi { vertical-align: -.125em; flex-shrink: 0; }
+
+/* The icon of the kind before the title of a location, item or unique item page (docs/icons.md). */
+.title-kind { margin-right: .4em; color: #59636e; font-size: .85em; }
+.location-title-row .title-kind { margin-right: 0; }

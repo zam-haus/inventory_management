@@ -110,7 +110,8 @@ class ContainerCreateTests(TestCase):
         page = self.client.get(self.url(pallet)).content.decode()
         for location in (self.hall, pallet):  # title and short name as a code chip (docs/locations.md)
             self.assertInHTML(f'<a href="{location.get_absolute_url()}"><span class="loc-label"><span class="loc-title">'
-                              f'{location.name}</span> <span class="loc-code">{location.short_name}</span></span></a>', page)
+                              f'{location.name}</span> <span class="loc-code" data-location-info="{location.pk}" '
+                              f'role="button" tabindex="0" title="Location in brief">{location.short_name}</span></span></a>', page)
         breadcrumb = page[page.index('class="location-breadcrumb"'):page.index("</nav>", page.index("location-breadcrumb"))]
         self.assertNotIn(f'href="{reverse("index_locations")}"', breadcrumb)  # no "Locations" at the root
 

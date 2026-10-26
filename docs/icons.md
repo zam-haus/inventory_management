@@ -40,6 +40,7 @@ when they are first used:
 | Search | `search` | done |
 | Item (counted, *Sache*) | `boxes` | done |
 | Unique item (*Einzelobjekt*) | `box-star` (own) | done |
+| Category (item tree) | `folder` | done |
 | Location: building part (level, room, area) and others | `geo-alt` | done |
 | Location: storage unit (*Lagermöbel*: shelf, cabinet, …) | `bookshelf` | done |
 | Location: container (*Behälter*: Euro box, carton, …) | `eurobox-open` (own) | done |
@@ -58,6 +59,11 @@ when they are first used:
 | Briefing green / yellow / red | `check-lg` / `exclamation-lg` / `x-lg` | done |
 | Label ID, QR code | `qr-code` | reserved |
 | History | `clock-history` | reserved |
+
+The kind icons (item, unique item, category, the three location kinds) also stand before the title of a location,
+item or unique item page, before the names in the search results and trees, and before *Items* (`boxes`) and
+*Locations* (`geo-alt`) in the navbar; on narrow screens the navbar shows those two as icons only, their names are
+in its menu (`three-dots-vertical`).
 
 Every change of where something is, a location, a unique item, stock or the contents of a location, is
 called **Move** (German **Bewegen**: „Bewegen“, „Hierher bewegen“, „Inhalt bewegen“), never „verschieben“ or

@@ -15,7 +15,7 @@ setting (and the hosts below).
 Two kinds of codes lead somewhere: a **location's code** (`unique_identifier`: `K0525`, `R303`, `R303.a`; on
 location labels) and a **label ID** (ZAMid, on the labels of items and unique items, and of the few locations
 that got one). Everywhere they are read by one function, `inventory/codes.py` `resolve_code`: the resolver
-behind the QR codes (`i.zam.haus/…`, `/id/…`, the lookup `/id/?q=`), `?q=` of the location and item lists,
+behind the QR codes (`i.zam.haus/…`, `/id/…`, the lookup `/id/?q=`), the [search](search.md) (`/?q=`),
 the location fields (scan button, `/loc/lookup`) and *Move here*. In this order:
 
 1. an inventory location URL (`/loc/<pk>/…`), by its number;
@@ -27,9 +27,10 @@ the location fields (scan button, `/loc/lookup`) and *Move here*. In this order:
 6. in location fields, a number as the location's database ID;
 
 and, if nothing matched, the same input as typed by a scanner with another keyboard layout. A label ID
-in a location field must belong to a location. The [search](search.md) and the item search keep a typed
-location code as search text (short codes such as `LAS` are words, too); scanned label URLs and label IDs
-lead to their target there as well.
+in a location field must belong to a location. The [search](search.md) keeps a typed
+location code as search text (short codes such as `LAS` are words, too) and finds that location first, also
+by a former code; scanned label URLs and label IDs lead to their target there, and so does the code of a
+reserved container (to its activation), as nothing else finds it.
 
 Codes and label IDs never collide: new label IDs are never drawn equal to a location code
 (`services.is_location_code`), and a location code or former code that reads as an issued label ID is refused

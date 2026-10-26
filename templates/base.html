@@ -16,37 +16,45 @@
 {% block bootstrap5_content %}
     {% block pre_container %}{% endblock %}
     {# Sticks to the top, slides away while scrolling down and comes back on scrolling up (navbar.js). #}
-    <nav class="navbar navbar-expand-sm bg-light border-bottom sticky-top app-navbar">
+    {# Narrow screens: Items and Locations as icons; their names, Admin and the user menu in the … menu. #}
+    <nav class="navbar navbar-expand bg-light border-bottom sticky-top app-navbar">
       <div class="container-fluid">
         {# The QR scanner (link_scanner.js) and the search stay beside the logo on narrow screens too. #}
-        <div class="d-flex align-items-center gap-2 me-sm-3">
+        <div class="d-flex align-items-center gap-2 me-2 me-sm-3">
           <a class="navbar-brand py-0 me-0" href="{% url 'index' %}"><img src="{% static favicon_dir|add:'/favicon.svg' %}" alt="{% trans 'ZAM inventory' %}" width="40" height="40"></a>
           {% include 'inventory/scan_link_button.html' with classes="btn btn-sm btn-secondary navbar-scan" icon_only=True %}
           {# Opens the search field below (navbar.js); without JavaScript it leads to the search, the home page. #}
           <a class="btn btn-sm btn-secondary navbar-scan" href="{% url 'index' %}" aria-label="{% trans 'Search' %}" data-navbar-search aria-controls="navbar-search" aria-expanded="false">{% icon "search" %}</a>
         </div>
-        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNavAltMarkup" aria-controls="navbarNavAltMarkup" aria-expanded="false" aria-label="{% trans 'Toggle navigation' %}">
-          <span class="navbar-toggler-icon"></span>
-        </button>
-        <div class="collapse navbar-collapse" id="navbarNavAltMarkup">
-          <ul class="navbar-nav me-auto mb-lg-0">
-            <li class="nav-item">
-                <a class="nav-link" href="{% url 'index_items' %}">{% trans 'Items' %}</a>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link" href="{% url 'index_locations' %}">{% trans 'Locations' %}</a>
-            </li>
-            {% if user.is_staff %}
-                <li class="nav-item">
-                    <a class="nav-link" href="{% block admin_url %}{% url 'admin:index' %}{% endblock %}">Admin</a>
-                </li>
-            {% endif %}
-          </ul>
-        </div>
-        <div class="d-flex">
+        <ul class="navbar-nav app-nav">
+          <li class="nav-item"><a class="nav-link" href="{% url 'index_items' %}">{% icon "boxes" %}<span class="app-nav-label">{% trans 'Items' %}</span></a></li>
+          <li class="nav-item"><a class="nav-link" href="{% url 'index_locations' %}">{% icon "geo-alt" %}<span class="app-nav-label">{% trans 'Locations' %}</span></a></li>
+        </ul>
+        <div class="d-flex align-items-center gap-2 ms-auto">
+          {# Narrow screens: a menu; wider ones show its Admin link in the bar (the other entries are for narrow screens only). #}
+          <div class="dropdown app-menu">
+            <button class="btn btn-sm btn-secondary navbar-scan" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="{% trans 'Menu' %}" title="{% trans 'Menu' %}">{% icon "three-dots-vertical" %}</button>
+            <div class="dropdown-menu dropdown-menu-end app-menu-list">
+              <a class="dropdown-item action-menu-item app-menu-narrow" href="{% url 'index_items' %}">{% icon "boxes" %}<span>{% trans 'Items' %}</span></a>
+              <a class="dropdown-item action-menu-item app-menu-narrow" href="{% url 'index_locations' %}">{% icon "geo-alt" %}<span>{% trans 'Locations' %}</span></a>
+              {% if user.is_staff %}
+                <a class="dropdown-item action-menu-item app-menu-admin" href="{% block admin_url %}{% url 'admin:index' %}{% endblock %}"><span>Admin</span></a>
+              {% endif %}
+              {% if user.is_authenticated %}
+                <hr class="dropdown-divider app-menu-narrow">
+                <h6 class="dropdown-header app-menu-narrow">{{ user.username }}{% if user.is_local_member %} ({{ local_network_name }}){% endif %}</h6>
+                <form class="app-menu-narrow" action="{% if oidc_enabled %}{% url 'oidc_logout' %}{% else %}{% url 'logout' %}{% endif %}" method="post">
+                  {% csrf_token %}
+                  <button class="dropdown-item action-menu-item" type="submit"><span>{% trans 'Logout' %}</span></button>
+                </form>
+              {% elif user.is_local_member %}
+                <hr class="dropdown-divider app-menu-narrow">
+                <h6 class="dropdown-header app-menu-narrow">{{ local_network_name }}</h6>
+              {% endif %}
+            </div>
+          </div>
           {% if user.is_authenticated %}
-          {# Narrow screens: Logout sits behind the username; wider ones show both. #}
-          <div class="dropdown d-sm-none">
+          <div class="dropdown d-none d-sm-block">
             <button class="btn btn-sm btn-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">{{ user.username }}{% if user.is_local_member %} ({{ local_network_name }}){% endif %}</button>
             <div class="dropdown-menu dropdown-menu-end">
               <form action="{% if oidc_enabled %}{% url 'oidc_logout' %}{% else %}{% url 'logout' %}{% endif %}" method="post">
@@ -55,13 +63,8 @@
               </form>
             </div>
           </div>
-          <span class="navbar-text me-2 d-none d-sm-inline">{{ user.username }}{% if user.is_local_member %} ({{ local_network_name }}){% endif %}</span>
-          <form action="{% if oidc_enabled %}{% url 'oidc_logout' %}{% else %}{% url 'logout' %}{% endif %}" method="post" class="d-none d-sm-flex">
-            {% csrf_token %}
-            <button class="btn btn-sm btn-secondary" type="submit">{% trans 'Logout' %}</button>
-          </form>
           {% else %}
-          {% if user.is_local_member %}<span class="navbar-text me-2">({{ local_network_name }})</span>{% endif %}
+          {% if user.is_local_member %}<span class="navbar-text d-none d-sm-inline">({{ local_network_name }})</span>{% endif %}
           <a class="btn btn-sm btn-secondary" href="{% if oidc_enabled %}{% url 'oidc_authentication_init' %}{% else %}{% url 'login' %}{% endif %}?next={{ request.get_full_path|urlencode }}">{% trans 'Login' %}</a>
           {% endif %}
         </div>
@@ -87,6 +90,8 @@
     <script src="{% static 'inventory/actions.js' %}"></script>
     <script src="{% static 'inventory/navbar.js' %}"></script>
     <script src="{% static 'inventory/modals.js' %}"></script>
+    {% include 'inventory/location_info_modal.html' %}
+    <script src="{% static 'inventory/location_info.js' %}"></script>
     {{ scan_hosts|json_script:"scan-hosts" }}
     {% include 'inventory/barcode_scanner_script.html' %}
     <script src="{% static 'inventory/link_scanner.js' %}"></script>

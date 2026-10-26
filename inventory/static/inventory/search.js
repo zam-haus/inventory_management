@@ -5,7 +5,8 @@
 // * More results while scrolling: the next page is loaded when its link comes near.
 // * The up and down arrow keys move between the results (down from the field to the first, up from the
 //   first back to it) and mark the current one; its photos open large below it, left and right go through
-//   them, Escape closes them, Enter opens the result.
+//   them, Escape closes them. Enter and space open the result.
+// * A click on a row outside its links opens it, unless text was selected there to copy it.
 // * The photo button opens the photos of a result below it, too. Swipe sideways for its other photos, up or
 //   down for those of the next or previous result with photos.
 (() => {
@@ -202,6 +203,13 @@
         return {open, close, step, get current() { return current; }};
     })();
 
+    // A click on a row outside its links opens its title, unless text was selected there (to copy it).
+    results.addEventListener('click', event => {
+        const entry = event.target.closest('[data-search-entry]');
+        if (!entry || event.target.closest('a, button, [data-location-info]') || String(window.getSelection())) return;
+        entry.querySelector('.search-link').click();
+    });
+
     results.addEventListener('click', event => {
         const button = event.target.closest('[data-search-photos]');
         if (!button) return;
@@ -222,7 +230,7 @@
     }
 
     document.addEventListener('keydown', async event => {
-        if (event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
+        if (event.defaultPrevented || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
         if (event.target === input) {
             const first = entries()[0];
             if (event.key !== 'ArrowDown' || !first) return;
@@ -247,6 +255,10 @@
         } else if (viewer.current && (event.key === 'ArrowLeft' || event.key === 'ArrowRight')) {
             event.preventDefault();
             viewer.step(event.key === 'ArrowRight' ? 1 : -1);
+        } else if (event.key === ' ' && !event.target.closest('button')) {
+            // Space opens the marked result, like Enter (code chips handle their own keys, location_info.js).
+            event.preventDefault();
+            window.location.assign(entry.querySelector('.search-link').href);
         } else if (viewer.current && event.key === 'Enter' && !event.target.closest('button')) {
             // The photos have the focus, not the link.
             event.preventDefault();

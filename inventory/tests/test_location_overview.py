@@ -408,19 +408,22 @@ class LocationOverviewTests(TestCase):
         child = Location.objects.create(type=self.location.type, parent_location=self.location,
                                         name="Box 23", short_name="B23", purpose="Carp project")
         label = ('<span class="loc-label"><span class="loc-title">Carp project</span> <span class="loc-name">Box 23</span> '
-                 f'<span class="loc-code">{child.unique_identifier}</span></span>')
+                 f'<span class="loc-code" data-location-info="{child.pk}" role="button" tabindex="0" '
+                 f'title="Location in brief">{child.unique_identifier}</span></span>')
+        plain = ('<span class="loc-label"><span class="loc-title">Carp project</span> <span class="loc-name">Box 23</span> '
+                 f'<span class="loc-code">{child.unique_identifier}</span></span>')  # in choices: a click chooses
         detail = self.client.get(self.location.get_absolute_url())
         self.assertContains(detail, label, html=True)
-        listing = self.client.get(reverse("index_locations"), {"q": "Box 23"})
+        listing = self.client.get(reverse("index_locations"))
         self.assertContains(listing, '<span class="loc-title">Carp project</span>', html=True)
-        self.assertContains(listing, f'<span class="loc-code">{child.unique_identifier}</span>', html=True)
+        self.assertIn(f'data-location-info="{child.pk}"', listing.content.decode())
         for name in ("location-autocomplete", "parent_location_autocomplete"):
             with self.subTest(autocomplete=name):
                 # the frontend's fields (widgets.LocationSelect): HTML, with where it is below
                 result = self.client.get(reverse(name), {"q": "carp", "html": "1"}).json()["results"][0]
-                self.assertInHTML(label, result["text"])
+                self.assertInHTML(plain, result["text"])
                 self.assertIn(f'<span class="loc-where">{self.location.title}</span>', result["text"])
-                self.assertInHTML(label, result["selected_text"])
+                self.assertInHTML(plain, result["selected_text"])
                 # the admin's: text with the path
                 results = self.client.get(reverse(name), {"q": "carp"}).json()["results"]
                 self.assertEqual([result["text"] for result in results], [f"{child.descriptive_identifier}: Carp project"])
@@ -597,8 +600,9 @@ class LocationOverviewTests(TestCase):
         self.client.logout()
         for query in ("eLeCtRiC", "wEsT"):
             with self.subTest(query=query):
-                response = self.client.get(reverse("index_locations"), {"q": query})
-                self.assertEqual(list(response.context["object_list"]), [self.location])
+                response = self.client.get(reverse("index"), {"q": query})
+                self.assertEqual([entry.obj for entry in response.context["entries"] if entry.kind == "location"],
+                                 [self.location])
                 for name in ("location-autocomplete", "parent_location_autocomplete"):
                     with self.subTest(autocomplete=name):
                         response = self.client.get(reverse(name), {"q": query})

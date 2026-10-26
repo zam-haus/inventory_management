@@ -23,7 +23,7 @@ one; another location brings its stock, keeping direction and amount (`take_choi
   (or the estimate, which can be replaced by a counted amount) and removes the
   item from the location, also when the amount is only an estimate. If no stock
   of the item is left anywhere, the item is deleted. You stay on the location
-  page; from the item's own page, you are taken to the item search.
+  page; from the item's own page, you are taken to the [items](trees.md).
 * After saving, the page reloads in place. Each dialog submission carries an ID,
   so a retry after a lost connection is applied only once.
 

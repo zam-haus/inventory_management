@@ -21,6 +21,15 @@ def _natural(code):
     return [int(part) if part.isdigit() else part for part in re.split(r"(\d+)", code)]
 
 
+def code_order(code):
+    """Sort key of codes among siblings: numbers by value (LAG2 before LAG10), levels by their number (WH-1 before
+    WH+0, as + sorts before - as text)."""
+    match = LEVEL_CODE.match(code)
+    if match:
+        return [match["house"].upper(), int(match["level"]), ""]
+    return _natural(code.upper())
+
+
 def level_label(number):
     return f"+{number}" if number >= 0 else str(number)
 

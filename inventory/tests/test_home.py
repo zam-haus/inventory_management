@@ -29,14 +29,36 @@ class HomePageTests(TestCase):
         response = self.client.get(reverse("index"), headers={"host": "localhost:8000"})
         self.assertEqual(response.context["scan_hosts"], ["localhost"])
 
-    def test_logout_hides_behind_the_username_on_narrow_screens(self):
+    def test_navbar_menus(self):
         from django.contrib.auth import get_user_model
-        self.client.force_login(get_user_model().objects.create_user("ada"))
+        self.client.force_login(get_user_model().objects.create_user("ada", is_staff=True))
         content = self.client.get(reverse("index"), headers={"host": "inv.zam.haus"}).content.decode()
-        narrow = content.index('<div class="dropdown d-sm-none">')
-        self.assertIn('data-bs-toggle="dropdown" aria-expanded="false">ada</button>', content[narrow:])
-        self.assertIn('<button class="dropdown-item" type="submit">Logout</button>', content[narrow:])
-        self.assertIn('<span class="navbar-text me-2 d-none d-sm-inline">ada</span>', content)
+        navbar = content[content.index("<nav"):content.index("</nav>")]
+        # Items and Locations with the icons of their kinds (narrow screens: the icon only, the name for screen readers).
+        nav = navbar[navbar.index('<ul class="navbar-nav app-nav">'):navbar.index("</ul>")]
+        self.assertIn('class="bi bi-boxes"', nav)
+        self.assertIn('class="bi bi-geo-alt"', nav)
+        self.assertIn('<span class="app-nav-label">Sachen</span>', nav)
+        # The … menu: the names, Admin and the user with Logout (wider screens: Admin in the bar).
+        menu = navbar[navbar.index('<div class="dropdown app-menu">'):navbar.index('<div class="dropdown d-none d-sm-block">')]
+        self.assertIn('aria-label="Menü"', menu)
+        self.assertIn("<span>Sachen</span>", menu)
+        self.assertIn("<span>Standorte</span>", menu)
+        self.assertIn('class="dropdown-item action-menu-item app-menu-admin" href="/admin/"', menu)
+        self.assertIn('<h6 class="dropdown-header app-menu-narrow">ada</h6>', menu)
+        self.assertIn("<span>Logout</span></button>", menu)
+        # Wider screens: Logout behind the username, right of Admin.
+        user = navbar[navbar.index('<div class="dropdown d-none d-sm-block">'):]
+        self.assertIn('data-bs-toggle="dropdown" aria-expanded="false">ada</button>', user)
+        self.assertIn('<button class="dropdown-item" type="submit">Logout</button>', user)
+
+    def test_navbar_for_guests(self):
+        content = self.client.get(reverse("index"), headers={"host": "inv.zam.haus"}).content.decode()
+        navbar = content[content.index("<nav"):content.index("</nav>")]
+        self.assertIn(">Login</a>", navbar)
+        self.assertIn("<span>Sachen</span>", navbar)
+        self.assertNotIn("Admin", navbar)
+        self.assertNotIn("Logout", navbar)
 
     def test_navbar_scanner_on_every_page(self):
         for url in (reverse("index"), reverse("index_items"), reverse("index_locations")):
@@ -52,5 +74,5 @@ class HomePageTests(TestCase):
 
     def test_navbar_slides_away_while_scrolling_down(self):
         content = self.client.get(reverse("index"), headers={"host": "inv.zam.haus"}).content.decode()
-        self.assertIn('class="navbar navbar-expand-sm bg-light border-bottom sticky-top app-navbar"', content)
+        self.assertIn('class="navbar navbar-expand bg-light border-bottom sticky-top app-navbar"', content)
         self.assertEqual(content.count("inventory/navbar.js"), 1)

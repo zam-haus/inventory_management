@@ -1,0 +1,6 @@
+{% load i18n %}{# The window the code chips of locations open on every page (location_info.js). #}
+<div class="modal fade" id="location-info" tabindex="-1" aria-labelledby="location-info-title" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-scrollable">
+        <div class="modal-content" data-location-info-content data-error="{% trans 'The location could not be loaded.' %}"></div>
+    </div>
+</div>

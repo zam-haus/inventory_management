@@ -11,7 +11,6 @@
 .item-panel-add, .item-icon-action { display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; padding: 0; font-size: 1.35rem; line-height: 1; }
 /* Remove from inventory carries a short text. */
 .item-actions .item-icon-action { gap: .4rem; width: auto; min-width: 44px; padding-inline: .65rem; }
-.unique-item-code { font-family: monospace; font-size: 1.05em; letter-spacing: .04em; white-space: nowrap; }
 .unique-item-facts { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: .5rem 1.25rem; margin: 0; }
 .unique-item-facts dt { color: var(--item-muted, #59636e); font-weight: 600; font-size: .875rem; }
 .unique-item-facts dd { margin: 0; }

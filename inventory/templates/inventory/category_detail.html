@@ -1,0 +1,50 @@
+{% extends 'base.html' %}
+{% load i18n static %}
+
+{% block title %}{{ object.name }}{% endblock %}
+
+{% block bootstrap5_extra_head %}
+    {{ block.super }}
+    <link rel="stylesheet" href="{% static 'inventory/search.css' %}">
+    <link rel="stylesheet" href="{% static 'inventory/tree.css' %}">
+{% endblock %}
+
+{% block page_header %}
+    {# Where it is in the category tree; the items page shows it there, opened. #}
+    <nav class="category-path" aria-label="{% trans 'Category path' %}">
+        <a href="{% url 'index_items' %}#cat-{{ object.pk }}">{% trans "Items" %}</a>
+        {% for ancestor in object.ancestors %} / <a href="{{ ancestor.get_absolute_url }}">{{ ancestor.name }}</a>{% endfor %}
+    </nav>
+    <h1>{{ object.name }}</h1>
+    {% if object.description %}<p class="category-description">{{ object.description }}</p>{% endif %}
+{% endblock %}
+
+{% block content %}
+<div class="search-page category-page">
+    {% if subcategories %}
+        <nav class="category-children" aria-label="{% trans 'Subcategories' %}">
+            {% for child in subcategories %}<a class="btn btn-sm btn-outline-secondary" href="{{ child.get_absolute_url }}">{{ child.name }}</a>{% endfor %}
+        </nav>
+    {% endif %}
+    {% for category, path, entries in groups %}
+        <section class="category-group">
+            {# A heading where items of subcategories follow (or this page starts with them). #}
+            {% if category != object %}
+                <h2 class="category-group-title"><a href="{{ category.get_absolute_url }}">{{ path }}</a></h2>
+            {% elif groups|length > 1 %}
+                <h2 class="category-group-title">{% trans "In this category" %}</h2>
+            {% endif %}
+            <ul class="search-list">{% include 'inventory/search_entries.html' with plain_photos=True %}</ul>
+        </section>
+    {% empty %}
+        <p class="search-none">{% trans "No items in this category yet." %}</p>
+    {% endfor %}
+    {% if page_obj.has_other_pages %}
+        <nav class="category-pages" aria-label="{% trans 'Pages' %}">
+            {% if page_obj.has_previous %}<a class="btn btn-secondary" href="?page={{ page_obj.previous_page_number }}">{% trans "Previous items" %}</a>{% endif %}
+            <span>{% blocktrans with number=page_obj.number pages=page_obj.paginator.num_pages %}Page {{ number }} of {{ pages }}.{% endblocktrans %}</span>
+            {% if page_obj.has_next %}<a class="btn btn-secondary" href="?page={{ page_obj.next_page_number }}">{% trans "More items" %}</a>{% endif %}
+        </nav>
+    {% endif %}
+</div>
+{% endblock %}

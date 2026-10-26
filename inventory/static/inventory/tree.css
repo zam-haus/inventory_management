@@ -1,0 +1,42 @@
+/* The item and location trees (item_tree.html, location_tree.html, inventory/trees.py): nested <details>,
+   each level indented along a thin line; rows at least 44px high. */
+.tree-page { max-width: 60rem; }
+.tree-actions { display: flex; flex-wrap: wrap; gap: .5rem; margin-bottom: 1rem; }
+.tree-actions-end { margin-left: auto; }
+.tree-sprite { position: absolute; width: 0; height: 0; overflow: hidden; }
+
+.tree, .tree ul { margin: 0; padding: 0; list-style: none; }
+.tree ul { margin-left: .55rem; padding-left: .6rem; border-left: 1px solid #dee2e6; }
+.tree summary { display: flex; align-items: center; gap: .35rem; list-style: none; cursor: pointer; }
+.tree summary::-webkit-details-marker { display: none; }
+/* The chevron: right when closed, down when open. */
+.tree summary::before { content: ""; flex: 0 0 auto; width: .45rem; height: .45rem; margin: 0 .25rem 0 .15rem;
+    border-right: 2px solid #59636e; border-bottom: 2px solid #59636e; transform: rotate(-45deg);
+    transition: transform .15s ease-out; }
+.tree details[open] > summary::before { transform: rotate(45deg); }
+@media (prefers-reduced-motion: reduce) { .tree summary::before { transition: none; } }
+.tree-leaf { padding-left: 1.2rem; }
+/* The focused row, also the one under the pointer, which moves the focus there (tree.js). */
+.tree .is-current { background: #eef3f9; }
+.tree summary:focus-visible, .tree-leaf .tree-row a:focus-visible { outline: none; }
+.tree [aria-current] > details > summary, .tree-leaf[aria-current] { background: #e7f0fb; }
+
+.tree-row { display: flex; flex: 1 1 auto; flex-wrap: wrap; align-items: center; gap: .15rem .5rem; min-width: 0;
+    min-height: 44px; padding: .2rem 0; }
+.tree-icon { flex: 0 0 auto; color: #59636e; font-size: 1.15rem; }
+.tree-name { font-weight: 600; overflow-wrap: anywhere; }
+.tree-row > a { overflow-wrap: anywhere; }
+.tree-pills { display: flex; flex-wrap: wrap; gap: .3rem; margin-left: auto; }
+.tree-pill { display: inline-flex; align-items: center; gap: .3em; padding: 0 .5em; border-radius: 1em;
+    background: #edf2f7; color: #59636e; font-size: .78rem; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.tree-pill .tree-icon { font-size: 1.1em; }
+/* The storage units and the containers of a location, each as one node. */
+.tree-group > details > summary .tree-name { color: #59636e; }
+
+/* A category's page (category_detail.html): its path, subcategories, then its items by subcategory. */
+.category-path { color: #59636e; font-size: .9rem; }
+.category-description { max-width: 65ch; color: #59636e; }
+.category-children { display: flex; flex-wrap: wrap; gap: .4rem; margin-bottom: 1rem; }
+.category-group + .category-group { margin-top: 1.5rem; }
+.category-group-title { margin-bottom: .5rem; font-size: 1.1rem; }
+.category-pages { display: flex; flex-wrap: wrap; gap: .75rem; align-items: center; margin-top: 1.5rem; }

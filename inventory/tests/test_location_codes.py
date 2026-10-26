@@ -63,7 +63,7 @@ class FormerCodeTests(CodeTypesMixin, TestCase):
         self.assertEqual(resolve_location_reference("R301"), self.shelf)
         self.assertEqual(resolve_location_reference("R301.a"), self.shelf.children.get(short_name="a"))
         # A code typed into the search leads to its location, also a former one.
-        response = self.client.get(reverse("index_locations"), {"q": "r301"})
+        response = self.client.get(reverse("index"), {"q": "r301"})
         self.assertRedirects(response, self.shelf.get_absolute_url(), fetch_redirect_response=False)
         response = self.client.get(reverse("location-autocomplete"), {"q": "R301"})
         self.assertContains(response, f'"id": "{self.shelf.pk}"')

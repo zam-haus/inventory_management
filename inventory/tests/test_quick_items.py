@@ -228,8 +228,8 @@ class QuickItemTests(TestCase):
         entry = self.quick_item(name="Crimping tool")
         self.assertEqual(entry.amount_text, "amount unknown")
         self.assertIsNone(entry.sale_value)
-        response = self.client.get(reverse("index_items"), {"q": "crimp"})
-        self.assertEqual(list(response.context["object_list"]), [entry.item])
+        response = self.client.get(reverse("index"), {"q": "crimp"})
+        self.assertEqual([found.obj for found in response.context["entries"]], [entry.item])
         self.assertContains(response, "amount unknown")
         self.assertContains(self.client.get(entry.item.get_absolute_url()), "amount unknown")
 
@@ -244,7 +244,7 @@ class QuickItemTests(TestCase):
     def test_pages_do_not_offer_the_printable_inventory(self):
         """It is a rough internal tool: reached by its URL only, not from the pages, even with the permission."""
         self.creator.user_permissions.add(*permissions("print_inventory"))
-        for url, params in ((reverse("index_locations"), {}), (reverse("index_locations"), {"q": "Shelf A&B"}),
+        for url, params in ((reverse("index_locations"), {}), (reverse("index"), {"q": "Shelf A&B"}),
                             (self.location.get_absolute_url(), {})):
             with self.subTest(url=url, params=params):
                 response = self.client.get(url, params)
