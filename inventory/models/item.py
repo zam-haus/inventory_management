@@ -7,6 +7,7 @@ from pathlib import Path
 from uuid import uuid4
 
 from computedfields.models import ComputedFieldsModel, computed
+from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import models, router, transaction
 from django.db.models.signals import pre_delete
@@ -270,10 +271,16 @@ class ItemImage(ItemLevelMixin, models.Model):
 
     def save(self, *args, **kwargs):
         using = kwargs.get("using") or router.db_for_write(type(self), instance=self)
+        new_file = self._state.adding
         if replaced_file_cleanup(self, "image", using, thumbnails=True):
             # An edited photo needs new text recognition.
             self.ocr_text = self.ocr_timestamp = None
+            new_file = True
         super().save(*args, **kwargs)
+        # In the background, with a Celery worker only; otherwise manage.py ocr does it later.
+        if new_file and self.image and not settings.CELERY_TASK_ALWAYS_EAGER:
+            from ..tasks import recognize_text
+            transaction.on_commit(lambda: recognize_text.delay(self.pk), using=using)
 
     def image_tag(self, location=None):
         return format_html('<img src="{}" width="512" />', self.image.url)

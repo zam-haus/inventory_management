@@ -11,6 +11,8 @@ from django.templatetags.static import static
 
 from label_printing.models import LabelMedium, Printer, PrintJob
 from ..models import Item, ItemImage, Location, LocationLabelTemplate, LocationType, MeasurementUnit
+from ..tasks import recognize_text
+from .test_documents_and_photos import MediaMixin, png
 
 
 @override_settings(LANGUAGE_CODE="en", LABEL_ID_BASE_URL="https://i.zam.haus/", CELERY_TASK_ALWAYS_EAGER=True)
@@ -209,3 +211,75 @@ class MaintenanceRegressionTests(TestCase):
         other = Location.objects.create(type=kind, name="Other", short_name="O")
         response = self.client.get(reverse("parent_location_autocomplete"), {"forward": json.dumps({"id": root.pk})})
         self.assertEqual({int(result["id"]) for result in response.json()["results"]}, {other.pk})
+
+
+@override_settings(CELERY_TASK_ALWAYS_EAGER=False)
+class OcrOnUploadTests(MediaMixin, TestCase):
+    """With a Celery worker, new and replaced photos get their text recognized in the background (queue ocr)."""
+
+    @classmethod
+    def setUpTestData(cls):
+        unit = MeasurementUnit.objects.create(name="Piece", short="pc")
+        cls.item = Item.objects.create(name="Photo", measurement_unit=unit)
+
+    def test_new_and_replaced_photos_are_queued_once_committed(self):
+        with patch("inventory.tasks.recognize_text.delay") as delay:
+            with self.captureOnCommitCallbacks(execute=True) as callbacks:
+                image = ItemImage.objects.create(item=self.item, image=png("red"))
+                self.assertFalse(delay.called)
+            self.assertEqual(len(callbacks), 1)
+            delay.assert_called_once_with(image.pk)
+            image.update_ocr_text("Read from photo")
+            image.description = "Box"
+            with self.captureOnCommitCallbacks(execute=True):
+                image.save()
+            self.assertEqual(delay.call_count, 1)
+            image.image = png("blue")
+            with self.captureOnCommitCallbacks(execute=True):
+                image.save()
+            self.assertEqual(delay.call_count, 2)
+            self.assertIsNone(image.ocr_timestamp)
+
+    @override_settings(CELERY_TASK_ALWAYS_EAGER=True)
+    def test_without_a_worker_nothing_is_queued(self):
+        with patch("inventory.tasks.recognize_text.delay") as delay, self.captureOnCommitCallbacks(execute=True):
+            ItemImage.objects.create(item=self.item, image=png("red"))
+        delay.assert_not_called()
+
+    def test_task_saves_the_text(self):
+        image = ItemImage.objects.create(item=self.item, image=png("red"))
+        with patch("inventory.tasks.ocr_on_image_path", return_value="HSS 6mm") as ocr:
+            recognize_text(image.pk)
+            ocr.assert_called_once_with(image.image.path)
+            image.refresh_from_db()
+            self.assertEqual(image.ocr_text, "HSS 6mm")
+            self.assertIsNotNone(image.ocr_timestamp)
+            # Already recognized (manage.py ocr) or deleted meanwhile: nothing to do.
+            recognize_text(image.pk)
+            recognize_text(image.pk + 1)
+            self.assertEqual(ocr.call_count, 1)
+
+    def test_task_keeps_changes_made_meanwhile(self):
+        image = ItemImage.objects.create(item=self.item, image=png("red"))
+
+        def edited_while_recognizing(path):
+            ItemImage.objects.filter(pk=image.pk).update(description="Box")
+            return "Old text"
+
+        with patch("inventory.tasks.ocr_on_image_path", side_effect=edited_while_recognizing):
+            recognize_text(image.pk)
+        image.refresh_from_db()
+        self.assertEqual((image.description, image.ocr_text), ("Box", "Old text"))
+
+        # Replaced meanwhile: the text belongs to the old file; the new file's own task recognizes it.
+        image.image = png("green")
+        image.save()
+
+        def replaced_while_recognizing(path):
+            ItemImage.objects.filter(pk=image.pk).update(image="items/other.png")
+            return "Text of the replaced file"
+
+        with patch("inventory.tasks.ocr_on_image_path", side_effect=replaced_while_recognizing):
+            recognize_text(image.pk)
+        image.refresh_from_db()
+        self.assertIsNone(image.ocr_text)

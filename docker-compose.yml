@@ -96,5 +96,31 @@ services:
     networks:
       - default
 
+  # Recognizes the text on new photos (inventory/tasks.py), one at a time, so printing never waits for it.
+  ocr:
+    build: .
+    command: celery -A imzam worker --queues ocr --concurrency 1 --loglevel INFO
+    volumes:
+      - ./data/media:/code/data/media
+    env_file:
+      - ".env"
+    environment:
+      CELERY_BROKER_URL: ${CELERY_BROKER_URL:-redis://redis:6379/0}
+      OMP_THREAD_LIMIT: "1"  # tesseract: one thread uses far less memory and leaves the other cores to the app
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "celery -A imzam inspect ping --destination celery@$$HOSTNAME --timeout 5"]
+      interval: 60s
+      timeout: 15s
+      retries: 3
+      start_period: 30s
+    restart: unless-stopped
+    networks:
+      - default
+
 networks:
   default:

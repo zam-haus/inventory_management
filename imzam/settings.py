@@ -295,7 +295,8 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 # right away in the request (development); see below.
 CELERY_BROKER_URL = os.getenv("CELERY_BROKER_URL", "")
 CELERY_TASK_DEFAULT_QUEUE = "default"
-CELERY_TASK_ROUTES = {"label_printing.tasks.*": {"queue": "label_printing"}}
+CELERY_TASK_ROUTES = {"label_printing.tasks.*": {"queue": "label_printing"},
+                      "inventory.tasks.*": {"queue": "ocr"}}  # text recognition on new photos
 CELERY_WORKER_HIJACK_ROOT_LOGGER = False
 # Celery beat (the worker's --beat): every this many seconds, network printers due for a status check are asked
 # (Printer.status_interval). A tick the worker could not take in time (printing, stopped) is dropped, not piled up.

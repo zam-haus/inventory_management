@@ -14,8 +14,9 @@ installed, or `COMPOSE="..."`).
 | `db` | PostgreSQL | `data/db/` (never copy it while running; back up with `ops/backup.sh`) |
 | `python` | Django app (gunicorn); collects static files and applies migrations on every start (`web-entrypoint.sh`) | `data/media/`, `data/static/`, `exports/` |
 | `web` | nginx on port 80, serves `data/static/` and `data/media/`, proxies the rest (`nginx.conf`) | |
-| `redis` | broker for Celery: hands label print jobs to the worker | |
+| `redis` | broker for Celery: hands label print jobs to the worker and new photos to `ocr` | |
 | `worker` | Celery worker printing on network label printers, one job at a time, and asking them for their status between jobs (beat); needs to reach them on port 9100 ([label printing](../docs/label-printing.md)) | |
+| `ocr` | Celery worker recognizing the text on new and replaced photos, one at a time, for the search | `data/media/` (read) |
 
 The app's code is built into its image (`Dockerfile`), with the configuration from `.env`.
 Changing files in the checkout therefore has no effect until the image is rebuilt:
@@ -88,7 +89,7 @@ ops/update.sh
 2. Backs up (`backups/<date>-pre-update`); skip with `--no-backup`.
 3. `git pull --ff-only`, and shows the new commits.
 4. Pulls the PostgreSQL, nginx and Redis images (`postgres:18`, `nginx:stable`, `redis:7`: bugfixes only) and
-   rebuilds the app and worker images with the new code, a fresh Python base image and the current
+   rebuilds the app, worker and ocr images with the new code, a fresh Python base image and the current
    `requirements.txt`.
 5. Recreates all containers. The app applies new migrations; the script waits until
    `/healthz` answers and stops with the app's log otherwise. Meanwhile the load balancer
@@ -251,5 +252,8 @@ otherwise (`imzam/health.py`). It answers for any host name and is not logged by
   (e.g. `pip install --user --upgrade podman-compose`).
 * **Disk full:** old backups (`BACKUP_KEEP`), old exports (`exports/`), unused images
   (`podman image prune`).
+* **Photos without recognized text** (uploaded while `ocr` was down, or from before it existed):
+  `ops/manage.sh ocr` recognizes the text on all photos that have none; `podman-compose logs ocr` shows
+  failures.
 * **SELinux** (Fedora, RHEL): bind mounts need a label; if containers cannot read
   `data/`, add `:Z` to the volumes in `docker-compose.yml`.

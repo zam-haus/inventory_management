@@ -33,7 +33,7 @@ git log --oneline "$before..HEAD"
 
 info "Pulling images and building the app image"
 compose pull db web redis
-compose build --pull python worker
+compose build --pull python worker ocr
 
 info "Recreating the containers"
 compose down

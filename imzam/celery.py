@@ -1,4 +1,5 @@
-"""Celery for background work (label printing on network printers): celery -A imzam worker."""
+"""Celery for background work (label printing on network printers, text recognition on new photos):
+celery -A imzam worker."""
 import os
 
 from celery import Celery
