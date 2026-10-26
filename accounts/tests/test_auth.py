@@ -40,6 +40,8 @@ class LocalMembershipTests(TestCase):
         expected -= {("inventory", "add_labeltemplaterule"), ("inventory", "change_labeltemplaterule")}
         # Former codes stay blocked; only admins add or remove them (docs/location-structure.md).
         expected -= {("inventory", "add_locationformercode"), ("inventory", "change_locationformercode")}
+        # The cleanup of items and categories is an admin tool (docs/item-cleanup.md).
+        expected -= {("inventory", "add_cleanupimport"), ("inventory", "change_cleanupimport")}
         # The printable inventory is internal (inventory/migrations/0029_print_inventory_permission).
         expected.add(("inventory", "print_inventory"))
         # ZAM IDs: only claiming (inventory/migrations/0022_zamid_triggers_and_claim)
