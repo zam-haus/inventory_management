@@ -30,7 +30,7 @@ their own filters; the print button of the location list builds on the location 
   JavaScript a "More results" link). After 500 results, more words narrow the search.
 * **Keyboard:** the up and down arrow keys move between the results (down from the field to the first, up
   from the first back to it). The current result is marked and its photos open large below it; left and
-  right go through them, Escape closes them.
+  right go through them, Escape closes them, Enter opens the result.
 * **Photos:** the photo of a result (with the number of photos when there are more) opens them large below
   it. Swipe sideways through them, up or down to the photos of the next or previous result with photos.
   Items show their own photos, then those of their unique items; locations their overview photo. The

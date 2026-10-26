@@ -5,7 +5,7 @@
 // * More results while scrolling: the next page is loaded when its link comes near.
 // * The up and down arrow keys move between the results (down from the field to the first, up from the
 //   first back to it) and mark the current one; its photos open large below it, left and right go through
-//   them, Escape closes them.
+//   them, Escape closes them, Enter opens the result.
 // * The photo button opens the photos of a result below it, too. Swipe sideways for its other photos, up or
 //   down for those of the next or previous result with photos.
 (() => {
@@ -247,6 +247,10 @@
         } else if (viewer.current && (event.key === 'ArrowLeft' || event.key === 'ArrowRight')) {
             event.preventDefault();
             viewer.step(event.key === 'ArrowRight' ? 1 : -1);
+        } else if (viewer.current && event.key === 'Enter' && !event.target.closest('button')) {
+            // The photos have the focus, not the link.
+            event.preventDefault();
+            entry.querySelector('.search-link').click();
         } else if (viewer.current && event.key === 'Escape') {
             event.preventDefault();
             viewer.close();
