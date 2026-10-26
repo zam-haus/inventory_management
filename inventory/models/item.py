@@ -165,6 +165,11 @@ class Category(ComputedFieldsModel):
 
     name = models.CharField(_("category name"), max_length=512)
     description = models.TextField(_("description"), blank=True)
+    keywords = models.TextField(
+        _("keywords"), blank=True,
+        help_text=_("Further words the category choice finds it by, separated by commas: synonyms, compound "
+                    "words, brands."),
+    )
     parent_category = models.ForeignKey(
         "self",
         verbose_name=_("parent category"),

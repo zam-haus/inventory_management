@@ -20,10 +20,10 @@ from .keyboard_layouts import layout_corrections
 from .location_lookup import scan_prefixes
 from .permissions import location_deletion_denied
 from .models import (
-    USAGE_LEVEL_DESCRIPTIONS, BarcodeType, Item, ItemBarcode, ItemFile, ItemImage, ItemLocation, Location, LocationType, ChangeLog,
+    USAGE_LEVEL_DESCRIPTIONS, BarcodeType, Category, Item, ItemBarcode, ItemFile, ItemImage, ItemLocation, Location, LocationType, ChangeLog,
     UniqueItem, UsageLevel, LabelId,
 )
-from .widgets import NEW_ITEM_PREFIX, AutocompleteSelect, ItemOrNewSelect, LocationSelect
+from .widgets import NEW_ITEM_PREFIX, AutocompleteSelect, CategorySelect, ItemOrNewSelect, LocationSelect
 from .label_ids import core as label_id_core, naming as label_id_naming, parsing as label_id_parsing
 from .label_ids.lookup import annotate_label_code
 
@@ -155,6 +155,7 @@ class BaseItemForm(ModelForm):
         fields = ["kind", "name", "category", "description"]
         widgets = {
             "kind": RadioSelect,
+            "category": CategorySelect,
             "description": Textarea(attrs={"rows": 3}),
             "procurement_source": Textarea(attrs={"rows": 2}),
             "last_purchase_date": DateInput(attrs={"type": "date"}),
@@ -197,6 +198,8 @@ class BaseItemForm(ModelForm):
         self.helper = FormHelper()
         self.helper.form_tag = False
         self.helper.disable_csrf = True
+        # The category search needs jQuery, which the page loads at the end.
+        self.helper.include_media = False
         self.helper.layout = layout.Layout(*self.layout_fields())
 
     def layout_fields(self):
@@ -682,6 +685,22 @@ class AdminItemLocationForm(ModelForm):
         widgets = {
             'location': autocomplete.ModelSelect2(url='location-autocomplete')
         }
+
+class ItemFilterForm(Form):
+    """Filters of the item list: a category includes its subcategories."""
+
+    category = ModelChoiceField(
+        Category.objects.all(), required=False, empty_label=_("All categories"), label=_("Category"),
+        widget=CategorySelect(describe=False, attrs={"class": "form-select", "data-category-filter": "",
+                                                     "aria-label": _("Category"),
+                                                     "data-placeholder": _("All categories")}),
+    )
+
+    def filter(self, items):
+        if self.is_valid() and (category := self.cleaned_data["category"]):
+            items = items.filter(Q(category=category) | Q(category__full_name__startswith=f"{category.full_name}/"))
+        return items
+
 
 class ItemLocationForm(ModelForm):
     class Meta:

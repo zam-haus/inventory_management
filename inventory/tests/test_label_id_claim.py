@@ -42,6 +42,14 @@ class ClaimTests(InventoryFixture, TestCase):
         self.assertEqual(self.client.post(self.url, {"kind": "item", "item-item": self.item.pk}).status_code, 403)
         self.assertEqual(self.status(), LabelId.Status.RESERVED)
 
+    def test_page_loads_the_scripts_of_all_its_forms_once_after_jquery(self):
+        # The new item's category search (Select2) needs jQuery, like the autocompletes of the other forms.
+        self.client.force_login(self.member)
+        html = self.client.get(self.url).content.decode()
+        self.assertEqual(html.count("select2/select2.full.js"), 1)
+        self.assertIn("inventory/category_select.js", html)
+        self.assertLess(html.index("static_jquery/js/jquery.min.js"), html.index("select2/select2.full.js"))
+
     def test_claim_existing_item(self):
         self.client.force_login(self.member)
         self.assertContains(self.client.get(self.url), "K7R-4XD")

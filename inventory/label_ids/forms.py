@@ -4,7 +4,7 @@ from django.utils.translation import gettext_lazy as _
 
 from ..forms import ItemOrNewField, NewItemAlongsideMixin
 from ..models import Item, Location, UniqueItem
-from ..widgets import AutocompleteSelect, ItemOrNewSelect, LocationSelect
+from ..widgets import AutocompleteSelect, CategorySelect, ItemOrNewSelect, LocationSelect
 from .services import MAX_BATCH
 
 
@@ -60,6 +60,7 @@ class NewItemForm(forms.ModelForm):
     class Meta:
         model = Item
         fields = ["name", "category"]
+        widgets = {"category": CategorySelect}
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

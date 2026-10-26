@@ -3,7 +3,7 @@
 
 {% block bootstrap5_extra_head %}
     {{ block.super }}
-    {{ item_form.media.css }}
+    {{ form_media.css }}
 {% endblock %}
 
 {% block title %}{% trans "New label" %} {{ lid.display }}{% endblock %}
@@ -75,5 +75,5 @@
 {% block bootstrap5_extra_script %}
     {{ block.super }}
     <script src="{% static 'static_jquery/js/jquery.min.js' %}"></script>
-    {{ item_form.media.js }}
+    {{ form_media.js }}
 {% endblock %}

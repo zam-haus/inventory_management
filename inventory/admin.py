@@ -8,7 +8,7 @@ from django.contrib.auth.models import AnonymousUser
 from django.contrib.auth.mixins import PermissionRequiredMixin
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.db import transaction
-from django.db.models import CharField, FileField, Q, TextField
+from django.db.models import CharField, Count, FileField, Q, TextField
 from django.forms.models import _get_foreign_key
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import path, reverse
@@ -53,7 +53,16 @@ admin.site.register(models.BarcodeType)
 
 class CategoryAdmin(admin.ModelAdmin):
     model = models.Category
-    fields = ("name", "description", "parent_category")
+    fields = ("name", "description", "keywords", "parent_category")
+    list_display = ("full_name", "item_count")
+    search_fields = ("full_name", "description", "keywords")
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).annotate(item_count=Count("item", filter=Q(item__is_deleted=False)))
+
+    @admin.display(description=_("items"), ordering="item_count")
+    def item_count(self, category):
+        return category.item_count
 admin.site.register(models.Category, CategoryAdmin)
 
 
@@ -642,8 +651,8 @@ class ItemFileInline(DocumentInlineMixin, admin.TabularInline):
 
 
 class ItemAdmin(ClaimOnAddMixin, SoftDeleteAdminMixin, admin.ModelAdmin):
-    list_display = ("name", "kind", "deleted_status")
-    list_filter = (*SoftDeleteAdminMixin.list_filter, "kind")
+    list_display = ("name", "kind", "category", "deleted_status")
+    list_filter = (*SoftDeleteAdminMixin.list_filter, "kind", "category")
     search_fields = ("name", "description")
     inlines = [ItemBarcodeInline, ItemImageInline, ItemFileInline, ItemLocationInline, ItemChangeLogInline]
     formfield_overrides = {

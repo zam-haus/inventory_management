@@ -1,5 +1,7 @@
 """Form widgets for the frontend."""
 from dal import autocomplete
+from django.contrib.admin.widgets import get_select2_language
+from django.forms import Media, Select
 from django.urls import reverse
 from django.utils.html import format_html
 from django.utils.translation import gettext
@@ -72,6 +74,67 @@ class LocationSelect(AutocompleteSelect):
             gettext("Scanned: {code}"), gettext("Already scanned: {code}"), gettext("Selected: {location}"),
             icon("qr-code-scan"),
         )
+
+
+class CategorySelect(Select):
+    """
+    Item category: with JavaScript (and jQuery on the page) a Select2 field that searches name, path,
+    description and keywords and lists the tree indented, each entry with the first line of its description
+    (category_select.js); without, a list grouped by top category. The chosen category's description shows
+    below the field, so that it is clear what belongs there; describe=False leaves it out (filters). Use it
+    for every category field outside the admin.
+    """
+
+    chosen_description = ""
+
+    @property
+    def media(self):
+        i18n = [f"admin/js/vendor/select2/i18n/{language}.js"] if (language := get_select2_language()) else []
+        return Media(
+            css={"all": ["admin/css/vendor/select2/select2.css", "inventory/autocomplete.css",
+                         "inventory/category_select.css"]},
+            js=["admin/js/vendor/select2/select2.full.js", *i18n, "inventory/category_select.js"],
+        )
+
+    def __init__(self, attrs=None, describe=True):
+        super().__init__(attrs)
+        self.describe = describe
+
+    def build_attrs(self, *args, **kwargs):
+        return {"data-placeholder": gettext("Search or choose a category…"),
+                **super().build_attrs(*args, **kwargs), "data-category-select": ""}
+
+    def optgroups(self, name, value, attrs=None):
+        selected = {str(v) for v in value if v is not None}
+        groups, by_top = [], {}
+        self.chosen_description = ""  # for render(), which would otherwise query the categories again
+        for index, (option_value, label) in enumerate(self.choices):
+            category = getattr(option_value, "instance", None)
+            if category is None:  # the empty choice
+                groups.append((None, [self.create_option(name, option_value, label, str(option_value) in selected,
+                                                         index)], index))
+                continue
+            top, *path = category.full_name.split("/")
+            if top not in by_top:
+                by_top[top] = []
+                groups.append((top, by_top[top], index))
+            if str(option_value) in selected:
+                self.chosen_description = category.description
+            option = self.create_option(name, option_value, " › ".join(path) or top, str(option_value) in selected,
+                                        index, subindex=len(by_top[top]))
+            # Select drops attrs given to create_option.
+            option["attrs"].update({"data-name": category.name, "data-path": " › ".join([top, *path]),
+                                    "data-depth": len(path), "data-description": category.description,
+                                    "data-keywords": category.keywords})
+            by_top[top].append(option)
+        return groups
+
+    def render(self, name, value, attrs=None, renderer=None):
+        html = super().render(name, value, attrs, renderer)
+        if not self.describe:
+            return html
+        return format_html('{}<div class="form-text category-description" data-category-description>{}</div>',
+                           html, self.chosen_description)
 
 
 NEW_ITEM_PREFIX = "new:"

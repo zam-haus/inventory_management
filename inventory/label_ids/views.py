@@ -5,6 +5,7 @@ from django.contrib.auth.mixins import PermissionRequiredMixin
 from django.core.exceptions import PermissionDenied
 from django.db import transaction
 from django.db.models import Q
+from django.forms import Media
 from django.http import Http404, HttpResponse, HttpResponseBadRequest
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
@@ -67,6 +68,8 @@ class ClaimView(PermissionRequiredMixin, View):
                    "unique_items_without_id": UniqueItem.active.exclude(label_ids__status=LabelId.Status.ASSIGNED).exists()}
         for kind, form_class in self.forms.items():
             context[f"{kind}_form"] = (bound or {}).get(kind) or form_class(prefix=kind)
+        # The scripts and styles of all forms on the page, each once.
+        context["form_media"] = sum((context[f"{kind}_form"].media for kind in self.forms), Media())
         return render(request, "inventory/label_id/claim.html", context)
 
     def get(self, request, code):

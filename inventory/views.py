@@ -18,6 +18,7 @@ from django.http import FileResponse, Http404, HttpResponseForbidden, JsonRespon
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse, reverse_lazy
 from django.utils import timezone
+from django.utils.functional import cached_property
 from django.utils.html import format_html, format_html_join
 from django.utils.translation import gettext_lazy as _
 from django.views import View
@@ -547,6 +548,13 @@ class SearchableItemListView(LabelIdSearchMixin, ListView):
     paginate_by = 25
     template_name = "inventory/item_list.html"
 
+    @cached_property
+    def filter_form(self):
+        return forms.ItemFilterForm(self.request.GET)
+
+    def get_context_data(self, **kwargs):
+        return {**super().get_context_data(**kwargs), "filter_form": self.filter_form}
+
     def get_queryset(self):
         try:
             queryset = super().get_queryset().prefetch_related(Prefetch(
@@ -558,13 +566,14 @@ class SearchableItemListView(LabelIdSearchMixin, ListView):
                 queryset=annotate_label_code(models.UniqueItem.active.select_related("location"))
                 .order_by("location__locatable_identifier", "pk"),
             ))
+            queryset = self.filter_form.filter(queryset)
             query = self.request.GET.get('q')
             if query:
                 in_inventory = Q(unique_items__disposed_at__isnull=True)
                 queryset = queryset.filter(
                     Q(name__icontains=query) |
                     Q(description__icontains=query) |
-                    Q(category__name__icontains=query) |
+                    Q(category__full_name__icontains=query) |
                     Q(itemlocation__location__is_deleted=False, itemlocation__location__unique_identifier__icontains=query) |
                     Q(itemlocation__location__is_deleted=False, itemlocation__location__name__icontains=query) |
                     in_inventory & Q(unique_items__location__unique_identifier__icontains=query) |

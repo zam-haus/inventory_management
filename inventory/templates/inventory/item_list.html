@@ -12,11 +12,19 @@
 {% block content %}
 <div class="row g-2 mb-3 align-items-center">
     <div class="col">
-        <form method="get">
-        <div class="input-group">
-            <span class="input-group-text" id="basic-addon1">{% icon "search" %}</span>
-            <input type="text" class="form-control" aria-label="{% trans 'Search' %}" aria-describedby="basic-addon1" name="q" value="{{ request.GET.q }}">
-        </div>
+        <form method="get" class="row g-2 item-list-filters">
+            <div class="col-12 col-md">
+                <div class="input-group">
+                    <span class="input-group-text" id="basic-addon1">{% icon "search" %}</span>
+                    <input type="text" class="form-control" aria-label="{% trans 'Search' %}" aria-describedby="basic-addon1" name="q" value="{{ request.GET.q }}">
+                </div>
+            </div>
+            <div class="col-12 col-md-5 col-lg-4">
+                <div class="input-group">
+                    {{ filter_form.category }}
+                    <noscript><button type="submit" class="btn btn-secondary">{% trans "Filter" %}</button></noscript>
+                </div>
+            </div>
         </form>
     </div>
     {% if perms.inventory.add_item or user.is_authenticated %}
@@ -104,11 +112,14 @@
 
 {% block bootstrap5_extra_head %}
 {{ block.super }}
+{{ filter_form.media.css }}
 <link rel="stylesheet" href="{% static 'inventory/photo_lightbox.css' %}">
 {% endblock %}
 
 {% block bootstrap5_extra_script %}
 {{ block.super }}
+<script src="{% static 'static_jquery/js/jquery.min.js' %}"></script>
+{{ filter_form.media.js }}
 <script src="{% static 'inventory/photo_lightbox.js' %}"></script>
 <script type="text/javascript">
 var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))

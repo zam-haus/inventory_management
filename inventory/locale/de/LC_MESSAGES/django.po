@@ -4033,3 +4033,18 @@ msgstr "Halte den QR-Code eines Etiketts vor die Kamera, um ihn zu öffnen, oder
 
 msgid "Scan QR code or barcode"
 msgstr "QR-Code oder Barcode scannen"
+
+msgid "All categories"
+msgstr "Alle Kategorien"
+
+msgid "Filter"
+msgstr "Filtern"
+
+msgid "Search or choose a category…"
+msgstr "Kategorie suchen oder wählen…"
+
+msgid "keywords"
+msgstr "Stichwörter"
+
+msgid "Further words the category choice finds it by, separated by commas: synonyms, compound words, brands."
+msgstr "Weitere Wörter, über die die Kategorieauswahl sie findet, durch Kommas getrennt: Synonyme, zusammengesetzte Wörter, Marken."

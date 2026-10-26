@@ -41,8 +41,8 @@ their own filters; the print button of the location list builds on the location 
 | Entry | Searched |
 |---|---|
 | Location | name, purpose, code (short name, unique and locatable identifier, whole), physical description |
-| Item | name, description, category, barcodes, its photos (description, recognized text), its documents (description) |
-| Unique item | the item's name and category, its own name, notes, its own photos and documents |
+| Item | name, description, category (with the categories above it), barcodes, its photos (description, recognized text), its documents (description) |
+| Unique item | the item's name and category (with the categories above it), its own name, notes, its own photos and documents |
 | Where it is | the path of a location, of an item's places and of a unique item's location (*words* above) |
 
 Deleted entries, reserved containers and unique items removed from the inventory (with their photos
