@@ -52,6 +52,10 @@ SECRET_KEY = os.getenv("SECRET_KEY", None)
 # For deployment, set to False in local_settings.py
 DEBUG = parse_bool(os.getenv("DEBUG", "false"))
 ADMINS = json.loads(os.getenv("ADMINS", "[]"))
+# The SMTP server the error mails to ADMINS go through, and their sender.
+EMAIL_HOST = os.getenv("EMAIL_HOST", "localhost")
+EMAIL_PORT = int(os.getenv("EMAIL_PORT", "25"))
+SERVER_EMAIL = os.getenv("SERVER_EMAIL", "root@localhost")
 
 # The inventory's main address (also in printed location labels); a bare domain means HTTPS. Every other domain
 # name redirects here, keeping path and query (imzam/canonical_host.py); label ID
