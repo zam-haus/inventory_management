@@ -29,6 +29,7 @@ class Command(BaseCommand):
     def add_arguments(self, parser):
         parser.add_argument('--rerun', action='store_true', default=False,
                             help="Rerun OCR on all images")
+        parser.add_argument('--ocr-before', required=False, help="Only consider images with OCR text older than that given date (date format: YYYY-MM-DD).")
         parser.add_argument('--since', required=False, help="Only consider images after the given date (date format: YYYY-MM-DD)")
         parser.add_argument('--batch-size', type=int, default=50,
                             help="Number of images loaded and queued at once; results are saved as they arrive")
@@ -44,6 +45,16 @@ class Command(BaseCommand):
             logger.error(f"'since' argument {since} has invalid format. Must be YYYY-MM-DD")
             sys.exit(1)
 
+    def parse_ocr_before_argument(self, ocr_before):
+        if ocr_before is None:
+            return None
+        try:
+            ocr_before_dt = datetime.strptime(ocr_before, "%Y-%m-%d")
+            return make_aware(ocr_before_dt)
+        except ValueError:
+            logger.error(f"'ocr-before' argument {ocr_before} has invalid format. Must be YYYY-MM-DD")
+            sys.exit(1)
+
     def get_logger(self):
         handler = logging.StreamHandler(self.stdout)
         logger.addHandler(handler)
@@ -51,18 +62,22 @@ class Command(BaseCommand):
         handler.setFormatter(formatter)
         return logger
 
-    def get_images_filtered(self, rerun, since_parsed):
+    def get_images_filtered(self, rerun, since_parsed, ocr_before_parsed):
         filters = {}
         if not rerun:
             filters['ocr_timestamp__isnull'] = True
         if since_parsed is not None:
             filters['ocr_timestamp__gte'] = since_parsed
+        if ocr_before_parsed is not None:
+            filters['ocr_timestamp__lte'] = ocr_before_parsed
+        
         return ItemImage.objects.filter(**filters)
 
-    def handle(self, *args, rerun=False, since=None, batch_size=50, workers=4, **kwargs):
+    def handle(self, *args, rerun=False, since=None, ocr_before=None, batch_size=50, workers=4, **kwargs):
         self.get_logger()
         since_parsed = self.parse_since_argument(since)
-        images = self.get_images_filtered(rerun, since_parsed).order_by("ocr_timestamp")
+        ocr_before_parsed = self.parse_ocr_before_argument(ocr_before)
+        images = self.get_images_filtered(rerun, since_parsed, ocr_before_parsed).order_by("ocr_timestamp")
         total = images.count()
         logger.info(f"Running OCR on {total} images in batches of {batch_size}")
         logger.info("")
