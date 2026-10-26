@@ -5,7 +5,8 @@ ENV PYTHONUNBUFFERED=1
 RUN apt-get update && apt-get install -y \
      gettext tesseract-ocr tesseract-ocr-deu libzbar0 \
      && rm -rf /var/lib/apt/lists/*
-# Finds the lines of text on photos for OCR (inventory/ocr_util.py): PP-OCRv3 from the OpenCV model zoo, Apache 2.0
+# Finds the lines of text on photos for OCR (inventory/text_recognition.py):
+# PP-OCRv3 from the OpenCV model zoo, Apache 2.0
 RUN mkdir -p /opt/ocr && curl -fsSL -o /opt/ocr/text_detection_ppocrv3.onnx \
      https://huggingface.co/opencv/text_detection_ppocr/resolve/c299e81aedeaf5d4f741fccccea491fb32db005f/text_detection_en_ppocrv3_2023may.onnx \
      && echo "03f550c6b406fda8bf54bd8327815f6c7e2edd98cea02348c93d879254366587  /opt/ocr/text_detection_ppocrv3.onnx" | sha256sum -c -

@@ -2,10 +2,12 @@ import logging
 import multiprocessing as mp
 import os
 import sys
+from concurrent.futures import ProcessPoolExecutor
+from concurrent.futures.process import BrokenProcessPool
 from datetime import datetime
 
 from django.core.management.base import BaseCommand
-from django.utils.timezone import make_aware
+from django.utils.timezone import localdate, make_aware
 from tqdm import tqdm
 
 from inventory.models import ItemImage
@@ -33,7 +35,8 @@ class Command(BaseCommand):
         parser.add_argument('--since', required=False, help="Only consider images after the given date (date format: YYYY-MM-DD)")
         parser.add_argument('--batch-size', type=int, default=50,
                             help="Number of images loaded and queued at once; results are saved as they arrive")
-        parser.add_argument('--workers', type=int, default=4, help="Number of parallel OCR processes")
+        parser.add_argument('--workers', type=int, default=2,
+                            help="Number of parallel OCR processes; each needs up to 1 GB of memory (docs/ocr.md)")
 
     def parse_since_argument(self, since):
         if since is None:
@@ -73,7 +76,7 @@ class Command(BaseCommand):
         
         return ItemImage.objects.filter(**filters)
 
-    def handle(self, *args, rerun=False, since=None, ocr_before=None, batch_size=50, workers=4, **kwargs):
+    def handle(self, *args, rerun=False, since=None, ocr_before=None, batch_size=50, workers=2, **kwargs):
         self.get_logger()
         since_parsed = self.parse_since_argument(since)
         ocr_before_parsed = self.parse_ocr_before_argument(ocr_before)
@@ -84,12 +87,23 @@ class Command(BaseCommand):
         logger.info(f"Running OCR on {total} images in batches of {batch_size}")
         logger.info("")
         progress = tqdm(total=total)
-        with mp.get_context("fork").Pool(workers, initializer=limit_tesseract_threads) as pool:
-            for start in range(0, total, batch_size):
-                batch_ids = ids[start:start + batch_size]
-                batch = ItemImage.objects.in_bulk(batch_ids)  # photos deleted meanwhile are skipped
-                id_to_path = [(pk, batch[pk].image.path) for pk in batch_ids if pk in batch]
-                for image_id, ocr_text in pool.imap(func=run_ocr, iterable=id_to_path):
-                    batch[image_id].update_ocr_text(ocr_text)
-                    progress.update()
+        started = localdate()
+        try:
+            # unlike multiprocessing.Pool, it fails when a worker dies (e.g. killed for lack of memory) instead of
+            # waiting forever for its photo
+            with ProcessPoolExecutor(workers, mp_context=mp.get_context("fork"),
+                                     initializer=limit_tesseract_threads) as pool:
+                for start in range(0, total, batch_size):
+                    batch_ids = ids[start:start + batch_size]
+                    batch = ItemImage.objects.in_bulk(batch_ids)  # photos deleted meanwhile are skipped
+                    id_to_path = [(pk, batch[pk].image.path) for pk in batch_ids if pk in batch]
+                    for image_id, ocr_text in pool.map(run_ocr, id_to_path):
+                        batch[image_id].update_ocr_text(ocr_text)
+                        progress.update()
+        except BrokenProcessPool:
+            progress.close()
+            continuation = f" and --rerun --ocr-before {started}" if rerun else ""
+            logger.error(f"An OCR process died, out of memory? {progress.n} of {total} images are done. "
+                         f"Continue with fewer --workers{continuation}.")
+            sys.exit(1)
         progress.close()

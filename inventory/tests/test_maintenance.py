@@ -1,5 +1,7 @@
+from concurrent.futures.process import BrokenProcessPool
 from io import StringIO
 import json
+import multiprocessing
 from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
@@ -168,17 +170,18 @@ class MaintenanceRegressionTests(TestCase):
         item = Item.objects.create(name="Photo", measurement_unit=unit)
         image = ItemImage.objects.create(item=item, image="example.png")
         with (
-            patch("inventory.management.commands.ocr.mp.get_context") as context,
+            patch("inventory.management.commands.ocr.ProcessPoolExecutor") as executor,
             patch("inventory.management.commands.ocr.mp.set_start_method", side_effect=AssertionError("Global setting changed")),
             patch("inventory.management.commands.ocr.logger"),
             patch("inventory.management.commands.ocr.tqdm"),
         ):
-            pool = context.return_value.Pool.return_value.__enter__.return_value
+            pool = executor.return_value.__enter__.return_value
             for text in ("First OCR pass", "Second OCR pass"):
-                pool.imap.return_value = [(image.pk, text)]
+                pool.map.return_value = [(image.pk, text)]
                 call_command("ocr", rerun=True, stdout=StringIO())
                 image.refresh_from_db()
                 self.assertEqual(image.ocr_text, text)
+                self.assertIs(executor.call_args.kwargs["mp_context"], multiprocessing.get_context("fork"))
 
     def test_ocr_command_saves_each_batch_before_loading_the_next(self):
         unit = MeasurementUnit.objects.create(name="Piece", short="pc")
@@ -186,17 +189,17 @@ class MaintenanceRegressionTests(TestCase):
         images = [ItemImage.objects.create(item=item, image=f"example{i}.png") for i in range(5)]
         batches = []
 
-        def imap(func, iterable):
+        def recognize(func, iterable):
             batches.append([image_id for image_id, _ in iterable])
             self.assertFalse(ItemImage.objects.filter(pk__in=batches[-1], ocr_timestamp__isnull=False).exists())
             return [(image_id, f"Text {image_id}") for image_id in batches[-1]]
 
         with (
-            patch("inventory.management.commands.ocr.mp.get_context") as context,
+            patch("inventory.management.commands.ocr.ProcessPoolExecutor") as executor,
             patch("inventory.management.commands.ocr.logger"),
             patch("inventory.management.commands.ocr.tqdm"),
         ):
-            context.return_value.Pool.return_value.__enter__.return_value.imap.side_effect = imap
+            executor.return_value.__enter__.return_value.map.side_effect = recognize
             call_command("ocr", rerun=True, batch_size=2, stdout=StringIO())
         self.assertEqual([len(batch) for batch in batches], [2, 2, 1])
         for image in images:
@@ -213,18 +216,42 @@ class MaintenanceRegressionTests(TestCase):
             ItemImage.objects.filter(pk=image.pk).update(ocr_timestamp=now - timezone.timedelta(days=days))
         batches = []
 
-        def imap(func, iterable):
+        def recognize(func, iterable):
             batches.append([image_id for image_id, _ in iterable])
             return [(image_id, "Again") for image_id in batches[-1]]
 
         with (
-            patch("inventory.management.commands.ocr.mp.get_context") as context,
+            patch("inventory.management.commands.ocr.ProcessPoolExecutor") as executor,
             patch("inventory.management.commands.ocr.logger"),
             patch("inventory.management.commands.ocr.tqdm"),
         ):
-            context.return_value.Pool.return_value.__enter__.return_value.imap.side_effect = imap
+            executor.return_value.__enter__.return_value.map.side_effect = recognize
             call_command("ocr", rerun=True, batch_size=2, stdout=StringIO())
         self.assertEqual(sum(batches, []), [image.pk for image in reversed(images)])
+
+    def test_ocr_command_stops_with_a_hint_when_a_worker_dies(self):
+        unit = MeasurementUnit.objects.create(name="Piece", short="pc")
+        item = Item.objects.create(name="Photo", measurement_unit=unit)
+        images = [ItemImage.objects.create(item=item, image=f"example{i}.png") for i in range(4)]
+
+        def recognize(func, iterable):
+            ids = [image_id for image_id, _ in iterable]
+            if images[2].pk in ids:
+                raise BrokenProcessPool("A process in the process pool was terminated abruptly")
+            return [(image_id, "Read") for image_id in ids]
+
+        with (
+            patch("inventory.management.commands.ocr.ProcessPoolExecutor") as executor,
+            patch("inventory.management.commands.ocr.logger") as logger,
+            patch("inventory.management.commands.ocr.tqdm") as progress,
+        ):
+            executor.return_value.__enter__.return_value.map.side_effect = recognize
+            progress.return_value.n = 2
+            with self.assertRaises(SystemExit):
+                call_command("ocr", rerun=True, batch_size=2, stdout=StringIO())
+        self.assertIn("2 of 4 images are done", logger.error.call_args.args[0])
+        self.assertIn(f"--rerun --ocr-before {timezone.localdate()}", logger.error.call_args.args[0])
+        self.assertEqual([ItemImage.objects.get(pk=image.pk).ocr_text for image in images], ["Read", "Read", None, None])
 
     def test_parent_autocomplete_excludes_self_and_descendants(self):
         kind = LocationType.objects.create(name="Room", unique=True)

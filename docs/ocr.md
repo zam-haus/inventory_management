@@ -6,7 +6,8 @@ The text on item photos (labels, packaging, receipts) is recognized in the backg
 
 ## How
 
-`inventory/ocr_util.py`:
+`inventory/text_recognition.py`, loaded on the first photo only (by `ocr_util.py`, which every Django process
+imports through the models):
 
 1. The photo is turned upright as taken (EXIF orientation) and scaled down to 2000 pixels.
 2. EAN barcodes are decoded with zbar at several sizes; codes with a valid check digit (EAN-13, EAN-8, UPC-A)
@@ -43,8 +44,12 @@ results only to 46%.
 
 ## Cost
 
-About 3 seconds per photo on one core instead of 1, and about 500 MB memory per process (model and OpenCV) instead
-of 250 MB. OpenCV and Tesseract use one thread each. On the production server (4 cores, 8 GB),
-`ops/manage.sh ocr --rerun --workers 2` recognizes all photos again in roughly 7 hours, leaving two cores to the app;
-it saves each batch and works on the photos recognized longest ago first, so it can be stopped and continued with
-`--rerun --ocr-before <date it was started>`.
+About 3 seconds per photo on one core instead of 1. A recognizing process needs about 0.4 GB (OpenCV, the model)
+plus up to 0.5 GB for Tesseract; OpenCV and Tesseract use one thread each. Only the `ocr` worker and `manage.py ocr`
+load OpenCV: `ocr_util.py`, which every Django process imports through the models, loads it on the first photo.
+
+`manage.py ocr` runs 2 processes by default, which leaves memory and two cores to the app on the production server
+(4 cores, 8 GB). `ops/manage.sh ocr --rerun` recognizes all photos again in roughly 4 to 7 hours. It saves each
+batch and works on the photos recognized longest ago first; if a process dies (e.g. killed for lack of memory), it
+stops and says how to continue: with fewer `--workers` and `--rerun --ocr-before <date it was started>`, which skips
+the photos already done.
