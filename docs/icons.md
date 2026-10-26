@@ -13,9 +13,11 @@ there for each icon a script needs. To add an icon, copy its SVG from the
 Bootstrap Icons site into that folder; unknown names raise an error (see
 `inventory/tests/test_icons.py`).
 
-Two icons are our own, drawn in the style of Bootstrap Icons and kept in the same folder: `box-star`
+Three icons are our own, drawn in the style of Bootstrap Icons and kept in the same folder: `box-star`
 (Bootstrap's `box` with a star on its side: one single, individually tracked object, next to the
-`boxes` of counted items) and `eurobox-open` (a Euro container with its lid open, on a 64 grid, its
+`boxes` of counted items), `box-star-stack` (a smaller `box-star` with a plain box behind it: an item tracked
+as unique items, several of them; the back box is drawn as lines that stop short of the front one, so the icon
+needs no mask and no `id`) and `eurobox-open` (a Euro container with its lid open, on a 64 grid, its
 lines thickened to match the others at 16 px).
 
 Agreed meaning of each icon, so the same action always looks the same. *Reserved*
@@ -39,6 +41,7 @@ when they are first used:
 | Levels-and-axes overview of the building | `grid-3x3` | done |
 | Search | `search` | done |
 | Item (counted, *Sache*) | `boxes` | done |
+| Item tracked as unique items (*Sache mit Einzelobjekten*) | `box-star-stack` (own) | done |
 | Unique item (*Einzelobjekt*) | `box-star` (own) | done |
 | Category (item tree) | `folder` | done |
 | Location: building part (level, room, area) and others | `geo-alt` | done |
@@ -60,7 +63,7 @@ when they are first used:
 | Label ID, QR code | `qr-code` | reserved |
 | History | `clock-history` | reserved |
 
-The kind icons (item, unique item, category, the three location kinds) also stand before the title of a location,
+The kind icons (item, item tracked as unique items, unique item, category, the three location kinds) also stand before the title of a location,
 item or unique item page, before the names in the search results and trees, and before *Items* (`boxes`) and
 *Locations* (`geo-alt`) in the navbar; on narrow screens the navbar shows those two as icons only, their names are
 in its menu (`three-dots-vertical`).

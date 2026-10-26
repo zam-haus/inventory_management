@@ -280,8 +280,8 @@ class SearchTests(MediaMixin, TestCase):
         icons = {entry.title: entry.icon for entry in search.render.entries(search.search("werkbank").hits)}
         self.assertEqual(icons, {"Werkbankregal": "bookshelf", "Werkbankkiste": "eurobox-open"})
         icons = {(entry.kind, entry.title): entry.icon for entry in search.render.entries(search.search("akku").hits)}
-        # An item tracked as unique items has their icon, too.
-        self.assertEqual(icons, {("item", "Akkuschrauber"): "box-star", ("unique", "Akkuschrauber"): "box-star"})
+        # An item tracked as unique items: several of them.
+        self.assertEqual(icons, {("item", "Akkuschrauber"): "box-star-stack", ("unique", "Akkuschrauber"): "box-star"})
         self.assertEqual(search.render.entries(search.search("bohrer").hits)[0].icon, "boxes")
         self.assertEqual(search.render.entries(search.search("holzwerkstatt").hits)[0].icon, "geo-alt")
         content = self.client.get(reverse("index"), {"q": "werkbank"}).content.decode()

@@ -24,6 +24,7 @@ KINDS = {
     "item": ("boxes", _("Item")),
     "unique": ("box-star", _("Unique item")),
 }
+UNIQUE_KIND_ICON = "box-star-stack"  # an item tracked as unique items: several of them (docs/icons.md)
 MAX_PLACES = 3
 
 
@@ -55,7 +56,7 @@ class Entry:
         if self.kind == "location":
             return icon_name(self.obj)
         if self.kind == "item" and self.obj.kind == Item.Kind.UNIQUE:
-            return KINDS["unique"][0]
+            return UNIQUE_KIND_ICON
         return KINDS[self.kind][0]
 
     @property

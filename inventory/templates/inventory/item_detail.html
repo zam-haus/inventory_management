@@ -20,7 +20,7 @@
         <div class="item-heading" data-action-row>
             <div class="item-heading-text">
                 <p class="item-eyebrow">{% if object.tracks_unique_items %}{% trans "Item with unique items" %}{% else %}{% trans "Bulk item" %}{% endif %}</p>
-                <h1><span class="title-kind" aria-hidden="true">{% if object.tracks_unique_items %}{% icon "box-star" %}{% else %}{% icon "boxes" %}{% endif %}</span>{{ object }}</h1>
+                <h1><span class="title-kind" aria-hidden="true">{% if object.tracks_unique_items %}{% icon "box-star-stack" %}{% else %}{% icon "boxes" %}{% endif %}</span>{{ object }}</h1>
             </div>
             <div class="item-actions" data-action-group>
                 {% include 'inventory/stock_take_panel.html' %}

@@ -27,7 +27,7 @@ the magnifier goes to the page's field. To browse instead, *Items* and *Location
   also HW.R3. The location with exactly that code comes first. A single symbol matches a code only whole.
 * **One list:** locations, items and unique items mixed, those whose name (or purpose, or code, or label
   ID) matches first; locations by code. Each shows the icon of its kind before its name (an item tracked as unique
-  items that of unique items). An item shows where it is stored with its stock or its unique items (named as
+  items `box-star-stack`, [icons](icons.md)). An item shows where it is stored with its stock or its unique items (named as
   everywhere: item, own name, label ID), a unique item its label ID after its name and its location, a location
   the path above it. A unique item's name leads to that unique item; a place's name leads to it, its code chip opens it in brief
   ([locations](locations.md)). The words are marked; matches elsewhere are named, e.g. "Found in text on a

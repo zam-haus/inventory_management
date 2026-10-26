@@ -18,7 +18,7 @@ from .icons import _svg
 from .label_ids.lookup import annotate_label_code
 from .location_display import CATEGORY_ICONS, icon_name, label_html
 from .models import Category, Item, ItemLocation, Location, LocationType, UniqueItem
-from .search.render import KINDS
+from .search.render import KINDS, UNIQUE_KIND_ICON
 from .structure_overview import code_order
 
 OPEN = mark_safe(" open")
@@ -223,13 +223,12 @@ def item_row(item):
     if item.kind != Item.Kind.UNIQUE:
         return leaf(None, format_html('<span class="tree-row">{}<a href="{}">{}</a></span>',
                                       use_icon(KINDS["item"][0]), item.get_absolute_url(), item))
-    icon = KINDS["unique"][0]
-    row = format_html('<span class="tree-row">{}<a href="{}">{}</a>{}</span>', use_icon(icon),
+    row = format_html('<span class="tree-row">{}<a href="{}">{}</a>{}</span>', use_icon(UNIQUE_KIND_ICON),
                       item.get_absolute_url(), item, pills(*item_pills(Node(unique=len(item.units)))))
     if not item.units:
         return leaf(None, row)
     return branch(None, row, format_html_join("", "{}", ((leaf(None, format_html(
-        '<span class="tree-row">{}<a href="{}">{}</a></span>', use_icon(icon), unit.get_absolute_url(),
+        '<span class="tree-row">{}<a href="{}">{}</a></span>', use_icon(KINDS["unique"][0]), unit.get_absolute_url(),
         unit.name_html)),) for unit in item.units)), False)
 
 
@@ -259,4 +258,4 @@ def item_tree():
         html = format_html("{}{}", html, branch(
             "cat-none", category_row(none, _("Without category")),
             format_html_join("", "{}", ((item_row(item),) for item in uncategorized)), False))
-    return sprite({"folder", KINDS["item"][0], KINDS["unique"][0]}), html
+    return sprite({"folder", KINDS["item"][0], KINDS["unique"][0], UNIQUE_KIND_ICON}), html

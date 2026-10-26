@@ -136,9 +136,13 @@ class TreeTests(TestCase):
         self.assertIn(f'<a href="{first.get_absolute_url()}">drill #{first.pk}</a>', drill)
         self.assertIn(f'<a href="{red.get_absolute_url()}">drill red #{red.pk}</a>', drill)
         self.assertEqual(drill.count("/item/unique/"), 2)
+        self.assertEqual(drill.count('<use href="#tree-icon-box-star"/>'), 3)  # its count and the two unique items
+        self.assertIn('<symbol id="tree-icon-box-star-stack"', content)
+        self.assertIn('<use href="#tree-icon-box-star-stack"/>', content[:content.index(f'href="{self.drill.get_absolute_url()}"')][-200:])
         # The list on the item's page names them the same way.
-        self.assertContains(self.client.get(self.drill.get_absolute_url()),
-                            f'<a href="{red.get_absolute_url()}">drill red #{red.pk}</a>')
+        page = self.client.get(self.drill.get_absolute_url())
+        self.assertContains(page, f'<a href="{red.get_absolute_url()}">drill red #{red.pk}</a>')
+        self.assertContains(page, 'class="bi bi-box-star-stack"')  # before its title
 
     def test_old_searches_go_to_the_search(self):
         for name in ("index_items", "index_locations"):
