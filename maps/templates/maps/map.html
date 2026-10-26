@@ -1,0 +1,99 @@
+{% extends 'base.html' %}
+{% load i18n static icons actions maps_tags %}
+
+{% block bootstrap5_extra_head %}
+    {{ block.super }}
+    <link rel="stylesheet" href="{% static 'maps/vendor/leaflet/leaflet.css' %}">
+    {% if not edit_denied %}<link rel="stylesheet" href="{% static 'maps/vendor/leaflet-geoman/leaflet-geoman.css' %}">{% endif %}
+    <link rel="stylesheet" href="{% static 'maps/maps.css' %}">
+{% endblock %}
+
+{% block title %}{% blocktrans %}Map, level {{ label }}{% endblocktrans %}{% endblock %}
+
+{% block page_header %}<h1 class="visually-hidden">{% blocktrans %}Map, level {{ label }}{% endblocktrans %}</h1>{% endblock %}
+
+{% block content %}
+    {# On the map (map.js): the levels at the left below the zoom buttons; levels with the same number share one map. #}
+    <nav class="map-levels leaflet-bar" aria-label="{% trans 'Levels' %}" data-map-levels hidden>
+        {% for n, level_label, codes in levels %}
+            <a class="{% if n == number %}map-level-current{% endif %}" href="{% url 'maps:level' n %}" data-map-level{% if n == number %} aria-current="page"{% endif %} title="{% blocktrans %}Level {{ level_label }}{% endblocktrans %}: {{ codes|join:', ' }}">{{ level_label }}</a>
+        {% endfor %}
+    </nav>
+    {# On the map, at the bottom right: editing it, and the floor plans. #}
+    <span class="map-actions" data-map-actions hidden>
+        {% if not edit_denied %}<button type="button" class="btn btn-sm btn-warning" data-map-edit-toggle data-done="{% trans 'Done' %}">{% icon "pencil" %} <span>{% trans "Edit" %}</span></button>
+        {% elif user.is_authenticated %}{% icon "pencil" as edit_icon %}{% disabled_action edit_icon label=_("Edit") name=_("Edit the map") reason=edit_denied classes="btn btn-sm btn-warning" %}{% endif %}
+        {% if can_manage_plans %}<a class="btn btn-sm btn-light" href="{% url 'maps:plans' %}">{% trans "Floor plans" %}</a>{% endif %}
+    </span>
+    {# Out to the edges of the window (maps.css); map.js sizes it down to the bottom. #}
+    <div class="map-canvas map-page-canvas" data-map-page data-url="{% url 'maps:level_data' number %}"
+         data-empty="{% trans 'No floor plan or position on this level yet.' %}" data-error="{% trans 'The map could not be loaded.' %}"></div>
+    {{ layer_names|json_script:"map-layer-names" }}
+    {% if not edit_denied %}
+    {# The edit mode (map_edit.js): what is selected, and what can be done with it. #}
+    <div class="map-edit-bar" data-map-edit hidden
+         data-shape-url="{% url 'maps:location_shape' 0 %}" data-item-url="{% url 'maps:item_position' 0 %}"
+         data-unplaced-url="{% url 'maps:unplaced' number %}"
+         data-new-point="{% trans 'Click where it is, then choose the location.' %}"
+         data-new-area="{% trans 'Click the corners of the area one after the other (the first again to finish), then choose the location.' %}"
+         data-none-left="{% trans 'Every location of this kind on this level has a position already.' %}"
+         data-choose="{% trans 'Choose the location first.' %}"
+         data-pick="{% trans 'Click a building part or storage unit to change its position.' %}"
+         data-area="{% trans 'Drag the corners (or, with “Move as a whole”, the area); then save.' %}"
+         data-rectangle="{% trans 'Drag the middle handle to move it and the outer one to turn it; then save.' %}"
+         data-point="{% trans 'Drag the handle; then save.' %}"
+         data-error="{% trans 'Not saved:' %}">
+        {% csrf_token %}
+        <span class="btn-group btn-group-sm" role="group" aria-label="{% trans 'New position' %}" data-edit-new>
+            <span class="btn btn-sm disabled">{% trans "New" %}:</span>
+            <button type="button" class="btn btn-outline-secondary" data-new="point">{% trans "Point" %}</button>
+            <button type="button" class="btn btn-outline-secondary" data-new="rectangle">{% trans "Rectangle" %}</button>
+            <button type="button" class="btn btn-outline-secondary" data-new="area">{% trans "Area" %}</button>
+        </span>
+        <strong data-edit-title></strong>
+        {# Searchable by any words of code, purpose and name; the hits show purpose or name, the code chip below. #}
+        <span class="map-edit-search" data-edit-search hidden>
+            <input type="search" class="form-control form-control-sm" data-edit-location role="combobox"
+                   aria-label="{% trans 'Location' %}" aria-expanded="false" aria-controls="map-edit-results"
+                   aria-autocomplete="list" placeholder="{% trans 'Search the location…' %}" autocomplete="off">
+            <span class="map-edit-results list-group" id="map-edit-results" role="listbox" data-edit-results hidden></span>
+        </span>
+        <span class="map-place-size" data-edit-size hidden>
+            <label for="map-edit-width">{% trans "Width" %}</label>
+            <input type="number" class="form-control form-control-sm" id="map-edit-width" min="1" step="1" inputmode="numeric">
+            <span aria-hidden="true">×</span>
+            <label for="map-edit-depth">{% trans "Depth" %}</label>
+            <input type="number" class="form-control form-control-sm" id="map-edit-depth" min="1" step="1" inputmode="numeric">
+            <span>cm</span>
+        </span>
+        <span class="text-muted" data-edit-hint></span>
+        <span class="btn-group btn-group-sm" role="group" data-edit-area-mode hidden>
+            <input type="radio" class="btn-check" name="map-edit-area-mode" id="map-edit-corners" value="corners" autocomplete="off" checked>
+            <label class="btn btn-outline-secondary" for="map-edit-corners">{% trans "Corners" %}</label>
+            <input type="radio" class="btn-check" name="map-edit-area-mode" id="map-edit-whole" value="whole" autocomplete="off">
+            <label class="btn btn-outline-secondary" for="map-edit-whole">{% trans "Move as a whole" %}</label>
+        </span>
+        <span class="map-edit-rotation" data-edit-rotation hidden>
+            <label for="map-edit-rotation">{% trans "Turned" %}</label>
+            <input type="range" class="form-range" id="map-edit-rotation" min="0" max="359" step="1" value="0">
+            <output for="map-edit-rotation">0°</output>
+        </span>
+        <span class="map-edit-actions" data-edit-actions hidden>
+            <button type="button" class="btn btn-sm btn-outline-danger" data-edit-remove>{% trans "Remove position" %}</button>
+            <button type="button" class="btn btn-sm btn-secondary" data-edit-discard>{% trans "Discard" %}</button>
+            <button type="button" class="btn btn-sm btn-primary" data-edit-save>{% trans "Save" %}</button>
+        </span>
+    </div>
+    {% endif %}
+    {% map_config %}
+{% endblock %}
+
+{% block bootstrap5_extra_script %}
+    {{ block.super }}
+    <script src="{% static 'maps/vendor/leaflet/leaflet.js' %}"></script>
+    {# Geoman before the map is made (map.js), so that the map gets its editing tools. #}
+    {% if not edit_denied %}<script src="{% static 'maps/vendor/leaflet-geoman/leaflet-geoman.min.js' %}"></script>{% endif %}
+    <script src="{% static 'maps/plan_overlay.js' %}"></script>
+    <script src="{% static 'maps/map.js' %}"></script>
+    {% if not edit_denied %}<script src="{% static 'maps/map_edit.js' %}"></script>{% endif %}
+{% endblock %}

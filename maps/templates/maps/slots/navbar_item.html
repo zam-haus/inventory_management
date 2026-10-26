@@ -1,0 +1,1 @@
+{% load i18n icons navigation %}{% in_section "/map/" as in_map %}<li class="nav-item"><a class="nav-link{% if in_map %} active{% endif %}" href="{% url 'maps:map' %}"{% if in_map %} aria-current="true"{% endif %}>{% icon "map" %}<span class="app-nav-label">{% trans 'Map' %}</span></a></li>

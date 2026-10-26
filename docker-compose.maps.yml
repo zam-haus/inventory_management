@@ -1,0 +1,30 @@
+# Maps (docs/maps.md), on top of docker-compose.yml: PostGIS instead of plain PostgreSQL (same major version and
+# data directory) and images with GeoDjango's libraries. The scripts in ops/ add it when .env has MAPS_ENABLED=1;
+# by hand: COMPOSE_FILE=docker-compose.yml:docker-compose.maps.yml
+services:
+  db:
+    image: docker.io/postgis/postgis:18-3.6
+
+  python:
+    build:
+      context: .
+      args:
+        MAPS: "1"
+    environment:
+      MAPS_ENABLED: "1"
+
+  worker:
+    build:
+      context: .
+      args:
+        MAPS: "1"
+    environment:
+      MAPS_ENABLED: "1"
+
+  ocr:
+    build:
+      context: .
+      args:
+        MAPS: "1"
+    environment:
+      MAPS_ENABLED: "1"

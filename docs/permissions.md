@@ -23,6 +23,10 @@ location type that cannot be moved, and renders nothing for guests.
 The [cleanup](item-cleanup.md) of items and categories in the admin checks the permissions of each
 change it applies.
 
+[Maps](maps.md#permissions), when turned on: placing storage units, containers and unique items needs the
+permission to change them; drawing levels, rooms and areas needs `maps.change_building_shape`, floor plans
+`maps.add_floorplan` and `maps.change_floorplan`. The local group gets none of the maps permissions.
+
 Item metadata, photos, barcodes and stock entries have separate model permissions.
 For example, creating an item at a location requires `add_item` and
 `add_itemlocation`. Unique items are covered in [Unique items](unique-items.md), including

@@ -144,6 +144,9 @@ TEXT_LIMIT = 2000
 FORMER_FIELDS = {
     # ("location", "summary"): gettext_lazy("summary"),
 }
+# Labels of what optional apps log as changed fields of inventory subjects (e.g. maps: ("location", "map_position")),
+# filled in by those apps: {(model name, name): label}.
+APP_FIELDS = {}
 
 
 def missing_fields():

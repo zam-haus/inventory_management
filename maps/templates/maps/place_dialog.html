@@ -1,0 +1,33 @@
+{% load i18n icons actions %}{# The map of a location or unique item from its page (map_place.js): where it is; whoever may change it switches to editing first ("Edit"), against accidental changes. From the slot template: kind, object, save, field, move, move_field, title, code and dialog (maps_tags.map_dialog). #}
+<div class="modal fade" id="map-place-modal" tabindex="-1" aria-labelledby="map-place-title" aria-hidden="true" data-map-place
+     data-context="{% url 'maps:place_context' %}" data-query="{{ kind }}={{ object.pk }}" data-save="{{ save }}" data-field="{{ field }}"
+     data-move="{{ move }}" data-move-field="{{ move_field }}" {% include "maps/place_strings.html" %}>
+    <div class="modal-dialog modal-lg modal-fullscreen-sm-down">
+        <div class="modal-content">
+            {% csrf_token %}
+            <div class="modal-header">
+                {# As locations are shown everywhere: purpose or name, the code chip in the line below. #}
+                <h2 class="modal-title fs-5 map-place-heading" id="map-place-title"><span class="visually-hidden">{% trans "Position" %}: </span>{{ title }}{% if code %}<span class="loc-code">{{ code }}</span>{% endif %}</h2>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{% trans 'Close' %}"></button>
+            </div>
+            <div class="modal-body">
+                {% include "maps/place_tools.html" with prefix="map-place" %}
+                <div class="form-check" data-place-move hidden>
+                    <input class="form-check-input" type="checkbox" id="map-place-move">
+                    <label class="form-check-label" for="map-place-move" data-place-move-label></label>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <span class="me-auto" data-place-view-only>{% if dialog.focus_url %}<a class="btn btn-outline-secondary" href="{{ dialog.focus_url }}">{% icon "map" %} {% trans "Show on the map" %}</a>{% endif %}</span>
+                {% if dialog.editable %}<button type="button" class="btn btn-warning" data-place-view-only data-place-edit>{% icon "pencil" %} {% trans "Edit" %}</button>
+                {% elif dialog.edit_denied %}<span data-place-view-only>{% icon "pencil" as edit_icon %}{% disabled_action edit_icon label=_("Edit") name=_("Change the position") reason=dialog.edit_denied classes="btn btn-warning" %}</span>{% endif %}
+                <button type="button" class="btn btn-secondary" data-place-view-only data-bs-dismiss="modal">{% trans "Close" %}</button>
+                {% if dialog.editable %}
+                <button type="button" class="btn btn-outline-danger me-auto" data-place-edit-only data-place-remove hidden>{% trans "Remove position" %}</button>
+                <button type="button" class="btn btn-secondary" data-place-edit-only data-place-cancel hidden>{% trans "Cancel" %}</button>
+                <button type="button" class="btn btn-primary" data-place-edit-only data-place-save hidden>{% trans "Save" %}</button>
+                {% else %}<span data-place-cancel hidden></span><span data-place-save hidden></span>{% endif %}
+            </div>
+        </div>
+    </div>
+</div>

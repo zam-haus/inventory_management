@@ -1,0 +1,94 @@
+{% extends 'base.html' %}
+{% load i18n static maps_tags %}
+
+{% block bootstrap5_extra_head %}
+    {{ block.super }}
+    <link rel="stylesheet" href="{% static 'maps/vendor/leaflet/leaflet.css' %}">
+    <link rel="stylesheet" href="{% static 'maps/vendor/leaflet-geoman/leaflet-geoman.css' %}">
+    <link rel="stylesheet" href="{% static 'maps/maps.css' %}">
+{% endblock %}
+
+{% block title %}{% blocktrans with plan=plan %}Place “{{ plan }}”{% endblocktrans %}{% endblock %}
+
+{% block content %}
+    <p><a href="{% url 'maps:plans' %}">{% trans "All floor plans" %}</a>{% if number is not None %} · <a href="{% url 'maps:level' number %}">{% trans "Map of this level" %}</a>{% endif %}
+        · {% trans "Source file" %}: <a href="{% url 'maps:plan_source' plan.pk %}">{{ plan.source_name }}</a> <span class="text-muted">({% trans "staff only" %})</span></p>
+    <p class="text-muted">{% blocktrans with level=plan.level|stringformat:"+d" %}Plan on level {{ level }}.{% endblocktrans %}{% if plan.location %} {% blocktrans with part=plan.location.title_with_code %}Only for the stacked part {{ part }}.{% endblocktrans %}{% endif %}
+        {% if plan.is_placed %}{% blocktrans with residual=plan.residual_m|floatformat:2 %}Placed; the control points deviate by up to {{ residual }} m.{% endblocktrans %}{% else %}{% trans "Not placed yet." %}{% endif %}</p>
+
+    <div class="map-align" data-map-align
+         data-pick-plan="{% trans 'Click a point on the plan.' %}"
+         data-pick-place="{% trans 'Now click the same point on the map, or type its coordinates.' %}"
+         data-crop-start="{% trans 'Draw the outline of the drawing on the plan: a rectangle by clicking two opposite corners, an outline corner by corner (click the first corner again to finish).' %}"
+         data-crop-edit="{% trans 'Drag the corners to correct the outline; everything darkened is cut off. Then apply it.' %}"
+         data-bad-coordinates="{% trans 'Coordinates as “latitude, longitude”, e.g. 49.597312, 11.004561.' %}">
+        <section>
+            <h2 class="fs-5">{% trans "Plan" %}</h2>
+            <div class="map-canvas" data-align-plan></div>
+            <div class="map-place-tools">
+                <span>{% trans "Crop" %}:</span>
+                <button type="button" class="btn btn-sm btn-outline-secondary" data-align-crop="Rectangle">{% trans "Rectangle" %}</button>
+                <button type="button" class="btn btn-sm btn-outline-secondary" data-align-crop="Polygon">{% trans "Outline" %}</button>
+                <span data-align-crop-actions hidden>
+                    <button type="button" class="btn btn-sm btn-primary" data-align-crop-apply>{% trans "Apply crop" %}</button>
+                    <button type="button" class="btn btn-sm btn-secondary" data-align-crop-cancel>{% trans "Cancel" %}</button>
+                </span>
+                {% if plan.crop %}<form method="post" class="d-inline">{% csrf_token %}<input type="hidden" name="action" value="crop"><input type="hidden" name="crop" value="null"><button type="submit" class="btn btn-sm btn-outline-secondary">{% trans "Whole page again" %}</button></form>{% endif %}
+            </div>
+        </section>
+        <section>
+            <h2 class="fs-5">{% trans "Where it is" %}</h2>
+            <div class="map-canvas" data-align-map></div>
+            <div class="map-place-tools">
+                <label class="form-label mb-0" for="align-coordinates">{% trans "Coordinates" %}</label>
+                <input id="align-coordinates" class="form-control form-control-sm w-auto flex-grow-1" placeholder="49.597312, 11.004561" data-align-coordinates>
+                <button type="button" class="btn btn-sm btn-outline-secondary" data-align-use>{% trans "Use" %}</button>
+            </div>
+        </section>
+    </div>
+    <p class="map-place-hint" data-align-hint aria-live="polite"></p>
+
+    <form method="post" data-align-form>
+        {% csrf_token %}
+        <input type="hidden" name="action" value="place">
+        <input type="hidden" name="control_points" data-align-points-input>
+        <table class="table table-sm map-align-points">
+            <thead><tr><th>#</th><th>{% trans "Plan (pixels)" %}</th><th>{% trans "Latitude, longitude" %}</th><th></th></tr></thead>
+            <tbody data-align-points></tbody>
+        </table>
+        <div class="form-check mb-2">
+            <input class="form-check-input" type="checkbox" name="affine" value="1" id="align-affine"{% if plan.affine %} checked{% endif %}>
+            <label class="form-check-label" for="align-affine">{% trans "Allow uneven scaling and shearing (needs three points or more; only for distorted scans)" %}</label>
+        </div>
+        <button type="submit" class="btn btn-primary">{% trans "Place plan" %}</button>
+    </form>
+
+    <form method="post" class="mt-4 d-flex flex-wrap gap-3 align-items-end">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="settings">
+        <div class="w-100"><label class="form-label" for="plan-notes">{% trans "Internal notes" %}</label>
+            <textarea class="form-control" name="notes" id="plan-notes" rows="3">{{ plan.notes }}</textarea>
+            <div class="form-text">{% trans "For whoever looks after the plans; not shown on the map." %}</div></div>
+        <div><label class="form-label" for="plan-opacity">{% trans "Opacity" %}</label>
+            <input type="range" class="form-range" min="0.1" max="1" step="0.05" name="opacity" id="plan-opacity" value="{{ plan.opacity|stringformat:'.2f' }}"></div>
+        <div class="form-check"><input class="form-check-input" type="checkbox" name="active" value="1" id="plan-active"{% if plan.active %} checked{% endif %}>
+            <label class="form-check-label" for="plan-active">{% trans "Active (offered on the map)" %}</label></div>
+        <div class="form-check"><input class="form-check-input" type="checkbox" name="shown" value="1" id="plan-shown"{% if plan.shown %} checked{% endif %}>
+            <label class="form-check-label" for="plan-shown">{% trans "Shown at first (otherwise switched on in the layer selection)" %}</label></div>
+        {% if not plan.is_svg %}<div class="form-check"><input class="form-check-input" type="checkbox" name="transparent" value="1" id="plan-transparent"{% if plan.transparent %} checked{% endif %}>
+            <label class="form-check-label" for="plan-transparent">{% trans "Remove the background (white paper becomes transparent)" %}</label></div>{% endif %}
+        <button type="submit" class="btn btn-secondary">{% trans "Save" %}</button>
+    </form>
+    <form method="post" data-align-crop-form hidden>{% csrf_token %}<input type="hidden" name="action" value="crop"><input type="hidden" name="crop" data-align-crop-input></form>
+    {{ config|json_script:"map-align-config" }}
+    {% map_config %}
+{% endblock %}
+
+{% block bootstrap5_extra_script %}
+    {{ block.super }}
+    <script src="{% static 'maps/vendor/leaflet/leaflet.js' %}"></script>
+    <script src="{% static 'maps/vendor/leaflet-geoman/leaflet-geoman.min.js' %}"></script>
+    <script src="{% static 'maps/plan_overlay.js' %}"></script>
+    <script src="{% static 'maps/map.js' %}"></script>
+    <script src="{% static 'maps/map_align.js' %}"></script>
+{% endblock %}

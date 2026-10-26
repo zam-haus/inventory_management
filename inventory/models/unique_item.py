@@ -10,13 +10,14 @@ from uuid import uuid4
 
 from django.conf import settings
 from django.core.exceptions import ValidationError
-from django.db import models
+from django.db import models, transaction
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.html import format_html
 from django.utils.translation import gettext_lazy as _
 
 from ..actor import acting_as
+from ..signals import moved, send_moved
 from .item import UsageLevel
 
 
@@ -182,8 +183,15 @@ class UniqueItem(models.Model):
 
     def save(self, *args, actor=None, **kwargs):
         """Saves; the change log records it with `actor` or the current user as who acted."""
-        with acting_as(actor):
+        update_fields = kwargs.get("update_fields")
+        # Only looked up when an app follows moves (signals.moved).
+        follow = self.pk and moved.has_listeners(type(self)) and (update_fields is None or "location" in update_fields)
+        with transaction.atomic(using=kwargs.get("using")), acting_as(actor):
+            before = type(self).objects.filter(pk=self.pk).values_list("location_id", flat=True).first() \
+                if follow else None
             super().save(*args, **kwargs)
+            if follow and before != self.location_id:
+                send_moved(self, before)
 
     def dispose(self, reason, note="", actor=None):
         """Remove the unique item from the inventory. Its label ID stays assigned."""

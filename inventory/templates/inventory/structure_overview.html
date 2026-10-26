@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% load i18n static locations icons %}
+{% load i18n static locations icons slots %}
 
 {% block bootstrap5_extra_head %}
     {{ block.super }}
@@ -71,7 +71,7 @@
                 <tbody>
                     {% for row in overview.rows %}
                         <tr>
-                            <th scope="row" class="structure-level"><span class="structure-level-number">{{ row.label }}</span><span class="structure-level-word">{% trans "Level" %}</span></th>
+                            <th scope="row" class="structure-level"><span class="structure-level-number">{{ row.label }}</span><span class="structure-level-word">{% trans "Level" %}</span>{% slot "structure_overview.level" %}</th>
                             {% for cell in row.cells %}
                                 <td class="{% if not cell.present %}structure-void{% endif %}{% if cell.wide %} structure-wide{% endif %}">
                                     {% for level in cell.mains %}

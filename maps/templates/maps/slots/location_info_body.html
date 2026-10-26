@@ -1,0 +1,7 @@
+{% load i18n maps_tags %}{# The small map in the location window (map_mini.js draws it once the window shows, with the popup of what is shown open). #}
+{% map_mini object as mini %}{% if mini %}
+<div class="map-mini mt-2" data-map-mini data-url="{{ mini.data_url }}" data-focus="{{ mini.focus }}" role="img"
+     aria-label="{% if mini.exact %}{% blocktrans with location=object.title %}Map: where {{ location }} is{% endblocktrans %}{% else %}{% blocktrans with location=object.title where=mini.source.title_with_code %}Map: {{ location }} is in {{ where }}{% endblocktrans %}{% endif %}"></div>
+{% if not mini.exact %}<p class="text-muted small mb-0 mt-1">{% blocktrans with where=mini.source.title_with_code %}Its own position is not known; it is in {{ where }} (highlighted).{% endblocktrans %}</p>{% endif %}
+{% map_config %}
+{% endif %}

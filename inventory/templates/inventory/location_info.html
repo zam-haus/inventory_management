@@ -1,4 +1,4 @@
-{% load i18n icons locations thumbnail %}
+{% load i18n icons locations slots thumbnail %}
 {# A location in brief, loaded into the location window (location_info_modal.html, location_info.js). #}
 <div class="modal-header">
     <h2 class="modal-title fs-5" id="location-info-title">{% location_label object %}</h2>
@@ -13,7 +13,9 @@
         {% thumbnail object.overview_photo "640x480" as im %}<img class="location-info-photo" src="{{ im.url }}" alt="{% trans 'Overview photo' %}">{% endthumbnail %}
     {% endif %}
     {% if object.physical_description %}<p class="location-info-description">{{ object.physical_description|linebreaksbr }}</p>{% endif %}
+    {% slot "location_info.body" %}
 </div>
 <div class="modal-footer">
+    {% slot "location_info.links" %}
     <a class="btn btn-info" href="{{ object.get_absolute_url }}" data-location-open>{% icon "chevron-right" %} {% trans "Open location" %}</a>
 </div>

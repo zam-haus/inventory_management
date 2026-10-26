@@ -239,6 +239,11 @@ class LocationMoveView(PermissionRequiredMixin, UpdateView):
             return HttpResponseForbidden(_("Moving is disabled for this location type."))
         return super().post(request, *args, **kwargs)
 
+    def form_valid(self, form):
+        # What optional apps added to the dialog (e.g. a position on the map) goes with the move (signals.moved).
+        form.instance.move_context = self.request.POST
+        return super().form_valid(form)
+
 class LocationsMoveHereView(PermissionRequiredMixin, View):
     permission_required = "inventory.change_location"
 

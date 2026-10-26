@@ -4,6 +4,8 @@
 {% load django_bootstrap5 %}
 {% load static %}
 {% load icons %}
+{% load slots %}
+{% load navigation %}
 
 {% block bootstrap5_extra_head %}
     {{ block.super }}
@@ -27,8 +29,11 @@
           <a class="btn btn-sm btn-secondary navbar-scan" href="{% url 'index' %}" aria-label="{% trans 'Search' %}" data-navbar-search aria-controls="navbar-search" aria-expanded="false">{% icon "search" %}</a>
         </div>
         <ul class="navbar-nav app-nav">
-          <li class="nav-item"><a class="nav-link" href="{% url 'index_items' %}">{% icon "boxes" %}<span class="app-nav-label">{% trans 'Items' %}</span></a></li>
-          <li class="nav-item"><a class="nav-link" href="{% url 'index_locations' %}">{% icon "geo-alt" %}<span class="app-nav-label">{% trans 'Locations' %}</span></a></li>
+          {# The section the page belongs to is marked (in_section, by address). #}
+          {% in_section "/item/" "/category/" "/quick-items/" as in_items %}{% in_section "/loc/" as in_locations %}
+          <li class="nav-item"><a class="nav-link{% if in_items %} active{% endif %}" href="{% url 'index_items' %}"{% if in_items %} aria-current="true"{% endif %}>{% icon "boxes" %}<span class="app-nav-label">{% trans 'Items' %}</span></a></li>
+          <li class="nav-item"><a class="nav-link{% if in_locations %} active{% endif %}" href="{% url 'index_locations' %}"{% if in_locations %} aria-current="true"{% endif %}>{% icon "geo-alt" %}<span class="app-nav-label">{% trans 'Locations' %}</span></a></li>
+          {% slot "navbar.items" %}
         </ul>
         <div class="d-flex align-items-center gap-2 ms-auto">
           {# Narrow screens: a menu; wider ones show its Admin link in the bar (the other entries are for narrow screens only). #}
@@ -37,6 +42,7 @@
             <div class="dropdown-menu dropdown-menu-end app-menu-list">
               <a class="dropdown-item action-menu-item app-menu-narrow" href="{% url 'index_items' %}">{% icon "boxes" %}<span>{% trans 'Items' %}</span></a>
               <a class="dropdown-item action-menu-item app-menu-narrow" href="{% url 'index_locations' %}">{% icon "geo-alt" %}<span>{% trans 'Locations' %}</span></a>
+              {% slot "navbar.menu" %}
               {% if user.is_staff %}
                 <a class="dropdown-item action-menu-item app-menu-admin" href="{% block admin_url %}{% url 'admin:index' %}{% endblock %}"><span>Admin</span></a>
               {% endif %}
@@ -95,4 +101,5 @@
     {{ scan_hosts|json_script:"scan-hosts" }}
     {% include 'inventory/barcode_scanner_script.html' %}
     <script src="{% static 'inventory/link_scanner.js' %}"></script>
+    {% slot "base.scripts" %}
 {% endblock %}

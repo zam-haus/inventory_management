@@ -1,0 +1,10 @@
+{% load static maps_tags %}{% map_dialog object as dialog %}{% if dialog.show %}{% map_config %}{# Leaflet and the map scripts for the dialogs (location and unique item pages). #}
+<link rel="stylesheet" href="{% static 'maps/vendor/leaflet/leaflet.css' %}">
+<link rel="stylesheet" href="{% static 'maps/vendor/leaflet-geoman/leaflet-geoman.css' %}">
+<link rel="stylesheet" href="{% static 'maps/maps.css' %}">
+<script src="{% static 'maps/vendor/leaflet/leaflet.js' %}"></script>
+{% if dialog.editable and dialog.area %}<script src="{% static 'maps/vendor/leaflet-geoman/leaflet-geoman.min.js' %}"></script>{% endif %}
+<script src="{% static 'maps/plan_overlay.js' %}"></script>
+<script src="{% static 'maps/map.js' %}"></script>
+<script src="{% static 'maps/map_place.js' %}"></script>
+{% endif %}

@@ -1,0 +1,28 @@
+{% load i18n icons %}<div class="map-place-tools" data-place-shape hidden>
+    {# The shapes the type allows (admin: its map settings); map_place.js hides the others. #}
+    <div class="btn-group btn-group-sm" role="group" aria-label="{% trans 'Shape' %}" data-place-kinds>
+        <input type="radio" class="btn-check" name="{{ prefix }}-kind" id="{{ prefix }}-kind-point" value="point" data-place-kind autocomplete="off">
+        <label class="btn btn-outline-secondary" for="{{ prefix }}-kind-point" data-place-kind-label="point">{% trans "Point" %}</label>
+        <input type="radio" class="btn-check" name="{{ prefix }}-kind" id="{{ prefix }}-kind-rectangle" value="rectangle" data-place-kind autocomplete="off">
+        <label class="btn btn-outline-secondary" for="{{ prefix }}-kind-rectangle" data-place-kind-label="rectangle">{% trans "Rectangle" %}</label>
+        <input type="radio" class="btn-check" name="{{ prefix }}-kind" id="{{ prefix }}-kind-area" value="area" data-place-kind autocomplete="off">
+        <label class="btn btn-outline-secondary" for="{{ prefix }}-kind-area" data-place-kind-label="area">{% trans "Area" %}</label>
+    </div>
+    <span class="map-place-size" data-place-size hidden>
+        <label for="{{ prefix }}-width">{% trans "Width" %}</label>
+        <input type="number" class="form-control form-control-sm" id="{{ prefix }}-width" min="1" step="1" inputmode="numeric" data-place-width>
+        <span aria-hidden="true">×</span>
+        <label for="{{ prefix }}-depth">{% trans "Depth" %}</label>
+        <input type="number" class="form-control form-control-sm" id="{{ prefix }}-depth" min="1" step="1" inputmode="numeric" data-place-depth>
+        <span>cm</span>
+    </span>
+</div>
+<div class="map-place-canvas mt-2" data-place-canvas></div>
+<div class="map-place-tools" data-place-rotation hidden>
+    <label class="form-label mb-0" for="{{ prefix }}-rotation">{% trans "Turned" %}</label>
+    <input type="range" class="form-range" id="{{ prefix }}-rotation" min="0" max="359" step="1" value="0">
+    <output for="{{ prefix }}-rotation">0°</output>
+    <button type="button" class="btn btn-sm btn-outline-secondary" data-place-turn="-90" aria-label="{% trans 'Turn a quarter to the left' %}">{% icon "arrow-counterclockwise" %} 90°</button>
+    <button type="button" class="btn btn-sm btn-outline-secondary" data-place-turn="90" aria-label="{% trans 'Turn a quarter to the right' %}">{% icon "arrow-clockwise" %} 90°</button>
+</div>
+<p class="map-place-hint text-muted" data-place-hint aria-live="polite"></p>

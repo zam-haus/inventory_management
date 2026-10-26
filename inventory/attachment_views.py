@@ -72,6 +72,8 @@ class MoveUniqueItemView(PermissionRequiredMixin, View):
             form = forms.MoveUniqueItemForm(request.POST, instance=unique_item)
             if form.is_valid():
                 unique_item = form.save(commit=False)
+                # What optional apps added to the dialog goes with the move (signals.moved).
+                unique_item.move_context = request.POST
                 unique_item.save(actor=request.user)
                 messages.success(request, _("Moved to %(location)s.") % {"location": unique_item.location.title_with_code})
             else:

@@ -1,4 +1,4 @@
-{% load i18n icons locations search_tags thumbnail %}
+{% load i18n icons locations search_tags slots thumbnail %}
 {# One search result per entry. The photo button opens the photos below the result (search.js); with plain_photos (pages without search.js) the photo is only shown. #}
 {% for entry in entries %}
     <li class="search-entry" data-search-entry{% if entry.photos %} data-photos="{{ entry.photos_json }}"{% endif %}>
@@ -20,6 +20,7 @@
             {% for place in entry.places %}
                 <span class="search-meta">{% if place.amount %}{{ place.amount }} · {% elif place.label %}{% if place.url %}<a href="{{ place.url }}">{{ place.label }}</a>{% else %}{{ place.label }}{% endif %} · {% endif %}<a class="search-place" href="{{ place.location.get_absolute_url }}">{{ place.location.title|highlight:words }}</a> {% location_code place.location.unique_identifier location=place.location %}</span>
             {% endfor %}
+            {% slot "search_entry.place" %}
             {% if entry.more_places %}<span class="search-meta">{% blocktrans count count=entry.more_places %}and {{ count }} more place{% plural %}and {{ count }} more places{% endblocktrans %}</span>{% endif %}
             {% if entry.sources %}<span class="search-source">{% trans "Found in" %} {{ entry.sources|join:", " }}</span>{% endif %}
         </div>

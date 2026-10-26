@@ -1,0 +1,4 @@
+{% load maps_tags %}{% map_dialog object as dialog %}{% if dialog.show %}
+{% url 'maps:location_shape' object.pk as save %}{% if object.type.moveable %}{% url 'location_move' object.pk as move %}{% endif %}
+{% include "maps/place_dialog.html" with kind="location" field="map_geometry" move_field="parent_location" title=object.title code=object.unique_identifier %}
+{% endif %}

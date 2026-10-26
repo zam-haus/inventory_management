@@ -1,7 +1,8 @@
 // A location's code chip ([data-location-info], location_display.code_html) shows the location in brief in a
 // window (location_info_modal.html): its path, title, overview photo and description, with a button to its
 // page. The chip works by click, Enter or space, also inside a link, whose name leads to the page as before.
-// Closing the window returns the focus to the chip.
+// Closing the window returns the focus to the chip. Once a location is in the window, it sends
+// "location-info:shown" (for optional apps, e.g. the small map of the maps app).
 (() => {
     const modal = document.getElementById('location-info');
     const content = modal?.querySelector('[data-location-info-content]');
@@ -25,6 +26,9 @@
             content.append(message);
         }
         window.bootstrap.Modal.getOrCreateInstance(modal).show();
+        const announce = () => content.dispatchEvent(new CustomEvent('location-info:shown', {bubbles: true}));
+        if (modal.classList.contains('show')) announce();
+        else modal.addEventListener('shown.bs.modal', announce, {once: true});
     }
 
     function open(event, chip) {

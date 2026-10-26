@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% load i18n static thumbnail mytemplatetags actions icons label_printing locations change_log %}
+{% load i18n static thumbnail mytemplatetags actions icons label_printing locations change_log slots %}
 
 {% block bootstrap5_extra_head %}
     {{ block.super }}
@@ -42,6 +42,7 @@
                 {% else %}
                     {% icon "arrows-move" as move_icon %}{% disabled_action move_icon label=_("Move location") classes="btn btn-warning location-print" %}
                 {% endif %}
+                {% slot "location_detail.actions" %}
                 {% label_print_button object "location" classes="btn btn-info location-print" %}
                 {% label_print_button object "items" classes="btn btn-info location-print" %}
                 {% if object.type.no_sublocations %}
@@ -285,6 +286,7 @@
     {% label_print_dialog object "location" %}
     {% label_print_dialog object "items" %}
     {% if stock_change_form %}{% include 'inventory/stock_change_dialog.html' %}{% endif %}
+    {% slot "location_detail.dialogs" %}
 {% endblock %}
 
 {% block bootstrap5_extra_script %}
@@ -300,4 +302,5 @@
         {{ move_form.media.js }}
     {% endif %}
     {% if move_here_form %}<script src="{% static 'inventory/locations_move_here.js' %}"></script>{% endif %}
+    {% slot "location_detail.scripts" %}
 {% endblock %}

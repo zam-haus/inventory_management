@@ -1,0 +1,1 @@
+{% load i18n icons maps_tags %}{% map_level_shown row.number as shown %}{% if shown %}<a class="structure-level-map" href="{% url 'maps:level' row.number %}" title="{% trans 'Map of this level' %}" aria-label="{% trans 'Map of this level' %}">{% icon "map" %}</a>{% endif %}

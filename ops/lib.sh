@@ -38,6 +38,11 @@ compose() {
 
 [[ -f .env ]] || die "$ROOT/.env missing: copy .env.example and edit it (see README.md)"
 
+# Maps (docs/maps.md): MAPS_ENABLED=1 in .env adds docker-compose.maps.yml (PostGIS, GeoDjango's libraries).
+if [[ -z "${COMPOSE_FILE:-}" ]] && grep -qiE '^(export[[:space:]]+)?MAPS_ENABLED=(1|true|yes|on)[[:space:]]*$' .env; then
+    export COMPOSE_FILE=docker-compose.yml:docker-compose.maps.yml
+fi
+
 # Ask before destructive steps; ASSUME_YES=1 (or --yes) skips the question.
 confirm() {
     [[ "${ASSUME_YES:-}" == 1 ]] && return

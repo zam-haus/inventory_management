@@ -1,4 +1,5 @@
 """Application, admin and authentication routes."""
+from django.apps import apps
 from django.contrib import admin
 from django.urls import include, path
 from inventory import pwa
@@ -19,3 +20,6 @@ urlpatterns = [
     path("", include("inventory.urls")),
 
 ]
+# Maps are optional (MAPS_ENABLED, docs/maps.md).
+if apps.is_installed("maps"):
+    urlpatterns.insert(-1, path("map/", include("maps.urls")))

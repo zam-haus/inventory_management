@@ -1,0 +1,1 @@
+{% load i18n icons maps_tags %}{% map_focus_url object as map_url %}{% if map_url %}<a class="btn btn-outline-secondary" href="{{ map_url }}">{% icon "pin-map" %} {% trans "On the map" %}</a>{% endif %}

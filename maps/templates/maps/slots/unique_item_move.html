@@ -1,0 +1,8 @@
+{% load i18n icons maps_tags %}{% if object|map_placeable %}{# Optional: where exactly it goes; sent along with the move (map_place.js, signals.moved). #}
+<div class="map-pick mt-3" data-map-pick data-context="{% url 'maps:place_context' %}" data-query="item={{ object.pk }}"
+     data-field="map_point" data-target-field="location" {% include "maps/place_strings.html" %}>
+    <input type="hidden" name="map_point">
+    <button type="button" class="btn btn-sm btn-outline-secondary" data-pick-toggle>{% icon "pin-map" %} {% trans "Mark the new place on the map (optional)" %}</button>
+    <div data-pick-panel hidden class="mt-2">{% include "maps/place_tools.html" with prefix="map-pick-item" %}</div>
+</div>
+{% endif %}

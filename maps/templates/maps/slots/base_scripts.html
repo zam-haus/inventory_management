@@ -1,0 +1,2 @@
+{% load static %}{# On every page: draws the small map of the location window, loading Leaflet only when there is one. #}
+<script src="{% static 'maps/map_mini.js' %}" data-assets='["{% static "maps/vendor/leaflet/leaflet.css" %}", "{% static "maps/maps.css" %}", "{% static "maps/vendor/leaflet/leaflet.js" %}", "{% static "maps/plan_overlay.js" %}", "{% static "maps/map.js" %}"]'></script>

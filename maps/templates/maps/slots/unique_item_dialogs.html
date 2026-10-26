@@ -1,0 +1,4 @@
+{% load maps_tags %}{% map_dialog object as dialog %}{% if dialog.show %}
+{% url 'maps:item_position' object.pk as save %}{% url 'move_unique_item' object.pk as move %}
+{% include "maps/place_dialog.html" with kind="item" field="map_point" move_field="location" title=object code="" %}
+{% endif %}

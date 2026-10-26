@@ -1,0 +1,265 @@
+/* The map page and the map dialogs (maps/). */
+.map-canvas {
+    height: calc(100vh - 13rem);
+    min-height: 20rem;
+    border: 1px solid var(--bs-border-color);
+    border-radius: var(--bs-border-radius);
+    background: #f8f9fa;
+}
+.map-canvas.map-empty::after {
+    content: attr(data-empty-text);
+    position: absolute;
+    inset: 40% 1rem auto;
+    text-align: center;
+    color: var(--bs-secondary-color);
+    z-index: 500;
+}
+/* The levels on the map, below the zoom buttons (as Leaflet's bar). */
+.map-levels.leaflet-bar a {
+    width: auto;
+    min-width: 30px;
+    padding: 0 .35rem;
+    font-weight: 600;
+    font-size: .85rem;
+}
+.map-levels.leaflet-bar a.map-level-current {
+    background: var(--bs-primary);
+    color: #fff;
+}
+/* Edit and floor plans, at the bottom right of the map. */
+.map-actions {
+    display: flex;
+    gap: .35rem;
+}
+.map-actions .btn {
+    box-shadow: 0 1px 5px rgba(0, 0, 0, .4);
+}
+.map-focus-message {
+    margin-bottom: .5rem;
+}
+/* A plan's tiles in a pane of their own (map.js planLayer), over the background map: the opacity applies to the plan
+   as a whole, so the tiles' overlaps do not show. The paper stays white unless the plan's background is removed
+   (render.white_to_alpha). */
+.map-plan-pane {
+    z-index: 300;
+    pointer-events: none;
+}
+.map-plan {
+    image-rendering: auto;
+}
+.map-label {
+    background: transparent;
+    border: 0;
+    box-shadow: none;
+    padding: 0;
+    font-size: .7rem;
+    font-weight: 600;
+    color: #212529;
+    text-shadow: 0 0 2px #fff, 0 0 2px #fff;
+}
+.map-label::before {
+    display: none;
+}
+/* Purpose or name, the code chip in the line below (as locations are shown everywhere). */
+.map-label > span {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    line-height: 1.15;
+}
+.map-label .map-label-code {
+    font-size: .65rem;
+    padding: 0 .25rem;
+    margin-top: 1px;
+    text-shadow: none;
+}
+.map-label-space {
+    font-size: .8rem;
+    color: #495057;
+}
+.map-stacks {
+    background: #fff;
+    padding: .25rem;
+}
+.map-stack {
+    display: flex;
+    gap: .25rem;
+    align-items: center;
+}
+.map-stack + .map-stack {
+    margin-top: .25rem;
+}
+.map-stack-code {
+    font-weight: 600;
+    min-width: 2.5rem;
+}
+.map-stack button[aria-pressed="true"] {
+    background: var(--bs-secondary);
+    color: #fff;
+}
+.map-popup {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: .2rem;
+}
+.map-popup .loc-code {
+    white-space: nowrap;
+}
+/* The placing dialog (map_place.js) */
+.map-place-canvas {
+    height: min(60vh, 32rem);
+    border: 1px solid var(--bs-border-color);
+    border-radius: var(--bs-border-radius);
+    background: #f8f9fa;
+}
+.map-place-tools {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .5rem;
+    align-items: center;
+    margin-top: .5rem;
+}
+.map-place-tools input[type="range"] {
+    flex: 1 1 8rem;
+}
+.map-place-hint {
+    margin: .5rem 0 0;
+}
+.map-mini {
+    height: 14rem;
+    border: 1px solid var(--bs-border-color);
+    border-radius: var(--bs-border-radius);
+    background: #f8f9fa;
+}
+/* Aligning plans (map_align.js) */
+.map-align {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: .75rem;
+}
+.map-align .map-canvas {
+    height: 60vh;
+}
+@media (max-width: 767.98px) {
+    .map-align {
+        grid-template-columns: 1fr;
+    }
+}
+.map-align-points td, .map-align-points th {
+    font-variant-numeric: tabular-nums;
+}
+.map-place-handle {
+    background: #fff;
+    border: 3px solid #d63384;
+    border-radius: 50%;
+    box-shadow: 0 0 0 2px rgba(255, 255, 255, .8);
+    cursor: move;
+}
+.search-map {
+    white-space: nowrap;
+}
+.structure-level-map {
+    display: block;
+    margin-top: .25rem;
+}
+.map-place-knob {
+    border-color: #0d6efd;
+    cursor: grab;
+}
+.map-place-size {
+    display: inline-flex;
+    gap: .35rem;
+    align-items: center;
+}
+.map-place-size input {
+    width: 6rem;
+}
+/* The map page: from the levels row out to the left, right and bottom edge of the window. */
+.map-page-canvas {
+    width: 100vw;
+    margin-left: calc(50% - 50vw);
+    border: 0;
+    border-top: 1px solid var(--bs-border-color);
+    border-radius: 0;
+    min-height: 16rem;
+}
+/* 100vw includes a classic scrollbar's width; the map must not make the page scroll sideways. It starts right
+   below the navbar. */
+body:has(.map-page-canvas) {
+    overflow-x: hidden;
+}
+body:has(.map-page-canvas) > .container {
+    margin-top: 0 !important;
+}
+.map-page-canvas {
+    border-top: 0;
+}
+/* The edit mode of the map page (map_edit.js): a bar at the bottom of the map. */
+.map-edit-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .5rem;
+    align-items: center;
+    background: #fff;
+    padding: .5rem .75rem;
+    border-radius: var(--bs-border-radius);
+    box-shadow: 0 1px 5px rgba(0, 0, 0, .4);
+    max-width: calc(100vw - 2rem);
+}
+.map-edit-rotation {
+    display: inline-flex;
+    gap: .35rem;
+    align-items: center;
+}
+.map-edit-rotation input {
+    width: 10rem;
+}
+.map-edit-actions {
+    display: inline-flex;
+    gap: .35rem;
+}
+.map-editing .leaflet-interactive {
+    cursor: pointer;
+}
+/* Drawing a new position: clicks on what is drawn go to the map (their popups would stop them). */
+.map-drawing .leaflet-pane > svg path.map-feature {
+    pointer-events: none;  /* over Leaflet's .leaflet-pane > svg path.leaflet-interactive */
+}
+/* The location search of the edit mode: the hits above the field (the bar is at the bottom of the map). */
+.map-edit-search {
+    position: relative;
+}
+.map-edit-search input {
+    width: 18rem;
+    max-width: 70vw;
+}
+.map-edit-results {
+    position: absolute;
+    bottom: calc(100% + .25rem);
+    left: 0;
+    min-width: 100%;
+    max-height: 40vh;
+    overflow-y: auto;
+    z-index: 1000;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, .25);
+}
+.map-edit-hit {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: .15rem;
+    padding: .35rem .6rem;
+}
+.map-edit-hit .loc-code {
+    font-size: .75rem;
+}
+.map-place-heading {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: .2rem;
+}
+.map-place-heading .loc-code {
+    font-size: .8rem;
+}

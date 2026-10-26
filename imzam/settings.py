@@ -347,6 +347,27 @@ CACHES = {"default": {"BACKEND": "django.core.cache.backends.locmem.LocMemCache"
                       "OPTIONS": {"MAX_ENTRIES": int(os.getenv("CACHE_MAX_ENTRIES", "20000"))}}}
 
 
+
+# ================================================================
+# Maps (docs/maps.md)
+# ================================================================
+
+# Floor plans and positions of locations and unique items (the maps app). Optional: it needs GDAL, GEOS and PROJ,
+# and SpatiaLite or PostGIS as database; without it the inventory runs on plain SQLite or PostgreSQL.
+MAPS_ENABLED = parse_bool(os.getenv("MAPS_ENABLED", "false"))
+# Metric coordinate system for sizes, rotations and aligning plans; positions are stored in WGS84.
+# EPSG:25832 is ETRS89 / UTM zone 32N (Germany west of 12° E).
+MAPS_LOCAL_SRID = int(os.getenv("MAPS_LOCAL_SRID", "25832"))
+# Whether unique items get points of their own on the map (for now not). Which location types are placed is set in
+# the admin (Location types → Map).
+MAPS_PLACE_UNIQUE_ITEMS = parse_bool(os.getenv("MAPS_PLACE_UNIQUE_ITEMS", "false"))
+# Where the map starts when a level has nothing on it yet: [latitude, longitude, zoom].
+MAPS_START = json.loads(os.getenv("MAPS_START", "[49.5975, 11.0040, 17]"))
+# Where GeoDjango finds the libraries, if not on the default library path (e.g. MacPorts: /opt/local/lib/…).
+GDAL_LIBRARY_PATH = os.getenv("GDAL_LIBRARY_PATH")
+GEOS_LIBRARY_PATH = os.getenv("GEOS_LIBRARY_PATH")
+SPATIALITE_LIBRARY_PATH = os.getenv("SPATIALITE_LIBRARY_PATH")
+
 # Overwrite default settings with local_settings.py configuration
 if not os.getenv("IGNORE_LOCAL_SETTINGS", False):
     try:
@@ -360,6 +381,13 @@ if "CELERY_TASK_ALWAYS_EAGER" not in globals():
 CELERY_TASK_EAGER_PROPAGATES = True
 if not CELERY_BROKER_URL:
     CELERY_BROKER_URL = "memory://localhost/"  # in-process, never used by eager tasks
+
+if MAPS_ENABLED:
+    INSTALLED_APPS = [*INSTALLED_APPS, "django.contrib.gis", "maps.apps.MapsConfig"]
+    _SPATIAL_ENGINES = {"django.db.backends.postgresql": "django.contrib.gis.db.backends.postgis",
+                        "django.db.backends.sqlite3": "django.contrib.gis.db.backends.spatialite"}
+    for _database in DATABASES.values():
+        _database["ENGINE"] = _SPATIAL_ENGINES.get(_database["ENGINE"], _database["ENGINE"])
 
 if OIDC_ENABLED is None:
     OIDC_ENABLED = bool(OIDC_RP_CLIENT_SECRET)

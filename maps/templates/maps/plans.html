@@ -1,0 +1,35 @@
+{% extends 'base.html' %}
+{% load i18n static django_bootstrap5 %}
+
+{% block title %}{% trans "Floor plans" %}{% endblock %}
+
+{% block content %}
+    <p><a href="{% url 'maps:map' %}">{% trans "Back to the map" %}</a></p>
+    <table class="table table-sm align-middle">
+        <thead><tr><th>{% trans "Level" %}</th><th>{% trans "Plan" %}</th><th>{% trans "Stacked part" %}</th><th>{% trans "Active" %}</th><th>{% trans "Shown at first" %}</th><th>{% trans "Placed" %}</th><th>{% trans "Deviation" %}</th></tr></thead>
+        <tbody>
+        {% for plan in plans %}
+            <tr>
+                <td><a href="{% url 'maps:level' plan.level %}">{{ plan.level|stringformat:"+d" }}</a></td>
+                <td><a href="{% url 'maps:plan_align' plan.pk %}">{{ plan }}</a><br><span class="text-muted small">{{ plan.source_name }}</span>{% if plan.notes %}<br><span class="small">{{ plan.notes|truncatechars:120 }}</span>{% endif %}</td>
+                <td>{% if plan.location %}<span class="loc-code">{{ plan.location.unique_identifier }}</span>{% endif %}</td>
+                <td>{{ plan.active|yesno:"✓," }}</td>
+                <td>{% if plan.active %}{{ plan.shown|yesno:"✓," }}{% endif %}</td>
+                <td>{{ plan.is_placed|yesno:"✓," }}</td>
+                <td>{% if plan.residual_m is not None %}{{ plan.residual_m|floatformat:2 }} m{% endif %}</td>
+            </tr>
+        {% empty %}
+            <tr><td colspan="7" class="text-muted">{% trans "No floor plans yet." %}</td></tr>
+        {% endfor %}
+        </tbody>
+    </table>
+    {% if perms.maps.manage_floorplans %}
+    <h2 class="fs-4">{% trans "Add a floor plan" %}</h2>
+    <p class="text-muted">{% trans "PDF, PNG, JPEG, WebP or SVG. DWG files are converted to PDF first (docs/maps.md). A level can have several plans; you crop and place the new one next." %}</p>
+    <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        {% bootstrap_form form %}
+        <button type="submit" class="btn btn-primary">{% trans "Upload" %}</button>
+    </form>
+    {% endif %}
+{% endblock %}

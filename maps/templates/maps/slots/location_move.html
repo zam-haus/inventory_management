@@ -1,0 +1,10 @@
+{% load i18n icons maps_tags %}{% map_dialog object as dialog %}{# Optional: where it goes in the new location; sent along with the move (map_place.js, signals.moved). #}
+{% if object|map_placeable and "point" in dialog.kinds or object|map_placeable and "rectangle" in dialog.kinds %}
+<div class="map-pick mt-3" data-map-pick data-context="{% url 'maps:place_context' %}" data-query="location={{ object.pk }}"
+     data-field="map_geometry" data-target-field="parent_location" {% include "maps/place_strings.html" %}>
+    <input type="hidden" name="map_geometry"><input type="hidden" name="map_kind"><input type="hidden" name="map_rotation">
+    <input type="hidden" name="map_width_cm"><input type="hidden" name="map_depth_cm">
+    <button type="button" class="btn btn-sm btn-outline-secondary" data-pick-toggle>{% icon "pin-map" %} {% trans "Mark the new place on the map (optional)" %}</button>
+    <div data-pick-panel hidden class="mt-2">{% include "maps/place_tools.html" with prefix="map-pick-location" %}</div>
+</div>
+{% endif %}

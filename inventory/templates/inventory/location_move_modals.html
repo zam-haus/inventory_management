@@ -1,4 +1,4 @@
-{% load i18n django_bootstrap5 icons %}
+{% load i18n django_bootstrap5 icons slots %}
 {# Move this location, or move other locations into it, in dialogs opened by the header actions (data-modal-open). #}
 {# They post to the move pages, which also show errors and serve as the fallback without JavaScript. #}
 {# The QR scanners open their own dialogs above these, which need the focus (data-bs-focus). #}
@@ -14,6 +14,7 @@
             <div class="modal-body">
                 <p class="text-muted">{% trans "Current location path" %}: {{ object.descriptive_identifier }}</p>
                 {% bootstrap_form move_form %}
+                {% slot "location_move.extra" %}
                 <p class="location-muted mb-0">{% trans "Stored items and child locations remain assigned to this location." %}{% if object.type.unique and not object.type.area_numbering %} {% trans "Leave the destination empty to make this a top-level location." %}{% endif %}</p>
             </div>
             <div class="modal-footer">

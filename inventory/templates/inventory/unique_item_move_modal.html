@@ -1,4 +1,4 @@
-{% load i18n django_bootstrap5 icons %}
+{% load i18n django_bootstrap5 icons slots %}
 {# Move a unique item: search for the new location or scan its label (unique_item_move.js). #}
 <div class="modal fade" id="move-modal" tabindex="-1" aria-labelledby="move-modal-title" aria-hidden="true">
     <div class="modal-dialog">
@@ -12,6 +12,7 @@
                 <p class="text-muted">{% blocktrans with location=object.location.title_with_code %}Currently at {{ location }}.{% endblocktrans %}</p>
                 {# The field's QR button scans the new location's label (widgets.LocationSelect). #}
                 {% bootstrap_field move_form.location %}
+                {% slot "unique_item_move.extra" %}
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{% trans "Cancel" %}</button>

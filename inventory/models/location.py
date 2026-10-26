@@ -15,6 +15,7 @@ from django.utils.html import format_html
 from django.utils.translation import gettext, gettext_lazy as _
 
 from ..actor import acting_as
+from ..signals import send_moved
 from ..soft_delete import ActiveManager, SoftDeleteModel
 
 
@@ -654,6 +655,8 @@ class Location(SoftDeleteModel, ComputedFieldsModel):
                 self._keep_former_codes(codes_before, using)
             if stored and saves("name") and stored["name"] != self.name:
                 self._rename_default_sublocations(stored["name"], using)
+            if stored and saves("parent_location") and stored["parent_location_id"] != self.parent_location_id:
+                send_moved(self, stored["parent_location_id"])
             return result
 
     def _subtree_codes(self, using):
