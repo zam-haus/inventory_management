@@ -110,7 +110,7 @@ Creates `backups/<date>_<time>[-LABEL]/`:
 
 | File | Content |
 |---|---|
-| `db.dump` | the database (`pg_dump` custom format; restore with `pg_restore`) |
+| `db.dump` | the database (`pg_dump` custom format, zstd-compressed; restore with `pg_restore`) |
 | `media/` | all uploaded files |
 | `env` | a copy of `.env` |
 | `info.txt` | date, git commit and host |
