@@ -30,6 +30,9 @@ STATIC_URL = "static/"
 # Media files (e.g., uploads by users)
 MEDIA_ROOT = os.path.join(BASE_DIR, "data", "media")
 MEDIA_URL = "media/"
+# Text detection model for OCR on photos (inventory/ocr_util.py); part of the Docker image. Without it, Tesseract
+# reads whole photos, with more garbage.
+OCR_TEXT_DETECTION_MODEL = os.getenv("OCR_TEXT_DETECTION_MODEL", "/opt/ocr/text_detection_ppocrv3.onnx")
 # Static URLs carry ?v=<content hash>, so browsers load changed files at once (inventory/static_versions.py).
 STORAGES = {
     "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},

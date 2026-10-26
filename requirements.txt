@@ -13,6 +13,8 @@ mozilla-django-oidc
 django-ipware
 tqdm
 pytesseract
+opencv-python-headless>=4.10
+pyzbar
 sorl-thumbnail
 django-autocomplete-light>=3.12.1
 django-static-jquery

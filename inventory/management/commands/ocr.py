@@ -77,16 +77,18 @@ class Command(BaseCommand):
         self.get_logger()
         since_parsed = self.parse_since_argument(since)
         ocr_before_parsed = self.parse_ocr_before_argument(ocr_before)
-        images = self.get_images_filtered(rerun, since_parsed, ocr_before_parsed).order_by("ocr_timestamp")
-        total = images.count()
+        images = self.get_images_filtered(rerun, since_parsed, ocr_before_parsed)
+        # the order is fixed up front: recognizing a photo changes its ocr_timestamp
+        ids = list(images.order_by("ocr_timestamp", "pk").values_list("pk", flat=True))
+        total = len(ids)
         logger.info(f"Running OCR on {total} images in batches of {batch_size}")
         logger.info("")
         progress = tqdm(total=total)
-        last_pk = 0
         with mp.get_context("fork").Pool(workers, initializer=limit_tesseract_threads) as pool:
-            while batch := {image.pk: image for image in images.filter(pk__gt=last_pk)[:batch_size]}:
-                last_pk = max(batch)
-                id_to_path = [(image.pk, image.image.path) for image in batch.values()]
+            for start in range(0, total, batch_size):
+                batch_ids = ids[start:start + batch_size]
+                batch = ItemImage.objects.in_bulk(batch_ids)  # photos deleted meanwhile are skipped
+                id_to_path = [(pk, batch[pk].image.path) for pk in batch_ids if pk in batch]
                 for image_id, ocr_text in pool.imap(func=run_ocr, iterable=id_to_path):
                     batch[image_id].update_ocr_text(ocr_text)
                     progress.update()

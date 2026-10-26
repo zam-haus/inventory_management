@@ -203,6 +203,29 @@ class MaintenanceRegressionTests(TestCase):
             image.refresh_from_db()
             self.assertEqual(image.ocr_text, f"Text {image.pk}")
 
+    def test_ocr_rerun_takes_every_photo_longest_unrecognized_first(self):
+        unit = MeasurementUnit.objects.create(name="Piece", short="pc")
+        item = Item.objects.create(name="Photo", measurement_unit=unit)
+        now = timezone.now()
+        # the newer the photo, the longer ago its text was recognized
+        images = [ItemImage.objects.create(item=item, image=f"example{i}.png") for i in range(5)]
+        for days, image in enumerate(images):
+            ItemImage.objects.filter(pk=image.pk).update(ocr_timestamp=now - timezone.timedelta(days=days))
+        batches = []
+
+        def imap(func, iterable):
+            batches.append([image_id for image_id, _ in iterable])
+            return [(image_id, "Again") for image_id in batches[-1]]
+
+        with (
+            patch("inventory.management.commands.ocr.mp.get_context") as context,
+            patch("inventory.management.commands.ocr.logger"),
+            patch("inventory.management.commands.ocr.tqdm"),
+        ):
+            context.return_value.Pool.return_value.__enter__.return_value.imap.side_effect = imap
+            call_command("ocr", rerun=True, batch_size=2, stdout=StringIO())
+        self.assertEqual(sum(batches, []), [image.pk for image in reversed(images)])
+
     def test_parent_autocomplete_excludes_self_and_descendants(self):
         kind = LocationType.objects.create(name="Room", unique=True)
         root = Location.objects.create(type=kind, name="Root", short_name="R")

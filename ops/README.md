@@ -254,6 +254,7 @@ otherwise (`imzam/health.py`). It answers for any host name and is not logged by
   (`podman image prune`).
 * **Photos without recognized text** (uploaded while `ocr` was down, or from before it existed):
   `ops/manage.sh ocr` recognizes the text on all photos that have none; `podman-compose logs ocr` shows
-  failures.
+  failures. After an improvement of the recognition, `ops/manage.sh ocr --rerun --workers 2` recognizes all
+  photos again (hours; see [Text recognition](../docs/ocr.md#cost)).
 * **SELinux** (Fedora, RHEL): bind mounts need a label; if containers cannot read
   `data/`, add `:Z` to the volumes in `docker-compose.yml`.
