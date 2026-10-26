@@ -169,7 +169,7 @@ class MaintenanceRegressionTests(TestCase):
             patch("inventory.management.commands.ocr.mp.get_context") as context,
             patch("inventory.management.commands.ocr.mp.set_start_method", side_effect=AssertionError("Global setting changed")),
             patch("inventory.management.commands.ocr.logger"),
-            patch("inventory.management.commands.ocr.tqdm", side_effect=lambda iterable, **kwargs: iterable),
+            patch("inventory.management.commands.ocr.tqdm"),
         ):
             pool = context.return_value.Pool.return_value.__enter__.return_value
             for text in ("First OCR pass", "Second OCR pass"):
@@ -177,6 +177,29 @@ class MaintenanceRegressionTests(TestCase):
                 call_command("ocr", rerun=True, stdout=StringIO())
                 image.refresh_from_db()
                 self.assertEqual(image.ocr_text, text)
+
+    def test_ocr_command_saves_each_batch_before_loading_the_next(self):
+        unit = MeasurementUnit.objects.create(name="Piece", short="pc")
+        item = Item.objects.create(name="Photo", measurement_unit=unit)
+        images = [ItemImage.objects.create(item=item, image=f"example{i}.png") for i in range(5)]
+        batches = []
+
+        def imap(func, iterable):
+            batches.append([image_id for image_id, _ in iterable])
+            self.assertFalse(ItemImage.objects.filter(pk__in=batches[-1], ocr_timestamp__isnull=False).exists())
+            return [(image_id, f"Text {image_id}") for image_id in batches[-1]]
+
+        with (
+            patch("inventory.management.commands.ocr.mp.get_context") as context,
+            patch("inventory.management.commands.ocr.logger"),
+            patch("inventory.management.commands.ocr.tqdm"),
+        ):
+            context.return_value.Pool.return_value.__enter__.return_value.imap.side_effect = imap
+            call_command("ocr", rerun=True, batch_size=2, stdout=StringIO())
+        self.assertEqual([len(batch) for batch in batches], [2, 2, 1])
+        for image in images:
+            image.refresh_from_db()
+            self.assertEqual(image.ocr_text, f"Text {image.pk}")
 
     def test_parent_autocomplete_excludes_self_and_descendants(self):
         kind = LocationType.objects.create(name="Room", unique=True)

@@ -1,5 +1,6 @@
 import logging
 import multiprocessing as mp
+import os
 import sys
 from datetime import datetime
 
@@ -14,6 +15,10 @@ logger = logging.getLogger("ocr")
 logger.handlers.clear()
 logger.setLevel(logging.INFO)
 
+def limit_tesseract_threads():
+    # several tesseract processes run in parallel; each one spawning a thread per core multiplies memory use
+    os.environ["OMP_THREAD_LIMIT"] = "1"
+
 def run_ocr(id_with_path):
     image_id, path = id_with_path
     return (image_id, ocr_on_image_path(path))
@@ -25,6 +30,9 @@ class Command(BaseCommand):
         parser.add_argument('--rerun', action='store_true', default=False,
                             help="Rerun OCR on all images")
         parser.add_argument('--since', required=False, help="Only consider images after the given date (date format: YYYY-MM-DD)")
+        parser.add_argument('--batch-size', type=int, default=50,
+                            help="Number of images loaded and queued at once; results are saved as they arrive")
+        parser.add_argument('--workers', type=int, default=4, help="Number of parallel OCR processes")
 
     def parse_since_argument(self, since):
         if since is None:
@@ -51,17 +59,20 @@ class Command(BaseCommand):
             filters['ocr_timestamp__gte'] = since_parsed
         return ItemImage.objects.filter(**filters)
 
-    def handle(self, *args, rerun=False, since=None,  **kwargs):
+    def handle(self, *args, rerun=False, since=None, batch_size=50, workers=4, **kwargs):
         self.get_logger()
         since_parsed = self.parse_since_argument(since)
-        logger.info("Collecting image paths...")
-        id_to_path = {image.id : image.image.path for image in self.get_images_filtered(rerun, since_parsed)}
-        logger.info(f"Running OCR on {len(id_to_path)} images")
+        images = self.get_images_filtered(rerun, since_parsed).order_by("pk")
+        total = images.count()
+        logger.info(f"Running OCR on {total} images in batches of {batch_size}")
         logger.info("")
-        with mp.get_context("fork").Pool(4) as pool:
-            id_to_ocr_text = dict(tqdm(pool.imap(func=run_ocr, iterable=id_to_path.items()), total=len(id_to_path)))
-        logging.info("Writing results to database")
-        for image_id, ocr_text in tqdm(id_to_ocr_text.items()):
-            image_db = ItemImage.objects.get(id=image_id)
-            image_db.update_ocr_text(ocr_text)
-
+        progress = tqdm(total=total)
+        last_pk = 0
+        with mp.get_context("fork").Pool(workers, initializer=limit_tesseract_threads) as pool:
+            while batch := {image.pk: image for image in images.filter(pk__gt=last_pk)[:batch_size]}:
+                last_pk = max(batch)
+                id_to_path = [(image.pk, image.image.path) for image in batch.values()]
+                for image_id, ocr_text in pool.imap(func=run_ocr, iterable=id_to_path):
+                    batch[image_id].update_ocr_text(ocr_text)
+                    progress.update()
+        progress.close()
