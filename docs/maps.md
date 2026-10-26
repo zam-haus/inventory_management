@@ -20,7 +20,10 @@ PostgreSQL to PostGIS (`imzam/settings.py`). GeoDjango needs GDAL, GEOS and PROJ
 - **Server:** `MAPS_ENABLED=1` in `.env`. The scripts in `ops/` then also use `docker-compose.maps.yml`: the
   database image becomes `postgis/postgis:18-3.6` (same PostgreSQL version and data directory, so the existing
   database stays), and the app images are built with `MAPS=1` (GDAL and poppler). `migrate` creates the PostGIS
-  extension on the next start.
+  extension on the next start. After setting it, run `ops/update.sh` so the images are rebuilt; a plain restart
+  keeps the images without GDAL, and the app stops with "MAPS_ENABLED is set, but GDAL is missing". By hand,
+  without `ops/`: `COMPOSE_FILE=docker-compose.yml:docker-compose.maps.yml`; Docker Compose also reads that line
+  from `.env`, so plain `docker compose …` commands then use the maps images too.
 - **Development (macOS, MacPorts):** `sudo port install gdal geos proj9 spatialite` (and `pg17-postgis` for the
   PostgreSQL test cluster). In `imzam/local_settings.py`:
 

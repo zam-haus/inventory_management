@@ -387,6 +387,13 @@ if not CELERY_BROKER_URL:
     CELERY_BROKER_URL = "memory://localhost/"  # in-process, never used by eager tasks
 
 if MAPS_ENABLED:
+    # MAPS_ENABLED=1 in .env reaches every container; GDAL only the images built with docker-compose.maps.yml.
+    import ctypes.util
+    if not GDAL_LIBRARY_PATH and not ctypes.util.find_library("gdal"):
+        from django.core.exceptions import ImproperlyConfigured
+        raise ImproperlyConfigured(
+            "MAPS_ENABLED is set, but GDAL is missing. Docker: build the images with docker-compose.maps.yml "
+            "(ops/update.sh does that when .env has MAPS_ENABLED=1), or set MAPS_ENABLED=0. See docs/maps.md.")
     INSTALLED_APPS = [*INSTALLED_APPS, "django.contrib.gis", "maps.apps.MapsConfig"]
     _SPATIAL_ENGINES = {"django.db.backends.postgresql": "django.contrib.gis.db.backends.postgis",
                         "django.db.backends.sqlite3": "django.contrib.gis.db.backends.spatialite"}
