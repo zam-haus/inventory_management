@@ -32,4 +32,5 @@ urlpatterns = [
     path("plans/<int:pk>/image", views.plan_image, name="plan_image"),
     path("plans/<int:pk>/tile/<int:index>", views.plan_tile, name="plan_tile"),
     path("plans/<int:pk>/source", views.plan_source, name="plan_source"),
+    path("plans/<int:pk>/page", views.plan_page, name="plan_page"),
 ]

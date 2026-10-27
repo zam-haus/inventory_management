@@ -141,6 +141,15 @@
 .map-align .map-canvas {
     height: 60vh;
 }
+/* The heading over each side, with the steps on the plan's side. */
+.map-align-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .5rem;
+    min-height: 2rem;
+    margin-bottom: .5rem;
+}
 @media (max-width: 767.98px) {
     .map-align {
         grid-template-columns: 1fr;
@@ -162,6 +171,7 @@
 }
 .map-align-mark {
     background: var(--map-align-reticle);
+    cursor: move;  /* dragged to correct the point */
 }
 .map-place-handle {
     background: #fff;

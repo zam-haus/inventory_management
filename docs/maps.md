@@ -162,16 +162,22 @@ given), or
    is about 9900) is cut into tiles of 2048 pixels, WebP without metadata, which the map places side by side (they
    overlap by 2 pixels; the opacity applies to the whole plan). Rendering an A1 sheet at 300 dpi takes about
    10 seconds.
-2. **Crop** it to the drawing: room tables, title block (names, phone numbers) and dimension chains stay off the
-   map. Draw a rectangle (two opposite corners) or an outline (corner by corner); the preview darkens what is cut
-   off, the corners can still be dragged, then "Apply crop". Outside an outline the plan is transparent. A new
-   outline replaces the old one; "Whole page again" undoes it. Cropping keeps a placed plan where it is: the
-   control points stay at their places on the page.
+2. **Place** it with control points: click a point on the plan, then the same point on the map (the aerial photo,
+   or the plans already placed) — or type its coordinates (latitude, longitude). The points show as reticles and
+   can be dragged on both sides to correct them. Two points place a plan drawn to scale (shift, turn, one scale);
+   more points show the largest deviation. Uneven scaling is only for distorted scans. Once placed, the map on the
+   right shows the plan on top, with an opacity slider that is only for looking (the opacity on the map is saved
+   below the plan).
+3. **Crop** it to the drawing (once it is placed): room tables, title block (names, phone numbers) and dimension
+   chains stay off the map. The crop is drawn on the whole page (rendered once at 100 dpi, at most 4000 pixels,
+   next to the source and like it for staff only), with the current outline on it: draw a new rectangle (two
+   opposite corners) or outline (corner by corner), copy the outline of another plan (e.g. another sheet of the same
+   survey), or take the whole page. The corners can be dragged, added between two, and removed with a double click
+   (also while drawing); the preview darkens what is cut off; then "Apply crop". Outside an outline the plan is
+   transparent. Cropping keeps the plan where it is: the control points stay at their places on the page, including
+   points dragged since placing.
    **Remove the background** (below the plan) makes the white paper transparent, so that the aerial photo shows
    through; lines keep their colour.
-3. **Place** it with control points: click a point on the plan, then the same point on the map (the aerial photo,
-   or the plans already placed) — or type its coordinates (latitude, longitude). Two points place a plan drawn to scale (shift, turn, one scale); more points show the
-   largest deviation. Uneven scaling is only for distorted scans.
 
 A plan keeps the name of its uploaded file (shown and used when downloading it) and has internal notes, e.g. where
 the file came from; neither is shown on the map. The source file is visible to staff only; everyone sees the cropped image (served with `Content-Security-Policy:

@@ -931,8 +931,8 @@ msgid "Not placed yet."
 msgstr "Noch nicht ausgerichtet."
 
 #: templates/maps/plan_align.html:20
-msgid "Click a point on the plan."
-msgstr "Einen Punkt auf dem Plan anklicken."
+msgid "Click a point on the plan; drag the points to correct them."
+msgstr "Einen Punkt auf dem Plan anklicken; zum Korrigieren die Punkte ziehen."
 
 #: templates/maps/plan_align.html:21
 msgid "Now click the same point on the map, or type its coordinates."
@@ -940,16 +940,48 @@ msgstr "Jetzt denselben Punkt auf der Karte anklicken oder seine Koordinaten ein
 
 #: templates/maps/plan_align.html:22
 msgid ""
-"Draw the outline of the drawing on the plan: a rectangle by clicking two "
-"opposite corners, an outline corner by corner (click the first corner again "
-"to finish)."
-msgstr "Den Umriss der Zeichnung auf dem Plan einzeichnen: ein Rechteck mit zwei gegenüberliegenden Ecken, einen Umriss Ecke für Ecke (zum Abschließen wieder die erste Ecke anklicken)."
+"A rectangle: click two opposite corners. An outline: click corner by corner "
+"(double-click a corner to remove it), then click the first corner again to "
+"finish."
+msgstr "Ein Rechteck: zwei gegenüberliegende Ecken anklicken. Ein Umriss: Ecke für Ecke anklicken (Doppelklick auf eine Ecke entfernt sie), zum Abschließen wieder die erste Ecke anklicken."
 
 #: templates/maps/plan_align.html:23
 msgid ""
-"Drag the corners to correct the outline; everything darkened is cut off. "
-"Then apply it."
-msgstr "Zum Korrigieren die Ecken ziehen; alles Abgedunkelte wird abgeschnitten. Dann übernehmen."
+"Drag the corners to correct the outline, click between two corners to add "
+"one, double-click a corner to remove it; everything darkened is cut off. Then "
+"apply it."
+msgstr "Zum Korrigieren die Ecken ziehen, zwischen zwei Ecken klicken fügt eine hinzu, Doppelklick auf eine Ecke entfernt sie; alles Abgedunkelte wird abgeschnitten. Dann den Zuschnitt übernehmen."
+
+msgid ""
+"No outline: the whole page is shown. Draw one, or copy one from another plan."
+msgstr "Kein Umriss: die ganze Seite wird gezeigt. Einen zeichnen oder den eines anderen Plans kopieren."
+
+msgid "Loading the whole page …"
+msgstr "Die ganze Seite wird geladen …"
+
+msgid "The whole page could not be loaded."
+msgstr "Die ganze Seite ließ sich nicht laden."
+
+msgid "Steps"
+msgstr "Schritte"
+
+msgid "1. Place"
+msgstr "1. Ausrichten"
+
+msgid "2. Crop"
+msgstr "2. Zuschneiden"
+
+msgid "New outline"
+msgstr "Neuer Umriss"
+
+msgid "Copy from"
+msgstr "Kopieren von"
+
+msgid "Only for looking here; the opacity on the map is saved below."
+msgstr "Nur zum Ansehen hier; die Deckkraft auf der Karte wird unten gespeichert."
+
+msgid "Place the plan first."
+msgstr "Erst den Plan ausrichten."
 
 #: templates/maps/plan_align.html:24
 msgid "Coordinates as “latitude, longitude”, e.g. 49.597312, 11.004561."
@@ -972,8 +1004,8 @@ msgid "Apply crop"
 msgstr "Zuschnitt übernehmen"
 
 #: templates/maps/plan_align.html:36
-msgid "Whole page again"
-msgstr "Wieder die ganze Seite"
+msgid "Whole page"
+msgstr "Ganze Seite"
 
 #: templates/maps/plan_align.html:40
 msgid "Where it is"
@@ -1128,8 +1160,8 @@ msgid "all"
 msgstr "alle"
 
 #: views.py:339
-msgid "Plan added. Now crop it to the drawing and place it."
-msgstr "Plan hinzugefügt. Jetzt auf die Zeichnung zuschneiden und ausrichten."
+msgid "Plan added. Now place it, then crop it to the drawing."
+msgstr "Plan hinzugefügt. Jetzt ausrichten, dann auf die Zeichnung zuschneiden."
 
 #: views.py:369
 msgid "Plan cropped; its placement stays."

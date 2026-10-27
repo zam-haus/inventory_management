@@ -198,11 +198,11 @@ def webp(image, name):
     return ContentFile(out.getvalue(), name=name)
 
 
-def preview(image):
+def preview(image, side=TILE_SIDE, name="plan.webp"):
     """The plan made small (TILE_SIDE), e.g. for the plans list."""
     small = image.copy()
-    small.thumbnail((TILE_SIDE, TILE_SIDE), Image.Resampling.LANCZOS)
-    return webp(small, "plan.webp")
+    small.thumbnail((side, side), Image.Resampling.LANCZOS)
+    return webp(small, name)
 
 
 def tiles(image):

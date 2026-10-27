@@ -402,6 +402,46 @@ class MapViewTests(Building, TestCase):
         self.assertAlmostEqual(top_left.x - corner.x, 2, places=2)  # 100 px × 2 cm east of the old corner
         self.assertAlmostEqual(corner.y - top_left.y, 3, places=2)  # 150 px × 2 cm south
 
+    def test_the_crop_is_drawn_on_the_whole_page(self):
+        plan = self.plan(crop=[0.5, 0, 1, 1])
+        self.assertEqual(plan.image_width, 200)
+        url = reverse("maps:plan_page", args=[plan.pk])
+        self.client.force_login(self.member)
+        self.assertEqual(self.client.get(url).status_code, 403)  # the page shows what the crop leaves off
+        self.client.force_login(self.staff)
+        config = self.client.get(reverse("maps:plan_align", args=[plan.pk])).context["config"]
+        self.assertEqual(config["crop"], [[0.5, 0], [1, 0], [1, 1], [0.5, 1]])
+        response = self.client.get(config["page"])
+        self.assertIn("private", response["Cache-Control"])
+        page = Image.open(io.BytesIO(b"".join(response.streaming_content)))
+        self.assertEqual((page.format, page.size), ("WEBP", (400, 300)))
+        svg = self.plan(SVG, filename="plan.svg")
+        self.assertEqual(self.client.get(reverse("maps:plan_page", args=[svg.pk])).status_code, 404)
+
+    def test_cropping_comes_after_placing_and_keeps_changed_points(self):
+        plan = self.plan()
+        other = self.plan(name="Other sheet", level=0, crop=[[0, 0], [0.5, 0], [0, 0.5]])
+        self.client.force_login(self.staff)
+        url = reverse("maps:plan_align", args=[plan.pk])
+        context = self.client.get(url).context
+        self.assertEqual(context["crop_denied"], "Place the plan first.")
+        self.assertEqual(context["other_crops"], [{"pk": other.pk, "label": "Other sheet (+0)"}])
+        self.assertEqual(context["config"]["otherCrops"], {str(other.pk): other.crop})
+        self.assertIsNone(context["config"]["planLayer"])
+        points = [{"pixel": [0, 0], "lonlat": list(CENTER.coords)},
+                  {"pixel": [400, 0], "lonlat": list(local_point(8, 0).coords)}]
+        self.client.post(url, {"action": "place", "control_points": json.dumps(points)})
+        context = self.client.get(url).context
+        self.assertIsNone(context["crop_denied"])
+        self.assertEqual(context["config"]["planLayer"]["id"], plan.pk)  # shown on the right, also when inactive
+        # A point dragged after placing comes along with the crop and stays at its place on the page.
+        dragged = [points[0], {"pixel": [200, 0], "lonlat": list(local_point(4, 0).coords)}]
+        self.client.post(url, {"action": "crop", "crop": "[0.5, 0, 1, 1]", "control_points": json.dumps(dragged),
+                               "affine": ""})
+        plan.refresh_from_db()
+        self.assertEqual([point["pixel"] for point in plan.control_points], [[-200.0, 0.0], [0.0, 0.0]])
+        self.assertLess(plan.residual_m, 0.01)
+
     def test_an_empty_crop_is_the_whole_page(self):
         # An empty crop (e.g. "[]" saved in the admin) made the next crop fail with "needs four numbers".
         plan = self.plan(crop=[])

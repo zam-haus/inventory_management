@@ -603,7 +603,7 @@
         return (Math.atan2((at.lng - center.lng) * m[0], (at.lat - center.lat) * m[1]) * 180 / Math.PI + 360) % 360;
     }
 
-    window.ZamMap = {create: create, draw: draw, load: load, highlight: highlight, stackControl: stackControl,
+    window.ZamMap = {create: create, draw: draw, planLayer: planLayer, load: load, highlight: highlight, stackControl: stackControl,
         filterStacks: filterStacks, layerControl: layerControl, STYLES: STYLES,
         geometry: {metresPerDegree: metresPerDegree, offset: offset, rectangle: rectangle, planRotation: planRotation,
             snapTargets: snapTargets, snapCenter: snapCenter, snapRotation: snapRotation, bearing: bearing}};

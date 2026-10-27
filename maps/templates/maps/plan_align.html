@@ -17,33 +17,60 @@
         {% if plan.is_placed %}{% blocktrans with residual=plan.residual_m|floatformat:2 %}Placed; the control points deviate by up to {{ residual }} m.{% endblocktrans %}{% else %}{% trans "Not placed yet." %}{% endif %}</p>
 
     <div class="map-align" data-map-align
-         data-pick-plan="{% trans 'Click a point on the plan.' %}"
+         data-pick-plan="{% trans 'Click a point on the plan; drag the points to correct them.' %}"
          data-pick-place="{% trans 'Now click the same point on the map, or type its coordinates.' %}"
-         data-crop-start="{% trans 'Draw the outline of the drawing on the plan: a rectangle by clicking two opposite corners, an outline corner by corner (click the first corner again to finish).' %}"
-         data-crop-edit="{% trans 'Drag the corners to correct the outline; everything darkened is cut off. Then apply it.' %}"
+         data-page-loading="{% trans 'Loading the whole page …' %}"
+         data-page-error="{% trans 'The whole page could not be loaded.' %}"
+         data-crop-draw="{% trans 'A rectangle: click two opposite corners. An outline: click corner by corner (double-click a corner to remove it), then click the first corner again to finish.' %}"
+         data-crop-edit="{% trans 'Drag the corners to correct the outline, click between two corners to add one, double-click a corner to remove it; everything darkened is cut off. Then apply it.' %}"
+         data-crop-whole="{% trans 'No outline: the whole page is shown. Draw one, or copy one from another plan.' %}"
          data-bad-coordinates="{% trans 'Coordinates as “latitude, longitude”, e.g. 49.597312, 11.004561.' %}">
         <section>
-            <h2 class="fs-5">{% trans "Plan" %}</h2>
+            <div class="map-align-head">
+                <h2 class="fs-5 mb-0">{% trans "Plan" %}</h2>
+                <div class="btn-group btn-group-sm" role="group" aria-label="{% trans 'Steps' %}">
+                    <button type="button" class="btn btn-outline-primary active" aria-pressed="true" data-align-step="place">{% trans "1. Place" %}</button>
+                    <button type="button" class="btn btn-outline-primary" aria-pressed="false" data-align-step="crop"{% if crop_denied %} disabled{% endif %}>{% trans "2. Crop" %}</button>
+                </div>
+                {% if crop_denied %}<span class="form-text m-0">{{ crop_denied }}</span>{% endif %}
+            </div>
             <div class="map-canvas" data-align-plan></div>
-            <div class="map-place-tools">
-                <span>{% trans "Crop" %}:</span>
+            <div class="map-canvas" data-align-page hidden></div>
+            <div class="map-place-tools" data-align-crop-tools hidden>
+                <span>{% trans "New outline" %}:</span>
                 <button type="button" class="btn btn-sm btn-outline-secondary" data-align-crop="Rectangle">{% trans "Rectangle" %}</button>
                 <button type="button" class="btn btn-sm btn-outline-secondary" data-align-crop="Polygon">{% trans "Outline" %}</button>
-                <span data-align-crop-actions hidden>
-                    <button type="button" class="btn btn-sm btn-primary" data-align-crop-apply>{% trans "Apply crop" %}</button>
-                    <button type="button" class="btn btn-sm btn-secondary" data-align-crop-cancel>{% trans "Cancel" %}</button>
-                </span>
-                {% if plan.crop %}<form method="post" class="d-inline">{% csrf_token %}<input type="hidden" name="action" value="crop"><input type="hidden" name="crop" value="null"><button type="submit" class="btn btn-sm btn-outline-secondary">{% trans "Whole page again" %}</button></form>{% endif %}
+                <button type="button" class="btn btn-sm btn-outline-secondary" data-align-crop-whole>{% trans "Whole page" %}</button>
+                {% if other_crops %}
+                    <span class="d-inline-flex flex-wrap gap-2 align-items-center mw-100">
+                        <label class="form-label mb-0" for="align-crop-copy">{% trans "Copy from" %}</label>
+                        <select id="align-crop-copy" class="form-select form-select-sm w-auto mw-100" data-align-crop-copy>
+                            {% for other in other_crops %}<option value="{{ other.pk }}">{{ other.label }}</option>{% endfor %}
+                        </select>
+                        <button type="button" class="btn btn-sm btn-outline-secondary" data-align-crop-copy-use>{% trans "Use" %}</button>
+                    </span>
+                {% endif %}
+            </div>
+            <div class="map-place-tools" data-align-crop-actions hidden>
+                <button type="button" class="btn btn-sm btn-primary" data-align-crop-apply>{% trans "Apply crop" %}</button>
+                <button type="button" class="btn btn-sm btn-secondary" data-align-crop-cancel>{% trans "Cancel" %}</button>
             </div>
         </section>
         <section>
-            <h2 class="fs-5">{% trans "Where it is" %}</h2>
+            <div class="map-align-head"><h2 class="fs-5 mb-0">{% trans "Where it is" %}</h2></div>
             <div class="map-canvas" data-align-map></div>
             <div class="map-place-tools">
                 <label class="form-label mb-0" for="align-coordinates">{% trans "Coordinates" %}</label>
                 <input id="align-coordinates" class="form-control form-control-sm w-auto flex-grow-1" placeholder="49.597312, 11.004561" data-align-coordinates>
                 <button type="button" class="btn btn-sm btn-outline-secondary" data-align-use>{% trans "Use" %}</button>
             </div>
+            {% if plan.is_placed %}
+                <div class="map-place-tools">
+                    <label class="form-label mb-0" for="align-opacity">{% trans "Opacity" %}</label>
+                    <input type="range" class="form-range" min="0" max="1" step="0.05" id="align-opacity" value="{{ plan.opacity|stringformat:'.2f' }}" aria-describedby="align-opacity-help" data-align-opacity>
+                    <span class="form-text m-0" id="align-opacity-help">{% trans "Only for looking here; the opacity on the map is saved below." %}</span>
+                </div>
+            {% endif %}
         </section>
     </div>
     <p class="map-place-hint" data-align-hint aria-live="polite"></p>
@@ -79,7 +106,7 @@
             <label class="form-check-label" for="plan-transparent">{% trans "Remove the background (white paper becomes transparent)" %}</label></div>{% endif %}
         <button type="submit" class="btn btn-secondary">{% trans "Save" %}</button>
     </form>
-    <form method="post" data-align-crop-form hidden>{% csrf_token %}<input type="hidden" name="action" value="crop"><input type="hidden" name="crop" data-align-crop-input></form>
+    <form method="post" data-align-crop-form hidden>{% csrf_token %}<input type="hidden" name="action" value="crop"><input type="hidden" name="crop"><input type="hidden" name="control_points"><input type="hidden" name="affine"></form>
     {{ config|json_script:"map-align-config" }}
     {% map_config %}
 {% endblock %}

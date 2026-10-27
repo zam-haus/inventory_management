@@ -11,6 +11,11 @@ from . import geo, render
 from .models import FloorPlan
 
 
+# The whole page for drawing the crop on it (plan_align.html): PDFs rendered at PAGE_DPI, at most PAGE_SIDE pixels.
+PAGE_DPI = 100
+PAGE_SIDE = 4000
+
+
 class PlanError(ValueError):
     pass
 
@@ -57,6 +62,24 @@ def render_image(plan):
     plan.image_width, plan.image_height = width, height
     if old:
         transaction.on_commit(lambda: [plan.image.storage.delete(name) for name in old])
+
+
+def page_preview(plan):
+    """The name in storage of the plan's whole page, small and without crop: rendered once per uploaded file and page,
+    next to the source (and like it for staff only: the page shows what the crop leaves off, e.g. the title block)."""
+    storage = plan.source.storage
+    name = str(PurePosixPath(plan.source.name).parent / f"page-{plan.page}.webp")
+    if storage.exists(name):
+        return name
+    plan.source.open("rb")
+    try:
+        image, _width, _height = render.render(plan.source.file, page=plan.page, dpi=PAGE_DPI,
+                                               suffix=plan.source.name[plan.source.name.rfind("."):])
+    except render.RenderError as error:
+        raise PlanError(str(error)) from error
+    finally:
+        plan.source.close()
+    return storage.save(name, render.preview(image, PAGE_SIDE, "page.webp"))
 
 
 def moved_points(points, old_size, old_crop, new_size, new_crop):

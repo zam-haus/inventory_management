@@ -22,7 +22,7 @@ from django.views.decorators.http import require_GET
 from inventory.models import Location, UniqueItem
 
 from . import geo, levels, plans, positions
-from .render import RenderError, crop_bounds, crop_polygon
+from .render import RenderError, crop_polygon
 from .forms import FloorPlanForm
 from .models import FloorPlan, LocationShape, UniqueItemPosition
 from .permissions import (allowed_kinds, edit_map_denied, item_position_denied, placeable, plans_denied,
@@ -37,6 +37,12 @@ def plan_image_url(plan):
     """The URL of a plan's web image; it changes with every new image (each one gets its own folder), since browsers
     keep the image for a day (plan_image)."""
     return reverse("maps:plan_image", args=[plan.pk]) + "?v=" + PurePath(plan.image.name).parent.name
+
+
+def plan_page_url(plan):
+    """The URL of a plan's whole page (plan_page); it changes with the uploaded file and the page."""
+    return (reverse("maps:plan_page", args=[plan.pk]) + "?v=" + PurePath(plan.source.name).parent.name
+            + f"-{plan.page}")
 
 
 def plan_tiles(plan):
@@ -318,6 +324,24 @@ def plan_source(request, pk):
     return response
 
 
+@require_GET
+def plan_page(request, pk):
+    """The whole page of a plan without its crop, small, for drawing the crop on it (plan_align.html); for staff only,
+    like the source."""
+    if plans_denied(request.user):
+        raise PermissionDenied
+    plan = get_object_or_404(FloorPlan, pk=pk)
+    if plan.is_svg:
+        raise Http404
+    try:
+        name = plans.page_preview(plan)
+    except plans.PlanError:
+        raise Http404
+    response = _serve(plan.source.storage.open(name), name=name)
+    response["Cache-Control"] = "private, max-age=86400"  # another file or page gets another URL (plan_page_url)
+    return response
+
+
 class PlansView(PermissionRequiredMixin, View):
     """Floor plans by level; uploading one."""
     permission_required = "maps.manage_floorplans"
@@ -337,25 +361,34 @@ class PlansView(PermissionRequiredMixin, View):
         except plans.PlanError as error:
             form.add_error("source", str(error))
             return self.get(request, form)
-        messages.success(request, _("Plan added. Now crop it to the drawing and place it."))
+        messages.success(request, _("Plan added. Now place it, then crop it to the drawing."))
         return redirect("maps:plan_align", pk=plan.pk)
 
 
 class PlanAlignView(PermissionRequiredMixin, View):
-    """Crop a plan and place it with control points: plan pixels ↔ coordinates (typed, or picked on the map)."""
+    """Place a plan with control points (plan pixels ↔ coordinates, typed or picked on the map), then crop it: an
+    outline on its whole page, drawn or copied from another plan."""
     permission_required = "maps.manage_floorplans"
 
     def get(self, request, pk):
         plan = get_object_or_404(FloorPlan.objects.select_related("location"), pk=pk)
         number = plan.level
+        # Outlines of other plans to start from (e.g. the sheets of one survey have their title block at one place).
+        others = [other for other in FloorPlan.objects.exclude(pk=plan.pk).filter(crop__isnull=False)
+                  .order_by("-level", "name", "pk") if other.crop]
         return render(request, "maps/plan_align.html", {
             "plan": plan, "number": number,
+            "other_crops": [{"pk": other.pk, "label": f"{other} ({levels.label(other.level)})"} for other in others],
+            # Cropping comes second: the crop keeps the control points at their places on the page.
+            "crop_denied": (_("SVG plans cannot be cropped here; crop them before uploading.") if plan.is_svg
+                            else None if plan.is_placed else _("Place the plan first.")),
             "config": {
                 "tiles": plan_tiles(plan), "width": plan.image_width,
                 "height": plan.image_height, "controlPoints": plan.control_points,
-                "cropBounds": crop_bounds(plan.crop),
+                "crop": plan.crop, "page": None if plan.is_svg else plan_page_url(plan),
+                "otherCrops": {str(other.pk): other.crop for other in others},
                 "data": reverse("maps:level_data", args=[number]) if number is not None else None,
-                "plan": plan.pk, "residual": plan.residual_m,
+                "plan": plan.pk, "planLayer": _plan_json(plan) if plan.is_placed else None,
             },
         })
 
@@ -365,6 +398,9 @@ class PlanAlignView(PermissionRequiredMixin, View):
             action = request.POST.get("action")
             try:
                 if action == "crop":
+                    if "control_points" in request.POST:  # changed since placing (dragged), but not placed again
+                        plan.control_points = json.loads(request.POST["control_points"] or "[]")
+                        plan.affine = request.POST.get("affine") == "1"
                     plan.crop = crop_polygon(json.loads(request.POST.get("crop") or "null"))
                     plans.save(plan, rendered=True)
                     message = _("Plan cropped; its placement stays.") if plan.is_placed else _("Plan cropped.")
