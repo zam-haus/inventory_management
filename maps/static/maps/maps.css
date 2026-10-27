@@ -149,6 +149,20 @@
 .map-align-points td, .map-align-points th {
     font-variant-numeric: tabular-nums;
 }
+/* Picking a control point: a reticle as cursor (hotspot in the middle; a moving hand while dragging the map) and as
+   the mark of a chosen point, so the exact pixel stays visible on light, dark and coloured plans. */
+.map-align {
+    --map-align-reticle: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='25' height='25'%3E%3Cg fill='none' stroke='%23fff' stroke-width='3'%3E%3Cpath d='M12.5 1v8.5m0 6V24M1 12.5h8.5m6 0H24'/%3E%3Ccircle cx='12.5' cy='12.5' r='6'/%3E%3C/g%3E%3Cg fill='none' stroke='%23d63384'%3E%3Cpath d='M12.5 1v8.5m0 6V24M1 12.5h8.5m6 0H24'/%3E%3Ccircle cx='12.5' cy='12.5' r='6'/%3E%3C/g%3E%3Crect x='11' y='11' width='3' height='3' fill='%23fff'/%3E%3Crect x='12' y='12' width='1' height='1' fill='%23d63384'/%3E%3C/svg%3E");
+}
+.leaflet-container.map-align-pick {
+    cursor: var(--map-align-reticle) 12 12, crosshair;
+}
+.leaflet-dragging .leaflet-container.map-align-pick {
+    cursor: move;
+}
+.map-align-mark {
+    background: var(--map-align-reticle);
+}
 .map-place-handle {
     background: #fff;
     border: 3px solid #d63384;

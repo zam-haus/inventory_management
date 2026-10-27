@@ -32,6 +32,8 @@
     var placeMap = ZamMap.create(root.querySelector('[data-align-map]'));
     ZamMap.layerControl(placeMap);
     var placeMarks = L.layerGroup().addTo(placeMap);
+    // A chosen point: not interactive, so a click on it picks (more exactly) through it.
+    var markIcon = L.divIcon({className: 'map-align-mark', iconSize: [25, 25], tooltipAnchor: [10, 0]});
     if (config.data) {
         ZamMap.load(config.data).then(function (data) {
             var drawn = ZamMap.draw(placeMap, data, {interactive: false});
@@ -56,11 +58,11 @@
         points.forEach(function (point, index) {
             var name = String(index + 1);
             if (point.pixel) {
-                L.circleMarker([-point.pixel[1], point.pixel[0]], {radius: 6, color: '#d63384'})
+                L.marker([-point.pixel[1], point.pixel[0]], {icon: markIcon, interactive: false, keyboard: false})
                     .bindTooltip(name, {permanent: true, direction: 'right'}).addTo(planMarks);
             }
             if (point.lonlat) {
-                L.circleMarker([point.lonlat[1], point.lonlat[0]], {radius: 6, color: '#d63384'})
+                L.marker([point.lonlat[1], point.lonlat[0]], {icon: markIcon, interactive: false, keyboard: false})
                     .bindTooltip(name, {permanent: true, direction: 'right'}).addTo(placeMarks);
             }
             var row = rows.insertRow();
@@ -78,6 +80,8 @@
             });
             row.insertCell().appendChild(remove);
         });
+        planMap.getContainer().classList.toggle('map-align-pick', mode !== 'crop');
+        placeMap.getContainer().classList.toggle('map-align-pick', mode === 'place');
         input.value = JSON.stringify(points.filter(function (p) { return p.pixel && p.lonlat; }));
         say(mode === 'place' ? root.dataset.pickPlace : mode === 'crop' ?
             (cropLayer ? root.dataset.cropEdit : root.dataset.cropStart) : root.dataset.pickPlan);
