@@ -72,6 +72,7 @@ class MapViewTests(Building, TestCase):
         page = self.client.get(reverse("maps:level", args=[-1]))
         self.assertContains(page, "data-map-page")
         self.assertContains(page, ">-1</a>")
+        self.assertContains(page, "data-map-measure-toggle")  # measuring, also for guests
         config = json.loads(page.content.decode().split('<script id="map-config" type="application/json">')[1]
                             .split("</script>")[0])
         self.assertEqual([layer["default"] for layer in config["layers"] if layer.get("default")], [True])

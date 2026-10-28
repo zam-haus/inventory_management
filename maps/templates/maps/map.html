@@ -10,17 +10,20 @@
 
 {% block title %}{% blocktrans %}Map, level {{ label }}{% endblocktrans %}{% endblock %}
 
-{% block page_header %}<h1 class="visually-hidden">{% blocktrans %}Map, level {{ label }}{% endblocktrans %}</h1>{% endblock %}
+{% block page_header %}<h1 class="visually-hidden" data-map-heading>{% blocktrans %}Map, level {{ label }}{% endblocktrans %}</h1>{% endblock %}
 
 {% block content %}
     {# On the map (map.js): the levels at the left below the zoom buttons; levels with the same number share one map. #}
     <nav class="map-levels leaflet-bar" aria-label="{% trans 'Levels' %}" data-map-levels hidden>
         {% for n, level_label, codes in levels %}
-            <a class="{% if n == number %}map-level-current{% endif %}" href="{% url 'maps:level' n %}" data-map-level{% if n == number %} aria-current="page"{% endif %} title="{% blocktrans %}Level {{ level_label }}{% endblocktrans %}: {{ codes|join:', ' }}">{{ level_label }}</a>
+            <a class="{% if n == number %}map-level-current{% endif %}" href="{% url 'maps:level' n %}" data-map-level
+               data-data-url="{% url 'maps:level_data' n %}" data-unplaced-url="{% url 'maps:unplaced' n %}"
+               data-title="{% blocktrans with label=level_label %}Map, level {{ label }}{% endblocktrans %}"{% if n == number %} aria-current="page"{% endif %} title="{% blocktrans %}Level {{ level_label }}{% endblocktrans %}: {{ codes|join:', ' }}">{{ level_label }}</a>
         {% endfor %}
     </nav>
     {# On the map, at the bottom right: editing it, and the floor plans. #}
     <span class="map-actions" data-map-actions hidden>
+        <button type="button" class="btn btn-sm btn-light" aria-pressed="false" data-map-measure-toggle>{% trans "Measure" %}</button>
         {% if not edit_denied %}<button type="button" class="btn btn-sm btn-warning" data-map-edit-toggle data-done="{% trans 'Done' %}">{% icon "pencil" %} <span>{% trans "Edit" %}</span></button>
         {% elif user.is_authenticated %}{% icon "pencil" as edit_icon %}{% disabled_action edit_icon label=_("Edit") name=_("Edit the map") reason=edit_denied classes="btn btn-sm btn-warning" %}{% endif %}
         {% if can_manage_plans %}<a class="btn btn-sm btn-light" href="{% url 'maps:plans' %}">{% trans "Floor plans" %}</a>{% endif %}
@@ -29,6 +32,25 @@
     <div class="map-canvas map-page-canvas" data-map-page data-url="{% url 'maps:level_data' number %}"
          data-empty="{% trans 'No floor plan or position on this level yet.' %}" data-error="{% trans 'The map could not be loaded.' %}"></div>
     {{ layer_names|json_script:"map-layer-names" }}
+    {# Measuring (map_measure.js), for everyone; nothing is saved. #}
+    <div class="map-edit-bar" data-map-measure hidden
+         data-choose="{% trans 'Choose what to measure.' %}"
+         data-line="{% trans 'Click the points of the line; click the last one again to finish.' %}"
+         data-area="{% trans 'Click the corners; click the first one again to finish.' %}"
+         data-circle="{% trans 'Click the centre, then a point on the circle.' %}"
+         data-drag="{% trans 'Drag the points to correct them.' %}"
+         data-perimeter="{% trans 'perimeter' %}" data-radius="{% trans 'radius' %}">
+        <span class="btn-group btn-group-sm" role="group" aria-label="{% trans 'Measure' %}">
+            <button type="button" class="btn btn-outline-secondary" aria-pressed="false" data-measure-tool="line">{% trans "Distance" %}</button>
+            <button type="button" class="btn btn-outline-secondary" aria-pressed="false" data-measure-tool="area">{% trans "Area" context "measure" %}</button>
+            <button type="button" class="btn btn-outline-secondary" aria-pressed="false" data-measure-tool="circle">{% trans "Radius" %}</button>
+        </span>
+        <span class="text-muted" data-measure-hint aria-live="polite"></span>
+        <span class="map-edit-actions">
+            <button type="button" class="btn btn-sm btn-outline-danger" data-measure-clear>{% trans "Remove all" %}</button>
+            <button type="button" class="btn btn-sm btn-secondary" data-measure-close>{% trans "Done" %}</button>
+        </span>
+    </div>
     {% if not edit_denied %}
     {# The edit mode (map_edit.js): what is selected, and what can be done with it. #}
     <div class="map-edit-bar" data-map-edit hidden
@@ -95,5 +117,6 @@
     {% if not edit_denied %}<script src="{% static 'maps/vendor/leaflet-geoman/leaflet-geoman.min.js' %}"></script>{% endif %}
     <script src="{% static 'maps/plan_overlay.js' %}"></script>
     <script src="{% static 'maps/map.js' %}"></script>
+    <script src="{% static 'maps/map_measure.js' %}"></script>
     {% if not edit_denied %}<script src="{% static 'maps/map_edit.js' %}"></script>{% endif %}
 {% endblock %}

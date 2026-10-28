@@ -287,3 +287,18 @@ body:has(.map-page-canvas) > .container {
 .map-place-heading .loc-code {
     font-size: .8rem;
 }
+/* Measuring (map_measure.js): the points and what they measure. */
+.map-measuring.leaflet-container {
+    cursor: crosshair;
+}
+.map-measure-handle {
+    background: #fff;
+    border: 2px solid #6f42c1;
+    border-radius: 50%;
+    cursor: move;
+}
+.leaflet-tooltip.map-measure-label {
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    color: #3d2370;
+}

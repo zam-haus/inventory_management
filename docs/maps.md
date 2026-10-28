@@ -126,6 +126,15 @@ shows on photos, plans and other areas; the **label's first line**: a template w
 **zoom from which labels show** (by default rooms and areas from 18, their parts from 19, shelves and cabinets from
 20; empty: always); and the label's **size, colour and boldness**.
 
+### Measuring
+
+*Measure* (bottom right, for everyone; `map_measure.js`) measures a **distance** along a line (click its points,
+the last one again to finish), an **area** with its perimeter (click its corners, the first one again to finish)
+and a **radius** around a point, with the circle's area (click the centre, then a point on the circle). Clicks go
+through what is drawn, so no popup opens; the points can be dragged afterwards. Areas are computed on a plane, which
+at the size of a site is exact to well under a per mille. Nothing is saved: *Done* removes the measurements. The
+edit mode ends measuring.
+
 ### Sharing a view
 
 The "On the map" links lead to the level with `#p=loc:<pk>` (or `item:`): the map shows that location, or the
@@ -133,6 +142,9 @@ place it is in, highlighted with its popup open. The small map in the location w
 
 The map page keeps its view in the address: `#z=<zoom>&b=<south>,<west>,<north>,<east>`, and `&p=loc:<pk>` while a
 location's popup is open. Such a link shows the same rectangle (and opens the popup); switching the level keeps it.
+Switching the level does not load the page anew: the map draws the other level's data in place (the background,
+the view and measurements stay; the plans shown so far stay until the new ones are loaded), and the address
+changes, so the browser's back button returns to the level before. In the edit mode the level buttons load the page.
 Without `z` and `b` the map shows what `p` names.
 
 ### When things move

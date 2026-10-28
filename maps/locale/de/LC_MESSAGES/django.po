@@ -1277,3 +1277,52 @@ msgid ""
 "Control points copied: they are at the same places on the page as on the "
 "other plan. Drag them where they are off, then place the plan."
 msgstr "Passpunkte übernommen: Sie liegen an denselben Stellen der Seite wie beim anderen Plan. Wo sie danebenliegen, verschieben, dann den Plan ausrichten."
+
+#: maps/templates/maps/map.html
+msgid "Measure"
+msgstr "Messen"
+
+#: maps/templates/maps/map.html
+msgid "Choose what to measure."
+msgstr "Auswählen, was gemessen werden soll."
+
+#: maps/templates/maps/map.html
+msgid "Click the points of the line; click the last one again to finish."
+msgstr "Die Punkte der Linie anklicken; zum Abschließen den letzten noch einmal."
+
+#: maps/templates/maps/map.html
+msgid "Click the corners; click the first one again to finish."
+msgstr "Die Ecken anklicken; zum Abschließen die erste noch einmal."
+
+#: maps/templates/maps/map.html
+msgid "Click the centre, then a point on the circle."
+msgstr "Den Mittelpunkt anklicken, dann einen Punkt auf dem Kreis."
+
+#: maps/templates/maps/map.html
+msgid "Drag the points to correct them."
+msgstr "Zum Korrigieren die Punkte ziehen."
+
+#: maps/templates/maps/map.html
+msgid "perimeter"
+msgstr "Umfang"
+
+#: maps/templates/maps/map.html
+msgid "radius"
+msgstr "Radius"
+
+#: maps/templates/maps/map.html
+msgid "Distance"
+msgstr "Abstand"
+
+#: maps/templates/maps/map.html
+msgid "Radius"
+msgstr "Radius"
+
+#: maps/templates/maps/map.html
+msgid "Remove all"
+msgstr "Alle entfernen"
+
+#: maps/templates/maps/map.html
+msgctxt "measure"
+msgid "Area"
+msgstr "Fläche"

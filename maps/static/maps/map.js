@@ -646,17 +646,49 @@
     var start = readHash();  // the view of the address (below)
     ZamMap.page = page;
 
-    function show(first) {
-        return load(element.dataset.url).then(function (data) {
+    // The plans drawn before go once the new ones' images are there (or after RETIRE_MS), so that the map does not
+    // flash empty in between: changing the level looks like loading other tiles.
+    var RETIRE_MS = 2000;
+    function retire(old, fresh) {
+        if (!old.length) {
+            return;
+        }
+        var loading = [];
+        fresh.forEach(function (plan) {
+            if (map.hasLayer(plan)) {
+                plan.eachLayer(function (tile) {
+                    loading.push(new Promise(function (resolve) { tile.once('load error', resolve); }));
+                });
+            }
+        });
+        var gone = false;
+        function remove() {
+            if (!gone) {
+                gone = true;
+                old.forEach(function (plan) { map.removeLayer(plan); });
+            }
+        }
+        Promise.all(loading).then(remove);
+        setTimeout(remove, RETIRE_MS);
+    }
+
+    // The level's data drawn (anew); `level` for another level (switchLevel), whose plans start as they are set.
+    function show(first, level) {
+        var url = element.dataset.url;
+        return load(url).then(function (data) {
+            if (url !== element.dataset.url) {
+                return;  // another level was chosen meanwhile
+            }
+            var old = [];
             if (page.drawn) {  // what was drawn before, and its switches; plans that were switched on stay so
                 page.drawn.off();
                 var shown = {};
                 page.drawn.plans.forEach(function (plan) {
                     shown[plan.planName] = map.hasLayer(plan);
-                    map.removeLayer(plan);
+                    old.push(plan);
                 });
                 data.plans.forEach(function (plan) {
-                    if (plan.name in shown) {
+                    if (!level && plan.name in shown) {
                         plan.shown = shown[plan.name];
                     }
                 });
@@ -665,6 +697,7 @@
             }
             var drawn = draw(map, data, {interactive: true});
             page.drawn = drawn;
+            retire(old, drawn.plans);
             var overlays = {};
             drawn.plans.forEach(function (plan) { overlays[names.plan.replace('{name}', plan.planName)] = plan; });
             Object.keys(drawn.layers).forEach(function (name) {
@@ -701,6 +734,61 @@
     }
 
     page.reload = function () { return show(false); };
+
+    // Another level without loading the page: its data drawn on the same map (the view, the background and the
+    // measurements stay), the address, title and level buttons changed. In the edit mode, and if loading fails,
+    // the link is followed as it is.
+    var levelLinks = document.querySelectorAll('[data-map-level]');
+    function switchLevel(link, push) {
+        var url = link.href.split('#')[0];
+        if (push) {
+            history.pushState(null, '', url + window.location.hash);
+        }
+        levelLinks.forEach(function (other) {
+            var current = other === link;
+            other.classList.toggle('map-level-current', current);
+            if (current) {
+                other.setAttribute('aria-current', 'page');
+            } else {
+                other.removeAttribute('aria-current');
+            }
+        });
+        document.title = link.dataset.title;
+        var heading = document.querySelector('[data-map-heading]');
+        if (heading) {
+            heading.textContent = link.dataset.title;
+        }
+        element.dataset.url = link.dataset.dataUrl;
+        var bar = document.querySelector('[data-map-edit]');
+        if (bar) {
+            bar.dataset.unplacedUrl = link.dataset.unplacedUrl;
+        }
+        map.closePopup();
+        show(false, true).then(writeHash).catch(function () {
+            window.location.href = link.href;
+        });
+    }
+    levelLinks.forEach(function (link) {
+        link.addEventListener('click', function (event) {
+            if (event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey ||
+                    element.classList.contains('map-editing')) {
+                return;  // followed as a link (a new tab; the edit mode keeps the level's state)
+            }
+            event.preventDefault();
+            if (!link.classList.contains('map-level-current')) {
+                switchLevel(link, true);
+            }
+        });
+    });
+    window.addEventListener('popstate', function () {  // back and forward between levels
+        var path = window.location.pathname;
+        var link = Array.prototype.filter.call(levelLinks, function (other) {
+            return other.pathname === path;
+        })[0];
+        if (link && !link.classList.contains('map-level-current')) {
+            switchLevel(link, false);
+        }
+    });
 
     // The view in the address, to share it: #z=<zoom>&b=<south>,<west>,<north>,<east>&p=<open popup, e.g. loc:12>.
     function readHash() {
