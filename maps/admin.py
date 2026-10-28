@@ -4,7 +4,8 @@ from django.utils.translation import gettext_lazy as _, pgettext_lazy
 from . import plans
 from inventory.admin import LocationTypeAdmin
 
-from .models import BackgroundLayer, FloorPlan, LocationShape, LocationTypeMap, UniqueItemPosition
+from .models import (BackgroundLayer, FloorPlan, LocationShape, LocationTypeMap, SurveyedPoint,
+                     UniqueItemPosition)
 
 
 # Plain ModelAdmins: GeoDjango's map widgets load map tiles from third parties. Positions and plans are placed on
@@ -96,3 +97,11 @@ class BackgroundLayerAdmin(admin.ModelAdmin):
     list_editable = ("active", "position")
     list_display_links = ("name",)
     fields = ("name", "url", "attribution", "max_zoom", "active", "is_default", "position")
+
+
+@admin.register(SurveyedPoint)
+class SurveyedPointAdmin(admin.ModelAdmin):
+    """Places with known coordinates, offered when placing plans."""
+    list_display = ("name", "latitude", "longitude", "active", "position")
+    list_editable = ("active", "position")
+    fields = ("name", "latitude", "longitude", "active", "position")

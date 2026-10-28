@@ -335,3 +335,23 @@ class BackgroundLayer(models.Model):
             if self.is_default:  # the new default replaces the old one
                 BackgroundLayer.objects.filter(is_default=True).exclude(pk=self.pk).update(is_default=False)
             super().save(*args, **kwargs)
+
+
+class SurveyedPoint(models.Model):
+    """A place with known coordinates (e.g. a building corner, measured on site), offered when placing a plan
+    (plan_align.html): picked from a list or on the map instead of clicked on the aerial photo, which is off by a
+    metre or so."""
+    name = models.CharField(_("name"), max_length=100, unique=True, help_text=_(
+        "What and where it is, e.g. “WH: corner Engelstraße next to the stairs”."))
+    latitude = models.FloatField(_("latitude"), validators=[MinValueValidator(-90), MaxValueValidator(90)])
+    longitude = models.FloatField(_("longitude"), validators=[MinValueValidator(-180), MaxValueValidator(180)])
+    active = models.BooleanField(_("offered"), default=True, help_text=_("Offered when placing plans."))
+    position = models.PositiveSmallIntegerField(_("order"), default=0)
+
+    class Meta:
+        verbose_name = _("surveyed point")
+        verbose_name_plural = _("surveyed points")
+        ordering = ["position", "name"]
+
+    def __str__(self):
+        return self.name

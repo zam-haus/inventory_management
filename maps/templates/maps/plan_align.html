@@ -19,6 +19,8 @@
     <div class="map-align" data-map-align
          data-pick-plan="{% trans 'Click a point on the plan; drag the points to correct them.' %}"
          data-pick-place="{% trans 'Now click the same point on the map, or type its coordinates.' %}"
+         data-pick-surveyed="{% trans 'Now click the same point on the map, type its coordinates, or take a surveyed point (green dots on the map).' %}"
+         data-points-copied="{% trans 'Control points copied: they are at the same places on the page as on the other plan. Drag them where they are off, then place the plan.' %}"
          data-page-loading="{% trans 'Loading the whole page …' %}"
          data-page-error="{% trans 'The whole page could not be loaded.' %}"
          data-crop-draw="{% trans 'A rectangle: click two opposite corners. An outline: click corner by corner (double-click a corner to remove it), then click the first corner again to finish.' %}"
@@ -35,6 +37,17 @@
                 {% if crop_denied %}<span class="form-text m-0">{{ crop_denied }}</span>{% endif %}
             </div>
             <div class="map-canvas" data-align-plan></div>
+            {% if other_placements %}
+                <div class="map-place-tools" data-align-place-tools>
+                    <span class="d-inline-flex flex-wrap gap-2 align-items-center mw-100">
+                        <label class="form-label mb-0" for="align-points-copy">{% trans "Copy from" %}</label>
+                        <select id="align-points-copy" class="form-select form-select-sm w-auto mw-100" data-align-points-copy>
+                            {% for other in other_placements %}<option value="{{ other.pk }}">{{ other.label }}</option>{% endfor %}
+                        </select>
+                        <button type="button" class="btn btn-sm btn-outline-secondary" data-align-points-copy-use>{% trans "Use" %}</button>
+                    </span>
+                </div>
+            {% endif %}
             <div class="map-canvas" data-align-page hidden></div>
             <div class="map-place-tools" data-align-crop-tools hidden>
                 <span>{% trans "New outline" %}:</span>
@@ -64,6 +77,15 @@
                 <input id="align-coordinates" class="form-control form-control-sm w-auto flex-grow-1" placeholder="49.597312, 11.004561" data-align-coordinates>
                 <button type="button" class="btn btn-sm btn-outline-secondary" data-align-use>{% trans "Use" %}</button>
             </div>
+            {% if surveyed_points %}
+                <div class="map-place-tools">
+                    <label class="form-label mb-0" for="align-surveyed">{% trans "Surveyed point" %}</label>
+                    <select id="align-surveyed" class="form-select form-select-sm w-auto flex-grow-1 mw-100" data-align-surveyed>
+                        {% for point in surveyed_points %}<option value="{{ forloop.counter0 }}">{{ point.name }}</option>{% endfor %}
+                    </select>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" data-align-surveyed-use>{% trans "Use" %}</button>
+                </div>
+            {% endif %}
             {% if plan.is_placed %}
                 <div class="map-place-tools">
                     <label class="form-label mb-0" for="align-opacity">{% trans "Opacity" %}</label>

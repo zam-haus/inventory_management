@@ -24,7 +24,7 @@ from inventory.models import Location, UniqueItem
 from . import geo, levels, plans, positions
 from .render import RenderError, crop_polygon
 from .forms import FloorPlanForm
-from .models import FloorPlan, LocationShape, UniqueItemPosition
+from .models import FloorPlan, LocationShape, SurveyedPoint, UniqueItemPosition
 from .permissions import (allowed_kinds, edit_map_denied, item_position_denied, placeable, plans_denied,
                           shape_denied)
 
@@ -365,6 +365,10 @@ class PlansView(PermissionRequiredMixin, View):
         return redirect("maps:plan_align", pk=plan.pk)
 
 
+def _plan_label(plan):
+    return f"{plan} ({levels.label(plan.level)})"
+
+
 class PlanAlignView(PermissionRequiredMixin, View):
     """Place a plan with control points (plan pixels ↔ coordinates, typed or picked on the map), then crop it: an
     outline on its whole page, drawn or copied from another plan."""
@@ -373,12 +377,18 @@ class PlanAlignView(PermissionRequiredMixin, View):
     def get(self, request, pk):
         plan = get_object_or_404(FloorPlan.objects.select_related("location"), pk=pk)
         number = plan.level
-        # Outlines of other plans to start from (e.g. the sheets of one survey have their title block at one place).
-        others = [other for other in FloorPlan.objects.exclude(pk=plan.pk).filter(crop__isnull=False)
-                  .order_by("-level", "name", "pk") if other.crop]
+        # Other plans' outlines and placements to start from (e.g. the sheets of one survey have their title block and
+        # the building at the same places on the page): their control points converted to pixels of this plan.
+        others = list(FloorPlan.objects.exclude(pk=plan.pk).order_by("-level", "name", "pk"))
+        cropped = [other for other in others if other.crop]
+        placed = [other for other in others if other.is_placed and other.image_width and plan.image_width]
+        # Places with known coordinates, to take for the control points instead of clicking the aerial photo.
+        surveyed = [{"name": point.name, "lonlat": [point.longitude, point.latitude]}
+                    for point in SurveyedPoint.objects.filter(active=True)]
         return render(request, "maps/plan_align.html", {
-            "plan": plan, "number": number,
-            "other_crops": [{"pk": other.pk, "label": f"{other} ({levels.label(other.level)})"} for other in others],
+            "plan": plan, "number": number, "surveyed_points": surveyed,
+            "other_crops": [{"pk": other.pk, "label": _plan_label(other)} for other in cropped],
+            "other_placements": [{"pk": other.pk, "label": _plan_label(other)} for other in placed],
             # Cropping comes second: the crop keeps the control points at their places on the page.
             "crop_denied": (_("SVG plans cannot be cropped here; crop them before uploading.") if plan.is_svg
                             else None if plan.is_placed else _("Place the plan first.")),
@@ -386,7 +396,12 @@ class PlanAlignView(PermissionRequiredMixin, View):
                 "tiles": plan_tiles(plan), "width": plan.image_width,
                 "height": plan.image_height, "controlPoints": plan.control_points,
                 "crop": plan.crop, "page": None if plan.is_svg else plan_page_url(plan),
-                "otherCrops": {str(other.pk): other.crop for other in others},
+                "otherCrops": {str(other.pk): other.crop for other in cropped},
+                "otherPlacements": {str(other.pk): {
+                    "controlPoints": plans.moved_points(other.control_points, (other.image_width, other.image_height),
+                                                        other.crop, (plan.image_width, plan.image_height), plan.crop),
+                    "affine": other.affine} for other in placed},
+                "surveyedPoints": surveyed,
                 "data": reverse("maps:level_data", args=[number]) if number is not None else None,
                 "plan": plan.pk, "planLayer": _plan_json(plan) if plan.is_placed else None,
             },

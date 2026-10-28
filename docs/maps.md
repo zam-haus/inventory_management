@@ -163,7 +163,12 @@ given), or
    overlap by 2 pixels; the opacity applies to the whole plan). Rendering an A1 sheet at 300 dpi takes about
    10 seconds.
 2. **Place** it with control points: click a point on the plan, then the same point on the map (the aerial photo,
-   or the plans already placed) — or type its coordinates (latitude, longitude). The points show as reticles and
+   or the plans already placed) — or type its coordinates (latitude, longitude), or take a **surveyed point**
+   (a place with known coordinates, e.g. a building corner: picked in the list or clicked as a green dot on the map;
+   the table names it). Surveyed points are kept in the admin (*Maps → Surveyed points*: name, latitude, longitude,
+   offered, order); ZAM's building corners come with the migration. Or **copy** the control points of another
+   placed plan (e.g. another sheet of the same survey): they come at the same places on the page (also with another
+   crop or resolution) and are then corrected by dragging; nothing is saved before "Place plan". The points show as reticles and
    can be dragged on both sides to correct them. Two points place a plan drawn to scale (shift, turn, one scale);
    more points show the largest deviation. Uneven scaling is only for distorted scans. Once placed, the map on the
    right shows the plan on top, with an opacity slider that is only for looking (the opacity on the map is saved

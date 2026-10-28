@@ -15,7 +15,7 @@ from inventory.models import ChangeLog, Location
 from PIL import Image
 
 from .. import geo, positions, render
-from ..models import BackgroundLayer, FloorPlan, LocationShape, LocationTypeMap
+from ..models import BackgroundLayer, FloorPlan, LocationShape, LocationTypeMap, SurveyedPoint
 from .test_geo import CENTER, local_point
 from .test_positions import Building
 
@@ -418,6 +418,18 @@ class MapViewTests(Building, TestCase):
         svg = self.plan(SVG, filename="plan.svg")
         self.assertEqual(self.client.get(reverse("maps:plan_page", args=[svg.pk])).status_code, 404)
 
+    def test_surveyed_points_are_offered_for_placing(self):
+        self.assertEqual(SurveyedPoint.objects.count(), 5)  # ZAM's, from the migration
+        passerelle = SurveyedPoint.objects.get(name="WH: Übergangsecke Passerelle")
+        self.assertEqual((passerelle.latitude, passerelle.longitude), (49.60023103, 11.00210977))
+        SurveyedPoint.objects.exclude(pk=passerelle.pk).update(active=False)
+        plan = self.plan()
+        self.client.force_login(self.staff)
+        page = self.client.get(reverse("maps:plan_align", args=[plan.pk]))
+        self.assertEqual(page.context["config"]["surveyedPoints"],
+                         [{"name": "WH: Übergangsecke Passerelle", "lonlat": [11.00210977, 49.60023103]}])
+        self.assertContains(page, "data-align-surveyed")
+
     def test_cropping_comes_after_placing_and_keeps_changed_points(self):
         plan = self.plan()
         other = self.plan(name="Other sheet", level=0, crop=[[0, 0], [0.5, 0], [0, 0.5]])
@@ -440,6 +452,25 @@ class MapViewTests(Building, TestCase):
                                "affine": ""})
         plan.refresh_from_db()
         self.assertEqual([point["pixel"] for point in plan.control_points], [[-200.0, 0.0], [0.0, 0.0]])
+        self.assertLess(plan.residual_m, 0.01)
+
+    def test_the_placement_is_copied_from_another_plan(self):
+        # Another sheet, placed on its whole page; this one cropped to the right half: the points come at the same
+        # places on the page, in pixels of this plan.
+        points = [{"pixel": [0, 0], "lonlat": list(CENTER.coords), "name": "Corner"},
+                  {"pixel": [400, 0], "lonlat": list(local_point(8, 0).coords)}]
+        other = self.plan(name="Other sheet", level=0, control_points=points, affine=True)
+        self.plan(name="Not placed", level=0)
+        plan = self.plan(crop=[0.5, 0, 1, 1])
+        self.client.force_login(self.staff)
+        url = reverse("maps:plan_align", args=[plan.pk])
+        context = self.client.get(url).context
+        self.assertEqual(context["other_placements"], [{"pk": other.pk, "label": "Other sheet (+0)"}])
+        copied = context["config"]["otherPlacements"][str(other.pk)]
+        self.assertEqual([point["pixel"] for point in copied["controlPoints"]], [[-200.0, 0.0], [200.0, 0.0]])
+        self.assertEqual((copied["controlPoints"][0]["name"], copied["affine"]), ("Corner", True))
+        self.client.post(url, {"action": "place", "control_points": json.dumps(copied["controlPoints"])})
+        plan.refresh_from_db()
         self.assertLess(plan.residual_m, 0.01)
 
     def test_an_empty_crop_is_the_whole_page(self):

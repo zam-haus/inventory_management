@@ -1233,3 +1233,47 @@ msgstr "Gespeichert."
 #~ msgstr ""
 #~ "Plan zugeschnitten. Bitte neu ausrichten: die Passpunkte gehörten zum "
 #~ "alten Bild."
+
+#: maps/models.py
+msgid "What and where it is, e.g. “WH: corner Engelstraße next to the stairs”."
+msgstr "Was und wo er ist, z. B. „WH: Ecke Engelstraße neben der Treppe“."
+
+#: maps/models.py
+msgid "latitude"
+msgstr "Breite"
+
+#: maps/models.py
+msgid "longitude"
+msgstr "Länge"
+
+#: maps/models.py
+msgid "offered"
+msgstr "angeboten"
+
+#: maps/models.py
+msgid "Offered when placing plans."
+msgstr "Beim Ausrichten von Plänen angeboten."
+
+#: maps/models.py
+msgid "surveyed point"
+msgstr "eingemessener Punkt"
+
+#: maps/models.py
+msgid "surveyed points"
+msgstr "eingemessene Punkte"
+
+#: maps/templates/maps/plan_align.html
+msgid "Surveyed point"
+msgstr "Eingemessener Punkt"
+
+#: maps/templates/maps/plan_align.html
+msgid ""
+"Now click the same point on the map, type its coordinates, or take a "
+"surveyed point (green dots on the map)."
+msgstr "Jetzt denselben Punkt auf der Karte anklicken, seine Koordinaten eingeben oder einen eingemessenen Punkt nehmen (grüne Punkte auf der Karte)."
+
+#: maps/templates/maps/plan_align.html
+msgid ""
+"Control points copied: they are at the same places on the page as on the "
+"other plan. Drag them where they are off, then place the plan."
+msgstr "Passpunkte übernommen: Sie liegen an denselben Stellen der Seite wie beim anderen Plan. Wo sie danebenliegen, verschieben, dann den Plan ausrichten."

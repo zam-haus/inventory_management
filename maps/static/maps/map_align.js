@@ -1,6 +1,7 @@
 // Placing a floor plan (maps/plan_align.html) in two steps. 1. Place: pairs of control points, a pixel on the plan
 // (left) and where it is (right: clicked on the map with the plans already placed, or typed as "latitude,
-// longitude"); both can be dragged. The server fits the plan to them (maps/geo.py). 2. Crop, once it is placed: an
+// longitude", or taken from a surveyed point: picked in the list or clicked on the map); both can be dragged. Or
+// all of them copied from another plan, at the same places on the page (maps/views.py converts them). The server fits the plan to them (maps/geo.py). 2. Crop, once it is placed: an
 // outline on the whole page (maps/views.py plan_page), drawn (rectangle or polygon, with Leaflet-Geoman) or copied
 // from another plan, edited with everything outside it darkened, sent as fractions of the page (maps/render.py
 // crop_polygon) together with the control points, so that points changed since placing are not lost.
@@ -15,7 +16,8 @@
     var hint = document.querySelector('[data-align-hint]');
     var rows = document.querySelector('[data-align-points]');
     var input = document.querySelector('[data-align-points-input]');
-    var points = (config.controlPoints || []).map(function (p) { return {pixel: p.pixel, lonlat: p.lonlat}; });
+    var points = (config.controlPoints || []).map(function (p) { return {pixel: p.pixel, lonlat: p.lonlat, name: p.name}; });
+    var surveyed = config.surveyedPoints || [];
     var mode = 'plan';  // what the next click sets: 'plan' (a pixel), 'place' (its coordinates); 'crop' in step 2
     var markIcon = L.divIcon({className: 'map-align-mark', iconSize: [25, 25], tooltipAnchor: [10, 0]});
 
@@ -73,6 +75,7 @@
     var pageElement = root.querySelector('[data-align-page]');
     var cropTools = root.querySelector('[data-align-crop-tools]');
     var cropActions = root.querySelector('[data-align-crop-actions]');
+    var placeTools = root.querySelector('[data-align-place-tools]');
     var pageMap = null, pageSize = null, pageFailed = false, outline = null, mask = null, drawing = false;
 
     function say(text) {
@@ -81,7 +84,10 @@
 
     function hintText() {
         if (mode !== 'crop') {
-            return mode === 'place' ? root.dataset.pickPlace : root.dataset.pickPlan;
+            if (mode === 'place') {
+                return surveyed.length ? root.dataset.pickSurveyed : root.dataset.pickPlace;
+            }
+            return root.dataset.pickPlan;
         }
         if (!pageMap) {
             return pageFailed ? root.dataset.pageError : root.dataset.pageLoading;
@@ -121,12 +127,14 @@
             if (point.lonlat) {
                 mark([point.lonlat[1], point.lonlat[0]], name, function (latlng) {
                     point.lonlat = [latlng.lng, latlng.lat];
+                    delete point.name;  // no longer the surveyed point
                 }).addTo(placeMarks);
             }
             var row = rows.insertRow();
             row.insertCell().textContent = name;
             row.insertCell().textContent = point.pixel ? number(point.pixel[0], 0) + ', ' + number(point.pixel[1], 0) : '';
-            row.insertCell().textContent = point.lonlat ? number(point.lonlat[1], 7) + ', ' + number(point.lonlat[0], 7) : '…';
+            row.insertCell().textContent = point.lonlat ? number(point.lonlat[1], 7) + ', ' + number(point.lonlat[0], 7) +
+                (point.name ? ' (' + point.name + ')' : '') : '…';
             var remove = document.createElement('button');
             remove.type = 'button';
             remove.className = 'btn btn-sm btn-outline-danger';
@@ -150,12 +158,15 @@
         say(hintText());
     }
 
-    function setPlace(lon, lat) {
+    function setPlace(lon, lat, name) {
         var open = points.filter(function (p) { return !p.lonlat; })[0];
         if (!open) {
             return;
         }
         open.lonlat = [lon, lat];
+        if (name) {
+            open.name = name;
+        }
         mode = 'plan';
         render();
     }
@@ -179,6 +190,43 @@
             setPlace(event.latlng.lng, event.latlng.lat);
         }
     });
+
+    // Surveyed points: green dots on the map and a list; either gives the open point their exact coordinates.
+    function useSurveyed(point) {
+        setPlace(point.lonlat[0], point.lonlat[1], point.name);
+    }
+    surveyed.forEach(function (point) {
+        L.circleMarker([point.lonlat[1], point.lonlat[0]], {radius: 6, color: '#fff', weight: 2, fillColor: '#198754',
+            fillOpacity: 1, bubblingMouseEvents: false})
+            .bindTooltip(point.name, {direction: 'top'})
+            .on('click', function () {
+                if (mode === 'place') {
+                    useSurveyed(point);
+                }
+            })
+            .addTo(placeMap);
+    });
+    var surveyedList = document.querySelector('[data-align-surveyed]');
+    if (surveyedList) {
+        document.querySelector('[data-align-surveyed-use]').addEventListener('click', function () {
+            var point = surveyed[surveyedList.value];
+            useSurveyed(point);
+            placeMap.setView([point.lonlat[1], point.lonlat[0]], Math.max(placeMap.getZoom(), 19));
+        });
+    }
+
+    // Another plan's control points (replacing these; nothing is saved before "Place plan").
+    var pointsCopy = document.querySelector('[data-align-points-copy]');
+    if (pointsCopy) {
+        document.querySelector('[data-align-points-copy-use]').addEventListener('click', function () {
+            var other = config.otherPlacements[pointsCopy.value];
+            points = other.controlPoints.map(function (p) { return {pixel: p.pixel, lonlat: p.lonlat, name: p.name}; });
+            document.getElementById('align-affine').checked = other.affine;
+            mode = 'plan';
+            render();
+            say(root.dataset.pointsCopied);
+        });
+    }
 
     var typed = document.querySelector('[data-align-coordinates]');
     function useTyped() {
@@ -316,6 +364,9 @@
             button.setAttribute('aria-pressed', String(on));
         });
         planElement.hidden = crop;
+        if (placeTools) {
+            placeTools.hidden = crop;
+        }
         pageElement.hidden = cropTools.hidden = cropActions.hidden = !crop;
         if (crop) {
             mode = 'crop';
