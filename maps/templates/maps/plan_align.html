@@ -128,6 +128,19 @@
             <label class="form-check-label" for="plan-transparent">{% trans "Remove the background (white paper becomes transparent)" %}</label></div>{% endif %}
         <button type="submit" class="btn btn-secondary">{% trans "Save" %}</button>
     </form>
+    <details class="mt-4">
+        <summary>{% trans "Replace the source file" %}</summary>
+        <form method="post" enctype="multipart/form-data" class="mt-2 d-flex flex-wrap gap-3 align-items-end">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="source">
+            <div><label class="form-label" for="plan-new-source">{% trans "New file" %}</label>
+                <input type="file" class="form-control" name="source" id="plan-new-source" accept=".pdf,.png,.jpg,.jpeg,.webp,.svg" required></div>
+            <div><label class="form-label" for="plan-new-page">{% trans "Page" %}</label>
+                <input type="number" class="form-control" name="page" id="plan-new-page" min="1" step="1" value="{{ plan.page }}" style="width: 6rem"></div>
+            <button type="submit" class="btn btn-secondary">{% trans "Upload" %}</button>
+            <div class="form-text w-100 mt-0">{% trans "E.g. a revised drawing of the same plan: control points and crop are taken over to the same places on the page (as fractions of its width and height), so the plan stays placed. Check them afterwards; if the drawing sits elsewhere on the new page, correct the points and place the plan again." %}</div>
+        </form>
+    </details>
     <form method="post" data-align-crop-form hidden>{% csrf_token %}<input type="hidden" name="action" value="crop"><input type="hidden" name="crop"><input type="hidden" name="control_points"><input type="hidden" name="affine"></form>
     {{ config|json_script:"map-align-config" }}
     {% map_config %}

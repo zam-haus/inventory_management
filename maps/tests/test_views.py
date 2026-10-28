@@ -509,6 +509,42 @@ class MapViewTests(Building, TestCase):
         plan.refresh_from_db()
         self.assertLess(plan.residual_m, 0.01)
 
+    def test_a_new_source_file_keeps_placement_and_crop(self):
+        points = [{"pixel": [0, 0], "lonlat": list(CENTER.coords)},
+                  {"pixel": [200, 0], "lonlat": list(local_point(8, 0).coords)}]
+        plan = self.plan(crop=[0.5, 0, 1, 1], control_points=points)  # 400 × 300, the right half: 200 pixels wide
+        corners = plan.corners
+        old_source = plan.source.name
+        self.client.force_login(self.staff)
+        url = reverse("maps:plan_align", args=[plan.pk])
+        # The revised drawing, scanned at twice the resolution: the same places on the page.
+        response = self.client.post(url, {"action": "source", "page": "1", "source": SimpleUploadedFile(
+            "revised.png", png(800, 600), content_type="image/png")}, follow=True)
+        self.assertContains(response, "keeps its placement and crop")
+        plan.refresh_from_db()
+        self.assertNotEqual(plan.source.name, old_source)
+        self.assertEqual((plan.source_name, plan.image_width, plan.crop), ("revised.png", 400,
+                                                                           [[0.5, 0], [1, 0], [1, 1], [0.5, 1]]))
+        self.assertEqual([point["pixel"] for point in plan.control_points], [[0.0, 0.0], [400.0, 0.0]])
+        self.assertTrue(all(a.distance(b) < 1e-9 for a, b in zip(plan.corners, corners)))  # where it was
+        # Another page of the same file is another drawing: it starts without control points.
+        plan.page = 2
+        from .. import plans
+        plans.save(plan)
+        self.assertEqual((plan.control_points, plan.is_placed), ([], False))
+        # An SVG cannot be cropped here: its crop goes, the points stay at their places on the page.
+        plan.control_points = points
+        plans.save(plan, rendered=False)
+        self.client.post(url, {"action": "source", "source": SimpleUploadedFile("plan.svg", SVG, content_type="image/svg+xml")})
+        plan.refresh_from_db()
+        self.assertIsNone(plan.crop)
+        # Pixel 0 and 200 of the right half (400 wide) were at 1/2 and 3/4 of the page: 200 and 300 of the SVG.
+        self.assertEqual([point["pixel"] for point in plan.control_points], [[200.0, 0.0], [300.0, 0.0]])
+        self.assertTrue(plan.is_placed)
+        response = self.client.post(url, {"action": "source", "page": "x", "source": SimpleUploadedFile(
+            "again.png", png(), content_type="image/png")}, follow=True)
+        self.assertContains(response, "The page is a number from 1.")
+
     def test_an_empty_crop_is_the_whole_page(self):
         # An empty crop (e.g. "[]" saved in the admin) made the next crop fail with "needs four numbers".
         plan = self.plan(crop=[])

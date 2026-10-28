@@ -212,6 +212,12 @@ given), or
    **Remove the background** (below the plan) makes the white paper transparent, so that the aerial photo shows
    through; lines keep their colour.
 
+**Replace the source file** (below the plan, or in the admin), e.g. for a revised drawing: the new file is rendered
+with the plan's settings, and its control points and crop carry over to the same places on the page (as fractions of
+its width and height, also at another resolution), so the plan stays placed. If the drawing sits elsewhere on the
+new page, correct the points and place it again. Another page of the same file is another drawing and starts without
+control points; a new SVG drops the crop (SVGs are not cropped here).
+
 A plan keeps the name of its uploaded file (shown and used when downloading it) and has internal notes, e.g. where
 the file came from; neither is shown on the map. The source file is visible to staff only; everyone sees the cropped image (served with `Content-Security-Policy:
 sandbox`, so an uploaded SVG cannot run scripts). Each plan is a layer of its own in the layer selection:

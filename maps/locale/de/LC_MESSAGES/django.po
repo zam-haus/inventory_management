@@ -1365,3 +1365,41 @@ msgstr "Die Reihe ist nicht lesbar."
 #: maps/views.py
 msgid "A location of the row does not exist (any more)."
 msgstr "Einen Standort der Reihe gibt es nicht (mehr)."
+
+#: maps/templates/maps/plan_align.html
+msgid "Replace the source file"
+msgstr "Quelldatei ersetzen"
+
+#: maps/templates/maps/plan_align.html
+msgid "New file"
+msgstr "Neue Datei"
+
+#: maps/templates/maps/plan_align.html
+msgid "Page"
+msgstr "Seite"
+
+#: maps/templates/maps/plan_align.html
+msgid ""
+"E.g. a revised drawing of the same plan: control points and crop are taken "
+"over to the same places on the page (as fractions of its width and height), "
+"so the plan stays placed. Check them afterwards; if the drawing sits "
+"elsewhere on the new page, correct the points and place the plan again."
+msgstr "Zum Beispiel eine überarbeitete Zeichnung desselben Plans: Passpunkte und Zuschnitt werden an dieselben Stellen der Seite übernommen (als Anteile von Breite und Höhe), der Plan bleibt also platziert. Danach prüfen; liegt die Zeichnung auf der neuen Seite woanders, die Punkte korrigieren und den Plan neu ausrichten."
+
+#: maps/views.py
+msgid "Choose the new file."
+msgstr "Bitte die neue Datei wählen."
+
+#: maps/views.py
+msgid "The page is a number from 1."
+msgstr "Die Seite ist eine Zahl ab 1."
+
+#: maps/views.py
+msgid ""
+"New source file: the plan keeps its placement and crop, at the same places "
+"on the page. Check them."
+msgstr "Neue Quelldatei: Der Plan behält Ausrichtung und Zuschnitt, an denselben Stellen der Seite. Bitte prüfen."
+
+#: maps/views.py
+msgid "New source file."
+msgstr "Neue Quelldatei."

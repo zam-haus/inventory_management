@@ -460,6 +460,17 @@ class PlanAlignView(PermissionRequiredMixin, View):
                     plans.save(plan, rendered=False)
                     message = _("Plan placed; largest deviation %(residual).2f m.") % {
                         "residual": plan.residual_m or 0} if plan.is_placed else _("Control points saved.")
+                elif action == "source":  # a new file (e.g. a revised drawing): placement and crop carry over
+                    if "source" not in request.FILES:
+                        raise ValueError(_("Choose the new file."))
+                    page = request.POST.get("page") or str(plan.page)
+                    if not page.isdigit() or int(page) < 1:
+                        raise ValueError(_("The page is a number from 1."))
+                    page = int(page)
+                    plan.source, plan.page = request.FILES["source"], page
+                    plans.save(plan, rendered=True)
+                    message = _("New source file: the plan keeps its placement and crop, at the same places on the "
+                                "page. Check them.") if plan.is_placed else _("New source file.")
                 elif action == "settings":
                     plan.opacity = min(max(float(request.POST.get("opacity", plan.opacity)), 0.1), 1)
                     plan.active = request.POST.get("active") == "1"

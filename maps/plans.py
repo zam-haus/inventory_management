@@ -22,7 +22,9 @@ class PlanError(ValueError):
 
 def render_image(plan):
     """Renders the web image from the source, page, resolution and crop. The control points stay where they are on
-    the page (they are converted to pixels of the new image), unless the source file or page changed."""
+    the page (they are converted to pixels of the new image), also for a new source file (e.g. a revised drawing:
+    placement and crop carry over to the same places on its page); only another page of the same file is another
+    drawing and starts without them. An SVG cannot be cropped here: a new SVG source drops the crop."""
     try:
         plan.crop = render.crop_polygon(plan.crop)
     except render.RenderError as error:
@@ -30,6 +32,8 @@ def render_image(plan):
     stored = FloorPlan.objects.filter(pk=plan.pk).values("source", "page", "crop").first() if plan.pk else None
     if not plan.source._committed:  # a new upload: stored first, so that reading it does not use it up
         plan.source.save(plan.source.name, plan.source.file, save=False)
+        if plan.is_svg:
+            plan.crop = None
     plan.source.open("rb")
     try:
         image, width, height = render.render(plan.source.file, suffix=plan.source.name[plan.source.name.rfind("."):],
@@ -54,7 +58,7 @@ def render_image(plan):
                                "h": min(render.TILE_SIDE + render.TILE_OVERLAP, height - y)})
     width, height = round(width), round(height)
     if stored and plan.image_width and plan.control_points:
-        if stored["source"] != plan.source.name or stored["page"] != plan.page:
+        if stored["source"] == plan.source.name and stored["page"] != plan.page:
             plan.control_points = []
         else:
             plan.control_points = moved_points(plan.control_points, (plan.image_width, plan.image_height),
