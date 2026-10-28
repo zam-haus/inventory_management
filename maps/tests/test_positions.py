@@ -63,6 +63,33 @@ class LevelTests(Building, TestCase):
         self.assertEqual((source, exact), (self.pallet, False))
 
 
+class TypeLookTests(Building, TestCase):
+    """maps 0004: the standard look of the types, without undoing what was changed in the admin."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.build()
+
+    def test_the_standard_look_keeps_changes_made_in_the_admin(self):
+        from django.apps import apps
+        from importlib import import_module
+        area = LocationType.objects.get(name="Bereich")
+        # As maps 0002 set it, then a fill opacity of 0 chosen in the admin.
+        LocationTypeMap.objects.create(type=area, as_point=False, as_rectangle=False, as_area=True, color="#b45309",
+                                       fill_color="#fcd34d", fill_opacity=0, line_width=2,
+                                       style_options={"dashArray": "8 5"}, label_min_zoom=18)
+        import_module("maps.migrations.0004_type_looks_true_north").type_looks(apps, None)
+        settings = LocationTypeMap.objects.get(type=area)
+        self.assertEqual(settings.style(), {"dashArray": "8 4", "color": "#d97706", "fillColor": "#fde68a",
+                                            "fillOpacity": 0, "weight": 2})
+        self.assertTrue(settings.label_bold)
+        level = LocationTypeMap.objects.get(type__name="Haus+Ebene")  # had none: made, placed as areas
+        self.assertEqual((level.placeable, level.kinds(), level.color), (True, ["area"], "#334155"))
+        pallet = LocationTypeMap.objects.get(type=self.pallet_type)  # no look of its own: stays as it was
+        self.assertEqual((pallet.placeable, pallet.default_width_cm, pallet.style()), (False, 120, {}))
+        self.assertEqual(LocationTypeMap.objects.get(type__name="Kiste").default_width_cm, 60)
+
+
 # The mechanics with a pallet and a unique item; installations choose what is placed (admin: location types).
 @override_settings(LANGUAGE_CODE="en", MAPS_PLACE_UNIQUE_ITEMS=True)
 class PositionTests(Building, TestCase):

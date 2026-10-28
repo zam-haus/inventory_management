@@ -13,6 +13,8 @@ from django.conf import settings
 from django.contrib.gis.geos import GEOSGeometry, MultiPoint, Point, Polygon
 
 WGS84 = 4326
+# The WGS84 ellipsoid: semi-major axis and squared eccentricity (as map.js).
+WGS84_A, WGS84_E2 = 6378137.0, 0.00669437999014
 
 
 def local(geometry):
@@ -44,12 +46,39 @@ def _rotate(x, y, degrees):
     return x * math.cos(angle) + y * math.sin(angle), -x * math.sin(angle) + y * math.cos(angle)
 
 
+def metres_per_degree(lat):
+    """(east, north): metres on the ground per degree of longitude and of latitude at `lat`."""
+    p = math.radians(lat)
+    w = math.sqrt(1 - WGS84_E2 * math.sin(p) ** 2)
+    return WGS84_A / w * math.cos(p) * math.pi / 180, WGS84_A * (1 - WGS84_E2) / w ** 3 * math.pi / 180
+
+
+def grid_scale(center):
+    """Metres of the grid (MAPS_LOCAL_SRID) per metre on the ground at `center` (WGS84): about 0.99986 in Erlangen
+    in UTM zone 32."""
+    a = local(center)
+    b = local(Point(center.x, center.y + 1e-4, srid=WGS84))
+    return math.dist(a.coords, b.coords) / (1e-4 * metres_per_degree(center.y)[1])
+
+
+def true_north(center):
+    """Degrees clockwise from the grid's north (MAPS_LOCAL_SRID) to true north at `center` (WGS84). Rotations count
+    from true north, as the map shows it (north up); the grid's y axis is off by the meridian convergence, in Erlangen
+    about -1.5° in UTM zone 32."""
+    a = local(center)
+    b = local(Point(center.x, center.y + 1e-4, srid=WGS84))
+    return math.degrees(math.atan2(b.x - a.x, b.y - a.y))
+
+
 def rectangle(center, width_m, depth_m, rotation=0.0):
-    """The rectangle (WGS84 polygon) of the given size around `center`; unrotated, the width runs east-west."""
+    """The rectangle (WGS84 polygon) of the given size on the ground around `center`; unrotated, the width runs
+    east-west, `rotation` turns it clockwise from true north (as map.js draws it)."""
     c = local(center)
-    corners = [(-width_m / 2, depth_m / 2), (width_m / 2, depth_m / 2), (width_m / 2, -depth_m / 2),
-               (-width_m / 2, -depth_m / 2)]
-    ring = [(c.x + x, c.y + y) for x, y in (_rotate(*corner, rotation) for corner in corners)]
+    on_earth = wgs84(center) if center.srid not in (None, WGS84) else center
+    half_w, half_d = (side / 2 * grid_scale(on_earth) for side in (width_m, depth_m))
+    corners = [(-half_w, half_d), (half_w, half_d), (half_w, -half_d), (-half_w, -half_d)]
+    turn = rotation + true_north(on_earth)
+    ring = [(c.x + x, c.y + y) for x, y in (_rotate(*corner, turn) for corner in corners)]
     return wgs84(Polygon([*ring, ring[0]], srid=c.srid))
 
 

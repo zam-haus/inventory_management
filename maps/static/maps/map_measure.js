@@ -35,20 +35,22 @@
         return number(value, value < 100 ? 2 : 0) + ' m²';
     }
 
+    // On the ellipsoid as the server measures (map.js geometry), not on Leaflet's sphere, which is up to 0.3 % off.
+    var distance = ZamMap.geometry.distance;
+    var CIRCLE_CORNERS = 72;
+
     function lengthOf(points, closed) {
         var sum = 0;
         for (var i = 1; i < points.length; i += 1) {
-            sum += map.distance(points[i - 1], points[i]);
+            sum += distance(points[i - 1], points[i]);
         }
-        return closed && points.length > 2 ? sum + map.distance(points[points.length - 1], points[0]) : sum;
+        return closed && points.length > 2 ? sum + distance(points[points.length - 1], points[0]) : sum;
     }
 
-    // On a plane in metres around the first point (a building's or a site's size: the earth's curve does not count),
-    // with the earth's radius of map.distance, so that the area fits the lengths.
+    // On a plane in metres around the first point (a building's or a site's size: the earth's curve does not count).
     function areaOf(points) {
-        var north = L.CRS.Earth.R * Math.PI / 180, origin = points[0], sum = 0;
-        var east = north * Math.cos(origin.lat * Math.PI / 180);
-        var xy = points.map(function (p) { return [(p.lng - origin.lng) * east, (p.lat - origin.lat) * north]; });
+        var m = ZamMap.geometry.metresPerDegree(points[0].lat), origin = points[0], sum = 0;
+        var xy = points.map(function (p) { return [(p.lng - origin.lng) * m[0], (p.lat - origin.lat) * m[1]]; });
         for (var i = 0; i < xy.length; i += 1) {
             var j = (i + 1) % xy.length;
             sum += xy[i][0] * xy[j][1] - xy[j][0] * xy[i][1];
@@ -72,11 +74,16 @@
             return;
         }
         if (this.kind === 'circle') {
-            var radius = points.length > 1 ? map.distance(points[0], points[1]) : 0;
+            var radius = points.length > 1 ? distance(points[0], points[1]) : 0;
             if (!this.shape) {
-                this.shape = L.circle(points[0], Object.assign({radius: radius}, STYLE)).addTo(map);
+                this.shape = L.polygon([], STYLE).addTo(map);
             }
-            this.shape.setLatLng(points[0]).setRadius(radius);
+            // Drawn with the same metres (Leaflet's circles are on its sphere): the edge runs through the handle.
+            var ring = [];
+            for (var i = 0; i < CIRCLE_CORNERS; i += 1) {
+                ring.push(ZamMap.geometry.offset(points[0], 0, radius, i * 360 / CIRCLE_CORNERS));
+            }
+            this.shape.setLatLngs(ring);
             if (points.length > 1) {
                 text = strings.radius + ' ' + metres(radius) + ' · ' + squareMetres(Math.PI * radius * radius);
             }

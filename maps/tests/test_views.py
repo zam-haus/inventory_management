@@ -1,4 +1,5 @@
 import io
+import math
 import json
 import shutil
 import tempfile
@@ -11,7 +12,7 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase, override_settings
 from django.urls import reverse
 
-from inventory.models import ChangeLog, Location
+from inventory.models import ChangeLog, Location, LocationType
 from PIL import Image
 
 from .. import geo, positions, render
@@ -146,6 +147,40 @@ class MapViewTests(Building, TestCase):
         LocationTypeMap.objects.filter(type=self.pallet_type).update(placeable=True)
         rows = self.client.get(url).json()["locations"]
         self.assertEqual([(row["code"], row["size"]) for row in rows], [("P1", [1.2, 0.8])])
+
+    def test_a_row_of_shelves_is_placed_together(self):
+        shelf = LocationType.objects.create(name="Regal", unique=True, moveable=True, category="storage_unit")
+        shelves = [Location.objects.create(type=shelf, name=f"Regal 30{n}", short_name=f"R30{n}",
+                                           parent_location=self.store) for n in (1, 2, 3)]
+        url = reverse("maps:location_shape_row")
+        middles = [local_point(x, 0) for x in (0, 1, 2)]  # 1 m wide, side by side
+        rows = [{"pk": location.pk, "kind": "rectangle", "geometry": middle.json, "rotation": 30, "width_cm": 100,
+                 "depth_cm": 50} for location, middle in zip(shelves, middles)]
+        self.assertEqual(self.client.post(url, {"rows": json.dumps(rows)}).status_code, 403)  # not logged in
+        self.client.force_login(self.staff)
+        unplaced = self.client.get(reverse("maps:unplaced", args=[-1]), {"kind": "rectangle"}).json()["locations"]
+        self.assertEqual([(row["code"], row["type"]) for row in unplaced], [(f"R30{n}", shelf.pk) for n in (1, 2, 3)])
+        # One that does not exist: none is placed.
+        broken = rows[:2] + [{**rows[2], "pk": 999999}]
+        self.assertEqual(self.client.post(url, {"rows": json.dumps(broken)}).status_code, 404)
+        self.assertFalse(LocationShape.objects.filter(location__in=shelves).exists())
+        self.assertFalse(self.client.post(url, {"rows": json.dumps(rows[:1] * 2)}).json()["ok"])  # twice the same
+        self.assertEqual(self.client.post(url, {"rows": json.dumps(rows)}).json(), {"ok": True, "placed": 3})
+        shapes = [LocationShape.objects.get(location=location) for location in shelves]
+        self.assertEqual({(shape.kind, shape.width_cm, shape.depth_cm, shape.rotation) for shape in shapes},
+                         {("rectangle", 100, 50, 30.0)})
+        self.assertAlmostEqual(geo.local(shapes[0].geometry.centroid).distance(geo.local(shapes[1].geometry.centroid)),
+                               1, places=2)
+        self.assertEqual(ChangeLog.objects.filter(location__in=shelves, action=ChangeLog.Action.CHANGED).count(), 3)
+        # Side by side along the grid's x axis (turned by the meridian convergence from true north, as the map draws
+        # the row): neighbours share an edge, none is turned on its own.
+        turn = -geo.true_north(middles[1])
+        rows = [{**row, "rotation": turn} for row in rows]
+        self.assertTrue(self.client.post(url, {"rows": json.dumps(rows)}).json()["ok"])
+        rings = [geo.local(LocationShape.objects.get(location=location).geometry).shell.coords for location in shelves]
+        for left, right in zip(rings, rings[1:]):
+            self.assertLess(math.dist(left[1], right[0]), 0.002)  # top right of one, top left of the next
+            self.assertLess(math.dist(left[2], right[3]), 0.002)
 
     def test_the_shapes_a_type_allows(self):
         self.client.force_login(self.staff)

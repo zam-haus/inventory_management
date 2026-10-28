@@ -16,24 +16,41 @@ def local_point(east, north):
     return geo.wgs84(Point(c.x + east, c.y + north, srid=settings.MAPS_LOCAL_SRID))
 
 
+def ground_m(a, b):
+    """Metres on the ground between two WGS84 coordinates a few metres apart."""
+    east, north = geo.metres_per_degree((a[1] + b[1]) / 2)
+    return math.hypot((b[0] - a[0]) * east, (b[1] - a[1]) * north)
+
+
 class RectangleTests(SimpleTestCase):
     def sides(self, polygon):
-        ring = geo.local(polygon).shell.coords
-        return [round(math.dist(a, b), 4) for a, b in zip(ring, ring[1:])]
+        ring = polygon.shell.coords
+        return [round(ground_m(a, b), 4) for a, b in zip(ring, ring[1:])]
 
     def test_width_runs_east_west_and_depth_north_south(self):
+        # East-west as the map shows it (true north up), not along the grid of MAPS_LOCAL_SRID, which is turned by
+        # about 1.5° here: a row of shelves was then turned shelf by shelf.
         rectangle = geo.rectangle(CENTER, 1.2, 0.8)
         self.assertEqual(self.sides(rectangle), [1.2, 0.8, 1.2, 0.8])
-        xs = [x for x, _y in geo.local(rectangle).shell.coords]
-        self.assertAlmostEqual(max(xs) - min(xs), 1.2, places=4)
-        self.assertAlmostEqual(geo.area_m2(rectangle), 0.96, places=4)
+        top_left, top_right, bottom_right = rectangle.shell.coords[:3]
+        self.assertAlmostEqual(top_left[1], top_right[1], places=9)  # the same latitude
+        self.assertAlmostEqual(top_right[0], bottom_right[0], places=9)  # the same longitude
+        self.assertAlmostEqual(geo.area_m2(rectangle) / geo.grid_scale(CENTER) ** 2, 0.96, places=6)
 
     def test_turned_a_quarter_the_width_runs_north_south(self):
         rectangle = geo.rectangle(CENTER, 1.2, 0.8, 90)
-        xs, ys = zip(*geo.local(rectangle).shell.coords)
-        self.assertAlmostEqual(max(xs) - min(xs), 0.8, places=4)
-        self.assertAlmostEqual(max(ys) - min(ys), 1.2, places=4)
+        top_left, top_right = rectangle.shell.coords[:2]
+        self.assertAlmostEqual(top_left[0], top_right[0], places=9)
+        self.assertAlmostEqual(ground_m(top_left, top_right), 1.2, places=6)
         self.assertLess(geo.distance_m(geo.anchor(rectangle), CENTER), 0.001)
+
+    def test_true_north_is_off_the_grid_by_the_meridian_convergence(self):
+        self.assertAlmostEqual(geo.true_north(CENTER), -1.53, places=1)  # Erlangen, UTM zone 32
+
+    def test_sizes_are_metres_on_the_ground(self):
+        # The grid's metres are about 0.014 % shorter here; map.js draws with metres on the ground.
+        self.assertAlmostEqual(geo.grid_scale(CENTER), 0.99986, places=5)
+        self.assertEqual(self.sides(geo.rectangle(CENTER, 1, 0.5, 33)), [1.0, 0.5, 1.0, 0.5])
 
 
 class MovedTests(SimpleTestCase):

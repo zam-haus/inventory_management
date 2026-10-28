@@ -55,9 +55,12 @@
     {# The edit mode (map_edit.js): what is selected, and what can be done with it. #}
     <div class="map-edit-bar" data-map-edit hidden
          data-shape-url="{% url 'maps:location_shape' 0 %}" data-item-url="{% url 'maps:item_position' 0 %}"
-         data-unplaced-url="{% url 'maps:unplaced' number %}"
+         data-unplaced-url="{% url 'maps:unplaced' number %}" data-row-url="{% url 'maps:location_shape_row' %}"
          data-new-point="{% trans 'Click where it is, then choose the location.' %}"
          data-new-area="{% trans 'Click the corners of the area one after the other (the first again to finish), then choose the location.' %}"
+         data-new-row="{% trans 'Click where the middle of the row is, then choose the first location; the next ones of its type without a position follow in the order of their codes.' %}"
+         data-row="{% trans 'Drag the middle handle to move the row and the outer one to turn it; then save.' %}"
+         data-row-short="{% trans 'Only {count} locations of this type without a position follow; choose another first one or fewer.' %}"
          data-none-left="{% trans 'Every location of this kind on this level has a position already.' %}"
          data-choose="{% trans 'Choose the location first.' %}"
          data-pick="{% trans 'Click a building part or storage unit to change its position.' %}"
@@ -71,6 +74,7 @@
             <button type="button" class="btn btn-outline-secondary" data-new="point">{% trans "Point" %}</button>
             <button type="button" class="btn btn-outline-secondary" data-new="rectangle">{% trans "Rectangle" %}</button>
             <button type="button" class="btn btn-outline-secondary" data-new="area">{% trans "Area" %}</button>
+            <button type="button" class="btn btn-outline-secondary" data-new="row">{% trans "Row" %}</button>
         </span>
         <strong data-edit-title></strong>
         {# Searchable by any words of code, purpose and name; the hits show purpose or name, the code chip below. #}
@@ -87,6 +91,11 @@
             <label for="map-edit-depth">{% trans "Depth" %}</label>
             <input type="number" class="form-control form-control-sm" id="map-edit-depth" min="1" step="1" inputmode="numeric">
             <span>cm</span>
+        </span>
+        <span class="map-place-size" data-edit-count hidden>
+            <label for="map-edit-count">{% trans "Number" context "row" %}</label>
+            <input type="number" class="form-control form-control-sm" id="map-edit-count" min="2" max="50" step="1" inputmode="numeric">
+            <button type="button" class="btn btn-sm btn-outline-secondary" aria-pressed="false" data-edit-reverse>{% trans "Reverse order" %}</button>
         </span>
         <span class="text-muted" data-edit-hint></span>
         <span class="btn-group btn-group-sm" role="group" data-edit-area-mode hidden>

@@ -492,13 +492,23 @@
     }
 
     // Geometry in metres around a point and snapping, for placing (map_place.js) and the edit mode (map_edit.js).
-    var M_PER_DEG = 111320;
+    // The WGS84 ellipsoid, the earth the coordinates refer to: semi-major axis and squared eccentricity.
+    var WGS84_A = 6378137, WGS84_E2 = 0.00669437999014;
     var SNAP_DEGREES = 4;  // turning snaps to edges and the plan's walls (and right angles to them) this close
     var SNAP_PIXELS = 12;  // corners snap to corners and edges this close on the screen
     var NEARBY_PIXELS = 250;  // edges this close to the middle give directions to turn to
 
+    // Metres per degree of longitude and of latitude at `lat`, on the ellipsoid (as maps/geo.py). One figure for
+    // both (111 320 m) was 0.2 % short east-west and 0.1 % long north-south in Erlangen: rows of shelves overlapped.
     function metresPerDegree(lat) {
-        return [M_PER_DEG * Math.cos(lat * Math.PI / 180), M_PER_DEG];  // [east, north]
+        var p = lat * Math.PI / 180, w = Math.sqrt(1 - WGS84_E2 * Math.sin(p) * Math.sin(p));
+        return [WGS84_A / w * Math.cos(p) * Math.PI / 180, WGS84_A * (1 - WGS84_E2) / (w * w * w) * Math.PI / 180];
+    }
+
+    // Metres between two points a site apart, on a plane around their middle (exact to well under a millimetre).
+    function distance(a, b) {
+        var m = metresPerDegree((a.lat + b.lat) / 2);
+        return Math.sqrt(Math.pow((b.lng - a.lng) * m[0], 2) + Math.pow((b.lat - a.lat) * m[1], 2));
     }
 
     // The point `east` and `north` metres from `center`, after turning that offset clockwise.
@@ -516,8 +526,8 @@
 
     // How far a plan is turned clockwise (its top edge against east-west), so rectangles follow its walls.
     function planRotation(plan) {
-        var tl = plan.corners[0], tr = plan.corners[1];
-        var east = (tr[1] - tl[1]) * Math.cos(tl[0] * Math.PI / 180), north = tr[0] - tl[0];
+        var tl = plan.corners[0], tr = plan.corners[1], m = metresPerDegree(tl[0]);
+        var east = (tr[1] - tl[1]) * m[0], north = (tr[0] - tl[0]) * m[1];
         return Math.round((-Math.atan2(north, east) * 180 / Math.PI + 360) % 360 * 10) / 10;
     }
 
@@ -605,7 +615,7 @@
 
     window.ZamMap = {create: create, draw: draw, planLayer: planLayer, load: load, highlight: highlight, stackControl: stackControl,
         filterStacks: filterStacks, layerControl: layerControl, STYLES: STYLES,
-        geometry: {metresPerDegree: metresPerDegree, offset: offset, rectangle: rectangle, planRotation: planRotation,
+        geometry: {metresPerDegree: metresPerDegree, distance: distance, offset: offset, rectangle: rectangle, planRotation: planRotation,
             snapTargets: snapTargets, snapCenter: snapCenter, snapRotation: snapRotation, bearing: bearing}};
 
     // The map page (maps/map.html).

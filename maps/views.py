@@ -174,6 +174,41 @@ class LocationShapeView(_SaveView):
         return self.answer(description=positions.describe(shape))
 
 
+class LocationShapeRowView(_SaveView):
+    """A row of storage units side by side (the edit mode's "Row", map_edit.js): rows=[{pk, kind, geometry, rotation,
+    width_cm, depth_cm}, …] as the placing dialog sends one. All are placed, or none."""
+    MAX = 50
+
+    def post(self, request):
+        try:
+            rows = json.loads(request.POST.get("rows") or "[]")
+        except ValueError:
+            rows = None
+        if (not isinstance(rows, list) or not 0 < len(rows) <= self.MAX or not all(isinstance(r, dict) for r in rows)
+                or len({str(r.get("pk")) for r in rows}) != len(rows)):
+            return self.answer(_("The row could not be read."))
+        with transaction.atomic():
+            for row in rows:
+                location = Location.active.select_for_update().select_related("type").filter(
+                    pk=str(row.get("pk")) if str(row.get("pk")).isdigit() else None).first()
+                if location is None:
+                    transaction.set_rollback(True)
+                    return self.answer(_("A location of the row does not exist (any more)."), status=404)
+                if reason := shape_denied(request.user, location):
+                    transaction.set_rollback(True)
+                    return self.answer(reason, status=403)
+                try:
+                    placement = positions.placement_from({f"map_{key}": str(value) for key, value in row.items()})
+                    if placement is None:
+                        raise positions.PlacementError(_("The position could not be read."))
+                    positions.set_location_shape(location, placement["kind"], placement["geometry"],
+                                                 placement["rotation"], size=placement["size"])
+                except positions.PlacementError as error:
+                    transaction.set_rollback(True)
+                    return self.answer(f"{location.unique_identifier}: {error}")
+        return self.answer(placed=len(rows))
+
+
 class ItemPositionView(_SaveView):
     def post(self, request, pk):
         with transaction.atomic():
@@ -252,7 +287,7 @@ def unplaced(request, number):
         if not placeable(location) or kind not in allowed_kinds(location.type):
             continue
         rows.append({"pk": location.pk, "code": location.unique_identifier, "title": location.title,
-                     "size": type_size(location.type)})
+                     "type": location.type_id, "size": type_size(location.type)})
     return JsonResponse({"locations": rows})
 
 

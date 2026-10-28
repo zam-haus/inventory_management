@@ -1326,3 +1326,42 @@ msgstr "Alle entfernen"
 msgctxt "measure"
 msgid "Area"
 msgstr "Fläche"
+
+#: maps/templates/maps/map.html
+msgid "Row"
+msgstr "Reihe"
+
+#: maps/templates/maps/map.html
+msgctxt "row"
+msgid "Number"
+msgstr "Anzahl"
+
+#: maps/templates/maps/map.html
+msgid "Reverse order"
+msgstr "Reihenfolge umdrehen"
+
+#: maps/templates/maps/map.html
+msgid ""
+"Click where the middle of the row is, then choose the first location; the "
+"next ones of its type without a position follow in the order of their codes."
+msgstr "Die Mitte der Reihe anklicken, dann den ersten Standort wählen; die nächsten seines Typs ohne Position folgen in der Reihenfolge ihrer Codes."
+
+#: maps/templates/maps/map.html
+msgid ""
+"Drag the middle handle to move the row and the outer one to turn it; then "
+"save."
+msgstr "Am mittleren Griff die Reihe verschieben, am äußeren drehen; dann speichern."
+
+#: maps/templates/maps/map.html
+msgid ""
+"Only {count} locations of this type without a position follow; choose "
+"another first one or fewer."
+msgstr "Nur {count} Standorte dieses Typs ohne Position folgen; einen anderen ersten wählen oder weniger."
+
+#: maps/views.py
+msgid "The row could not be read."
+msgstr "Die Reihe ist nicht lesbar."
+
+#: maps/views.py
+msgid "A location of the row does not exist (any more)."
+msgstr "Einen Standort der Reihe gibt es nicht (mehr)."

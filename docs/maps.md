@@ -97,6 +97,13 @@ an area. Then the bar offers the locations of this level that are placeable but 
 parts for an area, storage units for a point or rectangle); choosing one and saving gives it the position. A
 rectangle takes the usual size of the chosen location's type, unless a size was entered.
 
+**Row** places several storage units of one size side by side, e.g. a run of shelves: a click sets the middle of
+the row; the number, width × depth and the turn apply to all of them, and the row moves, turns and snaps as one.
+The location chosen is the first; the next ones of its type without a position follow in the order of their codes
+(also across gaps: a shelf in between that has a position already is skipped), shown on each rectangle;
+"Reverse order" numbers them from the other end. If too few follow, the bar says how many. Saving places all of them
+at once, or none (`maps:location_shape_row`).
+
 Map editors may place everything that is placeable on the map,
 building parts too; others logged in see "Edit" disabled with the reason.
 
@@ -119,21 +126,30 @@ the sections *Shapes*, *Look* and *Label*) also give the **look** of its locatio
 opacity and line width (empty: as usual for its category), and **more style options** as JSON with Leaflet's drawing
 options, e.g. `{"dashArray": "6 4", "lineJoin": "round", "fill": false}` (only `color`, `fillColor`, `weight`,
 `opacity`, `fillOpacity`, `radius`, `dashArray`, `dashOffset`, `lineCap`, `lineJoin`, `fill`, `stroke`; the fields
-come first when filled in); by default rooms are solid blue, areas (no walls of their own) dashed amber, as their
-boundaries are loosely defined, levels a thick dark outline; every area has a white halo under its outline, so it
-shows on photos, plans and other areas; the **label's first line**: a template with `{code}` (the full code), `{short}` (its own part),
+come first when filled in). The standard look (migration `maps 0004`) is meant for overlaps: only rooms (solid
+blue) and areas (dashed amber, as areas have no walls of their own and their boundaries are loosely defined) are
+tinted; their parts are outlines only (finer dashes), so at any place at most two tints lie on top of each other;
+levels have a thick slate outline, shelves and cabinets an opaque orange and violet. It set only fields that were
+empty or still as `maps 0002` had them, so looks changed in the admin stayed. Every area has a white halo under its
+outline, so it shows on photos, plans and other areas; the **label's first line**: a template with `{code}` (the full code), `{short}` (its own part),
 `{name}`, `{purpose}` and `{title}` (purpose, else name), empty for purpose or name, `-` for no label; and the
 **zoom from which labels show** (by default rooms and areas from 18, their parts from 19, shelves and cabinets from
-20; empty: always); and the label's **size, colour and boldness**.
+20; empty: always); and the label's **size, colour and boldness** (by default rooms and areas bold).
 
 ### Measuring
 
 *Measure* (bottom right, for everyone; `map_measure.js`) measures a **distance** along a line (click its points,
 the last one again to finish), an **area** with its perimeter (click its corners, the first one again to finish)
 and a **radius** around a point, with the circle's area (click the centre, then a point on the circle). Clicks go
-through what is drawn, so no popup opens; the points can be dragged afterwards. Areas are computed on a plane, which
-at the size of a site is exact to well under a per mille. Nothing is saved: *Done* removes the measurements. The
-edit mode ends measuring.
+through what is drawn, so no popup opens; the points can be dragged afterwards. Lengths and areas are metres on the
+ground, computed on the WGS84 ellipsoid as the server's (on a plane around the points: at a site's size exact to
+well under a millimetre). Nothing is saved: *Done* removes the measurements. The edit mode ends measuring.
+
+Metres and turns mean the same in the browser and on the server: `map.js` (`metresPerDegree`) converts degrees with
+the ellipsoid, and the server (`geo.rectangle`) turns rectangles from true north and sizes them in metres on the
+ground, although it computes in the grid of `MAPS_LOCAL_SRID` (in Erlangen in UTM zone 32 its north is about 1.5°
+off true north, its metre 0.014 % short). So a rectangle is saved as it was drawn, and a row of shelves without
+gaps.
 
 ### Sharing a view
 
