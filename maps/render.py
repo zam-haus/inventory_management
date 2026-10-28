@@ -24,6 +24,8 @@ TILE_SIDE = 2048
 # Tiles reach this far into their neighbours, so that no hairline gap shows between them on the map.
 TILE_OVERLAP = 2
 PDF_TIMEOUT = 90
+# Rows white_to_alpha works on at once.
+STRIP_ROWS = 512
 RASTER = {".png", ".jpg", ".jpeg", ".webp"}
 # Plans can be large; Pillow's default limit is meant for untrusted photos of unknown size.
 Image.MAX_IMAGE_PIXELS = 400_000_000
@@ -51,9 +53,9 @@ def _render_pdf(path, page, dpi):
         except subprocess.CalledProcessError as error:
             raise RenderError(_("The PDF could not be rendered: %(error)s") % {
                 "error": error.stderr.decode(errors="replace").strip()[:300]}) from error
-        with Image.open(out.with_suffix(".png")) as image:
-            image.load()
-            return image.copy()
+        image = Image.open(out.with_suffix(".png"))
+        image.load()  # reads the file and closes it, so it can be deleted; no copy: the page is large
+        return image
 
 
 CROP_FORMAT = gettext_lazy("The crop is an outline of at least three corners [[x, y], …], or [left, top, right, bottom], as "
@@ -125,16 +127,18 @@ def crop_image(image, polygon):
 
 def white_to_alpha(image):
     """The paper made transparent: white becomes transparent, light grey half so, lines keep their colour
-    (colour to alpha, as in image editors)."""
-    rgba = np.asarray(image.convert("RGBA"))
-    darkness = 255 - rgba[..., :3].min(axis=2)  # how far the most coloured channel is from white
-    alpha = darkness.astype(np.float32) / 255
-    out = np.empty_like(rgba)
-    safe = np.maximum(alpha, 1 / 255)
-    for channel in range(3):
-        value = 255 - (255 - rgba[..., channel].astype(np.float32)) / safe
-        out[..., channel] = np.clip(value, 0, 255).astype(np.uint8)
-    out[..., 3] = (alpha * rgba[..., 3]).astype(np.uint8)
+    (colour to alpha, as in image editors). In strips of rows: float arrays of a whole A0 page take gigabytes."""
+    out = np.empty((image.height, image.width, 4), np.uint8)
+    for top in range(0, image.height, STRIP_ROWS):
+        bottom = min(top + STRIP_ROWS, image.height)
+        rgba = np.asarray(image.crop((0, top, image.width, bottom)).convert("RGBA"))
+        darkness = 255 - rgba[..., :3].min(axis=2)  # how far the most coloured channel is from white
+        alpha = darkness.astype(np.float32) / 255
+        safe = np.maximum(alpha, 1 / 255)
+        for channel in range(3):
+            value = 255 - (255 - rgba[..., channel].astype(np.float32)) / safe
+            out[top:bottom, :, channel] = np.clip(value, 0, 255).astype(np.uint8)
+        out[top:bottom, :, 3] = (alpha * rgba[..., 3]).astype(np.uint8)
     return Image.fromarray(out, "RGBA")
 
 
@@ -175,9 +179,9 @@ def render(source, *, suffix, page=1, dpi=150, crop=None, transparent=False):
                 copy.flush()
                 image = _render_pdf(copy.name, page, dpi)
     elif suffix in RASTER:
-        with Image.open(source) as opened:
-            image = ImageOps.exif_transpose(opened)
-            image.load()
+        image = Image.open(source)
+        ImageOps.exif_transpose(image, in_place=True)  # in place: a turned copy would double a large plan
+        image.load()
     else:
         raise RenderError(_("Floor plans can be PDF, PNG, JPEG, WebP or SVG files. Convert DWG files first "
                             "(docs/maps.md)."))
@@ -187,7 +191,9 @@ def render(source, *, suffix, page=1, dpi=150, crop=None, transparent=False):
         image = white_to_alpha(image)
     if max(image.size) > MAX_SIDE:
         image.thumbnail((MAX_SIDE, MAX_SIDE), Image.Resampling.LANCZOS)
-    image = image.convert("RGBA" if "A" in image.getbands() else "RGB")
+    mode = "RGBA" if "A" in image.getbands() else "RGB"
+    if image.mode != mode:  # converting to the same mode would copy it all the same
+        image = image.convert(mode)
     return image, image.width, image.height
 
 
@@ -200,9 +206,9 @@ def webp(image, name):
 
 def preview(image, side=TILE_SIDE, name="plan.webp"):
     """The plan made small (TILE_SIDE), e.g. for the plans list."""
-    small = image.copy()
-    small.thumbnail((side, side), Image.Resampling.LANCZOS)
-    return webp(small, name)
+    scale = min(1, side / max(image.size))  # resized directly, not a full-size copy made small (thumbnail)
+    size = (max(1, round(image.width * scale)), max(1, round(image.height * scale)))
+    return webp(image.resize(size, Image.Resampling.LANCZOS, reducing_gap=2.0), name)
 
 
 def tiles(image):
