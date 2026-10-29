@@ -1,4 +1,5 @@
 """Storage locations, their types and label templates."""
+import re
 from pathlib import Path
 from uuid import uuid4
 
@@ -6,7 +7,8 @@ from computedfields.models import ComputedFieldsModel, computed
 from django.core import validators
 from django.core.exceptions import ValidationError
 from django.db import models, router, transaction
-from django.db.models.functions import Upper
+from django.db.models import Max
+from django.db.models.functions import Cast, Substr, Upper
 from django.db.models.signals import pre_delete
 from django.dispatch import receiver
 from django.urls import reverse
@@ -167,7 +169,7 @@ class LocationType(models.Model):
     def next_free_number(self):
         """(number, name, short name) after the highest number of this type, counting former codes and skipping
         codes that are taken, e.g. (525, "Kiste 525", "K0525"). Old codes of other sequences (K034c) do not count."""
-        number = max(LocationNumberRange._taken_numbers(self), default=0) + 1
+        number = LocationNumberRange._highest_number(self) + 1
         while True:
             name, short = self.numbered_names(number)
             if not taken_location_codes([short]):
@@ -426,12 +428,26 @@ class LocationNumberRange(models.Model):
     def _taken_numbers(cls, kind):
         """Numbers used by codes of this type, also outside of any range (e.g. R998), or used before."""
         prefix, numbers = kind.auto_short_name_prefix, []
-        shorts = [*Location.objects.filter(type=kind, short_name__startswith=prefix).values_list("short_name", flat=True),
-                  *LocationFormerCode.objects.filter(code__startswith=prefix).values_list("code", flat=True)]
+        # Unsorted: the model's ordering made the database sort every code of the type first.
+        shorts = [*Location.objects.filter(type=kind, short_name__startswith=prefix).order_by()
+                  .values_list("short_name", flat=True),
+                  *LocationFormerCode.objects.filter(code__startswith=prefix).order_by().values_list("code", flat=True)]
         for short in shorts:
             if short[len(prefix):].isdigit():
                 numbers.append(int(short[len(prefix):]))
         return numbers
+
+    @classmethod
+    def _highest_number(cls, kind):
+        """The highest of _taken_numbers (0 if none), found by the database instead of reading every code."""
+        prefix = kind.auto_short_name_prefix
+        digits = rf"^{re.escape(prefix)}[0-9]+$"
+        highest = 0
+        for queryset, field in ((Location.objects.filter(type=kind), "short_name"), (LocationFormerCode.objects, "code")):
+            number = queryset.filter(**{f"{field}__regex": digits}).order_by().aggregate(
+                highest=Max(Cast(Substr(field, len(prefix) + 1), models.BigIntegerField())))["highest"]
+            highest = max(highest, number or 0)
+        return highest
 
     @classmethod
     def suggest(cls, kind, location=None, size=NEW_SIZE):
@@ -563,6 +579,8 @@ class Location(SoftDeleteModel, ComputedFieldsModel):
             models.CheckConstraint(name="location_reserved_has_no_parent",
                                    condition=models.Q(is_reserved=False) | models.Q(parent_location__isnull=True)),
         ]
+        # A scanned or typed full path (HH-1.SK.K0520, codes.resolve_code) is found ignoring case.
+        indexes = [models.Index(Upper("locatable_identifier"), name="location_path_ignoring_case")]
 
     type = models.ForeignKey(LocationType, on_delete=models.PROTECT, verbose_name=_("type"))
 

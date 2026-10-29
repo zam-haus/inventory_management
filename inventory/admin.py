@@ -634,6 +634,15 @@ class ItemImageInline(admin.TabularInline):
     extra = 1
     readonly_fields = ('image_tag', 'ocr_text')
 
+    def get_formset(self, request, obj=None, **kwargs):
+        # A photo of the item may show one of its unique items: only those are offered (all unique items made
+        # each row a list of a million).
+        formset = super().get_formset(request, obj, **kwargs)
+        field = formset.form.base_fields.get("unique_item")
+        if field is not None:
+            field.queryset = field.queryset.filter(item=obj) if obj is not None else field.queryset.none()
+        return formset
+
 class DocumentInlineMixin:
     """Files are opened through the inventory's download view; storage paths stay hidden."""
     fields = ("description", "file", "internal", "download")
@@ -697,7 +706,8 @@ class UniqueItemImageInline(admin.TabularInline):
 @admin.register(models.UniqueItem)
 class UniqueItemAdmin(admin.ModelAdmin):
     list_display = ("__str__", "label_code_display", "location", "responsible_team", "disposed_at")
-    list_filter = ("item", "responsible_team", ("disposed_at", admin.EmptyFieldListFilter))
+    # Not by item: the filter listed every item (search by its name instead).
+    list_filter = ("responsible_team", ("disposed_at", admin.EmptyFieldListFilter))
     search_fields = ("item__name", "name", "notes", "owner_first_name")
     autocomplete_fields = ("item", "location", "responsible_user", "owner_user")
     readonly_fields = ("label_code_display",)

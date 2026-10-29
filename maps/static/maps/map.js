@@ -245,12 +245,14 @@
                 layer.bindPopup(function () { return popup(feature); });
             }
             var text = label(feature);
-            if (text && name !== 'item') {
-                layer.bindTooltip(text, {permanent: true, direction: 'center', className: 'map-label map-label-' + name});
+            if (text && name !== 'item') {  // a tooltip once it is shown (filterStacks)
+                layer._label = {text: text, options: {permanent: true, direction: 'center',
+                    className: 'map-label map-label-' + name}};
             }
             result.layers[name].addLayer(layer);
             result.byId[feature.properties.id] = layer;
-            bounds.extend(layer.getBounds ? layer.getBounds() : layer.getLatLng());
+            layer._extent = layer.getBounds ? layer.getBounds() : L.latLngBounds([layer.getLatLng()]);
+            bounds.extend(layer._extent);
         });
         result.stacked = {};
         result.stacks.forEach(function (stack) { result.stacked[stack.group] = true; });
@@ -258,8 +260,8 @@
         result.map = map;
         filterStacks(result, {});
         var relabel = function () { filterStacks(result, result.choice || {}); };
-        map.on('zoomend overlayadd overlayremove', relabel);
-        result.off = function () { map.off('zoomend overlayadd overlayremove', relabel); };  // when drawn anew
+        map.on('moveend overlayadd overlayremove', relabel);  // moveend: also after zooming
+        result.off = function () { map.off('moveend overlayadd overlayremove', relabel); };  // when drawn anew
         result.bounds = bounds.isValid() ? bounds : null;
         return result;
     }
@@ -267,7 +269,7 @@
     // Shows only one part of each stacked area (choice: {group pk: part pk or null for all}).
     function filterStacks(drawn, choice) {
         drawn.choice = choice;
-        var zoom = drawn.map.getZoom();
+        var zoom = drawn.map.getZoom(), view = drawn.map.getBounds().pad(0.25);
         Object.keys(drawn.byId).forEach(function (id) {
             var layer = drawn.byId[id];
             var stack = layer.feature.properties.stack;
@@ -286,18 +288,27 @@
                     tooltip.getElement().style.display = hidden ? 'none' : '';
                 }
             });
-            var tooltip = layer.getTooltip && layer.getTooltip();
-            if (tooltip && tooltip.getElement()) {
+            // The label is a tooltip only while it is shown and near the view: Leaflet measures every tooltip
+            // whenever it places one, which took minutes with thousands of shelves (hidden ones counted, too).
+            if (layer._label) {
                 // Of the area and its parts, one label: the area's, or the chosen part's.
-                tooltip.getElement().dataset.ruledOut = '1';
                 var shown = !hidden && (isStackPart(layer.feature) ? Boolean(choice[stack[0]])
                     : !(drawn.stacked[layer.feature.properties.pk] && choice[layer.feature.properties.pk]));
                 // From the zoom its type gives (admin: map settings, "label from zoom") on.
                 var label = layer.feature.properties.label;
                 shown = shown && !(label && label.min_zoom !== null && label.min_zoom !== undefined &&
-                    zoom < label.min_zoom);
-                tooltip.getElement().style.display = shown ? '' : 'none';
-                tooltip.getElement().dataset.ruledOut = shown ? '0' : '1';
+                    zoom < label.min_zoom) && view.intersects(layer._extent);
+                var tooltip = layer.getTooltip();
+                if (shown && !tooltip) {
+                    layer.bindTooltip(layer._label.text, layer._label.options);  // opens it (permanent)
+                } else if (!shown && tooltip) {
+                    layer.unbindTooltip();
+                }
+                tooltip = layer.getTooltip();
+                if (tooltip && tooltip.getElement()) {
+                    tooltip.getElement().style.display = '';
+                    tooltip.getElement().dataset.ruledOut = '0';
+                }
             }
         });
         layoutLabels(drawn);

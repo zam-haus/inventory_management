@@ -1,4 +1,4 @@
-{% load mytemplatetags i18n %}
+{% load mytemplatetags i18n static %}
 {% get_current_language as language_code %}
 <!doctype html>
 <html lang="{{ language_code }}">
@@ -7,6 +7,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{% trans "Printable inventory" %}</title>
     {% include 'app_head.html' %}
+    {{ form.media.css }}
     <style>
         body { font: 14px/1.45 sans-serif; color: #111; margin: 2rem auto; padding: 0 1rem; max-width: 1100px; }
         a { color: #174d85; }
@@ -58,11 +59,14 @@
             <form method="get">
                 {% if query and not form.is_bound %}<p>{% blocktrans count counter=form.initial.locations|length %}{{ counter }} location found by the search “{{ query }}” is preselected.{% plural %}{{ counter }} locations found by the search “{{ query }}” are preselected.{% endblocktrans %}</p>{% endif %}
                 {{ form.as_p }}
-                <p>{% trans "Hold Ctrl (Windows/Linux) or Command (Mac) to select multiple locations." %}</p>
                 <button type="submit">{% trans "Show inventory" %}</button>
             </form>
         {% endif %}
     </div>
+    {% if not selected_locations %}
+        <script src="{% static 'static_jquery/js/jquery.min.js' %}"></script>
+        {{ form.media.js }}
+    {% endif %}
 
     <h1>{% trans "Printable inventory" %}</h1>
     {% if selected_locations %}

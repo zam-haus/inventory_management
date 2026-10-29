@@ -61,6 +61,7 @@ class _Index:
 
     def level_numbers(self):
         numbers = set(self.plan_levels)
+        self.tree.load(LocationShape.objects.filter(geometry__isnull=False).values("location_id"))
         for pk in self.shaped:
             number = self.tree.level_number(pk)
             if number is not None:

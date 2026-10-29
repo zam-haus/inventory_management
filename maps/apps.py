@@ -44,6 +44,7 @@ class MapsConfig(AppConfig):
             "maps.locationtypemap": "maps are optional; not exported yet",
             "maps.backgroundlayer": "maps are optional; each installation chooses its tile servers",
             "maps.uniqueitemposition": "maps are optional; not exported yet",
+            "maps.surveyedpoint": "maps are optional; ZAM's points come with migration maps 0003",
             # The spatial database's own tables, which GeoDjango maps (unmanaged) once its backend is loaded.
             "gis.postgisgeometrycolumns": "PostGIS metadata, not inventory data",
             "gis.postgisspatialrefsys": "PostGIS metadata, not inventory data",

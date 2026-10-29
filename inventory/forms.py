@@ -7,7 +7,7 @@ from django.db.models import Q
 from django.forms import (
     BooleanField, CharField, CheckboxInput, ChoiceField, DateInput, DecimalField, FileInput, Form, HiddenInput,
     IntegerField, ModelChoiceField, ModelForm, ModelMultipleChoiceField, NullBooleanSelect, NumberInput,
-    RadioSelect, SelectMultiple, Textarea, TextInput, UUIDField,
+    RadioSelect, Textarea, TextInput, UUIDField,
 )
 from django.forms.models import BaseInlineFormSet, inlineformset_factory
 from extra_views import InlineFormSetFactory
@@ -28,14 +28,28 @@ from .label_ids import core as label_id_core, naming as label_id_naming, parsing
 from .label_ids.lookup import annotate_label_code
 
 
+def _valid_location_pk(pk):
+    try:
+        Location._meta.pk.clean(pk, None)
+    except ValidationError:
+        return False
+    return True
+
+
+class LocationMultiSelect(autocomplete.ModelSelect2Multiple):
+    """Locations searched as typed, several at once; only the chosen ones are in the page."""
+
+    def filter_choices_to_render(self, selected_choices):
+        # Only valid ids reach the database (a huge number overflowed it); the field reports the others.
+        super().filter_choices_to_render([pk for pk in selected_choices if _valid_location_pk(pk)])
+
+
 class LocationMultipleChoiceField(ModelMultipleChoiceField):
     def clean(self, value):
         # Validate the integer range before the choice field queries the database.
         if isinstance(value, (list, tuple)):
             for pk in value:
-                try:
-                    Location._meta.pk.clean(pk, None)
-                except ValidationError:
+                if not _valid_location_pk(pk):
                     raise ValidationError(
                         self.error_messages["invalid_pk_value"],
                         code="invalid_pk_value", params={"pk": pk},
@@ -88,11 +102,12 @@ class LocationOverviewForm(ModelForm):
 
 
 class PrintableInventoryForm(Form):
+    # Searched as typed (a list of every location grew to 100 MB with a million of them).
     locations = LocationMultipleChoiceField(
         queryset=Location.active.all(),
         label=_("Locations"),
         help_text=_("Select one or more locations."),
-        widget=SelectMultiple(attrs={"size": 12}),
+        widget=LocationMultiSelect(url="location-autocomplete", attrs={"data-width": "100%"}),
     )
 
 

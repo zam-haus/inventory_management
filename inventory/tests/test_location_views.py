@@ -242,7 +242,8 @@ class PrintableInventoryTests(TestCase):
     def test_selection_page_does_not_list_inventory_until_locations_are_selected(self):
         response = self.report()
         self.assertContains(response, 'name="locations"')
-        self.assertContains(response, "Workshop")
+        self.assertContains(response, 'data-autocomplete-light-url="/location-autocomplete/"')
+        self.assertNotContains(response, "Workshop")  # searched as typed, not listed: a million made 100 MB
         self.assertNotContains(response, "Screw photo")
         self.assertNotContains(response, 'id="print-inventory"')
 

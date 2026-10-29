@@ -9,6 +9,7 @@ from pathlib import PurePath
 
 from django.contrib import messages
 from django.contrib.auth.mixins import PermissionRequiredMixin
+from django.contrib.gis.db.models.functions import AsGeoJSON
 from django.contrib.gis.geos import Point
 from django.core.exceptions import PermissionDenied
 from django.db import transaction
@@ -19,7 +20,7 @@ from django.utils.translation import gettext as _
 from django.views import View
 from django.views.decorators.http import require_GET
 
-from inventory.models import Location, UniqueItem
+from inventory.models import Location, LocationType, UniqueItem
 
 from . import geo, levels, plans, positions
 from .render import RenderError, crop_polygon
@@ -78,7 +79,8 @@ def _location_feature(shape, tree):
     location = shape.location
     size = shape.size_cm()
     settings_ = getattr(location.type, "map_settings", None)
-    return {"type": "Feature", "geometry": json.loads(shape.geometry.json), "properties": {
+    geometry = shape.geojson if hasattr(shape, "geojson") else shape.geometry.json
+    return {"type": "Feature", "geometry": json.loads(geometry), "properties": {
         "label": _label(location, tree), "style": settings_.style() if settings_ else {},
         "id": f"loc:{location.pk}", "pk": location.pk, "category": location.type.category or "",
         "structure": location.type.structure or "", "kind": shape.kind, "rotation": shape.rotation,
@@ -100,16 +102,22 @@ def _item_feature(position, tree):
 def level_payload(number, tree=None):
     """Everything the map shows of a level: plans, positions and the stacked areas with their parts."""
     tree = tree or levels.Tree()
-    on_level = {pk for pk in tree.nodes if tree.level_number(pk) == number}
+    # What has a position, and where in the tree it is (one query); then only what is on this level.
+    placed = LocationShape.objects.filter(geometry__isnull=False, location__is_deleted=False,
+                                          location__is_reserved=False)
+    tree.load(placed.values("location_id"))
+    items = UniqueItemPosition.objects.filter(unique_item__disposed_at__isnull=True)
+    tree.load(items.values("unique_item__location_id"))
+    shaped_on_level = tree.on_level(list(placed.values_list("location_id", flat=True)), number)  # loaded: no query
     plans_ = FloorPlan.objects.filter(active=True, corners__isnull=False, level=number).order_by("name", "pk")
-    shapes = LocationShape.objects.filter(location__in=on_level, geometry__isnull=False) \
-        .select_related("location__type__map_settings")
-    items = UniqueItemPosition.objects.filter(unique_item__location__in=on_level,
-                                              unique_item__disposed_at__isnull=True) \
-        .select_related("unique_item__item", "unique_item__location")
+    # GeoJSON from the database (to the millimetre), not through GEOS and OGR shape by shape.
+    shapes = placed.filter(location_id__in=shaped_on_level).select_related("location__type__map_settings") \
+        .annotate(geojson=AsGeoJSON("geometry", precision=8))
+    items = [position for position in items.select_related("unique_item__item", "unique_item__location")
+             if tree.level_number(position.unique_item.location_id) == number]
     stacks = []
-    for group in sorted(tree.stacked & on_level, key=tree.code):
-        parts = sorted((pk for pk, node in tree.nodes.items() if node[0] == group), key=tree.code)
+    for group in sorted(set(tree.on_level(tree.stacked, number)), key=tree.code):
+        parts = tree.children(group)
         stacks.append({"group": group, "code": tree.code(group),
                        "parts": [{"pk": pk, "code": tree.code(pk), "short": tree.code(pk)[len(tree.code(group)):]}
                                  for pk in parts]})
@@ -277,15 +285,16 @@ def unplaced(request, number):
     a new shape to (?kind=point, rectangle or area: those whose type allows it)."""
     if edit_map_denied(request.user):
         raise PermissionDenied
-    tree = levels.Tree()
-    placed = set(LocationShape.objects.filter(geometry__isnull=False).values_list("location_id", flat=True))
-    candidates = [pk for pk in tree.nodes if tree.level_number(pk) == number and pk not in placed]
     kind = request.GET.get("kind", "point")
+    # Placeable is a matter of the type: only the locations of those types are looked at.
+    types = [location_type.pk for location_type in LocationType.objects.select_related("map_settings")
+             if placeable(Location(type=location_type)) and kind in allowed_kinds(location_type)]
+    unplaced_ = Location.active.filter(type__in=types).exclude(map_shape__geometry__isnull=False)
+    tree = levels.Tree()
+    on_level = set(tree.on_level(unplaced_.values_list("pk", flat=True), number))
     rows = []
-    for location in Location.active.filter(pk__in=candidates).select_related(
+    for location in unplaced_.filter(pk__in=on_level).select_related(
             "type__map_settings", "parent_location__type").order_by("unique_identifier"):
-        if not placeable(location) or kind not in allowed_kinds(location.type):
-            continue
         rows.append({"pk": location.pk, "code": location.unique_identifier, "title": location.title,
                      "type": location.type_id, "size": type_size(location.type)})
     return JsonResponse({"locations": rows})

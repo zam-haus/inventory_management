@@ -56,6 +56,22 @@ class LevelTests(Building, TestCase):
         self.assertEqual(tree.levels(), {-1: [self.other_level.pk, self.level.pk]})  # HH before WH
         self.assertEqual(sorted(tree.descendants(self.pallet.pk)), [self.box.pk])
 
+    def test_the_tree_loads_what_is_asked_for(self):
+        # A few locations: one recursive query; many (or a queryset): one query per step up. Both give the same.
+        few = Tree()
+        self.assertEqual((few.level(self.box.pk), few.depth(self.box.pk)), (self.level.pk, 5))  # K1, P1, HBB.2, HBB, WH-1
+        self.assertNotIn(self.other_level.pk, few.nodes)  # only what was asked for, and what is above it
+        many = Tree()
+        many.FEW = 0
+        many.load(Location.objects.filter(pk__in=[self.box.pk, self.store.pk]).values("pk"))
+        self.assertEqual({pk: many.nodes[pk] for pk in few.nodes}, few.nodes)
+        self.assertEqual(many.on_level([self.box.pk, self.store.pk, self.other_level.pk], -1),
+                         [self.box.pk, self.store.pk, self.other_level.pk])
+        self.assertEqual(sorted(many.descendants(self.pallet.pk)), [self.box.pk])
+        Location.objects.filter(pk=self.box.pk).update(is_deleted=True)  # deleted: not in the tree, nor below its parent
+        self.assertIsNone(Tree().level(self.box.pk))
+        self.assertEqual(Tree().descendants(self.pallet.pk), [])
+
     def test_without_a_position_of_its_own_the_nearest_one_above_counts(self):
         self.assertIsNone(effective_shape(self.box))
         positions.set_location_shape(self.pallet, None, CENTER)
