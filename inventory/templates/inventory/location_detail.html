@@ -162,40 +162,7 @@
                     </div>
                     {% include 'inventory/location_quick_items.html' %}
                     {% if entries %}
-                        <div class="location-item-columns{% if stock_change_form or user.is_authenticated %} location-items-changeable{% endif %}" aria-hidden="true">
-                            <span>{% trans "Item" %}</span>
-                            <span>{% trans "Amount" %}</span>
-                            <span>{% trans "Photos" %}</span>
-                            {% if stock_change_form or user.is_authenticated %}<span></span>{% endif %}
-                        </div>
-                        <ul class="location-items list-collapse-list{% if stock_change_form or user.is_authenticated %} location-items-changeable{% endif %}">
-                            {% for entry in entries %}
-                                <li class="location-item">
-                                    <div class="location-item-info">
-                                        <h3 class="fs-6"><a href="{{ entry.item.get_absolute_url }}">{{ entry.item }}</a></h3>
-                                        {% if entry.item.description %}
-                                            <p class="location-item-description location-muted">{{ entry.item.description|markdown_plain|truncatechars:160 }}</p>
-                                        {% endif %}
-                                        {% if entry.item.sale_price != None %}
-                                            <p class="location-item-price"><span class="location-muted">{% trans "Price per unit" %}:</span> {{ entry.item.sale_price|floatformat:2 }} € / {{ entry.item.measurement_unit.short }}</p>
-                                        {% endif %}
-                                    </div>
-                                    <div class="location-amount"><span class="visually-hidden">{% trans "Amount" %}: </span>{{ entry.amount_text }}</div>
-                                    <div class="location-photos">
-                                        {% for image in entry.item.itemimage_set.all %}
-                                            {% thumbnail image.image "160x160" as im %}
-                                                <a href="{{ image.image.url }}" class="location-photo">
-                                                    <img src="{{ im.url }}" width="80" height="80" alt="{{ image.description|default:entry.item }}" loading="lazy">
-                                                </a>
-                                            {% endthumbnail %}
-                                        {% empty %}
-                                            <span class="location-muted location-no-images">{% trans "No images" %}</span>
-                                        {% endfor %}
-                                    </div>
-                                    {% if stock_change_form or user.is_authenticated %}<div class="location-item-actions">{% include 'inventory/stock_change_button.html' %}</div>{% endif %}
-                                </li>
-                            {% endfor %}
-                        </ul>
+                        {% include 'inventory/results/list.html' with entries=item_entries here=object list_classes="list-collapse-list" row_aside="inventory/results/rows/stock.html" row_details="inventory/results/rows/item_details.html" %}
                         {% if entries|length > 10 %}<label class="list-collapse-more" for="location-items-expanded">{% blocktrans with counter=entries|length %}Show all {{ counter }}{% endblocktrans %}</label>{% endif %}
                     {% elif not quick_entries %}
                         <div class="location-empty" data-items-empty>
@@ -218,40 +185,7 @@
                         <p class="location-muted">{% blocktrans with name=label_id_name %}Single objects with their own {{ name }}, such as machines or fire extinguishers.{% endblocktrans %}</p>
                     </div>
                     {% if unique_items %}
-                        <div class="location-item-columns" aria-hidden="true">
-                            <span>{% trans "Unique item" %}</span>
-                            <span>{% trans "Usage level" %}</span>
-                            <span>{% trans "Photos" %}</span>
-                        </div>
-                        <ul class="location-items list-collapse-list">
-                            {% for unique_item in unique_items %}
-                                <li class="location-item">
-                                    <div class="location-item-info">
-                                        <h3 class="fs-6"><a href="{{ unique_item.get_absolute_url }}">{{ unique_item.name_html }}</a></h3>
-                                        {% if unique_item.notes %}<p class="location-item-description location-muted">{{ unique_item.notes|markdown_plain|truncatechars:160 }}</p>{% endif %}
-                                    </div>
-                                    <div class="location-amount">{% usage_level unique_item.effective_usage_level %}</div>
-                                    <div class="location-photos">
-                                        {% for image in unique_item.images.all %}
-                                            {% thumbnail image.image "160x160" as im %}
-                                                <a href="{{ image.image.url }}" class="location-photo">
-                                                    <img src="{{ im.url }}" width="80" height="80" alt="{{ image.description|default:unique_item.item }}" loading="lazy">
-                                                </a>
-                                            {% endthumbnail %}
-                                        {% endfor %}
-                                        {% for image in unique_item.item.general_images %}
-                                            {% thumbnail image.image "160x160" as im %}
-                                                <a href="{{ image.image.url }}" class="location-photo">
-                                                    <img src="{{ im.url }}" width="80" height="80" alt="{{ image.description|default:unique_item.item }}" loading="lazy">
-                                                </a>
-                                            {% endthumbnail %}
-                                        {% empty %}
-                                            {% if not unique_item.images.all %}<span class="location-muted location-no-images">{% trans "No images" %}</span>{% endif %}
-                                        {% endfor %}
-                                    </div>
-                                </li>
-                            {% endfor %}
-                        </ul>
+                        {% include 'inventory/results/list.html' with entries=unique_entries here=object list_classes="list-collapse-list" row_aside="inventory/results/rows/usage_level.html" row_details="inventory/results/rows/notes.html" %}
                         {% if unique_items|length > 10 %}<label class="list-collapse-more" for="location-unique-items-expanded">{% blocktrans with counter=unique_items|length %}Show all {{ counter }}{% endblocktrans %}</label>{% endif %}
                     {% else %}
                         <div class="location-empty">
@@ -266,7 +200,7 @@
             {% if child_groups %}
             <div class="location-children-groups">
                 {% for group in child_groups %}
-                    {% include "inventory/location_children_panel.html" with anchor=group.anchor title=group.title children=group.children category=group.category %}
+                    {% include "inventory/location_children_panel.html" with anchor=group.anchor title=group.title children=group.children child_entries=group.entries category=group.category %}
                 {% endfor %}
             </div>
             {% elif not object.type.no_sublocations or children %}

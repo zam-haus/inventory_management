@@ -249,7 +249,10 @@ class LevelTests(MediaMixin, UniqueItemFixture, TestCase):
         self.assertInHTML(f'<li><a href="{self.manual.get_absolute_url()}">Manual</a> <span class="unique-item-general">general</span></li>', content)
         item_page = self.client.get(self.extinguisher.get_absolute_url()).content.decode()
         self.assertIn("Type photo", item_page)
-        self.assertNotIn("Dent", item_page)
+        # Its photos are the unique item's: only in its row (results/entries.html), not among the item's.
+        rows = item_page.index("data-result-list")
+        self.assertNotIn("Dent", item_page[:rows])
+        self.assertIn("Dent", item_page[rows:])
 
     def test_level_can_change_on_the_unique_item_form(self):
         url = reverse("update_unique_item", args=[self.unique_item.pk])

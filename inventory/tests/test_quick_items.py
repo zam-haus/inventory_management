@@ -229,7 +229,8 @@ class QuickItemTests(TestCase):
         self.assertEqual(entry.amount_text, "amount unknown")
         self.assertIsNone(entry.sale_value)
         response = self.client.get(reverse("index"), {"q": "crimp"})
-        self.assertEqual([found.obj for found in response.context["entries"]], [entry.item])
+        # (The migrated category tree has a crimping category, too.)
+        self.assertEqual([found.obj for found in response.context["entries"] if found.kind == "item"], [entry.item])
         self.assertContains(response, "amount unknown")
         self.assertContains(self.client.get(entry.item.get_absolute_url()), "amount unknown")
 

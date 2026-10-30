@@ -1,0 +1,12 @@
+{% load i18n icons search_tags %}
+{# Once per page: the icons of result rows, and the photos of a row, shown below it (results.js). #}
+{% result_icon_sprite %}
+<template id="result-viewer">
+    <li class="result-viewer" role="group" aria-label="{% trans 'Photos' %}">
+        <div class="result-viewer-strip" tabindex="0"></div>
+        <p class="result-viewer-counter" aria-live="polite"></p>
+        <button type="button" class="result-viewer-button result-viewer-prev" aria-label="{% trans 'Previous photo' %}">{% icon "chevron-left" %}</button>
+        <button type="button" class="result-viewer-button result-viewer-next" aria-label="{% trans 'Next photo' %}">{% icon "chevron-right" %}</button>
+        <button type="button" class="result-viewer-button result-viewer-close" aria-label="{% trans 'Close photo' %}">{% icon "x-lg" %}</button>
+    </li>
+</template>

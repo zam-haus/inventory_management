@@ -270,7 +270,7 @@ class PrintDialogTests(SimulatedPrinters, InventoryData, TestCase):
         # "Take out" and "Add stock", without the location: for the one from the label; the dialog offers the others
         self.assertContains(response, '<span class="action-label">Take out</span>', count=1)
         self.assertContains(response, '<span class="action-label">Add stock</span>', count=1)
-        self.assertContains(response, 'class="item-location-current" aria-current="location"')
+        self.assertContains(response, 'class="result-entry result-entry-current" data-result-entry aria-current="location"')
         take = re.search(r'<a class="btn btn-danger item-take-button"[^>]*>', response.content.decode()).group(0)
         entry = ItemLocation.objects.get(item=self.item, location=self.other_part)
         self.assertIn(reverse("stock_change", args=[entry.pk]), take)

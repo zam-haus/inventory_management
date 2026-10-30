@@ -12,7 +12,7 @@ WANTED = {
     "inventory.location": ("name", "short_name", "purpose", "physical_description",
                            "unique_identifier", "locatable_identifier", "descriptive_identifier"),
     "inventory.item": ("name", "description"),
-    "inventory.category": ("full_name",),
+    "inventory.category": ("full_name", "name", "keywords", "description"),
     "inventory.itembarcode": ("data",),
     "inventory.itemimage": ("description", "ocr_text"),
     "inventory.itemfile": ("description",),

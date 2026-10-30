@@ -255,3 +255,44 @@ class StorageUnitTests(Building, TestCase):
         positions.set_location_shape(self.shelf, None, CENTER)
         shape, source, exact = effective_shape(self.compartment)
         self.assertEqual((source, exact), (self.shelf, False))
+
+
+@override_settings(LANGUAGE_CODE="en")
+class ResultMapLinkTests(Building, TestCase):
+    """Result rows link to the map (slot result_entry.place); where their locations are in the tree is loaded once for
+    the whole list (result_entries.start), not once per row."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.build()
+        positions.set_location_shape(cls.store, LocationShape.Kind.AREA, geo.rectangle(local_point(20, 0), 5, 5))
+
+    def add(self, n):
+        box = Location.objects.create(type=self.box_type, name=f"Kiste {n + 10}", short_name=f"K{n + 10}",
+                                      parent_location=self.store)
+        UniqueItem.objects.create(item=Item.objects.create(name=f"Hobel {n}", kind=Item.Kind.UNIQUE,
+                                                           measurement_unit_id=self.saw.item.measurement_unit_id),
+                                  location=box)
+
+    def queries(self, url, **params):
+        from django.db import connection
+        from django.test.utils import CaptureQueriesContext
+        with CaptureQueriesContext(connection) as captured:
+            response = self.client.get(url, params)
+        return len(captured), response
+
+    def test_the_search_loads_the_tree_once(self):
+        self.add(0)
+        one, response = self.queries(reverse("index"), q="hobel")
+        self.assertContains(response, "On the map")
+        for n in range(1, 10):
+            self.add(n)
+        ten, response = self.queries(reverse("index"), q="hobel")
+        self.assertEqual(response.content.decode().count("On the map"), 20)  # each item and its unique item
+        self.assertEqual(ten, one)
+
+    def test_not_in_a_locations_own_lists(self):
+        self.add(0)
+        page = self.client.get(self.store.get_absolute_url()).content.decode()
+        lists = page[page.index("data-result-list"):]
+        self.assertNotIn("result-map", lists)

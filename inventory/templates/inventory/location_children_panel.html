@@ -1,5 +1,5 @@
-{% load i18n icons actions locations %}{% comment %}Sub-locations of the location page: all of them, or those of one category (anchor, title,
-children, category). Storage units and containers have a shortcut to the header's "add" and "move here" buttons, which stay.{% endcomment %}
+{% load i18n icons actions locations %}{% comment %}Sub-locations of the location page as result rows: all of them, or those of one category (anchor, title,
+children, child_entries, category). Storage units and containers have a shortcut to the header's "add" and "move here" buttons, which stay.{% endcomment %}
 <section class="location-panel location-children" id="{{ anchor }}" aria-labelledby="{{ anchor }}-heading">
     {% if children|length > 10 %}<input type="checkbox" class="list-collapse-state visually-hidden" id="{{ anchor }}-expanded">{% endif %}
     <div class="location-panel-heading">
@@ -37,17 +37,10 @@ children, category). Storage units and containers have a shortcut to the header'
             {% endif %}
         </div>
     </div>
-    <ul class="location-child-list list-collapse-list">
-        {% for child in children %}
-            <li>
-                <a href="{{ child.get_absolute_url }}">
-                    <span class="location-child-name fs-6">{% location_label child %}</span>
-                    <span class="location-child-arrow" aria-hidden="true">{% icon "chevron-right" %}</span>
-                </a>
-            </li>
-        {% empty %}
-            <li class="location-empty location-muted">{% trans "No sub-locations." %}</li>
-        {% endfor %}
-    </ul>
+    {% if child_entries %}
+        {% include 'inventory/results/list.html' with entries=child_entries here=object list_classes="list-collapse-list" row_aside="" row_details="" %}
+    {% else %}
+        <p class="location-empty location-muted">{% trans "No sub-locations." %}</p>
+    {% endif %}
     {% if children|length > 10 %}<label class="list-collapse-more" for="{{ anchor }}-expanded">{% blocktrans with counter=children|length %}Show all {{ counter }}{% endblocktrans %}</label>{% endif %}
 </section>

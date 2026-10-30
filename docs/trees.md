@@ -11,9 +11,11 @@ styles in `actions.css`).
   name, each named as everywhere (item, own name, label ID, [unique items](unique-items.md)), and counts them.
   Items without a category come last, under *Without category*. A category's counts include its
   subcategories: counted items (`boxes`), then unique items (`box-star`). Its name leads to
-  its page (`/category/<id>/`): all its items, those right in it first, then those of its subcategories by
-  subcategory (each by name), 50 a page, shown like search results; above them its path, its naming (how its
-  items are named, [cleanup](item-cleanup.md#naming-of-categories)) and subcategories.
+  its page (`/category/<id>/`): all its items, those right in it first, then those of its subcategories under a
+  heading for each (each by name), as [result rows](search.md#result-rows), more loaded while scrolling; above
+  them its path, its naming (how its items are named, [cleanup](item-cleanup.md#naming-of-categories)), a search
+  field and its subcategories. The field searches within the category as you type: its items, their unique
+  items and the categories below it; emptied, it shows all items again.
   Item and unique item pages show the item's category path above the title: *Items* (the tree, opened at
   the category), then each category down to its own, each linked to its page.
 * **Locations** (`/loc/`): every location below its parent, in the order of their codes, numbers by value
@@ -47,5 +49,5 @@ counts as subqueries; categories and items) and renders it with `format_html`, w
 template recursion, which would be slow for thousands of nodes. The icons are drawn once per page as
 `<symbol>`s and each row refers to one (`<use>`), which keeps the pages small. Views: `ItemTreeView`,
 `LocationTreeView`, `CategoryView` (`inventory/views.py`); templates `item_tree.html`, `location_tree.html`,
-`category_detail.html`; styles
+`category_detail.html` (with `category_results.html`, alone with `?partial=1`); styles
 `tree.css`. Tests: `inventory/tests/test_trees.py`.

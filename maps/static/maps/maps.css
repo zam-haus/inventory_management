@@ -187,7 +187,7 @@
     box-shadow: 0 0 0 2px rgba(255, 255, 255, .8);
     cursor: move;
 }
-.search-map {
+.result-map {
     white-space: nowrap;
 }
 .structure-level-map {

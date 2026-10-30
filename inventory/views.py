@@ -13,7 +13,6 @@ from django.contrib.auth.views import redirect_to_login
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.db import IntegrityError, transaction
 from django.forms import all_valid
-from django.core.paginator import Paginator
 from django.db.models import Case, Prefetch, Q, Value, When
 from django.db.models.functions import Coalesce, Lower
 from django.http import FileResponse, Http404, HttpResponseForbidden, JsonResponse
@@ -41,8 +40,52 @@ from .location_lookup import location_from_reference
 
 logger = logging.getLogger(__name__)
 
+
+def request_offset(request):
+    """Where a list starts (?offset=, for further rows of it); 0 if not a number."""
+    try:
+        return max(0, int(request.GET.get("offset", 0)))
+    except ValueError:
+        return 0
+
+
+def page_url(path, **params):
+    """The path with these parameters, empty ones left out."""
+    query = urlencode({key: value for key, value in params.items() if value not in (None, "")}, safe=",")
+    return f"{path}?{query}" if query else path
+
+
+def chosen_kinds(request, offered):
+    """The kinds of hits chosen to show (?kinds=item,unique); none chosen means all, and so does all."""
+    return normal_kinds({kind for kind in request.GET.get("kinds", "").split(",") if kind in offered}, offered)
+
+
+def normal_kinds(chosen, offered):
+    return chosen if chosen != set(offered) else set()
+
+
+def kinds_param(chosen, offered):
+    return ",".join(kind for kind in offered if kind in chosen)
+
+
+def kind_filters(path, query, result, chosen, offered):
+    """The summary of the hits by kind (results/kinds.html): how many of each, whether it is chosen, and the link
+    that chooses it or not. With none chosen all are shown, so that a first click shows only that kind. Kinds
+    without hits are left out unless chosen."""
+    filters = []
+    for kind in offered:
+        count = result.counts.get(kind, 0)
+        if not count and kind not in chosen:
+            continue
+        url = page_url(path, q=query, kinds=kinds_param(normal_kinds(chosen ^ {kind}, offered), offered))
+        filters.append({"kind": kind, "icon": search.render.KINDS[kind][0], "chosen": kind in chosen, "url": url,
+                        "text": search.render.count_text(kind, min(count, search.MAX_RESULTS),
+                                                         more=count > search.MAX_RESULTS)})
+    return filters
+
+
 class SearchView(TemplateView):
-    """The home page: one search over locations, items and unique items (docs/search.md). A scanned or typed
+    """The home page: one search over locations, categories, items and unique items (docs/search.md). A scanned or typed
     code (label ID, label URL, a location's code, also a former one) leads to what it belongs to. ?offset= starts
     at a later page. With ?partial=1 only the results, for searching as you
     type (a code is offered as a link there instead) and, with an offset, only the further entries."""
@@ -51,22 +94,23 @@ class SearchView(TemplateView):
     def get(self, request, *args, **kwargs):
         query = request.GET.get("q", "").strip()
         partial = bool(request.GET.get("partial"))
-        try:
-            offset = int(request.GET.get("offset", 0))
-        except ValueError:
-            offset = 0
+        offset = request_offset(request)
         code_url = url_for_query(request, query) if not offset else None
         if code_url and not partial:
             return redirect(code_url)
-        result = search.search(query, offset)
+        offered = list(search.KIND_ORDER)
+        chosen = chosen_kinds(request, offered)
+        result = search.search(query, offset, kinds=chosen or None)
         next_url = None
         if result.next_offset is not None:
-            next_url = f"{reverse('index')}?{urlencode({'q': query, 'offset': result.next_offset})}"
+            next_url = page_url(reverse("index"), q=query, kinds=kinds_param(chosen, offered),
+                                offset=result.next_offset)
         context = self.get_context_data(query=query, code_url=code_url, words=result.words, offset=offset,
                                         entries=search.render.entries(result.hits), next_url=next_url,
-                                        capped=result.capped)
+                                        capped=result.capped, kinds=kinds_param(chosen, offered),
+                                        kind_filters=kind_filters(reverse("index"), query, result, chosen, offered))
         if partial:
-            template = "inventory/search_more.html" if offset else "inventory/search_results.html"
+            template = "inventory/results/more.html" if offset else "inventory/search_results.html"
             return render(request, template, context)
         return self.render_to_response(context)
 
@@ -184,18 +228,27 @@ class DetailLocationView(DetailView):
                                   (category, models.LocationType.CATEGORY_PLURALS[category], []))
         context["child_groups"] = [
             {"category": category, "anchor": f"location-children-{(category or 'other').replace('_', '-')}",
-             "title": title, "children": children}
+             "title": title, "children": children,
+             "entries": search.render.listed("location", children, here=self.object)}
             for category, title, children in groups
         ] if any(category for category, _title, _children in groups) else None
+        if context["child_groups"] is None:
+            context["child_entries"] = search.render.listed("location", self.object.children.all(), here=self.object)
         context["can_add_quick_photos"] = self.request.user.has_perms((*QUICK_ITEM_PERMISSIONS, "inventory.add_itemimage"))
         # Quick-items are listed with the items and counted with them.
         context["items_count"] = len(entries)
         context["unique_items"] = annotate_label_code(
-            self.object.unique_items.select_related("item").prefetch_related("images", "item__itemimage_set")
+            self.object.unique_items.select_related("item", "location")
         ).order_by("item__name", "pk")
         if self.request.user.has_perm("inventory.change_stock"):
             mark_last_stock(context["entries"])
             context["stock_change_form"] = forms.StockChangeForm()
+        # The lists as result rows (results/entries.html): an item with its amount here, places here left out.
+        context["item_entries"] = search.render.listed("item", [entry.item for entry in context["entries"]],
+                                                       here=self.object)
+        for row, entry in zip(context["entries"], context["item_entries"]):
+            entry.row = row
+        context["unique_entries"] = search.render.listed("unique", context["unique_items"], here=self.object)
         if not context["edit_denied"]:
             context.setdefault("overview_form", forms.LocationOverviewForm(instance=self.object))
             context.setdefault("description_form", forms.LocationDescriptionForm(instance=self.object))
@@ -353,7 +406,8 @@ class ItemDocumentView(DocumentView):
 class DetailItemView(DetailView):
     model = models.Item
     queryset = models.Item.active.prefetch_related(Prefetch(
-        "itemlocation_set", queryset=models.ItemLocation.objects.filter(location__is_deleted=False).select_related("location"),
+        "itemlocation_set", queryset=models.ItemLocation.objects.filter(location__is_deleted=False).select_related(
+            "location__type", "location__parent_location"),
     ))
 
     def get_context_data(self, **kwargs):
@@ -365,11 +419,17 @@ class DetailItemView(DetailView):
                 self.object.unique_items(manager="active").select_related("location", "responsible_team__group")
             ).order_by("location__locatable_identifier", "pk")
             context["disposed_count"] = self.object.unique_items.filter(disposed_at__isnull=False).count()
+            # As result rows (results/entries.html); the item's own photos are on this page already.
+            context["unique_entries"] = search.render.listed("unique", context["unique_items"], item_photos=False)
             return context
         context["entries"] = list(self.object.itemlocation_set.all())
         if self.request.user.has_perm("inventory.change_stock"):
             mark_last_stock(context["entries"])
             context["stock_change_form"] = forms.StockChangeForm()
+        # Its places as result rows, with the amount there and the stock button.
+        context["location_entries"] = search.render.listed("location", [entry.location for entry in context["entries"]])
+        for row, entry in zip(context["entries"], context["location_entries"]):
+            entry.row = row
         # Item labels lead here with ?loc=<location>: that location comes first and is marked.
         take = [entry for entry in context["entries"] if not entry.is_quick_item]
         location = self.request.GET.get("loc", "")
@@ -378,6 +438,9 @@ class DetailItemView(DetailView):
             take.remove(current)
             take.insert(0, current)
             context["take_location"] = current.location
+            for entry in context["location_entries"]:
+                if entry.row is current:
+                    entry.current = "location"
         context["take_entries"] = take
         # The stock change dialog of "Take out" and "Add stock" offers the item's locations (stock_change.js).
         next_url = self.request.get_full_path()
@@ -394,29 +457,67 @@ class DetailItemView(DetailView):
 
 class CategoryView(DetailView):
     """A category with all its items (docs/trees.md): those right in it first, then those of its subcategories,
-    by subcategory; 50 a page."""
+    under a heading for each, more while scrolling. ?q= searches within it: its items, their unique items and the
+    categories below it. ?partial=1 only the results, for searching as you type (live_search.js), with ?offset= only
+    further rows (results.js)."""
     model = models.Category
     template_name = "inventory/category_detail.html"
-    PAGE = 50
+    PAGE = search.PAGE
 
-    def get_context_data(self, **kwargs):
-        category = self.object
-        items = (models.Item.active
-                 .filter(Q(category=category) | Q(category__full_name__startswith=f"{category.full_name}/"))
-                 .annotate(nested=Case(When(category=category, then=Value(0)), default=Value(1)))
-                 .select_related("category")
-                 .order_by("nested", "category__full_name", Lower(Coalesce("name", Value(""))), "pk"))
-        page = Paginator(items, self.PAGE).get_page(self.request.GET.get("page"))
-        entries = {entry.obj.pk: entry for entry in search.render.entries(
-            [search.Hit("item", item.pk, 0, ()) for item in page])}
-        groups = []  # (category, its path below this one, entries), in the page's order
-        for item in page:
-            if not groups or groups[-1][0] != item.category:
-                groups.append((item.category, item.category.full_name[len(category.full_name) + 1:], []))
-            groups[-1][2].append(entries[item.pk])
-        subcategories = models.Category.objects.filter(parent_category=category)
-        return super().get_context_data(page_obj=page, groups=groups, words=[],
-                                        subcategories=subcategories, **kwargs)
+    def get(self, request, *args, **kwargs):
+        self.object = category = self.get_object()
+        query = request.GET.get("q", "").strip()
+        offset = request_offset(request)
+        words, capped, filters = [], False, []
+        offered = ["category", "item", "unique"]  # no locations in a category
+        chosen = chosen_kinds(request, offered)
+        if query:
+            result = search.search(query, offset, category=category, kinds=chosen or None)
+            entries, next_offset = search.render.entries(result.hits), result.next_offset
+            words, capped = result.words, result.capped
+            filters = kind_filters(category.get_absolute_url(), query, result, chosen, offered)
+        else:
+            entries, next_offset = self.listing(category, offset, continued=bool(request.GET.get("partial")))
+        next_url = page_url(category.get_absolute_url(), q=query, kinds=kinds_param(chosen, offered) if query else "",
+                            offset=next_offset) if next_offset else None
+        context = self.get_context_data(
+            query=query, words=words, entries=entries, next_url=next_url, capped=capped,
+            kinds=kinds_param(chosen, offered), kind_filters=filters,
+            subcategories=models.Category.objects.filter(parent_category=category))
+        if request.GET.get("partial"):
+            template = "inventory/results/more.html" if offset else "inventory/category_results.html"
+            return render(request, template, context)
+        return self.render_to_response(context)
+
+    def listing(self, category, offset, continued=False):
+        """A page of its items as result rows, a heading where the category changes, and where the next page starts
+        (None at the end). Rows continuing the list on the page (results.js) get a heading at first only if the item
+        before them is of another category; a page of its own always starts with one."""
+        items = list(models.Item.active.filter(category.in_tree())
+                     .annotate(nested=Case(When(category=category, then=Value(0)), default=Value(1)))
+                     .select_related("category")
+                     .order_by("nested", "category__full_name", Lower(Coalesce("name", Value(""))), "pk")
+                     [max(offset - 1, 0):offset + self.PAGE + 1])
+        previous = items.pop(0) if offset and items else None
+        if not continued:
+            previous = None
+        more = len(items) > self.PAGE
+        items = items[:self.PAGE]
+        entries = search.render.listed("item", items)
+        nested = None  # whether it has items below it: only then do its own ones get a heading
+        for item, entry in zip(items, entries):
+            if previous is None or item.category_id != previous.category_id:
+                if item.category_id != category.pk:
+                    path = item.category.full_name[len(category.full_name) + 1:].replace("/", " › ")
+                    entry.group = (path, item.category.get_absolute_url())
+                else:
+                    if nested is None:
+                        nested = models.Item.active.filter(
+                            category__full_name__startswith=f"{category.full_name}/").exists()
+                    if nested:
+                        entry.group = (_("In this category"), "")
+            previous = item
+        return entries, offset + self.PAGE if more else None
 
 
 def category_json(request, pk):

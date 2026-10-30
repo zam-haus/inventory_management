@@ -3,10 +3,11 @@ Bootstrap Icons (MIT, inventory/static/inventory/vendor/bootstrap-icons), inline
 page so they need no requests. Only the icons in use are vendored; to add one, copy its SVG
 from https://icons.getbootstrap.com (version 1.11.3) into that folder.
 """
+import re
 from functools import lru_cache
 
 from django.contrib.staticfiles import finders
-from django.utils.html import escape
+from django.utils.html import escape, format_html, format_html_join
 from django.utils.safestring import mark_safe
 
 ICON_DIR = "inventory/vendor/bootstrap-icons/icons"
@@ -29,3 +30,22 @@ def icon(name, classes=""):
     if classes:
         svg = svg.replace(f'class="bi bi-{name}"', f'class="bi bi-{name} {escape(classes)}"', 1)
     return mark_safe(svg)
+
+
+def sprite(names, prefix, classes):
+    """The icons as <symbol>s (ids prefix-name), drawn once per page; use() shows one. Long lists stay small: an icon
+    inline is about a kilobyte, a reference to it a few bytes."""
+    symbols = []
+    for name in sorted(names):
+        svg = _svg(name)
+        view_box = re.search(r'viewBox="([^"]*)"', svg).group(1)
+        inner = svg[svg.index(">") + 1:svg.rindex("</svg>")]
+        symbols.append(format_html('<symbol id="{}-{}" viewBox="{}">{}</symbol>', prefix, name, view_box, mark_safe(inner)))
+    return format_html('<svg class="{}" aria-hidden="true" focusable="false">{}</svg>', classes,
+                       format_html_join("", "{}", ((symbol,) for symbol in symbols)))
+
+
+def use(name, prefix, classes):
+    """An icon of a sprite()."""
+    return format_html('<svg class="{}" width="1em" height="1em" aria-hidden="true" focusable="false">'
+                       '<use href="#{}-{}"/></svg>', classes, prefix, name)

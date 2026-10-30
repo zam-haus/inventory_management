@@ -149,23 +149,8 @@
                     </div>
                     <p class="item-muted">{% blocktrans with name=label_id_name %}Each unique item is a single object with its own {{ name }}.{% endblocktrans %} {% help_link "zamid" %}{% if disposed_count %} {% blocktrans count counter=disposed_count %}{{ counter }} unique item has been removed from the inventory.{% plural %}{{ counter }} unique items have been removed from the inventory.{% endblocktrans %}{% endif %}</p>
                 </div>
-                <ul class="item-locations">
-                    {% for unique_item in unique_items %}
-                        <li>
-                            <div class="item-location-heading">
-                                <h3><a href="{{ unique_item.get_absolute_url }}">{{ unique_item.name_html }}</a></h3>
-                                {# The item's briefing requirement applies, unless this one sets a different one. #}
-                                {% if unique_item.usage_level and unique_item.usage_level != object.usage_level %}
-                                    <span class="unique-item-differs"><span class="item-muted">{% trans "differs" %}</span> {% usage_level unique_item.usage_level %}</span>
-                                {% endif %}
-                            </div>
-                            <p class="item-location-path"><a href="{{ unique_item.location.get_absolute_url }}" title="{{ unique_item.location.descriptive_identifier }}">{% location_label unique_item.location %}</a></p>
-                            {% if unique_item.responsible_team %}<p class="item-location-path item-muted">{% trans "Responsible team" %}: {{ unique_item.responsible_team }}</p>{% endif %}
-                        </li>
-                    {% empty %}
-                        <li class="item-empty item-muted">{% trans "None of its unique items are in the inventory." %}</li>
-                    {% endfor %}
-                </ul>
+                {% include 'inventory/results/list.html' with entries=unique_entries row_aside="inventory/results/rows/usage_differs.html" row_details="inventory/results/rows/team.html" %}
+                {% if not unique_entries %}<p class="item-empty item-muted">{% trans "None of its unique items are in the inventory." %}</p>{% endif %}
             </section>
             {% else %}
             <section class="item-panel" aria-labelledby="item-locations-heading">
@@ -173,30 +158,8 @@
                     <h2 id="item-locations-heading">{% trans "Locations" %} <span class="item-count">{{ entries|length }}</span></h2>
                     {% if entries %}<p class="item-muted">{% trans "Quantities are shown separately for each storage location." %}</p>{% endif %}
                 </div>
-                <ul class="item-locations">
-                    {% for entry in entries %}
-                        <li{% if entry.location == take_location %} class="item-location-current" aria-current="location"{% endif %}>
-                            <div class="item-location-heading">
-                                <h3><a href="{{ entry.location.get_absolute_url }}">{% location_label entry.location code="" %}</a></h3>
-                                <span class="item-amount"><span class="visually-hidden">{% trans "Amount" %}: </span>{{ entry.amount_text }}</span>
-                            </div>
-                            <div class="item-location-row">
-                                <div class="item-location-where">
-                                    <button type="button" class="loc-code item-location-identifier item-help" data-bs-toggle="tooltip" title="{% trans 'Unique identifier for this storage location, used on labels and to find the location in the inventory.' %}">{{ entry.location.unique_identifier }} {% icon "info-circle" %}</button>
-                                    <p class="item-location-path item-muted">{{ entry.location.descriptive_identifier }}</p>
-                                </div>
-                                {% if not entry.is_quick_item %}{% include 'inventory/stock_change_button.html' %}{% endif %}
-                            </div>
-                            {% with sale_value=entry.sale_value %}
-                                {% if sale_value != None %}
-                                    <p class="item-sale-value"><span class="item-muted">{% if entry.amount < 0 %}{% trans "Estimated sale value" %}{% else %}{% trans "Sale value" %}{% endif %}:</span> {% if entry.amount < 0 %}~{% endif %}{{ sale_value|floatformat:2 }} €</p>
-                                {% endif %}
-                            {% endwith %}
-                        </li>
-                    {% empty %}
-                        <li class="item-empty item-muted">{% trans "Item is located nowhere." %}</li>
-                    {% endfor %}
-                </ul>
+                {% include 'inventory/results/list.html' with entries=location_entries row_aside="inventory/results/rows/stock.html" row_details="inventory/results/rows/sale_value.html" %}
+                {% if not location_entries %}<p class="item-empty item-muted">{% trans "Item is located nowhere." %}</p>{% endif %}
             </section>
             {% endif %}
             {% change_log_panel object %}
@@ -212,7 +175,6 @@
 
 {% block bootstrap5_extra_script %}
     {{ block.super }}
-    <script src="{% static 'inventory/location_detail.js' %}"></script>
     <script src="{% static 'inventory/photo_lightbox.js' %}"></script>
     <script src="{% static 'inventory/item_detail.js' %}"></script>
     <script src="{% static 'inventory/photo_editor.js' %}"></script>

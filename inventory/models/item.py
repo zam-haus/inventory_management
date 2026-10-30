@@ -205,6 +205,16 @@ class Category(ComputedFieldsModel):
             parent = parent.parent_category
         return chain[::-1]
 
+    @property
+    def summary(self):
+        """What belongs here: the description's first line. Later lines ("Nicht hier: …") point elsewhere, so the
+        search and the category choice (category_select.js) only go by this one."""
+        return self.description.split("\n")[0].strip()
+
+    def in_tree(self, field="category"):
+        """Rows whose category (by `field`, e.g. item__category) is this one or one below it."""
+        return models.Q(**{field: self}) | models.Q(**{f"{field}__full_name__startswith": f"{self.full_name}/"})
+
     def get_absolute_url(self):
         return reverse("view_category", kwargs={"pk": self.pk})
 

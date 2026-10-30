@@ -288,8 +288,10 @@ class UniqueItemViewTests(UniqueItemFixture, TestCase):
         unique_item = UniqueItem.objects.get(pk=self.unique_item.pk)
         self.assertEqual(str(unique_item), "Fire extinguisher Workshop spare K7R-4XD")
         self.assertContains(self.client.get(unique_item.get_absolute_url()), "</a> Workshop spare <span class=\"unique-item-code\">")
-        self.assertContains(self.client.get(self.location.get_absolute_url()), "Fire extinguisher Workshop spare <span")
-        self.assertContains(self.client.get(self.extinguisher.get_absolute_url()), "Workshop spare <span class=\"unique-item-code\">")
+        self.assertContains(self.client.get(self.location.get_absolute_url()),
+                            '<span class="result-title">Fire extinguisher</span> <span class="result-subtitle">Workshop spare</span>')
+        self.assertContains(self.client.get(self.extinguisher.get_absolute_url()),
+                            '<span class="result-subtitle">Workshop spare</span> <span class="unique-item-code">')
         found = self.client.get(reverse("index"), {"q": "workshop spare"})
         self.assertIn(unique_item, [entry.obj for entry in found.context["entries"]])
 

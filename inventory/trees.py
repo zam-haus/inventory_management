@@ -4,7 +4,6 @@ tree comes from a fixed number of queries and is rendered here instead of by tem
 be slow for thousands of nodes. Nodes are <details>, so they open and close without JavaScript; icons are
 drawn once in a sprite and referenced by every row.
 """
-import re
 from collections import Counter
 from dataclasses import dataclass, field
 
@@ -12,13 +11,13 @@ from django.db.models import Count, IntegerField, OuterRef, Subquery, Value
 from django.db.models.functions import Coalesce, Lower
 from django.utils.html import format_html, format_html_join
 from django.utils.safestring import mark_safe
-from django.utils.translation import gettext as _, ngettext
+from django.utils.translation import gettext as _
 
-from .icons import _svg
+from . import icons
 from .label_ids.lookup import annotate_label_code
 from .location_display import CATEGORY_ICONS, icon_name, label_html
 from .models import Category, Item, ItemLocation, Location, LocationType, UniqueItem
-from .search.render import KINDS, UNIQUE_KIND_ICON
+from .search.render import KINDS, SUB_LOCATIONS, UNIQUE_KIND_ICON, count_text
 from .structure_overview import code_order
 
 OPEN = mark_safe(" open")
@@ -36,19 +35,11 @@ class Node:
 
 def sprite(names):
     """The icons as <symbol>s, once per page; rows show them with use_icon()."""
-    symbols = []
-    for name in sorted(names):
-        svg = _svg(name)
-        view_box = re.search(r'viewBox="([^"]*)"', svg).group(1)
-        inner = svg[svg.index(">") + 1:svg.rindex("</svg>")]
-        symbols.append(format_html('<symbol id="tree-icon-{}" viewBox="{}">{}</symbol>', name, view_box, mark_safe(inner)))
-    return format_html('<svg class="tree-sprite" aria-hidden="true" focusable="false">{}</svg>',
-                       format_html_join("", "{}", ((symbol,) for symbol in symbols)))
+    return icons.sprite(names, "tree-icon", "tree-sprite")
 
 
 def use_icon(name):
-    return format_html('<svg class="bi tree-icon" width="1em" height="1em" aria-hidden="true" focusable="false">'
-                       '<use href="#tree-icon-{}"/></svg>', name)
+    return icons.use(name, "tree-icon", "bi tree-icon")
 
 
 def pill(icon, count, text):
@@ -59,10 +50,8 @@ def pill(icon, count, text):
 
 def item_pills(node):
     """Counted items, then unique items (the last of the counts, after the locations)."""
-    return (pill(KINDS["item"][0], node.bulk, ngettext("%(count)s item", "%(count)s items", node.bulk)
-                 % {"count": node.bulk}) if node.bulk else "",
-            pill(KINDS["unique"][0], node.unique, ngettext("%(count)s unique item", "%(count)s unique items",
-                                                         node.unique) % {"count": node.unique}) if node.unique else "")
+    return (pill(KINDS["item"][0], node.bulk, count_text("item", node.bulk)) if node.bulk else "",
+            pill(KINDS["unique"][0], node.unique, count_text("unique", node.unique)) if node.unique else "")
 
 
 def pills(*parts):
@@ -81,12 +70,6 @@ def leaf(node_id, row):
 
 # Locations
 
-# Sub-locations in the counts, by icon_name: building parts and others, storage units, containers.
-SUB_LOCATIONS = (
-    ("geo-alt", lambda n: ngettext("%(count)s sub-location", "%(count)s sub-locations", n) % {"count": n}),
-    ("bookshelf", lambda n: ngettext("%(count)s storage unit", "%(count)s storage units", n) % {"count": n}),
-    ("eurobox-open", lambda n: ngettext("%(count)s container", "%(count)s containers", n) % {"count": n}),
-)
 STORAGE_UNIT, CONTAINER = LocationType.Category.STORAGE_UNIT, LocationType.Category.CONTAINER
 
 
@@ -236,7 +219,8 @@ def category_row(node, name, url=None):
     """A category: its name, linked to its page (all its items), and its counts."""
     name = format_html('<a class="tree-name" href="{}">{}</a>', url, name) if url else \
         format_html('<span class="tree-name">{}</span>', name)
-    return format_html('<span class="tree-row">{}{}{}</span>', use_icon("folder"), name, pills(*item_pills(node)))
+    return format_html('<span class="tree-row">{}{}{}</span>', use_icon(KINDS["category"][0]), name,
+                       pills(*item_pills(node)))
 
 
 def category_html(node):
@@ -258,4 +242,4 @@ def item_tree():
         html = format_html("{}{}", html, branch(
             "cat-none", category_row(none, _("Without category")),
             format_html_join("", "{}", ((item_row(item),) for item in uncategorized)), False))
-    return sprite({"folder", KINDS["item"][0], KINDS["unique"][0], UNIQUE_KIND_ICON}), html
+    return sprite({KINDS["category"][0], KINDS["item"][0], KINDS["unique"][0], UNIQUE_KIND_ICON}), html

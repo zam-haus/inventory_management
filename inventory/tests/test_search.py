@@ -32,6 +32,8 @@ def found(query):
 class SearchTests(MediaMixin, TestCase):
     @classmethod
     def setUpTestData(cls):
+        # The category tree the migrations bring would add hits of its own (CategorySearchTests has its own).
+        Category.objects.all().delete()
         unit, _ = MeasurementUnit.objects.get_or_create(pk=1, defaults={"name": "Piece", "short": "pc"})
         room = LocationType.objects.create(name="Room", unique=True, moveable=True)
         shelf = LocationType.objects.create(name="Shelf", moveable=True)
@@ -79,7 +81,7 @@ class SearchTests(MediaMixin, TestCase):
                  "din 338": "photo_text", "datenblatt": "file", "handwerkzeug": "category"}
         for query, source in cases.items():
             with self.subTest(query=query):
-                hits = search.search(query).hits
+                hits = [hit for hit in search.search(query).hits if hit.kind != "category"]  # Handwerkzeug itself
                 self.assertEqual([hit.sources for hit in hits], [(source,)])
         self.assertEqual(search.search("ersatzakku").hits[0].sources, ("notes",))
         self.assertEqual(search.search("schraubendreher").hits[0].sources, ())  # the name shows it anyway
@@ -133,9 +135,9 @@ class SearchTests(MediaMixin, TestCase):
     def test_entries_show_where_they_are(self):
         content = self.client.get(reverse("index"), {"q": "schraubendreher"}).content.decode()
         # The places are links of their own (the window in brief, location_info.js); the text stays selectable.
-        self.assertIn(f'5 pc · <a class="search-place" href="{self.rack.get_absolute_url()}">Regal 3</a>', content)
-        self.assertIn(f'2 pc · <a class="search-place" href="{self.metal.get_absolute_url()}">Metallwerkstatt</a>', content)
-        self.assertNotIn('<a class="search-entry"', content)
+        self.assertIn(f'5 pc · <a class="result-place" href="{self.rack.get_absolute_url()}">Regal 3</a>', content)
+        self.assertIn(f'2 pc · <a class="result-place" href="{self.metal.get_absolute_url()}">Metallwerkstatt</a>', content)
+        self.assertNotIn('<a class="result-entry"', content)
         content = self.client.get(reverse("index"), {"q": "regal"}).content.decode()
         self.assertIn("Holzwerkstatt [HW]", content)  # the path above
 
@@ -146,15 +148,15 @@ class SearchTests(MediaMixin, TestCase):
                       '<span class="unique-item-code">K7R-4XD</span>'
                       '</a> · ', content)
         # Its own result carries the label ID after the name; its place line only the location.
-        heading = content[content.index(f'<a class="search-link" href="{self.unique.get_absolute_url()}">'):]
+        heading = content[content.index(f'<a class="result-link" href="{self.unique.get_absolute_url()}">'):]
         heading = heading[:heading.index("</a>")]
         self.assertIn('<span class="unique-item-code">K7R-4XD</span>', heading)
 
     def test_the_kind_on_photos(self):
         ItemImage.objects.create(item=self.drill, image=png(), description="Packung")
         content = self.client.get(reverse("index"), {"q": "bohrer"}).content.decode()
-        self.assertIn('<span class="search-kind" aria-hidden="true"><svg', content)
-        self.assertIn('class="bi bi-boxes"', content[content.index('class="search-kind"'):])
+        self.assertIn('<span class="result-kind" aria-hidden="true"><svg', content)
+        self.assertIn('class="bi bi-boxes"', content[content.index('class="result-kind"'):])
 
     def test_part_of_a_label_id(self):
         for part in ("K7R", "k7r-4", "7R4X"):
@@ -226,12 +228,12 @@ class SearchTests(MediaMixin, TestCase):
         self.assertEqual(names, sorted(names))
         url = reverse("index")
         content = self.client.get(url, {"q": "zwinge"}).content.decode()
-        self.assertIn(f'data-search-next="{url}?q=zwinge&amp;offset={search.PAGE}"', content)
+        self.assertIn(f'data-result-next="{url}?q=zwinge&amp;offset={search.PAGE}"', content)
         self.assertIn('data-status="More than 50 results"', content)
         more = self.client.get(url, {"q": "zwinge", "offset": search.PAGE, "partial": "1"}).content.decode()
-        self.assertTrue(more.lstrip().startswith("<template data-search-entries>"))
-        self.assertEqual(more.count('class="search-entry"'), 6)
-        self.assertNotIn("data-search-next", more)
+        self.assertTrue(more.lstrip().startswith("<template data-result-entries>"))
+        self.assertEqual(more.count('class="result-entry"'), 6)
+        self.assertNotIn("data-result-next", more)
 
     def test_at_most_max_results(self):
         with mock.patch.object(search, "MAX_RESULTS", 10), mock.patch.object(search, "PAGE", 6):
@@ -240,6 +242,55 @@ class SearchTests(MediaMixin, TestCase):
             self.assertEqual((len(last.hits), last.next_offset, last.capped), (4, None, True))
             content = self.client.get(reverse("index"), {"q": "mutter", "offset": 6}).content.decode()
             self.assertIn("There are more results than shown.", content)
+
+    def test_a_summary_by_kind_filters_the_results(self):
+        result = search.search("akku")
+        self.assertEqual(result.counts, {"item": 1, "unique": 1})
+        only = search.search("akku", kinds={"unique"})
+        self.assertEqual([hit.kind for hit in only.hits], ["unique"])
+        self.assertEqual(only.counts, result.counts)  # the others are counted, too
+        url = reverse("index")
+        # None chosen: all shown, and a first click shows only that kind.
+        response = self.client.get(url, {"q": "akku"})
+        self.assertEqual([(f["kind"], f["text"], f["chosen"], f["url"]) for f in response.context["kind_filters"]], [
+            ("item", "1 item", False, f"{url}?q=akku&kinds=item"),
+            ("unique", "1 unique item", False, f"{url}?q=akku&kinds=unique")])
+        self.assertContains(response, f'href="{url}?q=akku&amp;kinds=item" role="button" aria-pressed="false"')
+        response = self.client.get(url, {"q": "akku", "kinds": "unique"})
+        self.assertEqual([entry.kind for entry in response.context["entries"]], ["unique"])
+        self.assertContains(response, '<input type="hidden" name="kinds" value="unique">')
+        # Another click adds a kind; a click on the chosen one leaves it out again, none chosen shows all.
+        self.assertEqual([(f["kind"], f["chosen"], f["url"]) for f in response.context["kind_filters"]], [
+            ("item", False, f"{url}?q=akku&kinds=item,unique"), ("unique", True, f"{url}?q=akku")])
+        both = self.client.get(url, {"q": "akku", "kinds": "item,unique"})
+        self.assertEqual([(f["kind"], f["chosen"], f["url"]) for f in both.context["kind_filters"]], [
+            ("item", True, f"{url}?q=akku&kinds=unique"), ("unique", True, f"{url}?q=akku&kinds=item")])
+        # All chosen is the same as none.
+        every = self.client.get(url, {"q": "akku", "kinds": "location,category,item,unique"})
+        self.assertEqual([f["chosen"] for f in every.context["kind_filters"]], [False, False])
+        self.assertEqual(len(every.context["entries"]), 2)
+        # A chosen kind without hits stays, to leave it out again.
+        none = self.client.get(url, {"q": "akkuschrauber blau", "kinds": "item"})  # only the unique item matches
+        self.assertContains(none, "Only kinds not chosen above have results.")
+        self.assertEqual([(f["kind"], f["chosen"]) for f in none.context["kind_filters"]],
+                         [("item", True), ("unique", False)])
+        # Unknown kinds are ignored; no hits, no summary.
+        self.assertEqual(len(self.client.get(url, {"q": "akku", "kinds": "nonsense"}).context["entries"]), 2)
+        self.assertEqual(self.client.get(url, {"q": "zzzz"}).context["kind_filters"], [])
+
+    def test_further_pages_keep_the_kinds(self):
+        Item.objects.bulk_create([Item(name=f"Zwinge {n}", measurement_unit_id=1) for n in range(search.PAGE + 6)])
+        Location.objects.create(type=self.wood.type, name="Zwingenlager", short_name="ZL")
+        url = reverse("index")
+        response = self.client.get(url, {"q": "zwinge", "kinds": "item"})
+        self.assertEqual({entry.kind for entry in response.context["entries"]}, {"item"})
+        self.assertContains(response, f'data-result-next="{url}?q=zwinge&amp;kinds=item&amp;offset={search.PAGE}"')
+
+    def test_counts_beyond_the_cap(self):
+        with mock.patch.object(search, "MAX_RESULTS", 10), mock.patch.object(search, "PAGE", 6):
+            Item.objects.bulk_create([Item(name=f"Mutter {n}", measurement_unit_id=1) for n in range(12)])
+            filters = self.client.get(reverse("index"), {"q": "mutter"}).context["kind_filters"]
+            self.assertEqual([f["text"] for f in filters], ["10+ items"])
 
     def test_photos_of_a_result(self):
         ItemImage.objects.create(item=self.drill, image=png("red"), description="Packung")
@@ -252,7 +303,8 @@ class SearchTests(MediaMixin, TestCase):
         entries = {entry.kind: entry for entry in search.render.entries(search.search("akkuschrauber").hits)}
         # The item: its own photos first, then those of its unique items still in the inventory.
         self.assertEqual([image.name for image, _ in entries["item"].photos], [general.image.name, of_unique.image.name])
-        self.assertEqual([image.name for image, _ in entries["unique"].photos], [of_unique.image.name])
+        # A unique item: its own photos, then those of the item in general.
+        self.assertEqual([image.name for image, _ in entries["unique"].photos], [of_unique.image.name, general.image.name])
         content = self.client.get(reverse("index"), {"q": "bohrer"}).content.decode()
         self.assertIn('aria-label="Show the photo of Bohrer"', content)
         self.assertIn('data-photos="[{&quot;src&quot;: &quot;/media/', content)
@@ -297,3 +349,105 @@ class SearchTests(MediaMixin, TestCase):
         navbar = content[content.index("<nav"):content.index("</nav>")]
         self.assertIn('href="/" aria-label="Search" data-navbar-search aria-controls="navbar-search"', navbar)
         self.assertIn('<form class="navbar-search" id="navbar-search" method="get" action="/" role="search" hidden>', navbar)
+
+
+@override_settings(**SETTINGS)
+class CategorySearchTests(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        Category.objects.all().delete()  # the migrated tree; this test has its own
+        unit, _ = MeasurementUnit.objects.get_or_create(pk=1, defaults={"name": "Piece", "short": "pc"})
+        cls.fixing = Category.objects.create(name="Befestigung")
+        cls.screws = Category.objects.create(
+            name="Holzschrauben", parent_category=cls.fixing, keywords="Spax, Spanplattenschraube",
+            description="Selbstschneidend, für Spanplatten\nNicht hier: Maschinenschrauben (Metrisch)")
+        cls.metric = Category.objects.create(name="Metrisch", parent_category=cls.fixing)
+        cls.spax = Item.objects.create(name="Senkkopf 4x40", measurement_unit=unit, category=cls.screws)
+        Item.objects.create(name="Senkkopf 5x60", measurement_unit=unit, category=cls.screws)
+        Item.objects.create(name="Mutter M6", measurement_unit=unit, category=cls.metric)
+        Item.objects.create(name="Weg", measurement_unit=unit, category=cls.screws, is_deleted=True)
+        room = LocationType.objects.create(name="Room", unique=True)
+        Location.objects.create(type=room, name="Holzlager", short_name="HL")
+
+    def test_found_by_name_keyword_and_first_description_line(self):
+        hit, = [hit for hit in search.search("holzschrauben").hits if hit.kind == "category"]
+        self.assertEqual((hit.pk, hit.score, hit.sources), (self.screws.pk, 2, ()))
+        hit, = search.search("spax").hits  # the keyword counts as name; no item is found by it
+        self.assertEqual((hit.kind, hit.score, hit.sources, hit.snippets), (
+            "category", 2, ("keywords",), {"keywords": "Spax"}))
+        hit, = search.search("spanplatten").hits
+        self.assertEqual((hit.pk, hit.score, hit.sources), (self.screws.pk, 2, ("keywords", "description")))
+        hit, = search.search("selbstschneidend").hits
+        self.assertEqual((hit.pk, hit.score, hit.sources), (self.screws.pk, 1, ("description",)))
+
+    def test_not_found_by_what_belongs_elsewhere(self):
+        self.assertEqual(found("maschinenschrauben"), [])
+
+    def test_items_are_found_by_the_category_name_not_its_keywords(self):
+        self.assertEqual(found("holzschrauben"), [
+            ("category", "Holzschrauben"), ("item", "Senkkopf 4x40"), ("item", "Senkkopf 5x60")])
+        self.assertEqual(found("spax"), [("category", "Holzschrauben")])
+
+    def test_the_categories_above_are_its_path(self):
+        self.assertEqual(found("befestigung spax"), [("category", "Holzschrauben")])
+        # The category above alone finds only itself (and its items), not those below it.
+        self.assertEqual([title for kind, title in found("befestigung") if kind == "category"], ["Befestigung"])
+
+    def test_locations_come_first_then_categories_then_items(self):
+        Item.objects.create(name="Holzschrauben Sortiment", measurement_unit_id=1)
+        Location.objects.create(type=LocationType.objects.get(name="Room"), name="Holzschrauben", short_name="HS")
+        self.assertEqual([kind for kind, _title in found("holzschrauben")][:3], ["location", "category", "item"])
+
+    def test_the_entry(self):
+        entry, = search.render.entries(search.search("spax").hits)
+        self.assertEqual((entry.icon, entry.title, entry.where, entry.excerpt, entry.sources, entry.url),
+                         ("folder", "Holzschrauben", "Befestigung", "Selbstschneidend, für Spanplatten",
+                          ["keywords: Spax"], self.screws.get_absolute_url()))
+        self.assertEqual([(tally.icon, tally.number, tally.text) for tally in entry.counts], [("boxes", 2, "2 items")])
+        # As in the item tree: counted items and unique items, those below it, too.
+        drill = Item.objects.create(name="Akkuschrauber", measurement_unit_id=1, category=self.metric,
+                                    kind=Item.Kind.UNIQUE)
+        UniqueItem.objects.create(item=drill, location=Location.objects.get(short_name="HL"))
+        UniqueItem.objects.create(item=drill, disposed_at=timezone.now())
+        befestigung = search.render.listed("category", [self.fixing])[0]
+        self.assertEqual(befestigung.where, "")
+        self.assertEqual([(tally.icon, tally.number) for tally in befestigung.counts], [("boxes", 3), ("box-star", 1)])
+        content = self.client.get(reverse("index"), {"q": "spax"}).content.decode()
+        self.assertIn('class="bi bi-folder"', content)
+        self.assertIn("Found in keywords: Spax", content)
+        self.assertIn('<span class="result-count" title="2 items">', content)
+
+    def test_the_rules_of_the_public_export_decide(self):
+        replaced = {**public_export.EXPORTED_MODELS["inventory.category"],
+                    "replace": {"keywords": public_export.emptied}}
+        with mock.patch.dict(public_export.EXPORTED_MODELS, {"inventory.category": replaced}):
+            self.assertEqual(found("spax"), [])
+
+    def test_within_a_category(self):
+        lookalike = Category.objects.create(name="Befestigung alt")
+        Item.objects.create(name="Senkkopf alt", measurement_unit_id=1, category=lookalike)
+        hits = search.search("senkkopf", category=self.fixing).hits
+        self.assertEqual({hit.pk for hit in hits}, set(Item.active.filter(category=self.screws).values_list("pk", flat=True)))
+        self.assertEqual([(hit.kind, hit.pk) for hit in search.search("schrauben", category=self.fixing).hits],
+                         [("category", self.screws.pk), ("item", self.spax.pk), ("item", self.spax.pk + 1)])
+        # No locations, and not the category itself.
+        self.assertEqual(search.search("holz befestigung", category=self.fixing).hits[0].pk, self.screws.pk)
+        self.assertEqual(search.search("holzlager", category=self.fixing).hits, [])
+
+    def test_the_summary_on_a_category_page(self):
+        response = self.client.get(self.fixing.get_absolute_url(), {"q": "schrauben"})
+        self.assertEqual([(f["kind"], f["text"]) for f in response.context["kind_filters"]],
+                         [("category", "1 category"), ("item", "2 items")])
+        items = self.client.get(self.fixing.get_absolute_url(), {"q": "schrauben", "kinds": "item", "partial": "1"})
+        self.assertEqual({entry.kind for entry in items.context["entries"]}, {"item"})
+        # Without words its list, without a summary.
+        self.assertEqual(self.client.get(self.fixing.get_absolute_url()).context["kind_filters"], [])
+
+    def test_queries_do_not_grow_with_the_hits(self):
+        def queries(query):
+            with CaptureQueriesContext(connection) as captured:
+                search.render.entries(search.search(query).hits)
+            return len(captured)
+        for n in range(10):
+            Category.objects.create(name=f"Dübel {n}", parent_category=self.fixing)
+        self.assertEqual(queries("dübel 3"), queries("dübel"))

@@ -1,0 +1,1 @@
+{% load mytemplatetags %}{% if entry.obj.notes %}<span class="result-meta result-excerpt">{{ entry.obj.notes|markdown_plain|truncatechars:160 }}</span>{% endif %}

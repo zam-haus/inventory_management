@@ -64,7 +64,7 @@ class UnavailableActionsStayVisibleTests(TestCase):
                 # Only the navbar scanner waits for JavaScript (a technical reason everyone sees).
                 self.assertNotContains(response, 'role="button" aria-disabled="true"')  # {% disabled_action %}
                 self.assertContains(response, "disabled-action", count=1)
-                self.assertNotContains(response, "location-items-changeable")
+                self.assertNotContains(response, "stock-change-button")
         response = self.client.get(self.item.get_absolute_url())
         self.assertNotContains(response, "Dateien")
         self.assertNotContains(response, reverse("update_item", args=[self.item.pk]) + '"')

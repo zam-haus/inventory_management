@@ -6,6 +6,7 @@
 {% load icons %}
 {% load slots %}
 {% load navigation %}
+{% load search_tags %}
 {% load problem_reports %}
 {# The Admin link leads to the admin page of what the page shows (inventory/admin_links.py). #}
 {% load admin_links %}
@@ -17,6 +18,7 @@
     {% if problem_report_enabled %}<link rel="stylesheet" href="{% static 'inventory/problem_report.css' %}">{% endif %}
     <link rel="stylesheet" href="{% static 'inventory/barcode_scanner.css' %}">
     <link rel="stylesheet" href="{% static 'inventory/locations.css' %}">
+    <link rel="stylesheet" href="{% static 'inventory/results.css' %}">
     {# On every page: the help also opens as a layer over the page (help_overlay.js). #}
     <link rel="stylesheet" href="{% static 'inventory/help.css' %}">
 {% endblock %}
@@ -109,6 +111,10 @@
     <script src="{% static 'inventory/modals.js' %}"></script>
     {% include 'inventory/location_info_modal.html' %}
     <script src="{% static 'inventory/location_info.js' %}"></script>
+    {% result_rows_used as result_rows %}{% if result_rows %}
+      {% include 'inventory/results/viewer.html' %}
+      <script src="{% static 'inventory/results.js' %}"></script>
+    {% endif %}
     {% include 'inventory/help/help_overlay.html' %}
     <script src="{% static 'inventory/help_overlay.js' %}"></script>
     {% if problem_report_enabled %}

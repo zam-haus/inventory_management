@@ -147,9 +147,10 @@ class CategoryFilterTests(TestCase):
         cls.old = Item.objects.create(name="Altes Band", measurement_unit=unit, category=cls.lookalike)
 
     def test_search_finds_items_by_a_category_above(self):
-        names = {title for _kind, title in
-                 [(entry.kind, entry.title) for entry in search.render.entries(search.search("Türbeschläge").hits)]}
-        self.assertEqual(names, {"Einbohrband 15 mm"})
+        found = {(entry.kind, entry.title) for entry in search.render.entries(search.search("Türbeschläge").hits)}
+        # The category itself and the one whose name contains it are hits, too.
+        self.assertEqual(found, {("item", "Einbohrband 15 mm"), ("category", "Türbeschläge"),
+                                 ("category", "Schiebetürbeschläge")})
 
 
 class CategoryTreeMigrationTests(TransactionTestCase):

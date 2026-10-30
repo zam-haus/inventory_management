@@ -14,8 +14,6 @@
 .item-heading h1 { margin: .2rem 0 .6rem; font-size: clamp(1.6rem, 4vw, 2.3rem); font-weight: 650; }
 .item-heading h1 .unique-item-of { color: inherit; text-decoration-thickness: 1px; text-underline-offset: .2em; }
 .item-eyebrow { color: var(--item-muted); font-size: .8rem; font-weight: 600; letter-spacing: .04em; margin: 0 0 .4rem; }
-/* The location's code as a chip (locations.css) that explains itself on hover. */
-.item-location-identifier { border: 0; max-width: 100%; text-align: left; }
 .item-help { cursor: help; }
 .item-actions { display: flex; flex-wrap: wrap; gap: .5rem; flex: 0 0 auto; max-width: 100%; }
 .item-actions .btn { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; padding-inline: 1.25rem; white-space: normal; }
@@ -52,16 +50,6 @@
 .item-image-link { display: flex; align-items: center; justify-content: center; aspect-ratio: 4 / 3; padding: .5rem; border: 1px solid var(--item-border); border-radius: .4rem; background: #f7f9fb; cursor: zoom-in; }
 .item-image-link img { display: block; width: 100%; height: 100%; object-fit: contain; }
 .item-gallery figcaption { margin-top: .5rem; color: var(--item-muted); font-size: .875rem; }
-.item-locations { list-style: none; margin: 0; padding: 0; }
-.item-locations li { padding: 1.2rem; border-top: 1px solid var(--item-border); }
-.item-location-heading { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: .5rem 1rem; margin-bottom: .65rem; }
-.item-location-heading h3 { min-width: 0; flex: 1 1 8rem; font-size: 1rem; line-height: 1.5; margin: 0; }
-.item-location-heading a { display: inline-block; padding: .25rem 0; }
-.item-location-row { display: flex; align-items: center; justify-content: space-between; gap: .75rem; }
-.item-location-where { flex: 1 1 auto; min-width: 0; }
-.item-amount { max-width: 100%; padding: .25rem .5rem; border-radius: .35rem; background: #edf2f7; font-size: .9rem; font-variant-numeric: tabular-nums; }
-.item-location-identifier { font-size: .85rem; }
-.item-location-path { margin: .5rem 0 0; }
 .item-sale-value { margin: .75rem 0 0; font-size: .9rem; font-variant-numeric: tabular-nums; }
 .item-empty { padding: 1.5rem 1.2rem; border-top: 1px solid var(--item-border); }
 .item-header a:focus-visible,
@@ -83,12 +71,10 @@
     .item-overview { padding: 1rem; margin-bottom: 1rem; }
     .item-layout,
     .item-main { gap: 1rem; }
-    .item-panel-heading,
-    .item-locations li { padding: 1rem; }
+    .item-panel-heading { padding: 1rem; }
     .item-panel-body,
     .item-gallery { padding: 0 1rem 1rem; }
 }
 
 /* Taking stock out, first among the actions (stock_take_panel.html); a location's code as a chip inside. */
 .item-take-button .loc-code { vertical-align: .05em; }
-.item-locations li.item-location-current { background: #fff4e5; box-shadow: inset 4px 0 0 #dc3545; }

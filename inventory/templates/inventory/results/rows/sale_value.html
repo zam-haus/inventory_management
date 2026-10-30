@@ -1,0 +1,3 @@
+{% load i18n %}{% with sale_value=entry.row.sale_value %}{% if sale_value != None %}
+<span class="result-meta">{% if entry.row.amount < 0 %}{% trans "Estimated sale value" %}{% else %}{% trans "Sale value" %}{% endif %}: {% if entry.row.amount < 0 %}~{% endif %}{{ sale_value|floatformat:2 }} €</span>
+{% endif %}{% endwith %}

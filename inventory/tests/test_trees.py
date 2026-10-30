@@ -139,9 +139,11 @@ class TreeTests(TestCase):
         self.assertEqual(drill.count('<use href="#tree-icon-box-star"/>'), 3)  # its count and the two unique items
         self.assertIn('<symbol id="tree-icon-box-star-stack"', content)
         self.assertIn('<use href="#tree-icon-box-star-stack"/>', content[:content.index(f'href="{self.drill.get_absolute_url()}"')][-200:])
-        # The list on the item's page names them the same way.
+        # The list on the item's page names them the same way (as result rows).
         page = self.client.get(self.drill.get_absolute_url())
-        self.assertContains(page, f'<a href="{red.get_absolute_url()}">drill red #{red.pk}</a>')
+        self.assertContains(page, f'<a class="result-link" href="{red.get_absolute_url()}"><span class="visually-hidden">'
+                                  f'Unique item: </span><span class="result-title">drill</span> <span class="result-subtitle">'
+                                  f'red</span> <span class="unique-item-code">#{red.pk}</span></a>', html=True)
         self.assertContains(page, 'class="bi bi-box-star-stack"')  # before its title
 
     def test_old_searches_go_to_the_search(self):
@@ -175,26 +177,50 @@ class TreeTests(TestCase):
         tools = Category.objects.get(name="Tools")
         hand = Category.objects.get(name="Hand tools")
         response = self.client.get(tools.get_absolute_url())
-        groups = response.context["groups"]
-        # The items right in it first, then those of its subcategories, each group by name.
-        self.assertEqual([(category, path, [entry.obj for entry in entries]) for category, path, entries in groups],
-                         [(tools, "", [self.drill]), (hand, "Hand tools", [self.pliers])])
+        # The items right in it first, then those of its subcategories, each group by name under its heading.
+        self.assertEqual([(entry.group, entry.obj) for entry in response.context["entries"]],
+                         [(("In this category", ""), self.drill), (("Hand tools", hand.get_absolute_url()), self.pliers)])
         content = response.content.decode()
         self.assertIn(f'href="{reverse("index_items")}#cat-{tools.pk}"', content)  # back to the tree
         self.assertIn(f'href="{hand.get_absolute_url()}"', content)
+        self.assertIn('data-live-search data-live-search-listing', content)
         self.assertNotIn(">Old<", content)
-        self.assertEqual([entry.obj for entry in self.client.get(hand.get_absolute_url()).context["groups"][0][2]],
-                         [self.pliers])
+        # Only its own items: no heading.
+        self.assertEqual([(entry.group, entry.obj) for entry in self.client.get(hand.get_absolute_url()).context["entries"]],
+                         [(None, self.pliers)])
 
     def test_category_pages_of_fifty(self):
         tools = Category.objects.get(name="Tools")
         Item.objects.bulk_create([Item(name=f"Saw {n:02}", category=tools, measurement_unit_id=1) for n in range(55)])
         first = self.client.get(tools.get_absolute_url())
-        self.assertEqual(sum(len(entries) for *_rest, entries in first.context["groups"]), 50)
-        self.assertContains(first, "?page=2")
-        second = self.client.get(tools.get_absolute_url(), {"page": 2})
-        names = [entry.obj.name for *_rest, entries in second.context["groups"] for entry in entries]
-        self.assertEqual(names, ["Saw 49", "Saw 50", "Saw 51", "Saw 52", "Saw 53", "Saw 54", "Pliers"])
+        self.assertEqual(len(first.context["entries"]), 50)
+        self.assertContains(first, f'data-result-next="{tools.get_absolute_url()}?offset=50"')
+        # The next rows continue the group of the page before: a heading only where the category changes.
+        more = self.client.get(tools.get_absolute_url(), {"offset": 50, "partial": "1"})
+        self.assertEqual([(entry.obj.name, entry.group) for entry in more.context["entries"]],
+                         [("Saw 49", None), ("Saw 50", None), ("Saw 51", None), ("Saw 52", None), ("Saw 53", None),
+                          ("Saw 54", None), ("Pliers", ("Hand tools", Category.objects.get(name="Hand tools").get_absolute_url()))])
+        content = more.content.decode()
+        self.assertTrue(content.lstrip().startswith("<template data-result-entries>"))
+        self.assertNotIn("data-result-next", content)
+        # A page opened there (without JavaScript) starts with the heading.
+        self.assertEqual(self.client.get(tools.get_absolute_url(), {"offset": 50}).context["entries"][0].group,
+                         ("In this category", ""))
+
+    def test_searching_within_a_category(self):
+        tools = Category.objects.get(name="Tools")
+        Item.objects.create(name="Pliers elsewhere", measurement_unit_id=1)
+        response = self.client.get(tools.get_absolute_url(), {"q": "pliers"})
+        self.assertEqual([entry.obj for entry in response.context["entries"]], [self.pliers])
+        self.assertContains(response, 'value="pliers"')
+        partial = self.client.get(tools.get_absolute_url(), {"q": "pliers", "partial": "1"}).content.decode()
+        self.assertTrue(partial.lstrip().startswith('<div class="search-results" data-status="1 result">'))
+        self.assertIn("<mark>Pliers</mark>", partial)
+        self.assertIn("Nothing found.", self.client.get(tools.get_absolute_url(), {"q": "zzz", "partial": "1"})
+                      .content.decode())
+        # Without words, the list of all its items again.
+        listing = self.client.get(tools.get_absolute_url(), {"partial": "1"})
+        self.assertEqual([entry.obj for entry in listing.context["entries"]], [self.drill, self.pliers])
 
     def test_item_pages_show_the_category_path(self):
         tools = Category.objects.get(name="Tools")

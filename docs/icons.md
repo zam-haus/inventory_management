@@ -47,7 +47,7 @@ when they are first used:
 | Item (counted, *Sache*) | `boxes` | done |
 | Item tracked as unique items (*Sache mit Einzelobjekten*) | `box-star-stack` (own) | done |
 | Unique item (*Einzelobjekt*) | `box-star` (own) | done |
-| Category (item tree) | `folder` | done |
+| Category (item tree, search results) | `folder` | done |
 | Location: building part (level, room, area) and others | `geo-alt` | done |
 | Location: storage unit (*Lagermöbel*: shelf, cabinet, …) | `bookshelf` | done |
 | Location: container (*Behälter*: Euro box, carton, …) | `eurobox-open` (own) | done |

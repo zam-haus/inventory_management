@@ -9,10 +9,10 @@
         loading: data.lightboxLoadingLabel,
     };
     const setup = links => window.setupPhotoLightbox(links, {className: 'location-lightbox', labels});
-    // The overview photo opens alone; arrows browse the photos of one item.
+    // The overview photo and each quick-item photo open alone. Those of the items and unique items open below their
+    // rows (results.js).
     const groups = [
         [...detail.querySelectorAll('a.location-overview-photo')],
-        ...[...detail.querySelectorAll('.location-photos')].map(photos => [...photos.querySelectorAll('a.location-photo')]),
         ...[...detail.querySelectorAll('.location-quick-readonly a.location-quick-photo')].map(link => [link]),
     ];
     groups.forEach(setup);

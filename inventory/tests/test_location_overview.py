@@ -407,13 +407,15 @@ class LocationOverviewTests(TestCase):
     def test_lists_and_location_choices_show_the_purpose_first(self):
         child = Location.objects.create(type=self.location.type, parent_location=self.location,
                                         name="Box 23", short_name="B23", purpose="Carp project")
-        label = ('<span class="loc-label"><span class="loc-title">Carp project</span> <span class="loc-name">Box 23</span> '
-                 f'<span class="loc-code" data-location-info="{child.pk}" role="button" tabindex="0" '
-                 f'title="Location in brief">{child.unique_identifier}</span></span>')
+        # The page's list of sub-locations: result rows (results/entries.html), the code as a chip after the name.
+        label = ('<span class="result-title">Carp project</span> <span class="result-subtitle">Box 23</span>')
+        chip = (f'<span class="loc-code" data-location-info="{child.pk}" role="button" tabindex="0" '
+                f'title="Location in brief">{child.unique_identifier}</span>')
         plain = ('<span class="loc-label"><span class="loc-title">Carp project</span> <span class="loc-name">Box 23</span> '
                  f'<span class="loc-code">{child.unique_identifier}</span></span>')  # in choices: a click chooses
         detail = self.client.get(self.location.get_absolute_url())
-        self.assertContains(detail, label, html=True)
+        self.assertContains(detail, label)
+        self.assertContains(detail, chip, html=True)
         listing = self.client.get(reverse("index_locations"))
         self.assertContains(listing, '<span class="loc-title">Carp project</span>', html=True)
         self.assertIn(f'data-location-info="{child.pk}"', listing.content.decode())

@@ -1,0 +1,3 @@
+{% load i18n %}{# Beside an item's place (row: its ItemLocation): the amount there and, for logged-in users, the stock button. #}
+<span class="result-amount"><span class="visually-hidden">{% trans "Amount" %}: </span>{{ entry.row.amount_text }}</span>
+{% if not entry.row.is_quick_item %}{% if stock_change_form or user.is_authenticated %}{% include 'inventory/stock_change_button.html' with entry=entry.row %}{% endif %}{% endif %}

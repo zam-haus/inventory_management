@@ -76,8 +76,14 @@ clicking the heading again collapses it. This works without JavaScript
 (`inventory/static/inventory/list_collapse.css`). Where the browser supports
 `hidden="until-found"`, `list_collapse.js` hides the entries that way instead:
 find-in-page (and links to a text fragment) then also finds collapsed entries,
-and revealing one expands the list. Quick-items are never collapsed, because
+and revealing one expands the list; so do the arrow keys moving onto one. Quick-items are never collapsed, because
 their list is edited in place.
+
+Items, unique items and sub-locations are [result rows](search.md#result-rows), as in the search: an
+item with its amount here and the stock button beside it, its description and price below it, and its other
+places; a unique item with its usage level and notes; a sub-location with its code chip and its counts as in the
+[location tree](trees.md). Their photos open below
+the row.
 
 ## Moving contents and dissolving
 

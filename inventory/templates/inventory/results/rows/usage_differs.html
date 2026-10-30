@@ -1,0 +1,2 @@
+{% load i18n mytemplatetags %}{# On the item's page: the item's briefing requirement applies, unless this one sets a different one. #}
+{% if entry.obj.usage_level and entry.obj.usage_level != entry.obj.item.usage_level %}<span class="unique-item-differs"><span class="result-muted">{% trans "differs" %}</span> {% usage_level entry.obj.usage_level %}</span>{% endif %}

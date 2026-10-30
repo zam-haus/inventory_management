@@ -1,2 +1,0 @@
-{% load i18n icons maps_tags %}{# A pin to the result on the map, if it (or where it is) is on the map. #}
-{% map_focus_url entry as map_url %}{% if map_url %}<a class="search-meta search-map" href="{{ map_url }}">{% icon "pin-map" %} {% trans "On the map" %}</a>{% endif %}

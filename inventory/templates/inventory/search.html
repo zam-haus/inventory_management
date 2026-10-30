@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% load i18n static icons %}
+{% load i18n static icons search_tags %}
 
 {% block title %}{% if query %}{{ query }} · {% endif %}{% trans "ZAM inventory" %}{% endblock %}
 
@@ -12,24 +12,25 @@
 {% block page_header %}<h1 class="visually-hidden">{% trans "Search" %}</h1>{% endblock %}
 
 {% block content %}
+{# Results come while typing, also into an empty page. #}{% result_rows %}
 <div class="search-page">
-    {# Sent as usual on Enter (a typed or scanned code opens its page); search.js shows results while typing. #}
+    {# Sent as usual on Enter (a typed or scanned code opens its page); live_search.js shows results while typing. #}
     <form class="search-bar" method="get" action="{% url 'index' %}" role="search" data-live-search>
         <div class="input-group input-group-lg">
             <span class="input-group-text" aria-hidden="true">{% icon "search" %}</span>
             <input type="search" class="form-control" name="q" value="{{ query }}" aria-label="{% trans 'Search' %}"
-                   placeholder="{% blocktrans with name=label_id_name %}Name, identifier or {{ name }}{% endblocktrans %}" enterkeyhint="search" autocomplete="off" autofocus>
+                   placeholder="{% blocktrans with name=label_id_name %}Name, identifier or {{ name }}{% endblocktrans %}" enterkeyhint="search" autocomplete="off" aria-controls="search-results" autofocus>
         </div>
+        {% if kinds %}<input type="hidden" name="kinds" value="{{ kinds }}">{% endif %}
         {% include 'inventory/scan_link_button.html' with classes="btn btn-lg btn-secondary search-scan" icon_only=True %}
     </form>
     <p class="search-error text-danger" role="alert" hidden data-search-error>{% trans "The search cannot be reached right now. The results shown are older." %}</p>
     <p class="visually-hidden" role="status" data-search-status></p>
-    <div id="search-results" data-photos-label="{% trans 'Photos' %}" data-close-label="{% trans 'Close photo' %}"
-         data-previous-label="{% trans 'Previous photo' %}" data-next-label="{% trans 'Next photo' %}">{% include 'inventory/search_results.html' %}</div>
+    <div id="search-results">{% include 'inventory/search_results.html' %}</div>
 </div>
 {% endblock %}
 
 {% block bootstrap5_extra_script %}
     {{ block.super }}
-    <script src="{% static 'inventory/search.js' %}"></script>
+    <script src="{% static 'inventory/live_search.js' %}"></script>
 {% endblock %}

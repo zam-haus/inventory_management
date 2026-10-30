@@ -1,13 +1,15 @@
 {% load i18n icons %}
-{# The results of search.html, also alone for searching as you type (?partial=1). data-status: read out by search.js. #}
-<div class="search-results" data-status="{% if query %}{% if next_url %}{% blocktrans count count=entries|length %}More than {{ count }} result{% plural %}More than {{ count }} results{% endblocktrans %}{% else %}{% blocktrans count count=entries|length %}{{ count }} result{% plural %}{{ count }} results{% endblocktrans %}{% endif %}{% endif %}">
+{# The results of search.html, also alone for searching as you type (?partial=1). data-status: read out by live_search.js. #}
+<div class="search-results" data-status="{% include 'inventory/results/status.html' %}">
     {% if code_url %}
         <p><a class="btn btn-info" href="{{ code_url }}">{% icon "qr-code-scan" %} {% blocktrans %}Open {{ query }}{% endblocktrans %}</a></p>
     {% endif %}
+    {% include 'inventory/results/kinds.html' %}
     {% if entries %}
-        <ul class="search-list" data-search-list>{% include 'inventory/search_entries.html' %}</ul>
-        {% include 'inventory/search_next.html' %}
+        {% include 'inventory/results/list.html' %}
+    {% elif kind_filters %}
+        <p class="result-none">{% trans "Only kinds not chosen above have results." %}</p>
     {% elif query and not code_url %}
-        <p class="search-none">{% trans "Nothing found." %}</p>
+        <p class="result-none">{% trans "Nothing found." %}</p>
     {% endif %}
 </div>

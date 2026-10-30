@@ -1,0 +1,85 @@
+/* Result rows (results/entries.html, results.js): the search results and every other list of locations, categories,
+   items and unique items. A row: the photo (or the icon of its kind), the text, then what the list shows beside it. */
+/* The icons of the rows, drawn once per page (results/viewer.html); each row refers to them. */
+.result-sprite { position: absolute; width: 0; height: 0; overflow: hidden; }
+.result-list { margin: 0; padding: 0; list-style: none; border-top: 1px solid #dee2e6; }
+.result-entry { display: flex; gap: .75rem; align-items: flex-start; padding: .6rem .25rem; border-bottom: 1px solid #dee2e6;
+    scroll-margin-top: calc(var(--app-navbar-height) + .5rem); }
+.result-entry:last-child { border-bottom: 0; }
+/* The row the keyboard is on (results.js). */
+.result-entry.is-marked { background: #e7f0fb; }
+/* A row that matters here, e.g. the location an item label led to (aria-current). */
+.result-entry-current { background: #fff4e5; box-shadow: inset 4px 0 0 #dc3545; }
+.result-entry-current.is-marked { background: #fbe6d2; }
+/* The kind of the entry, before its name. */
+.result-kind { margin-right: .35rem; color: #59636e; }
+.result-text { display: flex; flex: 1 1 auto; flex-direction: column; gap: .1rem; min-width: 0; min-height: 44px; }
+/* Only the title and the places are links, so that the text can be selected and copied. */
+.result-link { text-decoration: none; }
+.result-link:hover .result-title { text-decoration: underline; }
+/* The marked row shows where the keyboard is. */
+.result-list .result-link:focus-visible { outline: none; }
+.result-place { color: inherit; }
+.result-thumb { position: relative; display: flex; flex: 0 0 48px; align-items: center; justify-content: center;
+    width: 48px; height: 48px; padding: 0; overflow: hidden; border: 0; border-radius: .35rem;
+    background: #edf2f7; color: #59636e; font-size: 1.4rem; }
+button.result-thumb { cursor: zoom-in; }
+button.result-thumb[aria-expanded="true"] { outline: 2px solid var(--bs-link-color); outline-offset: 1px; }
+.result-thumb img { width: 100%; height: 100%; object-fit: cover; }
+.result-thumb-count { position: absolute; right: 2px; bottom: 2px; padding: 0 .3em; border-radius: .25rem;
+    background: rgba(0, 0, 0, .65); color: #fff; font-size: .7rem; font-weight: 600; line-height: 1.4; }
+.result-title { color: var(--bs-link-color); font-weight: 600; overflow-wrap: anywhere; }
+.result-subtitle { color: #59636e; font-size: .875em; font-weight: 400; }
+.result-meta, .result-source, .result-muted { color: #59636e; font-size: .875rem; overflow-wrap: anywhere; }
+.result-source { font-style: italic; }
+.result-excerpt { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; overflow: hidden; }
+.result-list mark { padding: 0; border-radius: .15em; background: #fff3bf; color: inherit; }
+/* Beside the text: an amount, a usage level, a count, a button. */
+.result-aside { display: flex; flex: 0 0 auto; flex-direction: column; align-items: flex-end; gap: .4rem; max-width: 45%; }
+.result-amount { max-width: 100%; padding: .25rem .5rem; border-radius: .35rem; background: #edf2f7;
+    font-size: .9rem; font-variant-numeric: tabular-nums; text-align: right; }
+/* What is in a location or category: like the counts of the trees (tree.css). */
+.result-counts { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: .3rem; }
+.result-count { display: inline-flex; align-items: center; gap: .3em; padding: .1rem .5em; border-radius: 1em;
+    background: #edf2f7; color: #59636e; font-size: .8rem; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.result-none, .result-more, .result-next { margin-top: 1rem; color: #59636e; }
+/* How many of each kind, above the results: chosen kinds filled, the others outlined (live_search.js). */
+.result-kinds { display: flex; flex-wrap: wrap; gap: .4rem; margin-bottom: .75rem; }
+.result-kind-filter { display: inline-flex; align-items: center; gap: .35em; min-height: 36px; padding: .2rem .75rem;
+    border: 1px solid #ced4da; border-radius: 1.2rem; color: #59636e; font-size: .875rem; text-decoration: none;
+    font-variant-numeric: tabular-nums; }
+a.result-kind-filter:hover { border-color: var(--bs-link-color); color: var(--bs-link-color); }
+.result-kind-filter.is-chosen { border-color: #9ec5fe; background: #e7f0fb; color: #0a3a7a; }
+/* A heading in the list, e.g. a subcategory on a category's page. */
+.result-group { padding: 1.25rem .25rem .4rem; border-bottom: 1px solid #dee2e6; }
+.result-group-title { margin: 0; font-size: 1.1rem; }
+.result-list > .result-group:first-child { padding-top: .5rem; }
+/* In the panels of the location and item pages: as wide as the panel's heading. */
+.location-panel .result-entry, .item-panel .result-entry { padding: .75rem 1.2rem; }
+.location-panel .result-list, .item-panel .result-list { border-top: 1px solid #dee2e6; }
+@media (max-width: 575.98px) {
+    .location-panel .result-entry, .item-panel .result-entry { padding-inline: 1rem; }
+}
+
+/* The photos of a row, below it (results.js): one photo wide, swiped sideways; vertical swipes go to
+   other rows, so the page does not scroll from here. */
+.result-viewer { position: relative; padding: .5rem 0; border-bottom: 1px solid #dee2e6; background: #14181d;
+    touch-action: pan-x; }
+.result-viewer-strip { display: flex; overflow-x: auto; overscroll-behavior-x: contain; scroll-snap-type: x mandatory;
+    scrollbar-width: none; }
+.result-viewer-strip::-webkit-scrollbar { display: none; }
+.result-viewer-strip:focus-visible { outline: none; }  /* the marked row and the open photos show where the keyboard is */
+.result-viewer-strip figure { display: flex; flex: 0 0 100%; flex-direction: column; align-items: center; justify-content: center;
+    gap: .35rem; margin: 0; scroll-snap-align: center; }
+.result-viewer-strip img { display: block; max-width: 100%; max-height: min(70vh, 40rem); object-fit: contain; user-select: none; }
+.result-viewer-strip figcaption { padding: 0 3rem; color: #d0d5db; font-size: .875rem; text-align: center; overflow-wrap: anywhere; }
+.result-viewer-counter { position: absolute; top: .75rem; left: .75rem; margin: 0; padding: 0 .45em; border-radius: .25rem;
+    background: rgba(0, 0, 0, .6); color: #fff; font-size: .8rem; font-variant-numeric: tabular-nums; }
+.result-viewer-counter:empty { display: none; }
+.result-viewer-button { position: absolute; display: inline-flex; align-items: center; justify-content: center;
+    width: 44px; height: 44px; padding: 0; border: 0; border-radius: 50%; background: rgba(0, 0, 0, .55); color: #fff; font-size: 1.2rem; }
+.result-viewer-button:disabled { opacity: .35; }
+.result-viewer-button:focus-visible { outline: 2px solid #fff; }
+.result-viewer-prev { top: 50%; left: .5rem; transform: translateY(-50%); }
+.result-viewer-next { top: 50%; right: .5rem; transform: translateY(-50%); }
+.result-viewer-close { top: .5rem; right: .5rem; }

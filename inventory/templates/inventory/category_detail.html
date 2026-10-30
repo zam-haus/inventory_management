@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% load i18n static %}
+{% load i18n static icons search_tags %}
 
 {% block title %}{{ object.name }}{% endblock %}
 
@@ -22,31 +22,30 @@
 {% endblock %}
 
 {% block content %}
+{# Results come while typing, also into an empty page. #}{% result_rows %}
 <div class="search-page category-page">
+    {# Searches within the category as you type (live_search.js); without words, all its items again. #}
+    <form class="search-bar" method="get" action="{{ object.get_absolute_url }}" role="search" data-live-search data-live-search-listing>
+        <div class="input-group">
+            <span class="input-group-text" aria-hidden="true">{% icon "search" %}</span>
+            <input type="search" class="form-control" name="q" value="{{ query }}" aria-controls="category-results"
+                   aria-label="{% blocktrans with name=object.name %}Search in {{ name }}{% endblocktrans %}"
+                   placeholder="{% blocktrans with name=object.name %}Search in {{ name }}{% endblocktrans %}" enterkeyhint="search" autocomplete="off">
+        </div>
+        {% if kinds %}<input type="hidden" name="kinds" value="{{ kinds }}">{% endif %}
+    </form>
+    <p class="search-error text-danger" role="alert" hidden data-search-error>{% trans "The search cannot be reached right now. The results shown are older." %}</p>
+    <p class="visually-hidden" role="status" data-search-status></p>
     {% if subcategories %}
         <nav class="category-children" aria-label="{% trans 'Subcategories' %}">
             {% for child in subcategories %}<a class="btn btn-sm btn-outline-secondary" href="{{ child.get_absolute_url }}">{{ child.name }}</a>{% endfor %}
         </nav>
     {% endif %}
-    {% for category, path, entries in groups %}
-        <section class="category-group">
-            {# A heading where items of subcategories follow (or this page starts with them). #}
-            {% if category != object %}
-                <h2 class="category-group-title"><a href="{{ category.get_absolute_url }}">{{ path }}</a></h2>
-            {% elif groups|length > 1 %}
-                <h2 class="category-group-title">{% trans "In this category" %}</h2>
-            {% endif %}
-            <ul class="search-list">{% include 'inventory/search_entries.html' with plain_photos=True %}</ul>
-        </section>
-    {% empty %}
-        <p class="search-none">{% trans "No items in this category yet." %}</p>
-    {% endfor %}
-    {% if page_obj.has_other_pages %}
-        <nav class="category-pages" aria-label="{% trans 'Pages' %}">
-            {% if page_obj.has_previous %}<a class="btn btn-secondary" href="?page={{ page_obj.previous_page_number }}">{% trans "Previous items" %}</a>{% endif %}
-            <span>{% blocktrans with number=page_obj.number pages=page_obj.paginator.num_pages %}Page {{ number }} of {{ pages }}.{% endblocktrans %}</span>
-            {% if page_obj.has_next %}<a class="btn btn-secondary" href="?page={{ page_obj.next_page_number }}">{% trans "More items" %}</a>{% endif %}
-        </nav>
-    {% endif %}
+    <div id="category-results">{% include 'inventory/category_results.html' %}</div>
 </div>
+{% endblock %}
+
+{% block bootstrap5_extra_script %}
+    {{ block.super }}
+    <script src="{% static 'inventory/live_search.js' %}"></script>
 {% endblock %}

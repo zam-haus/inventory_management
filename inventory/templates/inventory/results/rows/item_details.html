@@ -1,0 +1,5 @@
+{% load i18n mytemplatetags %}{# An item at a location: what it is and its price. #}
+{% with item=entry.obj %}
+{% if item.description %}<span class="result-meta result-excerpt">{{ item.description|markdown_plain|truncatechars:160 }}</span>{% endif %}
+{% if item.sale_price != None %}<span class="result-meta">{% trans "Price per unit" %}: {{ item.sale_price|floatformat:2 }} € / {{ item.measurement_unit.short }}</span>{% endif %}
+{% endwith %}

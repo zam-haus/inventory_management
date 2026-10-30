@@ -1,0 +1,14 @@
+{% load i18n %}
+{# A category's items or, with words, what the search finds in it; also alone for searching as you type (?partial=1). #}
+<div class="search-results" data-status="{% include 'inventory/results/status.html' %}">
+    {% include 'inventory/results/kinds.html' %}
+    {% if entries %}
+        {% include 'inventory/results/list.html' %}
+    {% elif kind_filters %}
+        <p class="result-none">{% trans "Only kinds not chosen above have results." %}</p>
+    {% elif query %}
+        <p class="result-none">{% trans "Nothing found." %}</p>
+    {% else %}
+        <p class="result-none">{% trans "No items in this category yet." %}</p>
+    {% endif %}
+</div>

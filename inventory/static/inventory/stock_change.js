@@ -253,30 +253,31 @@
         load(choice);
     });
 
-    document.querySelectorAll('[data-stock-change]').forEach(button => {
-        button.addEventListener('click', event => {
-            event.preventDefault();
-            window.bootstrap.Tooltip.getInstance(button)?.hide();
-            if (!pending) {
-                form.reset();
-                clearErrors();
-                typedAmount = '';
-                use(button.href);
-                offer(button);
-                load(button.dataset);
-                // "Take out" buttons open the dialog for removing.
-                const preset = form.querySelector(`[name=direction][value="${button.dataset.direction}"]`);
-                if (preset) {
-                    preset.checked = true;
-                    preset.dispatchEvent(new Event('change'));
-                }
+    // Delegated, so that buttons in rows added later (results.js) open it, too.
+    document.addEventListener('click', event => {
+        const button = event.target.closest('[data-stock-change]');
+        if (!button) return;
+        event.preventDefault();
+        window.bootstrap.Tooltip.getInstance(button)?.hide();
+        if (!pending) {
+            form.reset();
+            clearErrors();
+            typedAmount = '';
+            use(button.href);
+            offer(button);
+            load(button.dataset);
+            // "Take out" buttons open the dialog for removing.
+            const preset = form.querySelector(`[name=direction][value="${button.dataset.direction}"]`);
+            if (preset) {
+                preset.checked = true;
+                preset.dispatchEvent(new Event('change'));
             }
-            // Remove or add is chosen first; then the amount. modals.js focuses it on opening.
-            const first = direction() ? amountInput : form.querySelector('[name=direction]');
-            form.querySelectorAll('[data-modal-focus]').forEach(field => field.removeAttribute('data-modal-focus'));
-            first.setAttribute('data-modal-focus', '');
-            show();
-        });
+        }
+        // Remove or add is chosen first; then the amount. modals.js focuses it on opening.
+        const first = direction() ? amountInput : form.querySelector('[name=direction]');
+        form.querySelectorAll('[data-modal-focus]').forEach(field => field.removeAttribute('data-modal-focus'));
+        first.setAttribute('data-modal-focus', '');
+        show();
     });
     form.querySelectorAll('[name=direction]').forEach(input => input.addEventListener('change', () => amountInput.focus()));
 

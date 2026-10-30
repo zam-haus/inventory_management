@@ -143,12 +143,20 @@ def find(kind, queryset, sources, path, sort_name, words, limit, exact=None):
             for rank, row in enumerate(rows)]
 
 
-def search(words, limit):
-    """The first `limit` hits of each kind in their order (hits on the name first, then by name), and whether
-    any kind has more. The caller merges them, so a page of results never needs more of a kind than this."""
-    hits, more = [], False
+# Within one category (scope): its items and their unique items, no locations.
+SCOPES = {"item": "category", "unique": "item__category"}
+
+
+def search(words, limit, scope=None):
+    """The first `limit` hits of each kind in their order (hits on the name first, then by name), and one more
+    where a kind has more. The caller merges and counts them. With `scope` (a category), only what is in it or
+    below it."""
+    hits = []
     for kind, entries, sources, path, sort_name, exact in KINDS:
-        found = find(kind, entries(), sources, path, sort_name, words, limit + 1, exact)
-        more |= len(found) > limit
-        hits += found[:limit]
-    return hits, more
+        queryset = entries()
+        if scope is not None:
+            if kind not in SCOPES:
+                continue
+            queryset = queryset.filter(scope.in_tree(SCOPES[kind]))
+        hits += find(kind, queryset, sources, path, sort_name, words, limit + 1, exact)
+    return hits

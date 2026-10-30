@@ -185,7 +185,10 @@ link to the same level pasted into the open page's address applies at once (only
 - Every change is in the change log of the location or unique item ("Position on the map").
 
 The inventory does not know the maps app: it sends `inventory.signals.moved` and renders template slots
-(`inventory/slots.py`, `{% slot %}`) that the app fills (`maps/apps.py`).
+(`inventory/slots.py`, `{% slot %}`) that the app fills (`maps/apps.py`). "On the map" in
+[result rows](search.md#result-rows) (`result_entry.place`) is left out of a location's own lists; before a
+list, `result_entries.start` loads where all its locations are in the tree at once (`map_preload`), so that the
+links need no query per row.
 
 ## Floor plans
 

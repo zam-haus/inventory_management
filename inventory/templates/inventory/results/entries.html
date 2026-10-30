@@ -1,0 +1,43 @@
+{% load i18n locations search_tags slots thumbnail %}{% comment %}
+One row per entry (search/render.py Entry), in every list of locations, categories, items and unique items: the
+search results, a category's items, a location's items and sub-locations, an item's places (docs/search.md).
+results.js opens a row on a click outside its links, moves between rows with the arrow keys and shows the photos
+below a row. Per list: `here` (the location whose lists these are), `row_aside` and `row_details` (templates for each
+row, given `entry`), `words` (marked).
+{% endcomment %}{% result_rows %}{% slot "result_entries.start" %}
+{# Lists that are no search have no words: as filter argument, a missing one would be an error. #}{% with words=words|default:"" %}
+{% for entry in entries %}
+    {% if entry.group %}<li class="result-group"><h2 class="result-group-title">{% if entry.group.1 %}<a href="{{ entry.group.1 }}">{{ entry.group.0 }}</a>{% else %}{{ entry.group.0 }}{% endif %}</h2></li>{% endif %}
+    <li class="result-entry{% if entry.current %} result-entry-current{% endif %}" data-result-entry{% if entry.current %} aria-current="{{ entry.current }}"{% endif %}{% if entry.photos %} data-photos="{{ entry.photos_json }}"{% endif %}>
+        {% if entry.thumbnail %}
+            <button type="button" class="result-thumb" data-result-photos aria-expanded="false"
+                    aria-label="{% blocktrans with name=entry.title count count=entry.photos|length %}Show the photo of {{ name }}{% plural %}Show the {{ count }} photos of {{ name }}{% endblocktrans %}">
+                {% thumbnail entry.thumbnail "160x160" as im %}<img src="{{ im.url }}" alt="" loading="lazy">{% endthumbnail %}
+                {% if entry.photos|length > 1 %}<span class="result-thumb-count" aria-hidden="true">{{ entry.photos|length }}</span>{% endif %}
+            </button>
+        {% else %}
+            <span class="result-thumb" aria-hidden="true">{% result_icon entry.icon %}</span>
+        {% endif %}
+        {# Only the title and the places are links, so that the text can be selected; the row opens the title (results.js). #}
+        <div class="result-text">
+            <span class="result-heading"><span class="result-kind" aria-hidden="true">{% result_icon entry.icon %}</span><a class="result-link" href="{{ entry.url }}"><span class="visually-hidden">{{ entry.kind_label }}: </span><span class="result-title">{{ entry.title|highlight:words }}</span>{% if entry.subtitle %} <span class="result-subtitle">{{ entry.subtitle|highlight:words }}</span>{% endif %}{% if entry.label %} <span class="unique-item-code">{{ entry.label|highlight:words }}</span>{% endif %}</a>{% if entry.code %} {% location_code entry.code location=entry.obj %}{% endif %}</span>
+            {% if entry.where %}<span class="result-meta">{% result_icon entry.where_icon %} {{ entry.where|highlight:words }}</span>{% endif %}
+            {% if entry.excerpt %}<span class="result-meta">{{ entry.excerpt|highlight:words }}</span>{% endif %}
+            {% for place in entry.places %}
+                <span class="result-meta">{% if place.amount %}{{ place.amount }} · {% elif place.label %}{% if place.url %}<a href="{{ place.url }}">{{ place.label }}</a>{% else %}{{ place.label }}{% endif %} · {% endif %}<a class="result-place" href="{{ place.location.get_absolute_url }}">{{ place.location.title|highlight:words }}</a> {% location_code place.location.unique_identifier location=place.location %}</span>
+            {% endfor %}
+            {% if entry.more_places %}<span class="result-meta">{% blocktrans count count=entry.more_places %}and {{ count }} more place{% plural %}and {{ count }} more places{% endblocktrans %}</span>{% endif %}
+            {% if row_details %}{% include row_details %}{% endif %}
+            {# Not in a location's own lists: they are all there. #}
+            {% if not here %}{% slot "result_entry.place" %}{% endif %}
+            {% if entry.sources %}<span class="result-source">{% trans "Found in" %} {{ entry.sources|join:", " }}</span>{% endif %}
+        </div>
+        {% if entry.counts or row_aside %}
+            <div class="result-aside">
+                {# What is in a location or category, as in the trees: icons with numbers, in words as tooltip. #}
+                {% if entry.counts %}<span class="result-counts">{% for tally in entry.counts %}<span class="result-count" title="{{ tally.text }}">{% result_icon tally.icon %}<span aria-hidden="true">{{ tally.number }}</span><span class="visually-hidden">{{ tally.text }}</span></span>{% endfor %}</span>{% endif %}
+                {% if row_aside %}{% include row_aside %}{% endif %}
+            </div>
+        {% endif %}
+    </li>
+{% endfor %}{% endwith %}

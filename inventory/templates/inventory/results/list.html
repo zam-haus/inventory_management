@@ -1,0 +1,3 @@
+{# A list of result rows (entries.html) and, if there are more, the link to them (next.html). list_classes: e.g. list-collapse-list. #}
+<ul class="result-list{% if list_classes %} {{ list_classes }}{% endif %}" data-result-list>{% include 'inventory/results/entries.html' %}</ul>
+{% include 'inventory/results/next.html' %}

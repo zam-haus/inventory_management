@@ -93,7 +93,7 @@ def map_focus_url(context, obj):
         number = index.tree.level_number(shown)
         return f"{reverse('maps:level', args=[number])}#p={feature}" if number is not None else ""
 
-    if hasattr(obj, "places") and hasattr(obj, "obj"):  # a search result (inventory/search/render.py Entry)
+    if hasattr(obj, "places") and hasattr(obj, "obj"):  # a result row (inventory/search/render.py Entry)
         obj = obj.obj if isinstance(obj.obj, (Location, UniqueItem)) else [place.location.pk for place in obj.places]
     if isinstance(obj, Location):
         shown = index.shown_by(obj.pk)
@@ -107,6 +107,22 @@ def map_focus_url(context, obj):
         shown = index.shown_by(location_pk)
         if shown:
             return link(shown, f"loc:{shown}")
+    return ""
+
+
+@register.simple_tag(takes_context=True)
+def map_preload(context, entries):
+    """Loads where the locations of these result rows are in the tree at once, so that their map links
+    (map_focus_url) need no query each. Renders nothing."""
+    pks = []
+    for entry in entries:
+        if isinstance(entry.obj, Location):
+            pks.append(entry.obj.pk)
+        elif isinstance(entry.obj, UniqueItem):
+            pks.append(entry.obj.location_id)
+        pks += [place.location.pk for place in entry.places]
+    if pks:
+        _index(context).tree.load(pks)
     return ""
 
 

@@ -1,0 +1,9 @@
+{% load i18n search_tags %}
+{# How many hits of each kind there are; each chooses that kind or not, none chosen shows all (live_search.js, without JavaScript a link). #}
+{% if kind_filters %}
+    <div class="result-kinds" role="group" aria-label="{% trans 'Show kinds of results' %}" data-result-kinds>
+        {% for filter in kind_filters %}
+            <a class="result-kind-filter{% if filter.chosen %} is-chosen{% endif %}" href="{{ filter.url }}" role="button" aria-pressed="{{ filter.chosen|yesno:'true,false' }}" data-kind="{{ filter.kind }}">{% result_icon filter.icon %} {{ filter.text }}</a>
+        {% endfor %}
+    </div>
+{% endif %}

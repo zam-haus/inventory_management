@@ -4812,3 +4812,26 @@ msgstr "Lass den Screenshot weg, wenn er etwas Privates zeigt."
 
 msgid "Loading the help …"
 msgstr "Hilfe wird geladen …"
+
+msgctxt "found in"
+msgid "keywords"
+msgstr "den Stichwörtern"
+
+msgid "Search in %(name)s"
+msgstr "In %(name)s suchen"
+
+msgid "%(count)s location"
+msgid_plural "%(count)s locations"
+msgstr[0] "%(count)s Standort"
+msgstr[1] "%(count)s Standorte"
+
+msgid "%(count)s category"
+msgid_plural "%(count)s categories"
+msgstr[0] "%(count)s Kategorie"
+msgstr[1] "%(count)s Kategorien"
+
+msgid "Show kinds of results"
+msgstr "Arten von Treffern zeigen"
+
+msgid "Only kinds not chosen above have results."
+msgstr "Treffer gibt es nur bei den oben nicht gewählten Arten."
