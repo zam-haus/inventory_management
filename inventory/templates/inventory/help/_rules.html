@@ -1,0 +1,7 @@
+{% load icons %}
+{# What may stand in what (help_views.rules), derived from the type flags. #}
+<ul class="help-rules">
+    {% for icon_name, text in rules %}
+        <li>{% icon icon_name %}<span>{{ text }}</span></li>
+    {% endfor %}
+</ul>

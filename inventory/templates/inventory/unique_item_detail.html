@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% load i18n static thumbnail mytemplatetags actions icons label_printing locations change_log slots %}
+{% load i18n static thumbnail mytemplatetags actions icons label_printing locations change_log slots navigation %}
 
 {% block bootstrap5_extra_head %}
     {{ block.super }}
@@ -55,10 +55,17 @@
             <div class="unique-item-notice alert alert-warning" role="status">
                 {% blocktrans with name=label_id_name %}This unique item has no active {{ name }}.{% endblocktrans %}
                 {% if perms.inventory.claim_labelid %}{% trans "Scan a new label and attach it to this unique item." %}{% endif %}
+                {% help_link "zamid" %}
             </div>
         {% endif %}
 
         <dl class="item-overview">
+            {% if lid %}
+            <div>
+                <dt>{{ label_id_name }}</dt>
+                <dd>{{ lid.display }} {% help_link "zamid" %}</dd>
+            </div>
+            {% endif %}
             <div>
                 <dt>{% trans "Location" %}</dt>
                 <dd>{% if object.location %}<a href="{{ object.location.get_absolute_url }}" title="{{ object.location.descriptive_identifier }}">{% location_label object.location %}</a>{% else %}<span class="item-muted">–</span>{% endif %}</dd>

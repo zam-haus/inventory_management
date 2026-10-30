@@ -37,6 +37,9 @@ when they are first used:
 | Change stock | `cart` | done |
 | More / less stock | `arrow-up` / `arrow-down` | done |
 | Info or help tooltip | `info-circle` | done |
+| Help page (menu entry, “More about this” links) | `question-circle` | done |
+| Admin only (location type facts on the help page) | `shield-exclamation` | done |
+| Yes / no (location type facts on the help page) | `check-lg` / `x-lg` | done |
 | Print (labels; a label's printer mark in the print dialog) | `printer` | done |
 | Levels-and-axes overview of the building | `grid-3x3` | done |
 | Search | `search` | done |
@@ -65,8 +68,8 @@ when they are first used:
 
 The kind icons (item, item tracked as unique items, unique item, category, the three location kinds) also stand before the title of a location,
 item or unique item page, before the names in the search results and trees, and before *Items* (`boxes`) and
-*Locations* (`geo-alt`) in the navbar; on narrow screens the navbar shows those two as icons only, their names are
-in its menu (`three-dots-vertical`).
+*Locations* (`geo-alt`) in the navbar; up to 767px wide the navbar shows those two (and *Map*, *Help*) as icons
+only, with their names as tooltips; on narrow screens their names are also in its menu (`three-dots-vertical`).
 
 Every change of where something is, a location, a unique item, stock or the contents of a location, is
 called **Move** (German **Bewegen**: „Bewegen“, „Hierher bewegen“, „Inhalt bewegen“), never „verschieben“ or

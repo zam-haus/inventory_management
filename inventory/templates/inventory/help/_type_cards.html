@@ -1,0 +1,32 @@
+{% load i18n icons %}
+{# Location types by category (help_views.type_groups); facts shared by a whole category come once below its cards. #}
+<div class="help-cats">
+    {% for group in type_groups %}
+        <div class="help-cat" data-cat="{{ group.category }}">
+            <div class="help-cat-head">
+                <h3>{% icon group.icon %} {{ group.title }}</h3>
+                <p>{{ group.text }}</p>
+            </div>
+            <div class="help-cards">
+                {% for card in group.cards %}
+                    <div class="help-card">
+                        <div class="help-card-top">
+                            <h4>{{ card.type.name }}</h4>
+                            {% if card.type.example %}<span class="loc-code">{{ card.type.example }}</span>{% endif %}
+                        </div>
+                        <div class="help-pattern">{{ card.pattern }}</div>
+                        {% if card.type.description %}<p class="help-desc">{{ card.type.description }}</p>{% endif %}
+                        {% if card.facts %}{% include "inventory/help/_facts.html" with facts=card.facts %}{% endif %}
+                        {% if card.where %}<div class="help-parents">{{ card.where }}</div>{% endif %}
+                    </div>
+                {% endfor %}
+            </div>
+            {% if group.common %}
+                <div class="help-common">
+                    <span class="help-common-label">{% blocktrans with types=group.title %}Applies to all {{ types }}{% endblocktrans %}</span>
+                    {% include "inventory/help/_facts.html" with facts=group.common %}
+                </div>
+            {% endif %}
+        </div>
+    {% endfor %}
+</div>

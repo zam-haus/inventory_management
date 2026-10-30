@@ -71,6 +71,7 @@
 .location-metadata-field .location-root { margin: .15rem 0 0; }
 .location-type-details { margin-top: 1.5rem; padding-top: 1.25rem; border-top: 1px solid var(--location-border); }
 .location-type-details h3 { margin-bottom: .5rem; font-weight: 650; }
+.location-type-description { margin: 0 0 .5rem; max-width: 65ch; }
 .location-type-properties { margin: 0; }
 .location-type-properties > div { display: grid; grid-template-columns: 10rem minmax(0, 1fr); gap: .5rem 1rem; padding: .5rem 0; }
 .location-type-properties dt { font-weight: 600; }

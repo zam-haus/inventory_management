@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% load i18n static thumbnail mytemplatetags actions icons label_printing locations change_log %}
+{% load i18n static thumbnail mytemplatetags actions icons label_printing locations change_log navigation %}
 
 {% block bootstrap5_extra_head %}
     {{ block.super }}
@@ -148,7 +148,7 @@
                         {% icon "plus-lg" as plus_icon %}{% disabled_action plus_icon name=_("Add unique item") classes="btn btn-success item-panel-add" %}
                         {% endif %}
                     </div>
-                    <p class="item-muted">{% blocktrans with name=label_id_name %}Each unique item is a single object with its own {{ name }}.{% endblocktrans %}{% if disposed_count %} {% blocktrans count counter=disposed_count %}{{ counter }} unique item has been removed from the inventory.{% plural %}{{ counter }} unique items have been removed from the inventory.{% endblocktrans %}{% endif %}</p>
+                    <p class="item-muted">{% blocktrans with name=label_id_name %}Each unique item is a single object with its own {{ name }}.{% endblocktrans %} {% help_link "zamid" %}{% if disposed_count %} {% blocktrans count counter=disposed_count %}{{ counter }} unique item has been removed from the inventory.{% plural %}{{ counter }} unique items have been removed from the inventory.{% endblocktrans %}{% endif %}</p>
                 </div>
                 <ul class="item-locations">
                     {% for unique_item in unique_items %}

@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% load i18n static thumbnail mytemplatetags actions icons label_printing locations change_log slots %}
+{% load i18n static thumbnail mytemplatetags actions icons label_printing locations change_log slots navigation %}
 
 {% block bootstrap5_extra_head %}
     {{ block.super }}
@@ -31,7 +31,7 @@
                         {% if not purpose_denied %}<a href="#location-purpose-editor" class="btn btn-sm btn-warning location-edit-purpose" data-field-editor-open="location-purpose-editor" data-bs-toggle="tooltip" title="{% trans 'Edit purpose' %}">{% icon "pencil" %} <span class="action-label">{% trans "Purpose" %}</span></a>{% endif %}</span>
                 </h1>
                 {# The code in the line below the title. #}
-                <p class="location-title-code-row"><span class="loc-code location-title-code">{{ object.unique_identifier }} <button type="button" class="location-help location-help-icon" data-bs-toggle="tooltip" aria-label="{% trans 'Unique identifier for this storage location, used on labels and to find the location in the inventory.' %}" title="{% trans 'Unique identifier for this storage location, used on labels and to find the location in the inventory.' %}">{% icon "info-circle" %}</button></span></p>
+                <p class="location-title-code-row"><span class="loc-code location-title-code">{{ object.unique_identifier }} <button type="button" class="location-help location-help-icon" data-bs-toggle="tooltip" aria-label="{% trans 'Unique identifier for this storage location, used on labels and to find the location in the inventory.' %}" title="{% trans 'Unique identifier for this storage location, used on labels and to find the location in the inventory.' %}">{% icon "info-circle" %}</button></span> {% help_link "codes" %}</p>
             </div>
             <div class="location-actions" data-action-group>
                 {% if not object.type.moveable %}

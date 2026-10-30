@@ -1,0 +1,7 @@
+{% load i18n icons %}
+{# Like the printed label: the name read bottom to top, the QR code, the ID in two lines with the hyphen between. #}
+<div class="help-zam-label" role="img" aria-label="{% blocktrans with name=label_id_name %}Example label with QR code and the {{ name }} K7R-4XD{% endblocktrans %}">
+    <span class="help-zam-logo">{{ label_id_name }}</span>
+    <span class="help-qr">{% icon "qr-code-scan" %}</span>
+    <span class="help-zam-code"><span>K7R</span><span class="help-zam-dash">-</span><span>4XD</span></span>
+</div>

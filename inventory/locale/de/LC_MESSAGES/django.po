@@ -4596,3 +4596,123 @@ msgid "The %(count)s change:"
 msgid_plural "All %(count)s changes:"
 msgstr[0] "Die %(count)s Änderung:"
 msgstr[1] "Alle %(count)s Änderungen:"
+
+msgid "Help"
+msgstr "Hilfe"
+
+msgid "More about this"
+msgstr "Mehr dazu"
+
+msgid "Example path"
+msgstr "Beispielpfad"
+
+msgid "Stock in the carton"
+msgstr "Bestand im Karton"
+
+msgid "White sewing thread"
+msgstr "Nähgarn weiß"
+
+msgid "Red fabric paint"
+msgstr "Stoffmalfarbe Rot"
+
+msgid "pcs."
+msgstr "Stk."
+
+msgid "… and 3 more items, e.g. pins"
+msgstr "… und 3 weitere Sachen, z. B. Stecknadeln"
+
+msgid "In the compartment next to the carton"
+msgstr "Im Fach neben dem Karton"
+
+msgid "Sewing machine A38"
+msgstr "Nähmaschine A38"
+
+msgid "Applies to all %(types)s"
+msgstr "Gilt für alle %(types)s"
+
+msgid "Example label with QR code and the %(name)s K7R-4XD"
+msgstr "Beispiel-Label mit QR-Code und der %(name)s K7R-4XD"
+
+msgid "%(first)s and %(last)s"
+msgstr "%(first)s und %(last)s"
+
+msgid "Own code"
+msgstr "Eigener Code"
+
+msgid "Code above + dot + letter a–z"
+msgstr "Code darüber + Punkt + Buchstabe a–z"
+
+msgid "Code above + dot + number"
+msgstr "Code darüber + Punkt + Nummer"
+
+msgid "%(prefix)s + %(count)s digits"
+msgstr "%(prefix)s + %(count)s Stellen"
+
+msgid "Moves with its contents"
+msgstr "Zieht mit Inhalt um"
+
+msgid "Stays where it is"
+msgstr "Bleibt, wo es ist"
+
+msgid "Holds only items, no locations"
+msgstr "Enthält nur Sachen, keine Standorte"
+
+msgid "Holds further locations"
+msgstr "Nimmt weitere Standorte auf"
+
+msgid "Divided into %(type)s"
+msgstr "Unterteilt in %(type)s"
+
+msgid "Number from the number range of the room"
+msgstr "Nummer aus dem Nummernkreis des Raums"
+
+msgid "Changed in the admin only"
+msgstr "Nur im Admin-Bereich anpassbar"
+
+msgid "Can be deleted here when empty"
+msgstr "Leer hier löschbar"
+
+msgid "Deleted in the admin only"
+msgstr "Löschen nur im Admin"
+
+msgid "Usually stands in: %(types)s"
+msgstr "Steht meist in: %(types)s"
+
+msgid "Top level"
+msgstr "Oberste Stufe"
+
+msgid "Top level, on its own"
+msgstr "Oberste Stufe, für sich"
+
+msgid "Part of the building, never moves. Created in the admin only; what is in it can be moved freely."
+msgstr "Teil des Gebäudes, bewegt sich nie. Wird nur im Admin angelegt; was darin steht, lässt sich frei bewegen."
+
+msgid "Furniture for storing things, with its compartments and drawers. A storage unit stays a storage unit, even on wheels. Shelves and cabinets are usually numbered from left to right in the room. Compartments and drawers always count from the bottom up: a is the lowest."
+msgstr "Möbel zum Aufbewahren, samt Fächern und Schüben. Lagermöbel bleiben Lagermöbel, auch auf Rollen. Regale und Schränke sind im Raum normalerweise von links nach rechts nummeriert. Fächer und Schübe zählen immer von unten nach oben: a ist das unterste."
+
+msgid "Moves through the building with its contents."
+msgstr "Wandert mit seinem Inhalt durchs Haus."
+
+msgid "Not part of the building structure."
+msgstr "Kein Teil der Gebäudestruktur."
+
+msgid "%(types)s hold only items, no further locations."
+msgstr "%(types)s enthalten nur Sachen, keine weiteren Standorte."
+
+msgid "%(types)s stand in a space (level, room, area) or on %(holders)s, never in a compartment or another shelf."
+msgstr "%(types)s stehen in einem Gebäudeteil (Ebene, Raum, Bereich) oder auf %(holders)s, nie in einem Fach oder einem anderen Regal."
+
+msgid "%(types)s stand in a space (level, room, area), never in a compartment or another shelf."
+msgstr "%(types)s stehen in einem Gebäudeteil (Ebene, Raum, Bereich), nie in einem Fach oder einem anderen Regal."
+
+msgid "%(types)s exist only as part of another location. Their code builds on its code."
+msgstr "%(types)s gibt es nur als Teil eines anderen Standorts. Ihr Code hängt an dessen Code."
+
+msgid "%(types)s move with everything in them. Their code stays the same."
+msgstr "%(types)s ziehen mit allem um, was darin ist. Ihr Code bleibt dabei gleich."
+
+msgid "%(types)s are created and changed by the admin team only. What is in them can be moved by anyone with permission."
+msgstr "%(types)s legt nur das Admin-Team an und ändert sie. Was darin steht, kann jeder mit Rechten bewegen."
+
+msgid "A location can only be deleted when it is empty: no items, no unique items, no locations in it."
+msgstr "Ein Standort lässt sich nur löschen, wenn er leer ist: keine Sachen, keine Einzelobjekte, keine Standorte darin."

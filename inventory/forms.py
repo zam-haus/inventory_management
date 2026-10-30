@@ -16,6 +16,7 @@ from django.utils.translation import gettext_lazy as _
 from dal import autocomplete
 
 
+from .help_views import help_link
 from .keyboard_layouts import layout_corrections
 from .location_lookup import scan_prefixes
 from .permissions import location_deletion_denied
@@ -373,11 +374,11 @@ class NewItemForm(BaseItemForm):
         return [
             layout.Div(bootstrap.InlineRadios("kind"), css_class="item-kind-switch"),
             layout.HTML(format_html(
-                '<p class="text-muted" data-for-kind="bulk">{}</p><p class="text-muted" data-for-kind="unique">{}</p>',
-                _("A bulk item is counted per location, such as screws or filament."),
+                '<p class="text-muted" data-for-kind="bulk">{} {}</p><p class="text-muted" data-for-kind="unique">{} {}</p>',
+                _("A bulk item is counted per location, such as screws or filament."), help_link("sachen"),
                 _("Unique items are objects tracked one by one, each with its own {name}, such as fire extinguishers "
                   "or machines. This item describes them; enter the first one below and add more later.").format(
-                    name=label_id_naming.name()),
+                    name=label_id_naming.name()), help_link("sachen"),
             )),
             "category",
             "name",

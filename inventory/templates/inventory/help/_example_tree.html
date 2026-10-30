@@ -1,0 +1,40 @@
+{% load i18n icons %}
+{# Example path and nested locations; the location and type names are this building's, the items are made up. #}
+<div class="help-breadcrumb" aria-label="{% trans 'Example path' %}">
+    <span>Werkhaus 1 <span class="loc-code">WH+1</span></span><span class="help-sep">›</span>
+    <span>Textilwerkstatt <span class="loc-code">TEX</span></span><span class="help-sep">›</span>
+    <span>Schrank 140 <span class="loc-code">S140</span></span><span class="help-sep">›</span>
+    <span>Fach b <span class="loc-code">S140.b</span></span><span class="help-sep">›</span>
+    <span>Karton 410 <span class="loc-code">Ka00410</span></span>
+</div>
+<div class="help-nest" data-cat="space">
+    <div class="help-nest-head"><span class="help-type">{% icon "geo-alt" %} Haus+Ebene</span><span class="help-nest-title">Werkhaus 1</span><span class="loc-code">WH+1</span></div>
+    <div class="help-nest-body">
+        <div class="help-nest" data-cat="space">
+            <div class="help-nest-head"><span class="help-type">{% icon "geo-alt" %} Bereich</span><span class="help-nest-title">Textilwerkstatt</span><span class="loc-code">TEX</span></div>
+            <div class="help-nest-body">
+                <div class="help-nest" data-cat="storage_unit">
+                    <div class="help-nest-head"><span class="help-type">{% icon "bookshelf" %} Schrank</span><span class="help-nest-title">Schrank 140</span><span class="loc-code">S140</span></div>
+                    <div class="help-nest-body">
+                        <div class="help-nest" data-cat="storage_unit">
+                            <div class="help-nest-head"><span class="help-type">{% icon "bookshelf" %} Fach/Schub</span><span class="help-nest-title">Fach b</span><span class="loc-code">S140.b</span></div>
+                            <div class="help-nest-body">
+                                <div class="help-nest" data-cat="container">
+                                    <div class="help-nest-head"><span class="help-type">{% icon "eurobox-open" %} Karton</span><span class="help-nest-title">Karton 410</span><span class="loc-code">Ka00410</span></div>
+                                    <div class="help-stock" aria-label="{% trans 'Stock in the carton' %}">
+                                        <div class="help-stock-row"><span>{% icon "boxes" %} {% trans "White sewing thread" %}</span><b>12 {% trans "pcs." %}</b></div>
+                                        <div class="help-stock-row"><span>{% icon "boxes" %} {% trans "Red fabric paint" %}</span><b>4 {% trans "pcs." %}</b></div>
+                                        <div class="help-stock-row help-muted"><span>{% trans "… and 3 more items, e.g. pins" %}</span></div>
+                                    </div>
+                                </div>
+                                <div class="help-stock" aria-label="{% trans 'In the compartment next to the carton' %}">
+                                    <div class="help-stock-row help-unique-row"><span>{% icon "box-star" %} {% trans "Sewing machine A38" %} Paula <span class="help-zamid">K7R-4XD</span></span><b>{% trans "Unique item" %}</b></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

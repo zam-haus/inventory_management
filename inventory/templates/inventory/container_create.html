@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% load django_bootstrap5 i18n static icons locations %}
+{% load django_bootstrap5 i18n static icons locations navigation %}
 
 {% block bootstrap5_extra_head %}
     {{ block.super }}
@@ -28,7 +28,7 @@
         <section class="location-panel" aria-labelledby="container-heading">
             <div class="location-panel-heading">
                 <h2 id="container-heading">{% trans "Add a box, carton or pallet" %}</h2>
-                <p class="location-muted">{% trans "It gets the next number of its type, shown with each choice." %}</p>
+                <p class="location-muted">{% trans "It gets the next number of its type, shown with each choice." %} {% help_link "typen" %}</p>
             </div>
             <form method="post" novalidate class="location-move-form location-narrow-form">
                 {% csrf_token %}

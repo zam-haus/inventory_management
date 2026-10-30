@@ -29,7 +29,7 @@
 <main>
     {% if state == "lookup" %}
         <h1>{% blocktrans with name=label_id_name %}Look up a {{ name }}{% endblocktrans %}</h1>
-        <p class="muted">{% trans "Enter the six characters printed on the label, for example K7R-4XD." %}</p>
+        <p class="muted">{% trans "Enter the six characters printed on the label, for example K7R-4XD." %} <a href="{{ help_url }}#zamid">{% trans "More about this" %}</a></p>
     {% elif state == "checksum" %}
         <h1>{% trans "Typo?" %}</h1>
         <p>{% blocktrans with q=q %}“{{ q }}” is not a valid ID: the check symbol does not match.{% endblocktrans %}</p>

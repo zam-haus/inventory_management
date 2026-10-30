@@ -1,4 +1,4 @@
-{% load i18n locations %}
+{% load i18n locations navigation %}
 <div class="modal fade location-metadata" id="location-metadata" tabindex="-1" aria-labelledby="location-metadata-title" aria-hidden="true">
     <div class="modal-dialog modal-lg modal-dialog-scrollable">
         <div class="modal-content">
@@ -50,6 +50,7 @@
                 </div>
                 <section class="location-type-details" aria-labelledby="location-type-properties-heading">
                     <h3 class="fs-5" id="location-type-properties-heading">{% trans "Location type properties" %}</h3>
+                    <p class="location-type-description">{% if object.type.description %}{{ object.type.description }} {% endif %}{% help_link "typen" %}</p>
                     <dl class="location-type-properties">
                         <div>
                             <dt>{% trans "Moving" %}</dt>

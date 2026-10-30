@@ -78,7 +78,10 @@ def target_url(request, lid):
 
 
 def _page(request, state, status, **context):
-    return render(request, "inventory/label_id/resolver.html", {"state": state, **context}, status=status)
+    # The help page is on the inventory, also when served on a resolver host.
+    help_url = inventory_url(request, lambda: reverse("help"))
+    return render(request, "inventory/label_id/resolver.html", {"state": state, "help_url": help_url, **context},
+                  status=status)
 
 
 def _resolve(request, raw, *, from_lookup=False):

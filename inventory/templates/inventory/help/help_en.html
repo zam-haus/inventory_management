@@ -1,0 +1,153 @@
+{% extends 'inventory/help/help_base.html' %}
+{% load icons %}
+{# English version; help_de.html says the same in German: change both together. #}
+
+{% block help %}
+<header class="help-intro">
+    <p class="help-eyebrow">Help · Inventory</p>
+    <h1>Items, locations, unique items</h1>
+    <p class="help-lede">The inventory knows three things: <strong>items</strong> (what there is), <strong>locations</strong> (where something is) and <strong>unique items</strong> (this one device with its own label). This page shows how they fit together.</p>
+    <nav class="help-toc" aria-label="Contents">
+        <a href="#ueberblick">Overview</a>
+        <a href="#sachen">Bulk or unique</a>
+        <a href="#zamid">{{ label_id_name }}</a>
+        <a href="#baum">Locations in the tree</a>
+        <a href="#typen">Location types</a>
+        <a href="#regeln">What goes where</a>
+        <a href="#codes">Reading codes</a>
+    </nav>
+</header>
+
+<section id="ueberblick" aria-labelledby="h-ueberblick">
+    <header><h2 id="h-ueberblick">At a glance</h2></header>
+    <p class="help-overview-lede">{% icon "boxes" %}<span>An <strong>item</strong> is a general description of a thing with a name, photos and a description, for example “white acrylic paint”, “tea lights” or “sewing machine”. Every item is kept in one of two ways:</span></p>
+
+    <div class="help-lanes" role="group" aria-label="How items get to locations">
+        <div class="help-lane help-is-bulk">
+            <span class="help-lane-title">As a bulk item</span>
+            <p class="help-lane-lede">We don't care about the single nail or the single reel of thread. All that counts is how much of it is where: one <strong>stock entry</strong> with an amount per location. The same item can be at many locations.</p>
+            <div class="help-node">{% icon "boxes" %} <span>White acrylic paint 500 ml</span><span class="help-price" title="Sales price per unit">{% icon "tag" %} €4.50 / pc.</span></div>
+            <div class="help-link-line">Stock entries</div>
+            <div class="help-entries">
+                <div class="help-entry"><span class="help-qty">12 pcs.</span><span>loose in the area</span>
+                    <span class="help-where">{% icon "geo-alt" %} Farbwerkstatt <span class="loc-code">FW</span></span></div>
+                <div class="help-entry"><span class="help-qty">3 pcs.</span><span>in a box</span>
+                    <span class="help-where">{% icon "eurobox-open" %} Kiste 208 <span class="loc-code">K0208</span></span></div>
+            </div>
+        </div>
+        <div class="help-lane help-is-unique">
+            <span class="help-lane-title">With unique items</span>
+            <p class="help-lane-lede">There can be several of one item, say the sewing machine model A38. We still want to tell them apart, because when one breaks, it matters which one it was. So every <strong>unique item</strong> has its own {{ label_id_name }} and exactly one location.</p>
+            <div class="help-node">{% icon "box-star-stack" %} <span>Sewing machine A38</span></div>
+            <div class="help-link-line">Unique items</div>
+            <div class="help-entries">
+                <div class="help-entry help-entry-unique"><span class="help-entry-icon">{% icon "box-star" %}</span><span>Sewing machine A38 Paula <span class="help-zamid">K7R-4XD</span></span>
+                    <span class="help-where">{% icon "bookshelf" %} Fach b <span class="loc-code">S140.b</span></span></div>
+                <div class="help-entry help-entry-unique"><span class="help-entry-icon">{% icon "box-star" %}</span><span>Sewing machine A38 Pepe <span class="help-zamid">H3P-9TA</span></span>
+                    <span class="help-where">{% icon "geo-alt" %} on loan <span class="loc-code">mobil</span></span></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="help-term">
+        <h3>{% icon "geo-alt" %} Location</h3>
+        <p>Anything something can be in or on. Locations sit inside one another and have a short code like <span class="loc-code">R411</span>. There are three sorts:</p>
+        <ul class="help-kinds">
+            <li data-cat="space">{% icon "geo-alt" %}<span><strong>Space</strong>: level, room, area. Never moves.</span></li>
+            <li data-cat="storage_unit">{% icon "bookshelf" %}<span><strong>Storage unit</strong>: shelf, cabinet, with their compartments and drawers.</span></li>
+            <li data-cat="container">{% icon "eurobox-open" %}<span><strong>Container</strong>: box, carton, pallet. Moves with its contents.</span></li>
+        </ul>
+    </div>
+</section>
+
+<section id="sachen" aria-labelledby="h-sachen">
+    <header>
+        <h2 id="h-sachen">Bulk or unique</h2>
+        <p>The two ways compared. An item is always only one of them.</p>
+    </header>
+    <div class="table-responsive help-table-wrap">
+        <table class="table help-compare">
+            <thead><tr><th scope="col"></th><th scope="col">{% icon "boxes" %} Bulk item</th><th scope="col">{% icon "box-star-stack" %} Unique items</th></tr></thead>
+            <tbody>
+                <tr><th scope="row">For</th><td>Consumables and small parts: paint, brushes, thread, tape, tea lights, screws</td><td>Devices: sewing machine, kettle, vacuum cleaner, drill, fire extinguisher. In short: anything with a power cord and anything special or expensive</td></tr>
+                <tr><th scope="row">At the location</th><td>a stock entry with an amount, e.g. “12 pcs.”</td><td>the unique item itself</td></tr>
+                <tr><th scope="row">How many places</th><td>any number, one amount each</td><td>exactly one per unique item</td></tr>
+                <tr><th scope="row">Label</th><td>none per piece; the label is on the location</td><td>its own {{ label_id_name }}, e.g. <span class="help-zamid">K7R-4XD</span> (<a href="#zamid">more</a>)</td></tr>
+                <tr><th scope="row">Sale</th><td>possible, with a price per unit, e.g. white acrylic paint 500 ml for €4.50 / pc.</td><td>no, unique items are not sold</td></tr>
+                <tr><th scope="row">Own details</th><td>only the amount</td><td>name (“Paula”), notes, purchase and warranty, people in charge</td></tr>
+            </tbody>
+        </table>
+    </div>
+    <p class="help-aside">What all unique items of an item share (description, photos, files, required briefing) is kept once with the item. The kind can only be changed while the item has neither stock nor unique items.</p>
+</section>
+
+<section id="zamid" aria-labelledby="h-zamid">
+    <header>
+        <h2 id="h-zamid">The {{ label_id_name }}</h2>
+        <p>Every unique item carries a small label with a QR code and its {{ label_id_name }}, a short ID like <span class="help-zamid">K7R-4XD</span>.</p>
+    </header>
+    <div class="help-zam">
+        {% include "inventory/help/_label_mockup.html" %}
+        <ul class="help-zam-points">
+            <li>{% icon "qr-code-scan" %}<span><strong>Scanning</strong> opens the page of exactly this device: where it belongs, who looks after it and whether you need a briefing.</span></li>
+            <li>{% icon "search" %}<span><strong>Typing</strong> works too: enter the {{ label_id_name }} in the search. Hyphen, capitals and look-alikes such as O and 0 don't matter.</span></li>
+            <li>{% icon "tag" %}<span><strong>Forever.</strong> A {{ label_id_name }} belongs to its device only and is never given to another one, not even when it has been retired.</span></li>
+            <li>{% icon "box-star" %}<span><strong>Loans too.</strong> Devices that belong to someone and are lent to the ZAM get a {{ label_id_name }} as well. That makes clear whose they are.</span></li>
+        </ul>
+    </div>
+    <div class="help-callout" role="note">
+        {% icon "exclamation-triangle" %}
+        <div>
+            <p><strong>Please never remove the label.</strong> Without its {{ label_id_name }} a device is just some sewing machine. Nobody can tell any more which one it is, where it belongs, who looks after it, whether you need a briefing and, for a loan, whose it is.</p>
+            <p>So don't peel it off, don't cover it and never move it to another device. If a label has come off or can't be read, tell the team in charge or print it again on the unique item's page. Don't throw a loose label away: scanning it shows where it belongs.</p>
+        </div>
+    </div>
+</section>
+
+<section id="baum" aria-labelledby="h-baum">
+    <header>
+        <h2 id="h-baum">Locations sit inside one another</h2>
+        <p>Every location is inside another one: the carton in the compartment, the compartment in the cabinet, the cabinet in the workshop, the workshop on a level. This path is shown at the top of every location page.</p>
+    </header>
+    {% include "inventory/help/_example_tree.html" %}
+    <p class="help-aside">Items and unique items can be at any location along the path, not only innermost in the carton. The sewing machine Paula stands directly in compartment <span class="loc-code">S140.b</span>, next to the carton. And the acrylic paint standing loose in the paint workshop is entered directly at the area <span class="loc-code">FW</span>.</p>
+</section>
+
+<section id="typen" aria-labelledby="h-typen">
+    <header>
+        <h2 id="h-typen">Space, storage unit, container</h2>
+        <p>Every location has a <strong>location type</strong>. The type decides what the code looks like, whether the location can move and whether further locations fit inside. The types belong to three categories.</p>
+    </header>
+    {% include "inventory/help/_type_cards.html" %}
+</section>
+
+<section id="regeln" aria-labelledby="h-regeln">
+    <header>
+        <h2 id="h-regeln">What goes where</h2>
+        <p>The usual chain from the outside in: level › room or area › shelf or cabinet › compartment or drawer › box or carton. Shortcuts are allowed: a box may also stand directly in a room or on a level.</p>
+    </header>
+    {% include "inventory/help/_rules.html" %}
+</section>
+
+<section id="codes" aria-labelledby="h-codes">
+    <header>
+        <h2 id="h-codes">Reading codes</h2>
+        <p>The code is on the label at the location and leads straight to it by scan or search. There are two sorts.</p>
+    </header>
+    <div class="help-anatomy">
+        <div class="help-anat">
+            <span class="help-big"><span class="help-p1">Ka00410</span></span>
+            <p><strong>Own code.</strong> Spaces with a name of their own, shelves, cabinets, pallets, boxes and cartons have a code that occurs only once in the whole building. It says nothing about the place above it. That's why it stays the same when the carton moves.</p>
+        </div>
+        <div class="help-anat">
+            <span class="help-big"><span class="help-p1">S140</span><span class="help-p3"><span class="help-p2">.</span>b</span></span>
+            <p><strong>Derived code.</strong> Compartments, drawers, sub-rooms and sub-areas exist only as part of something. Their code is the code above, a dot and a letter or number: compartment <em>b</em> in cabinet <em>S140</em>. Compartments and drawers always count from the bottom up, so <em>b</em> is the second from the bottom. Shelves and cabinets themselves are usually numbered from left to right in the room.</p>
+        </div>
+        <div class="help-anat">
+            <span class="help-big"><span class="help-lv">HH<span class="help-u">+0</span></span></span>
+            <p><strong>Levels</strong> carry building and level with a sign: <code>WH</code> Werkhaus, <code>HH</code> Haupthaus; 0 is at street level of the main road. The sign is always there, so a lost minus never leads to the wrong level.</p>
+        </div>
+    </div>
+    <p class="help-aside">Codes stay with their location once given. An old code still leads to the right place after a rename. Unique items have their {{ label_id_name }} instead of a location code.</p>
+</section>
+{% endblock %}

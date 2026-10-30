@@ -1,0 +1,153 @@
+{% extends 'inventory/help/help_base.html' %}
+{% load icons %}
+{# German version; help_en.html says the same in English: change both together. #}
+
+{% block help %}
+<header class="help-intro">
+    <p class="help-eyebrow">Hilfe · Inventar</p>
+    <h1>Sachen, Standorte, Einzelobjekte</h1>
+    <p class="help-lede">Im Inventar gibt es drei Dinge: <strong>Sachen</strong> (was es gibt), <strong>Standorte</strong> (wo etwas ist) und <strong>Einzelobjekte</strong> (dieses eine Gerät mit eigenem Label). Diese Seite zeigt, wie sie zusammenhängen.</p>
+    <nav class="help-toc" aria-label="Inhalt">
+        <a href="#ueberblick">Überblick</a>
+        <a href="#sachen">Menge oder Einzelobjekt</a>
+        <a href="#zamid">{{ label_id_name }}</a>
+        <a href="#baum">Standorte im Baum</a>
+        <a href="#typen">Standorttypen</a>
+        <a href="#regeln">Was worin stehen kann</a>
+        <a href="#codes">Codes lesen</a>
+    </nav>
+</header>
+
+<section id="ueberblick" aria-labelledby="h-ueberblick">
+    <header><h2 id="h-ueberblick">Auf einen Blick</h2></header>
+    <p class="help-overview-lede">{% icon "boxes" %}<span>Eine <strong>Sache</strong> ist eine allgemeine Beschreibung eines Gegenstands mit Name, Fotos und Beschreibungstext, zum Beispiel „Acrylfarbe Weiß“, „Teelichter“ oder „Nähmaschine“. Jede Sache wird auf eine von zwei Arten geführt:</span></p>
+
+    <div class="help-lanes" role="group" aria-label="Wie Sachen an Standorte kommen">
+        <div class="help-lane help-is-bulk">
+            <span class="help-lane-title">Als Mengenartikel</span>
+            <p class="help-lane-lede">Uns interessiert nicht der einzelne Nagel oder die einzelne Rolle Nähgarn. Es zählt nur, wie viel davon wo liegt: je Standort ein <strong>Bestandseintrag</strong> mit Menge. Dieselbe Sache kann an vielen Standorten liegen.</p>
+            <div class="help-node">{% icon "boxes" %} <span>Acrylfarbe Weiß 500 ml</span><span class="help-price" title="Verkaufspreis pro Einheit">{% icon "tag" %} 4,50 € / Stk.</span></div>
+            <div class="help-link-line">Bestandseinträge</div>
+            <div class="help-entries">
+                <div class="help-entry"><span class="help-qty">12 Stk.</span><span>frei im Bereich</span>
+                    <span class="help-where">{% icon "geo-alt" %} Farbwerkstatt <span class="loc-code">FW</span></span></div>
+                <div class="help-entry"><span class="help-qty">3 Stk.</span><span>in einer Kiste</span>
+                    <span class="help-where">{% icon "eurobox-open" %} Kiste 208 <span class="loc-code">K0208</span></span></div>
+            </div>
+        </div>
+        <div class="help-lane help-is-unique">
+            <span class="help-lane-title">Mit Einzelobjekten</span>
+            <p class="help-lane-lede">Von einer Sache, etwa dem Nähmaschinen-Modell A38, kann es mehrere geben. Wir wollen sie trotzdem auseinanderhalten, denn wenn eine kaputtgeht, zählt, welche es war. Jedes <strong>Einzelobjekt</strong> hat darum eine eigene {{ label_id_name }} und genau einen Standort.</p>
+            <div class="help-node">{% icon "box-star-stack" %} <span>Nähmaschine A38</span></div>
+            <div class="help-link-line">Einzelobjekte</div>
+            <div class="help-entries">
+                <div class="help-entry help-entry-unique"><span class="help-entry-icon">{% icon "box-star" %}</span><span>Nähmaschine A38 Paula <span class="help-zamid">K7R-4XD</span></span>
+                    <span class="help-where">{% icon "bookshelf" %} Fach b <span class="loc-code">S140.b</span></span></div>
+                <div class="help-entry help-entry-unique"><span class="help-entry-icon">{% icon "box-star" %}</span><span>Nähmaschine A38 Pepe <span class="help-zamid">H3P-9TA</span></span>
+                    <span class="help-where">{% icon "geo-alt" %} ausgeliehen <span class="loc-code">mobil</span></span></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="help-term">
+        <h3>{% icon "geo-alt" %} Standort</h3>
+        <p>Alles, worin oder worauf etwas sein kann. Standorte stecken ineinander und haben einen kurzen Code wie <span class="loc-code">R411</span>. Es gibt drei Sorten:</p>
+        <ul class="help-kinds">
+            <li data-cat="space">{% icon "geo-alt" %}<span><strong>Gebäudeteil</strong>: Ebene, Raum, Bereich. Bewegt sich nie.</span></li>
+            <li data-cat="storage_unit">{% icon "bookshelf" %}<span><strong>Lagermöbel</strong>: Regal, Schrank, mit ihren Fächern und Schüben.</span></li>
+            <li data-cat="container">{% icon "eurobox-open" %}<span><strong>Behälter</strong>: Kiste, Karton, Palette. Zieht mit dem Inhalt um.</span></li>
+        </ul>
+    </div>
+</section>
+
+<section id="sachen" aria-labelledby="h-sachen">
+    <header>
+        <h2 id="h-sachen">Menge oder Einzelobjekt</h2>
+        <p>Die beiden Arten im Vergleich. Eine Sache ist immer nur eins von beiden.</p>
+    </header>
+    <div class="table-responsive help-table-wrap">
+        <table class="table help-compare">
+            <thead><tr><th scope="col"></th><th scope="col">{% icon "boxes" %} Mengenartikel</th><th scope="col">{% icon "box-star-stack" %} Einzelobjekte</th></tr></thead>
+            <tbody>
+                <tr><th scope="row">Für</th><td>Verbrauchsmaterial und Kleinteile: Farbe, Pinsel, Nähgarn, Klebeband, Teelichter, Schrauben</td><td>Geräte: Nähmaschine, Wasserkocher, Staubsauger, Bohrmaschine, Feuerlöscher. Kurz: alles mit Stromkabel und alles Besondere oder Teure</td></tr>
+                <tr><th scope="row">Am Standort</th><td>ein Bestandseintrag mit Menge, z. B. „12 Stk.“</td><td>das Einzelobjekt selbst</td></tr>
+                <tr><th scope="row">Wie viele Orte</th><td>beliebig viele, je eine Menge</td><td>jedes Einzelobjekt genau einen</td></tr>
+                <tr><th scope="row">Label</th><td>keins pro Stück; das Label hängt am Standort</td><td>eigene {{ label_id_name }}, z. B. <span class="help-zamid">K7R-4XD</span> (<a href="#zamid">mehr dazu</a>)</td></tr>
+                <tr><th scope="row">Verkauf</th><td>möglich, mit Preis pro Einheit, z. B. Acrylfarbe Weiß 500 ml für 4,50 € / Stk.</td><td>nein, Einzelobjekte werden nicht verkauft</td></tr>
+                <tr><th scope="row">Eigene Angaben</th><td>nur die Menge</td><td>Name („Paula“), Notizen, Kauf und Garantie, Zuständige</td></tr>
+            </tbody>
+        </table>
+    </div>
+    <p class="help-aside">Was alle Einzelobjekte einer Sache gemeinsam haben (Beschreibung, Fotos, Dateien, Einweisungspflicht), steht einmal bei der Sache. Die Art lässt sich nur ändern, solange die Sache weder Bestand noch Einzelobjekte hat.</p>
+</section>
+
+<section id="zamid" aria-labelledby="h-zamid">
+    <header>
+        <h2 id="h-zamid">Die {{ label_id_name }}</h2>
+        <p>Jedes Einzelobjekt trägt ein kleines Label mit QR-Code und seiner {{ label_id_name }}, einer kurzen Kennung wie <span class="help-zamid">K7R-4XD</span>.</p>
+    </header>
+    <div class="help-zam">
+        {% include "inventory/help/_label_mockup.html" %}
+        <ul class="help-zam-points">
+            <li>{% icon "qr-code-scan" %}<span><strong>Scannen</strong> öffnet die Seite genau dieses Geräts: wo es hingehört, wer sich darum kümmert und ob man eine Einweisung braucht.</span></li>
+            <li>{% icon "search" %}<span><strong>Eintippen</strong> geht auch: die {{ label_id_name }} in die Suche eingeben. Bindestrich, Groß- und Kleinschreibung und Verwechsler wie O und 0 sind egal.</span></li>
+            <li>{% icon "tag" %}<span><strong>Für immer.</strong> Eine {{ label_id_name }} gehört nur zu ihrem Gerät und wird nie an ein anderes vergeben, auch nicht, wenn es ausgemustert ist.</span></li>
+            <li>{% icon "box-star" %}<span><strong>Auch für Leihgaben.</strong> Geräte, die jemandem gehören und dem ZAM geliehen sind, bekommen ebenfalls eine {{ label_id_name }}. So ist klar, wem sie gehören.</span></li>
+        </ul>
+    </div>
+    <div class="help-callout" role="note">
+        {% icon "exclamation-triangle" %}
+        <div>
+            <p><strong>Das Label bitte nie entfernen.</strong> Ohne {{ label_id_name }} ist ein Gerät nur noch irgendeine Nähmaschine. Niemand sieht dann mehr, welche es ist, wohin sie gehört, wer sie betreut, ob man eine Einweisung braucht und bei einer Leihgabe, wem sie gehört.</p>
+            <p>Also nicht abziehen, nicht überkleben und nie auf ein anderes Gerät umkleben. Ist ein Label abgegangen oder unleserlich, sag dem zuständigen Team Bescheid oder drucke es auf der Seite des Einzelobjekts neu. Ein loses Label nicht wegwerfen: Scannen zeigt, wohin es gehört.</p>
+        </div>
+    </div>
+</section>
+
+<section id="baum" aria-labelledby="h-baum">
+    <header>
+        <h2 id="h-baum">Standorte stecken ineinander</h2>
+        <p>Jeder Standort liegt in einem anderen: der Karton im Fach, das Fach im Schrank, der Schrank in der Werkstatt, die Werkstatt auf einer Ebene. Oben in jeder Standortseite steht dieser Pfad.</p>
+    </header>
+    {% include "inventory/help/_example_tree.html" %}
+    <p class="help-aside">Sachen und Einzelobjekte können bei jedem Standort im Pfad sein, nicht nur ganz innen im Karton. Die Nähmaschine Paula steht direkt im Fach <span class="loc-code">S140.b</span>, neben dem Karton. Und die Acrylfarbe, die frei in der Farbwerkstatt steht, ist direkt beim Bereich <span class="loc-code">FW</span> eingetragen.</p>
+</section>
+
+<section id="typen" aria-labelledby="h-typen">
+    <header>
+        <h2 id="h-typen">Gebäudeteil, Lagermöbel, Behälter</h2>
+        <p>Jeder Standort hat einen <strong>Standorttyp</strong>. Der Typ legt fest, wie der Code aussieht, ob der Standort umziehen kann und ob weitere Standorte hineinpassen. Die Typen gehören zu drei Kategorien.</p>
+    </header>
+    {% include "inventory/help/_type_cards.html" %}
+</section>
+
+<section id="regeln" aria-labelledby="h-regeln">
+    <header>
+        <h2 id="h-regeln">Was worin stehen kann</h2>
+        <p>Die übliche Kette von außen nach innen: Ebene › Raum oder Bereich › Regal oder Schrank › Fach oder Schub › Kiste oder Karton. Abkürzungen sind erlaubt: Eine Kiste darf auch direkt im Raum oder auf der Ebene stehen.</p>
+    </header>
+    {% include "inventory/help/_rules.html" %}
+</section>
+
+<section id="codes" aria-labelledby="h-codes">
+    <header>
+        <h2 id="h-codes">Codes lesen</h2>
+        <p>Der Code steht auf dem Label am Standort und führt per Scan oder Suche direkt hin. Es gibt zwei Sorten.</p>
+    </header>
+    <div class="help-anatomy">
+        <div class="help-anat">
+            <span class="help-big"><span class="help-p1">Ka00410</span></span>
+            <p><strong>Eigener Code.</strong> Gebäudeteile mit eigenem Namen, Regale, Schränke, Paletten, Kisten und Kartons haben einen Code, der hausweit nur einmal vorkommt. Er sagt nichts über den Ort darüber. Darum bleibt er gleich, wenn der Karton umzieht.</p>
+        </div>
+        <div class="help-anat">
+            <span class="help-big"><span class="help-p1">S140</span><span class="help-p3"><span class="help-p2">.</span>b</span></span>
+            <p><strong>Abgeleiteter Code.</strong> Fächer, Schübe, Teilräume und Teilbereiche gibt es nur als Teil von etwas. Ihr Code ist der Code darüber, ein Punkt und ein Buchstabe oder eine Nummer: Fach <em>b</em> im Schrank <em>S140</em>. Fächer und Schübe zählen immer von unten nach oben, <em>b</em> ist also das zweite von unten. Regale und Schränke selbst sind im Raum normalerweise von links nach rechts nummeriert.</p>
+        </div>
+        <div class="help-anat">
+            <span class="help-big"><span class="help-lv">HH<span class="help-u">+0</span></span></span>
+            <p><strong>Ebenen</strong> tragen Haus und Ebene mit Vorzeichen: <code>WH</code> Werkhaus, <code>HH</code> Haupthaus; 0 liegt ebenerdig zur Hauptstraße. Das Vorzeichen steht immer da, damit ein verlorenes Minus nicht zur falschen Ebene führt.</p>
+        </div>
+    </div>
+    <p class="help-aside">Einmal vergebene Codes bleiben beim Standort. Ein alter Code führt auch nach einer Umbenennung noch zum richtigen Ort. Einzelobjekte haben statt eines Standortcodes ihre {{ label_id_name }}.</p>
+</section>
+{% endblock %}

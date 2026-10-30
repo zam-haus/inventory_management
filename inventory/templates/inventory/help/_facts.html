@@ -1,0 +1,6 @@
+{% load icons %}
+<ul class="help-facts">
+    {% for state, text in facts %}
+        <li class="help-fact-{{ state }}">{% if state == "lock" %}{% icon "shield-exclamation" %}{% elif state == "yes" %}{% icon "check-lg" %}{% else %}{% icon "x-lg" %}{% endif %}<span>{{ text }}</span></li>
+    {% endfor %}
+</ul>

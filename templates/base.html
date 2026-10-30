@@ -31,8 +31,8 @@
         <ul class="navbar-nav app-nav">
           {# The section the page belongs to is marked (in_section, by address). #}
           {% in_section "/item/" "/category/" "/quick-items/" as in_items %}{% in_section "/loc/" as in_locations %}
-          <li class="nav-item"><a class="nav-link{% if in_items %} active{% endif %}" href="{% url 'index_items' %}"{% if in_items %} aria-current="true"{% endif %}>{% icon "boxes" %}<span class="app-nav-label">{% trans 'Items' %}</span></a></li>
-          <li class="nav-item"><a class="nav-link{% if in_locations %} active{% endif %}" href="{% url 'index_locations' %}"{% if in_locations %} aria-current="true"{% endif %}>{% icon "geo-alt" %}<span class="app-nav-label">{% trans 'Locations' %}</span></a></li>
+          <li class="nav-item"><a class="nav-link{% if in_items %} active{% endif %}" href="{% url 'index_items' %}" title="{% trans 'Items' %}"{% if in_items %} aria-current="true"{% endif %}>{% icon "boxes" %}<span class="app-nav-label">{% trans 'Items' %}</span></a></li>
+          <li class="nav-item"><a class="nav-link{% if in_locations %} active{% endif %}" href="{% url 'index_locations' %}" title="{% trans 'Locations' %}"{% if in_locations %} aria-current="true"{% endif %}>{% icon "geo-alt" %}<span class="app-nav-label">{% trans 'Locations' %}</span></a></li>
           {% slot "navbar.items" %}
         </ul>
         <div class="d-flex align-items-center gap-2 ms-auto">
@@ -43,6 +43,7 @@
               <a class="dropdown-item action-menu-item app-menu-narrow" href="{% url 'index_items' %}">{% icon "boxes" %}<span>{% trans 'Items' %}</span></a>
               <a class="dropdown-item action-menu-item app-menu-narrow" href="{% url 'index_locations' %}">{% icon "geo-alt" %}<span>{% trans 'Locations' %}</span></a>
               {% slot "navbar.menu" %}
+              <a class="dropdown-item action-menu-item app-menu-help" href="{% url 'help' %}" title="{% trans 'Help' %}">{% icon "question-circle" %}<span>{% trans 'Help' %}</span></a>
               {% if user.is_staff %}
                 <a class="dropdown-item action-menu-item app-menu-admin" href="{% block admin_url %}{% url 'admin:index' %}{% endblock %}"><span>Admin</span></a>
               {% endif %}
