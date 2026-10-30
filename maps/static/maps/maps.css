@@ -295,8 +295,75 @@ body:has(.map-page-canvas) > .container {
     font-size: .8rem;
 }
 /* Measuring (map_measure.js): the points and what they measure. */
-.map-measuring.leaflet-container {
+.map-measuring.leaflet-container,
+.map-marking.leaflet-container {  /* marking a point (map_mark.js) */
     cursor: crosshair;
+}
+/* The marked point (map_mark.js): a pink pin, its tip on the point, its shadow on the ground, "Here" above it. */
+.map-mark-pin svg {
+    display: block;
+    overflow: visible;
+    filter: drop-shadow(0 2px 2px rgba(0, 0, 0, .45));
+}
+.map-mark-pin path {
+    fill: #d6336c;
+    stroke: #fff;
+    stroke-width: 2;
+}
+.map-mark-pin circle {
+    fill: #fff;
+}
+.map-mark-pin::before {
+    content: "";
+    position: absolute;
+    left: 7px;
+    top: 39px;
+    width: 18px;
+    height: 8px;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, .35);
+}
+.leaflet-tooltip.map-mark-here {
+    background: #d6336c;
+    border: 0;
+    color: #fff;
+    font-weight: 600;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, .4);
+}
+.map-mark-here .map-mark-here-text,
+.map-mark-here .map-mark-here-field {
+    pointer-events: auto;  /* Leaflet's tooltips let clicks through */
+    padding: 0;
+    border: 0;
+    background: none;
+    color: inherit;
+    font: inherit;
+}
+.map-mark-here .map-mark-here-text {
+    cursor: text;
+}
+.map-mark-here .map-mark-here-field {
+    outline: none;
+    border-bottom: 1px solid currentColor;
+}
+.leaflet-tooltip-top.map-mark-here::before {
+    border-top-color: #d6336c;
+}
+.map-mark-popup {
+    display: flex;
+    flex-direction: column;
+    gap: .35rem;
+}
+.map-mark-buttons {  /* one line, removing at the end */
+    display: flex;
+    gap: .35rem;
+    white-space: nowrap;
+}
+.map-mark-buttons .btn-outline-danger {
+    margin-left: auto;
+}
+.map-mark-status:empty {
+    display: none;
 }
 .map-measure-handle {
     background: #fff;

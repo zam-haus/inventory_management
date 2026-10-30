@@ -1319,6 +1319,76 @@ msgid "Radius"
 msgstr "Radius"
 
 #: maps/templates/maps/map.html
+msgid "Click the spot"
+msgstr "Stelle anklicken"
+
+#: maps/templates/maps/map.html
+msgctxt "map marker"
+msgid "Here"
+msgstr "Hier"
+
+#: maps/templates/maps/map.html
+msgid "Change the text above the marker"
+msgstr "Text über dem Marker ändern"
+
+#: maps/templates/maps/map.html
+msgid "Click the corners"
+msgstr "Ecken anklicken"
+
+#: maps/templates/maps/map.html
+msgid "Click the first corner to finish"
+msgstr "Zum Abschließen erste Ecke anklicken"
+
+#: maps/templates/maps/map.html
+msgid "Marked area"
+msgstr "Markierter Bereich"
+
+#: maps/templates/maps/map.html
+msgctxt "map marker"
+msgid "Place"
+msgstr "Ort"
+
+#: maps/templates/maps/map.html
+msgctxt "map marker"
+msgid "Area"
+msgstr "Bereich"
+
+#: maps/templates/maps/map.html
+msgid "Marked point"
+msgstr "Markierter Punkt"
+
+#: maps/templates/maps/map.html
+msgctxt "located in"
+msgid "In"
+msgstr "In"
+
+#: maps/templates/maps/map.html
+msgid "Copy link"
+msgstr "Link kopieren"
+
+#: maps/templates/maps/map.html
+msgid "Link copied."
+msgstr "Link kopiert."
+
+#: maps/templates/maps/map.html
+msgid "Copy the link with Ctrl+C or ⌘C:"
+msgstr "Den Link mit Strg+C oder ⌘C kopieren:"
+
+#: maps/templates/maps/map.html
+msgid "Share link"
+msgstr "Link teilen"
+
+#: maps/templates/maps/map.html
+msgctxt "map marker"
+msgid "Remove"
+msgstr "Entfernen"
+
+#: maps/templates/maps/map.html
+msgctxt "map"
+msgid "Mark"
+msgstr "Markieren"
+
+#: maps/templates/maps/map.html
 msgid "Remove all"
 msgstr "Alle entfernen"
 

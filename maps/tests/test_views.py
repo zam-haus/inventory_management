@@ -389,6 +389,10 @@ class MapViewTests(Building, TestCase):
         at = self.client.get(reverse("maps:area_at"), {"level": "-1", "lon": local_point(20, 1).x,
                                                       "lat": local_point(20, 1).y}).json()
         self.assertEqual(at["area"]["pk"], self.store.pk)
+        self.client.logout()  # also for guests: the popup of a marked point (map_mark.js) names its area
+        at = self.client.get(reverse("maps:area_at"), {"level": "-1", "lon": local_point(20, 1).x,
+                                                      "lat": local_point(20, 1).y}).json()
+        self.assertEqual(at["area"]["url"], self.store.get_absolute_url())
 
     @override_settings(MAPS_PLACE_UNIQUE_ITEMS=True)
     def test_unique_item_positions(self):

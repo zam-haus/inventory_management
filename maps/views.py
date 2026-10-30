@@ -328,7 +328,8 @@ def area_at(request):
     current = request.GET.get("current", "")
     pk = int(current) if current.isdigit() and int(current) in candidates else max(candidates, key=tree.depth)
     location = Location.active.get(pk=pk)
-    return JsonResponse({"area": {"pk": pk, "code": location.unique_identifier, "title": location.title_with_code}})
+    return JsonResponse({"area": {"pk": pk, "code": location.unique_identifier, "title": location.title_with_code,
+                                  "url": location.get_absolute_url()}})
 
 
 def _serve(file, as_attachment=False, name=None):

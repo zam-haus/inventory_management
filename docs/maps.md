@@ -165,6 +165,16 @@ the view and measurements stay; the plans shown so far stay until the new ones a
 changes, so the browser's back button returns to the level before. In the edit mode the level buttons load the page.
 Without `z` and `b` the map shows what `p` names.
 
+To send a link to a spot or an area, "Mark" (for everyone) offers "Place" and "Area": a click on the map sets a pin
+(it can be dragged), or clicks set the corners of a polygon (a click on the first or last corner again finishes it,
+Escape gives it up). One marking at a time; a new one replaces it. It belongs to its level: switching to another level hides it
+(and leaves it out of the address) until its level is shown again; an area being drawn is given up. A click on "Here" changes that text (`&t=<text>`;
+empty: "Here" again). Its popup names the area it is in (`maps:area_at`) and offers the link to copy or share (on
+touch screens only sharing: the system's share sheet copies too). `#z=<zoom>&m=<lat>,<lng>` opens the level centred
+on the pin, `&a=<lat>,<lng>;…` with the whole area in view (at most at `z`), the popup closed; with a marking, any
+address shows it, whatever rectangle (`b`) it has. The page's own address keeps the marking too (`map_mark.js`). A
+link to the same level pasted into the open page's address applies at once (only the part after `#` changes).
+
 ### When things move
 
 - **Placed on the map again:** what is on or in it moves along, turned with it (the boxes on a pallet).

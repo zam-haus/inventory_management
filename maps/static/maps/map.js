@@ -678,8 +678,9 @@
         map.invalidateSize();
     });
     // The level, drawn anew after changes in the edit mode (map_edit.js); the view stays where it is then.
-    var page = {map: map, drawn: null, element: element, controls: []};
     var start = readHash();  // the view of the address (below)
+    // `markHash`: the marked point or area for the address (map_mark.js).
+    var page = {map: map, drawn: null, element: element, controls: [], start: start, markHash: null};
     ZamMap.page = page;
 
     // The plans drawn before go once the new ones' images are there (or after RETIRE_MS), so that the map does not
@@ -751,10 +752,11 @@
             if (!first) {
                 return;
             }
-            // The address's view (#z, b), else what #p names (the "On the map" links), else the whole level.
+            // The address's view (the marked point or #z, b: showView, below), else what #p names (the "On the map"
+            // links), else the whole level.
             var named = start.popup ? highlight(drawn, start.popup) : null;
-            if (start.bounds) {
-                return;  // fitted below
+            if (start.bounds || start.mark || start.area) {
+                return;  // set below
             }
             if (named) {
                 map.fitBounds(named.getBounds ? named.getBounds() : L.latLngBounds([named.getLatLng()]),
@@ -790,6 +792,7 @@
             }
         });
         document.title = link.dataset.title;
+        document.dispatchEvent(new CustomEvent('zam-map-level'));  // e.g. the marking stays on its level (map_mark.js)
         var heading = document.querySelector('[data-map-heading]');
         if (heading) {
             heading.textContent = link.dataset.title;
@@ -826,7 +829,8 @@
         }
     });
 
-    // The view in the address, to share it: #z=<zoom>&b=<south>,<west>,<north>,<east>&p=<open popup, e.g. loc:12>.
+    // The view in the address, to share it: #z=<zoom>&b=<south>,<west>,<north>,<east>&p=<open popup, e.g. loc:12>
+    // &m=<lat>,<lng> or &a=<lat>,<lng>;<lat>,<lng>;… and &t=<its text> (the marked point or area, map_mark.js).
     function readHash() {
         var values = {};
         window.location.hash.replace(/^#/, '').split('&').forEach(function (part) {
@@ -835,9 +839,13 @@
                 values[decodeURIComponent(pair[0])] = decodeURIComponent(pair[1] || '');
             }
         });
-        var b = (values.b || '').split(',').map(Number);
+        var b = (values.b || '').split(',').map(Number), m = (values.m || '').split(',').map(Number);
+        var a = values.a ? values.a.split(';').map(function (corner) { return corner.split(',').map(Number); }) : [];
+        var areaOk = a.length >= 3 && a.every(function (c) { return c.length === 2 && c.every(isFinite); });
         return {zoom: values.z ? Number(values.z) : null, popup: values.p || null,
-            bounds: b.length === 4 && b.every(isFinite) ? L.latLngBounds([b[0], b[1]], [b[2], b[3]]) : null};
+            bounds: b.length === 4 && b.every(isFinite) ? L.latLngBounds([b[0], b[1]], [b[2], b[3]]) : null,
+            mark: m.length === 2 && m.every(isFinite) ? L.latLng(m[0], m[1]) : null,
+            area: areaOk ? a.map(function (c) { return L.latLng(c[0], c[1]); }) : null, label: values.t || null};
     }
     var openPopup = null;  // the feature id of the open popup
 
@@ -847,11 +855,14 @@
         hashTimer = setTimeout(writeHashNow, 300);
     }
 
+    page.writeHash = writeHash;
+
     function writeHashNow() {
         var bounds = map.getBounds(), digits = function (value) { return value.toFixed(6); };
         var view = 'z=' + (Math.round(map.getZoom() * 100) / 100) + '&b=' + [bounds.getSouth(), bounds.getWest(),
             bounds.getNorth(), bounds.getEast()].map(digits).join(',');
-        history.replaceState(null, '', '#' + view + (openPopup ? '&p=' + encodeURIComponent(openPopup) : ''));
+        history.replaceState(null, '', '#' + view + (openPopup ? '&p=' + encodeURIComponent(openPopup) : '') +
+            (page.markHash ? page.markHash() : ''));
         // The other levels keep the view.
         document.querySelectorAll('[data-map-level]').forEach(function (link) {
             link.href = link.href.split('#')[0] + '#' + view;
@@ -868,16 +879,36 @@
         openPopup = null;
         writeHash();
     });
-    show(true).then(function () {
-        if (start.bounds) {
-            map.fitBounds(start.bounds, {animate: false});
-            if (start.zoom !== null && Math.abs(map.getZoom() - start.zoom) < 1) {
-                map.setZoom(start.zoom, {animate: false});  // the same zoom on a screen of about the same size
+    // The view an address asks for: centred on the marked point (#m, map_mark.js) at #z, or the whole marked area
+    // (#a) at most at #z, whatever rectangle it has (the sender's screen); else its rectangle (#b) at about #z.
+    function showView(target) {
+        if (target.mark) {
+            map.setView(target.mark, target.zoom !== null ? target.zoom : 21, {animate: false});
+        } else if (target.area) {
+            map.fitBounds(L.latLngBounds(target.area), {padding: [60, 60], maxZoom: target.zoom !== null ? target.zoom : 22,
+                animate: false});
+        } else if (target.bounds) {
+            map.fitBounds(target.bounds, {animate: false});
+            if (target.zoom !== null && Math.abs(map.getZoom() - target.zoom) < 1) {
+                map.setZoom(target.zoom, {animate: false});  // the same zoom on a screen of about the same size
             }
         }
-        if (start.popup && page.drawn.byId[start.popup]) {
-            page.drawn.byId[start.popup].openPopup();
+        if (target.popup && page.drawn && page.drawn.byId[target.popup]) {
+            page.drawn.byId[target.popup].openPopup();
         }
+    }
+
+    // A link to this level pasted into the address of the open page changes only the part after #, without loading
+    // the page: its view (and marker, map_mark.js) apply then too. Not fired by writeHash (replaceState).
+    window.addEventListener('hashchange', function () {
+        var target = readHash();
+        document.dispatchEvent(new CustomEvent('zam-map-address', {detail: target}));
+        showView(target);
+        writeHash();
+    });
+
+    show(true).then(function () {
+        showView(start);
         writeHash();
         map.on('moveend', writeHash);
     }).catch(function () {

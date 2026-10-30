@@ -17,13 +17,29 @@
     <nav class="map-levels leaflet-bar" aria-label="{% trans 'Levels' %}" data-map-levels hidden>
         {% for n, level_label, codes in levels %}
             <a class="{% if n == number %}map-level-current{% endif %}" href="{% url 'maps:level' n %}" data-map-level
-               data-data-url="{% url 'maps:level_data' n %}" data-unplaced-url="{% url 'maps:unplaced' n %}"
+               data-number="{{ n }}" data-data-url="{% url 'maps:level_data' n %}" data-unplaced-url="{% url 'maps:unplaced' n %}"
                data-title="{% blocktrans with label=level_label %}Map, level {{ label }}{% endblocktrans %}"{% if n == number %} aria-current="page"{% endif %} title="{% blocktrans %}Level {{ level_label }}{% endblocktrans %}: {{ codes|join:', ' }}">{{ level_label }}</a>
         {% endfor %}
     </nav>
     {# On the map, at the bottom right: editing it, and the floor plans. #}
     <span class="map-actions" data-map-actions hidden>
-        <button type="button" class="btn btn-sm btn-light" aria-pressed="false" data-map-measure-toggle>{% trans "Measure" %}</button>
+        {# Marking a place or an area to send a link to it (map_mark.js), for everyone: what, from a menu. #}
+        <span class="dropup">
+        <button type="button" class="btn btn-sm btn-light dropdown-toggle" aria-pressed="false" aria-expanded="false"
+                data-bs-toggle="dropdown" data-map-mark-toggle
+                data-armed="{% trans 'Click the spot' %}" data-armed-area="{% trans 'Click the corners' %}"
+                data-armed-area-close="{% trans 'Click the first corner to finish' %}" data-here="{% trans 'Here' context 'map marker' %}" data-rename="{% trans 'Change the text above the marker' %}" data-title="{% trans 'Marked point' %}" data-title-area="{% trans 'Marked area' %}"
+                data-in="{% trans 'In' context 'located in' %}"
+                data-area-url="{% url 'maps:area_at' %}" data-copy="{% trans 'Copy link' %}"
+                data-copied="{% trans 'Link copied.' %}" data-copy-by-hand="{% trans 'Copy the link with Ctrl+C or ⌘C:' %}"
+                data-share="{% trans 'Share link' %}" data-remove="{% trans 'Remove' context 'map marker' %}">{% icon "geo-alt" %} <span data-mark-label>{% trans "Mark" context "map" %}</span></button>
+        <ul class="dropdown-menu dropdown-menu-end">
+            <li><button type="button" class="dropdown-item" data-mark-kind="point">{% icon "geo-alt" %} {% trans "Place" context "map marker" %}</button></li>
+            <li><button type="button" class="dropdown-item" data-mark-kind="area">{% icon "pentagon" %} {% trans "Area" context "map marker" %}</button></li>
+        </ul>
+        </span>
+        <template data-mark-icons><span data-icon="share">{% icon "box-arrow-up" %}</span><span data-icon="remove">{% icon "x-lg" %}</span></template>
+        <button type="button" class="btn btn-sm btn-light" aria-pressed="false" data-map-measure-toggle>{% include "maps/icons/tape_measure.svg" %} {% trans "Measure" %}</button>
         {% if not edit_denied %}<button type="button" class="btn btn-sm btn-warning" data-map-edit-toggle data-done="{% trans 'Done' %}">{% icon "pencil" %} <span>{% trans "Edit" %}</span></button>
         {% elif user.is_authenticated %}{% icon "pencil" as edit_icon %}{% disabled_action edit_icon label=_("Edit") name=_("Edit the map") reason=edit_denied classes="btn btn-sm btn-warning" %}{% endif %}
         {% if can_manage_plans %}<a class="btn btn-sm btn-light" href="{% url 'maps:plans' %}">{% trans "Floor plans" %}</a>{% endif %}
@@ -127,5 +143,6 @@
     <script src="{% static 'maps/plan_overlay.js' %}"></script>
     <script src="{% static 'maps/map.js' %}"></script>
     <script src="{% static 'maps/map_measure.js' %}"></script>
+    <script src="{% static 'maps/map_mark.js' %}"></script>
     {% if not edit_denied %}<script src="{% static 'maps/map_edit.js' %}"></script>{% endif %}
 {% endblock %}
