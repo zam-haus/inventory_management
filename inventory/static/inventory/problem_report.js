@@ -1,6 +1,7 @@
 // "Report a problem" (problem_report_modal.html): [data-problem-report-open] opens the dialog instead of the page
 // /problem/, the fallback without JavaScript. The visible part of the page is captured as it was when the dialog
-// opened and sent with the description, the address and what problem_report_log.js noticed in this tab.
+// opened and sent with the description, the address and what problem_report_log.js noticed in this tab. The user can
+// mark the problem on it: a tap circles a spot, dragging circles an area; the marks are drawn into the picture sent.
 (() => {
     const modalElement = document.getElementById('problem-report');
     if (!modalElement || typeof bootstrap === 'undefined') return;
@@ -14,8 +15,12 @@
     const close = modalElement.querySelector('[data-problem-report-close]');
     const withScreenshot = modalElement.querySelector('[data-problem-report-with-screenshot]');
     const status = modalElement.querySelector('[data-problem-report-status]');
+    const shot = modalElement.querySelector('[data-problem-report-shot]');
     const preview = modalElement.querySelector('[data-problem-report-preview]');
+    const unmark = modalElement.querySelector('[data-problem-report-unmark]');
     const CAPTURE_TIMEOUT = 15000;
+    const SPOT = 28;  // radius of a tapped mark, in pixels of the page
+    const TAP = 8;  // moving less than this (pixels on the screen) is a tap
 
     let library = null;
     function loadLibrary() {
@@ -111,7 +116,95 @@
 
     let screenshot = null;  // Promise of the picture (a Blob) or null
     let screenshotProblem = '';
-    let previewUrl = null;
+    let picture = null;  // the screenshot as image, drawn under the marks
+    let pageScale = 1;  // pixels of the picture per pixel of the page
+    let marks = [];  // ellipses {x, y, rx, ry} in pixels of the picture, and what is there on the page
+    let drawing = null;  // the mark being drawn: {start, mark, pointer}
+
+    function draw() {
+        const context = preview.getContext('2d');
+        context.drawImage(picture, 0, 0);
+        const width = Math.max(3, 3 * pageScale);
+        for (const {x, y, rx, ry} of [...marks, ...(drawing ? [drawing.mark] : [])]) {
+            context.beginPath();
+            context.ellipse(x, y, Math.max(rx, width), Math.max(ry, width), 0, 0, 2 * Math.PI);
+            context.lineWidth = width * 2;  // a light edge, so that the mark stands out on dark parts, too
+            context.strokeStyle = 'rgba(255, 255, 255, .85)';
+            context.stroke();
+            context.lineWidth = width;
+            context.strokeStyle = '#dc3545';
+            context.stroke();
+        }
+        unmark.hidden = !marks.length;
+    }
+
+    async function showPicture(blob) {
+        picture = await createImageBitmap(blob);
+        preview.width = picture.width;
+        preview.height = picture.height;
+        pageScale = picture.width / document.documentElement.clientWidth;
+        draw();
+    }
+
+    // A point of the picture from a pointer event on it.
+    function at(event) {
+        const box = preview.getBoundingClientRect();
+        return {x: (event.clientX - box.left) * preview.width / box.width,
+            y: (event.clientY - box.top) * preview.height / box.height};
+    }
+
+    // What the page shows at a point of the picture, for the admins: e.g. 'button.btn "Save"'. The page is still
+    // where it was when the screenshot was taken; the dialog over it is skipped.
+    function shownAt(x, y) {
+        const element = document.elementsFromPoint(x / pageScale, y / pageScale).find(found =>
+            !modalElement.contains(found) && !found.matches('.modal-backdrop'));
+        if (!element) return '';
+        const classes = [...element.classList].slice(0, 2).map(name => `.${name}`).join('');
+        const text = (element.innerText || element.getAttribute('aria-label') || element.getAttribute('alt') || '')
+            .replace(/\s+/g, ' ').trim();
+        const name = `${element.localName}${element.id ? `#${element.id}` : ''}${classes}`;
+        return text ? `${name} "${text.length > 60 ? `${text.slice(0, 60)}…` : text}"` : name;
+    }
+
+    preview.addEventListener('pointerdown', event => {
+        if (!picture || event.button !== 0) return;
+        event.preventDefault();
+        preview.setPointerCapture(event.pointerId);
+        const start = at(event);
+        drawing = {start, pointer: event.pointerId, screen: [event.clientX, event.clientY],
+            mark: {x: start.x, y: start.y, rx: SPOT * pageScale, ry: SPOT * pageScale}};
+        draw();
+    });
+    preview.addEventListener('pointermove', event => {
+        if (drawing?.pointer !== event.pointerId) return;
+        const [screenX, screenY] = drawing.screen;
+        if (Math.hypot(event.clientX - screenX, event.clientY - screenY) < TAP) return;
+        const {start} = drawing;
+        const end = at(event);
+        drawing.mark = {x: (start.x + end.x) / 2, y: (start.y + end.y) / 2,
+            rx: Math.abs(end.x - start.x) / 2, ry: Math.abs(end.y - start.y) / 2};
+        draw();
+    });
+    function finish(event) {
+        if (drawing?.pointer !== event.pointerId) return;
+        const {mark} = drawing;
+        drawing = null;
+        if (event.type === 'pointerup') marks.push({...mark, shows: shownAt(mark.x, mark.y)});
+        draw();
+    }
+    preview.addEventListener('pointerup', finish);
+    preview.addEventListener('pointercancel', finish);
+    unmark.addEventListener('click', () => {
+        marks = [];
+        draw();
+    });
+
+    // The picture to send: the screenshot as taken, or with the marks drawn into it.
+    async function pictureToSend() {
+        const blob = await screenshot;
+        if (!blob || !marks.length) return blob;
+        return new Promise(resolve => preview.toBlob(marked => resolve(marked || blob), 'image/jpeg', 0.85));
+    }
 
     function capture() {
         status.textContent = status.dataset.taking;
@@ -120,11 +213,10 @@
             takeScreenshot(),
             new Promise((_, reject) => setTimeout(() => reject(new Error('took too long')), CAPTURE_TIMEOUT)),
         ]);
-        const current = attempt.then(blob => {
+        const current = attempt.then(async blob => {
             if (screenshot !== current) return blob;  // the dialog was closed meanwhile
-            previewUrl = URL.createObjectURL(blob);
-            preview.src = previewUrl;
-            preview.hidden = !withScreenshot.checked;
+            await showPicture(blob);
+            shot.hidden = !withScreenshot.checked;
             status.textContent = '';
             return blob;
         }, problem => {
@@ -139,7 +231,7 @@
         screenshot = current;
     }
 
-    withScreenshot.addEventListener('change', () => { preview.hidden = !withScreenshot.checked || !previewUrl; });
+    withScreenshot.addEventListener('change', () => { shot.hidden = !withScreenshot.checked || !picture; });
 
     document.addEventListener('click', event => {
         const opener = event.target.closest('[data-problem-report-open]');
@@ -164,6 +256,8 @@
             installedApp: standalone,
             serviceWorker: Boolean(navigator.serviceWorker?.controller),
             screenshot: screenshotState,
+            // What the page shows where the problem was marked.
+            ...(marks.length ? {marked: marks.map(mark => mark.shows || '?').join('; ')} : {}),
             log: window.problemReportLog?.() ?? [],
         });
     }
@@ -179,9 +273,10 @@
         send.disabled = true;
         try {
             const data = new FormData(form);
-            const blob = withScreenshot.checked ? await screenshot : null;
+            const blob = withScreenshot.checked ? await pictureToSend() : null;
             if (blob) data.set('screenshot', blob, 'screenshot.jpg');
-            const state = blob ? 'attached' : withScreenshot.checked ? `failed: ${screenshotProblem}` : 'left out';
+            const state = blob ? (marks.length ? `attached, ${marks.length} marked` : 'attached')
+                : withScreenshot.checked ? `failed: ${screenshotProblem}` : 'left out';
             data.set('url', location.href);
             data.set('browser_context', browserContext(state));
             const response = await fetch(form.action, {method: 'POST', body: data, headers: {Accept: 'application/json'}});
@@ -208,10 +303,13 @@
     // Closing forgets the report (modals.js resets the fields): the next one starts with a new screenshot.
     form.addEventListener('reset', () => {
         screenshot = null;
-        if (previewUrl) URL.revokeObjectURL(previewUrl);
-        previewUrl = null;
-        preview.removeAttribute('src');
-        preview.hidden = true;
+        picture?.close();
+        picture = null;
+        marks = [];
+        drawing = null;
+        preview.width = preview.height = 0;
+        shot.hidden = true;
+        unmark.hidden = true;
         status.textContent = '';
         withScreenshot.disabled = false;
         error.hidden = true;

@@ -1,6 +1,7 @@
 /* "Report a problem" (problem_report_modal.html, problem_report.html). */
 .problem-report-page { max-width: 40rem; }
-.problem-report-preview { display: block; max-width: 100%; max-height: 14rem; border: 1px solid var(--bs-border-color);
-    border-radius: var(--bs-border-radius-sm); }
+/* The screenshot, marked by tapping or drawing on it; touches mark instead of scrolling the dialog. */
+.problem-report-preview { display: block; max-width: 100%; max-height: 50vh; border: 1px solid var(--bs-border-color);
+    border-radius: var(--bs-border-radius-sm); cursor: crosshair; touch-action: none; }
 /* The field for bots (ProblemReportForm.website), out of sight. */
 .problem-report-trap { position: absolute; left: -10000px; width: 1px; height: 1px; overflow: hidden; }

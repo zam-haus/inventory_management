@@ -10,7 +10,14 @@
         </div>
         <p class="form-text mt-1 mb-1" data-problem-report-status aria-live="polite"
            data-taking="{% trans 'Taking the screenshot …' %}" data-failed="{% trans 'No screenshot possible on this page.' %}"></p>
-        <img class="problem-report-preview" alt="{% trans 'Screenshot of the page' %}" data-problem-report-preview hidden>
+        {# The screenshot, to mark the problem on: a tap circles a spot, dragging circles an area (problem_report.js). #}
+        <div data-problem-report-shot hidden>
+            <canvas class="problem-report-preview" role="img" aria-label="{% trans 'Screenshot of the page' %}" data-problem-report-preview></canvas>
+            <div class="d-flex flex-wrap align-items-center gap-2 mt-1">
+                <p class="form-text m-0 flex-grow-1">{% trans "Tap the problem in the picture or draw around it to mark it." %}</p>
+                <button type="button" class="btn btn-sm btn-outline-secondary" data-problem-report-unmark hidden>{% trans "Remove marks" %}</button>
+            </div>
+        </div>
     </div>
 {% endif %}
 {% bootstrap_field form.own_picture %}

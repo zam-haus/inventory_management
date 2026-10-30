@@ -16,7 +16,8 @@ address the menu entry is not shown and `/problem/` answers 404.
 * The description, the page address, who reported it (user name, or *guest* with the optional contact;
   `, ZAM` from the local network), time, version and browser (user agent)
 * What the browser tells about itself: title, previous page, viewport, screen, pixel ratio, language, time
-  zone, online, installed app, service worker, whether the screenshot was attached
+  zone, online, installed app, service worker, whether the screenshot was attached (and how many marks it has),
+  what the page shows where it was marked
 * What went wrong in the browser tab, the last 20 entries across its pages, oldest first: script errors
   with stack, images, scripts and stylesheets that did not load, requests answered with 400 or more or not
   at all (method, address, status)
@@ -32,7 +33,10 @@ the visible part of the page as it was before the dialog opened, with
 [modern-screenshot](../inventory/static/inventory/vendor/modern-screenshot/README.md), loaded only then. It
 copies the page into an SVG and draws that, so it is no pixel copy: camera pictures and canvases stay empty,
 and rare CSS can look different. Elements stuck to the screen (the navbar) are put where they are seen. The
-user sees the picture and can leave it out; a picture of their own (a photo of the screen, a screenshot of the
+user sees the picture and can leave it out, or mark the problem on it: a tap circles a spot, dragging circles an
+area (several marks; *Remove marks* starts over). The marks are drawn into `screenshot.jpg`, and the details
+say what the page shows there (`marked`: element, its first classes and the start of its text, e.g.
+`button.btn.btn-primary "Save"`). A picture of their own (a photo of the screen, a screenshot of the
 phone) can be added. Sending stays in the dialog; it thanks or names the problem. Closing it forgets the
 report, and the next one takes a new screenshot.
 

@@ -4835,3 +4835,11 @@ msgstr "Arten von Treffern zeigen"
 
 msgid "Only kinds not chosen above have results."
 msgstr "Treffer gibt es nur bei den oben nicht gewählten Arten."
+
+#: inventory/templates/inventory/problem_report_fields.html
+msgid "Tap the problem in the picture or draw around it to mark it."
+msgstr "Tippe im Bild auf das Problem oder umkreise es, um es zu markieren."
+
+#: inventory/templates/inventory/problem_report_fields.html
+msgid "Remove marks"
+msgstr "Markierungen entfernen"
