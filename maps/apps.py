@@ -29,7 +29,7 @@ class MapsConfig(AppConfig):
     verbose_name = _("Maps")
 
     def ready(self):
-        from inventory import slots
+        from inventory import admin_links, slots
         from inventory.change_log import APP_FIELDS
         from inventory.public_export import EXCLUDED_MODELS
 
@@ -37,6 +37,11 @@ class MapsConfig(AppConfig):
         signals.connect()
         for slot, template in SLOTS:
             slots.register(slot, template)
+        # The navbar's Admin link on the map pages: the maps in the admin; the plans, the plan being aligned.
+        admin_links.register_page("map", "maps")
+        admin_links.register_page("level", "maps")
+        admin_links.register_page("plans", "maps.floorplan")
+        admin_links.register_object_name("plan")
         # Not in the public data export yet: a development database without maps could not import it.
         EXCLUDED_MODELS.update({
             "maps.floorplan": "building plans; their sources can name people in their metadata",

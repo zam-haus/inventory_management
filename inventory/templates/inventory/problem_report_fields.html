@@ -1,0 +1,21 @@
+{% load i18n django_bootstrap5 %}{# The fields of a problem report, in the dialog (dialog=True: with screenshot) and on the page /problem/. #}
+<p class="form-text mt-0">{% trans "For technical problems: something does not work, shows an error, looks broken or is very slow. Wrong entries (items, locations) can be corrected directly." %}</p>
+{% bootstrap_form_errors form type="non_fields" %}
+{% bootstrap_field form.description %}
+{% if dialog %}
+    <div class="mb-3">
+        <div class="form-check">
+            <input class="form-check-input" type="checkbox" id="problem-report-with-screenshot" checked data-problem-report-with-screenshot>
+            <label class="form-check-label" for="problem-report-with-screenshot">{% trans "Attach a screenshot of this page" %}</label>
+        </div>
+        <p class="form-text mt-1 mb-1" data-problem-report-status aria-live="polite"
+           data-taking="{% trans 'Taking the screenshot …' %}" data-failed="{% trans 'No screenshot possible on this page.' %}"></p>
+        <img class="problem-report-preview" alt="{% trans 'Screenshot of the page' %}" data-problem-report-preview hidden>
+    </div>
+{% endif %}
+{% bootstrap_field form.own_picture %}
+{% if "contact" in form.fields %}{% bootstrap_field form.contact %}{% endif %}
+{{ form.url }}{{ form.browser_context }}
+<div class="problem-report-trap" aria-hidden="true">{{ form.website }}</div>
+<p class="form-text mb-0">{% if user.is_authenticated %}{% trans "The admins get the report with the address of the page, your user name, technical details of your browser and the screenshot, if attached." %}{% else %}{% trans "The admins get the report with the address of the page, technical details of your browser and the screenshot, if attached." %}{% endif %}
+    {% trans "Leave out the screenshot if it shows something private." %}</p>

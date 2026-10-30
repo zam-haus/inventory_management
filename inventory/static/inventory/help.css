@@ -146,3 +146,16 @@
 .help-p2 { color: var(--help-muted); }
 .help-p3, .help-u { text-decoration: underline; text-underline-offset: .2em; }
 .help-lv { color: var(--help-space); }
+
+/* The help as a layer over the page (help_overlay.js): it rolls down from the top when opened and back up when
+   closed. Bootstrap waits for the modal's own transition before hiding it, so while rolling up it stays visible
+   (step-end) for as long as the roll takes. */
+.help-overlay.fade .modal-dialog { transform: translateY(-100vh); transition: transform .4s cubic-bezier(.2, .7, .2, 1); }
+.help-overlay.show .modal-dialog { transform: none; }
+.help-overlay.fade:not(.show) { transition: opacity .4s step-end; }
+.help-overlay .modal-body { padding-top: 1.5rem; }
+.help-overlay .help-page section { scroll-margin-top: .5rem; }  /* the header is outside the scrolling body */
+.help-overlay-loading { color: #59636e; }
+@media (prefers-reduced-motion: reduce) {
+    .help-overlay.fade .modal-dialog, .help-overlay.fade:not(.show) { transform: none; transition: none; }
+}

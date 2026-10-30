@@ -10,6 +10,7 @@ from django.views.generic.base import TemplateView
 from . import attachment_views, unique_item_views, views
 from .dissolve_views import DissolveLocationView
 from .help_views import HelpView
+from .problem_reports import ProblemReportView
 from .location_overview_views import (
     LocationDescriptionUpdateView, LocationOverviewUpdateView, LocationPurposeUpdateView,
 )
@@ -87,6 +88,7 @@ urlpatterns = [
 
     path("id/", include("inventory.label_ids.urls")),
     path("help/", HelpView.as_view(), name="help"),
+    path("problem/", ProblemReportView.as_view(), name="problem_report"),
     path("robots.txt", TemplateView.as_view(template_name="inventory/robots.txt", content_type="text/plain")),
     path('location-autocomplete/', views.LocationAutocomplete.as_view(), name='location-autocomplete'),
 ]

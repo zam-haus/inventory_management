@@ -68,8 +68,9 @@
         font-size: 1.35rem; }
     .app-nav-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; }
 }
-/* The … menu (narrow screens, at the right end): Items, Locations, Help, Admin, the user and Logout. Wider screens show no
-   menu button and only its Help and Admin links, in the bar; the user has a menu of their own there. */
+/* The … menu (narrow screens, at the right end): Items, Locations, Help, Report a problem, Admin, the user and Logout.
+   Wider screens show no menu button and only its Help, Report a problem and Admin links, in the bar; the user has a menu
+   of their own there. */
 .app-menu-list .action-menu-item > span:only-child { grid-column: 2; }
 @media (max-width: 575.98px) { .app-menu { order: 1; } }  /* after Login */
 @media (min-width: 576px) {
@@ -86,6 +87,9 @@
         .app-menu-list .app-menu-help > span { position: absolute; width: 1px; height: 1px; overflow: hidden;
             clip: rect(0, 0, 0, 0); white-space: nowrap; }
     }
+    /* Report a problem: the icon only, its name as tooltip. */
+    .app-menu-list .app-menu-icon > span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0, 0, 0, 0);
+        white-space: nowrap; }
 }
 /* The search field the magnifier opens (navbar.js): right of the magnifier, over the navbar's other items. navbar.js
    sets where the magnifier ends (--navbar-search-left, --navbar-search-top). */

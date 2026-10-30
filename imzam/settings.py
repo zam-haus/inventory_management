@@ -56,6 +56,35 @@ ADMINS = json.loads(os.getenv("ADMINS", "[]"))
 EMAIL_HOST = os.getenv("EMAIL_HOST", "localhost")
 EMAIL_PORT = int(os.getenv("EMAIL_PORT", "25"))
 SERVER_EMAIL = os.getenv("SERVER_EMAIL", "root@localhost")
+# Seconds a page waits for the SMTP server (problem reports are sent while the user waits).
+EMAIL_TIMEOUT = int(os.getenv("EMAIL_TIMEOUT", "10"))
+# Where reports from "Report a problem" go (inventory/problem_reports.py): comma-separated addresses, by default
+# the ADMINS. Without any address the menu entry is not shown.
+PROBLEM_REPORT_EMAILS = [address.strip() for address in os.getenv("PROBLEM_REPORT_EMAILS", "").split(",")
+                         if address.strip()]
+# Reports per address (IP) and window in seconds, against floods from outside; counted per worker process.
+PROBLEM_REPORT_LIMIT = int(os.getenv("PROBLEM_REPORT_LIMIT", "5"))
+PROBLEM_REPORT_WINDOW = int(os.getenv("PROBLEM_REPORT_WINDOW", "3600"))
+
+
+def app_version():
+    """The running version for problem reports: APP_VERSION, the file VERSION (ops/update.sh writes it before building
+    the image, which has no .git), else git."""
+    if os.getenv("APP_VERSION"):
+        return os.getenv("APP_VERSION")
+    if (BASE_DIR / "VERSION").exists():
+        return (BASE_DIR / "VERSION").read_text().strip()
+    if not (BASE_DIR / ".git").exists():
+        return ""
+    import subprocess
+    try:
+        return subprocess.run(["git", "-C", str(BASE_DIR), "describe", "--always", "--dirty"], capture_output=True,
+                              text=True, timeout=5).stdout.strip()
+    except (OSError, subprocess.SubprocessError):
+        return ""
+
+
+APP_VERSION = app_version()
 
 # The inventory's main address (also in printed location labels); a bare domain means HTTPS. Every other domain
 # name redirects here, keeping path and query (imzam/canonical_host.py); label ID
@@ -185,6 +214,7 @@ TEMPLATES = [
                 "accounts.context_processors.login",
                 "inventory.label_ids.naming.context",
                 "inventory.link_scanner.scan_hosts",
+                "inventory.problem_reports.context",
             ],
         },
     },

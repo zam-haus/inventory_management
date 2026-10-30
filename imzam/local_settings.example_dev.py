@@ -30,3 +30,8 @@ DATABASES = {
 
 OIDC_RP_CLIENT_ID = ''
 OIDC_RP_CLIENT_SECRET = ''
+
+# Mails (error mails, "Report a problem") are printed in the runserver console instead of sent.
+EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
+# Someone to send problem reports to, so the menu offers "Report a problem" (docs/problem-reports.md).
+PROBLEM_REPORT_EMAILS = ["admins@localhost"]

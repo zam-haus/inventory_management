@@ -1,13 +1,9 @@
 {% extends 'base.html' %}
-{% load i18n static %}
-{# The help page (help_views.py): one template per language extends this one and fills `help`. #}
+{% load i18n %}
+{# The help page (help_views.py): one template per language extends this one and fills `help`. help.css comes with #}
+{# base.html, as the help also opens as a layer over other pages (help_overlay.js takes .help-page from here). #}
 
 {% block title %}{% trans "Help" %}{% endblock %}
-
-{% block bootstrap5_extra_head %}
-    {{ block.super }}
-    <link rel="stylesheet" href="{% static 'inventory/help.css' %}">
-{% endblock %}
 
 {% block page_header %}{% endblock %}
 

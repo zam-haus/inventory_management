@@ -6,13 +6,19 @@
 {% load icons %}
 {% load slots %}
 {% load navigation %}
+{% load problem_reports %}
+{# The Admin link leads to the admin page of what the page shows (inventory/admin_links.py). #}
+{% load admin_links %}
 
 {% block bootstrap5_extra_head %}
     {{ block.super }}
     <link rel="stylesheet" href="{% static 'inventory/actions.css' %}">
     <link rel="stylesheet" href="{% static 'inventory/modals.css' %}">
+    {% if problem_report_enabled %}<link rel="stylesheet" href="{% static 'inventory/problem_report.css' %}">{% endif %}
     <link rel="stylesheet" href="{% static 'inventory/barcode_scanner.css' %}">
     <link rel="stylesheet" href="{% static 'inventory/locations.css' %}">
+    {# On every page: the help also opens as a layer over the page (help_overlay.js). #}
+    <link rel="stylesheet" href="{% static 'inventory/help.css' %}">
 {% endblock %}
 
 {% block bootstrap5_content %}
@@ -44,8 +50,12 @@
               <a class="dropdown-item action-menu-item app-menu-narrow" href="{% url 'index_locations' %}">{% icon "geo-alt" %}<span>{% trans 'Locations' %}</span></a>
               {% slot "navbar.menu" %}
               <a class="dropdown-item action-menu-item app-menu-help" href="{% url 'help' %}" title="{% trans 'Help' %}">{% icon "question-circle" %}<span>{% trans 'Help' %}</span></a>
+              {% if problem_report_enabled %}
+                {# Opens the dialog (problem_report.js); without JavaScript the page with the same form. #}
+                <a class="dropdown-item action-menu-item app-menu-icon" href="{% url 'problem_report' %}?url={{ request.get_full_path|urlencode }}" title="{% trans 'Report a problem' %}" data-problem-report-open>{% icon "bug" %}<span>{% trans 'Report a problem' %}</span></a>
+              {% endif %}
               {% if user.is_staff %}
-                <a class="dropdown-item action-menu-item app-menu-admin" href="{% block admin_url %}{% url 'admin:index' %}{% endblock %}"><span>Admin</span></a>
+                <a class="dropdown-item action-menu-item app-menu-admin" href="{% block admin_url %}{% admin_page_url %}{% endblock %}"><span>Admin</span></a>
               {% endif %}
               {% if user.is_authenticated %}
                 <hr class="dropdown-divider app-menu-narrow">
@@ -99,6 +109,12 @@
     <script src="{% static 'inventory/modals.js' %}"></script>
     {% include 'inventory/location_info_modal.html' %}
     <script src="{% static 'inventory/location_info.js' %}"></script>
+    {% include 'inventory/help/help_overlay.html' %}
+    <script src="{% static 'inventory/help_overlay.js' %}"></script>
+    {% if problem_report_enabled %}
+      {% problem_report_dialog %}
+      <script src="{% static 'inventory/problem_report.js' %}"></script>
+    {% endif %}
     {{ scan_hosts|json_script:"scan-hosts" }}
     {% include 'inventory/barcode_scanner_script.html' %}
     <script src="{% static 'inventory/link_scanner.js' %}"></script>

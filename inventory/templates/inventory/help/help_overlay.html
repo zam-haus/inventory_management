@@ -1,0 +1,15 @@
+{% load i18n %}{# The help as a layer over the page (help_overlay.js), so the page stays as it is; /help/ is the same as a page of its own. #}
+<div class="modal fade help-overlay" id="help-overlay" tabindex="-1" aria-labelledby="help-overlay-title" aria-hidden="true"
+     data-help-url="{% url 'help' %}">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable modal-fullscreen-md-down">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title fs-5" id="help-overlay-title">{% trans "Help" %}</h2>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{% trans 'Close' %}"></button>
+            </div>
+            <div class="modal-body" data-help-overlay-body>
+                <p class="help-overlay-loading">{% trans "Loading the help …" %}</p>
+            </div>
+        </div>
+    </div>
+</div>

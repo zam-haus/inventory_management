@@ -2,7 +2,6 @@
 {% load i18n static crispy_forms_tags %}
 
 {% block title %}{{ title }}{% if object %}: {{ object }}{% endif %}{% endblock %}
-{% block admin_url %}{% if object %}{% url 'admin:inventory_uniqueitem_change' object.pk %}{% else %}{% url 'admin:inventory_uniqueitem_add' %}{% endif %}{% endblock %}
 
 {% block content %}
 <form method="post" enctype="multipart/form-data">

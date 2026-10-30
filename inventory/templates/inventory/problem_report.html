@@ -1,0 +1,12 @@
+{% extends 'base.html' %}
+{% load i18n %}{# Report a problem without JavaScript (inventory/problem_reports.py); the dialog has the same fields. #}
+
+{% block title %}{% trans "Report a problem" %}{% endblock %}
+
+{% block content %}
+    <form method="post" enctype="multipart/form-data" class="problem-report-page">
+        {% csrf_token %}
+        {% include "inventory/problem_report_fields.html" %}
+        <button type="submit" class="btn btn-primary mt-3">{% trans "Send" %}</button>
+    </form>
+{% endblock %}

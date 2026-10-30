@@ -4716,3 +4716,99 @@ msgstr "%(types)s legt nur das Admin-Team an und ändert sie. Was darin steht, k
 
 msgid "A location can only be deleted when it is empty: no items, no unique items, no locations in it."
 msgstr "Ein Standort lässt sich nur löschen, wenn er leer ist: keine Sachen, keine Einzelobjekte, keine Standorte darin."
+
+msgid "What happened?"
+msgstr "Was ist passiert?"
+
+msgid "What did you do, what did you expect, and what happened instead?"
+msgstr "Was hast du gemacht, was hast du erwartet und was ist stattdessen passiert?"
+
+msgid "E.g.: Saving the purpose shows an error message."
+msgstr "Z. B.: Beim Speichern des Zwecks kommt eine Fehlermeldung."
+
+msgid "Picture (optional)"
+msgstr "Bild (optional)"
+
+msgid "E.g. a screenshot or a photo of the screen."
+msgstr "Z. B. ein Screenshot oder ein Foto des Bildschirms."
+
+msgid "Contact for questions (optional)"
+msgstr "Kontakt für Rückfragen (optional)"
+
+msgid "E-mail address or name, if the admins may ask you."
+msgstr "E-Mail-Adresse oder Name, falls die Admins nachfragen dürfen."
+
+msgid "The picture is too large (at most 10 MB)."
+msgstr "Das Bild ist zu groß (höchstens 10 MB)."
+
+msgid "guest"
+msgstr "Gast"
+
+msgid "Noticed in this browser tab (oldest first):"
+msgstr "In diesem Browser-Tab bemerkt (älteste zuerst):"
+
+msgid "Nothing noticed in this browser tab."
+msgstr "In diesem Browser-Tab nichts bemerkt."
+
+msgid "no answer"
+msgstr "keine Antwort"
+
+msgid "Page"
+msgstr "Seite"
+
+msgid "Reported by"
+msgstr "Gemeldet von"
+
+msgid "Time"
+msgstr "Zeit"
+
+msgid "Version"
+msgstr "Version"
+
+msgid "Browser"
+msgstr "Browser"
+
+msgid "Problem report"
+msgstr "Problemmeldung"
+
+msgid "Too many reports in a short time. Please try again later."
+msgstr "Zu viele Meldungen in kurzer Zeit. Bitte versuch es später noch einmal."
+
+msgid "The report could not be sent. Please try again later."
+msgstr "Die Meldung konnte nicht gesendet werden. Bitte versuch es später noch einmal."
+
+msgid "Thank you! The admins received your report."
+msgstr "Danke! Deine Meldung ist bei den Admins angekommen."
+
+msgid "Report a problem"
+msgstr "Problem melden"
+
+msgid "Send"
+msgstr "Senden"
+
+msgid "For technical problems: something does not work, shows an error, looks broken or is very slow. Wrong entries (items, locations) can be corrected directly."
+msgstr "Für technische Probleme: Etwas funktioniert nicht, zeigt einen Fehler, sieht kaputt aus oder ist sehr langsam. Falsche Einträge (Sachen, Standorte) lassen sich direkt korrigieren."
+
+msgid "Attach a screenshot of this page"
+msgstr "Screenshot dieser Seite anhängen"
+
+msgid "Taking the screenshot …"
+msgstr "Screenshot wird aufgenommen …"
+
+msgid "No screenshot possible on this page."
+msgstr "Auf dieser Seite ist kein Screenshot möglich."
+
+msgid "Screenshot of the page"
+msgstr "Screenshot der Seite"
+
+msgid "The admins get the report with the address of the page, your user name, technical details of your browser and the screenshot, if attached."
+msgstr "Die Admins bekommen die Meldung mit der Adresse der Seite, deinem Benutzernamen, technischen Angaben zu deinem Browser und dem Screenshot, falls angehängt."
+
+msgid "The admins get the report with the address of the page, technical details of your browser and the screenshot, if attached."
+msgstr "Die Admins bekommen die Meldung mit der Adresse der Seite, technischen Angaben zu deinem Browser und dem Screenshot, falls angehängt."
+
+msgid "Leave out the screenshot if it shows something private."
+msgstr "Lass den Screenshot weg, wenn er etwas Privates zeigt."
+
+msgid "Loading the help …"
+msgstr "Hilfe wird geladen …"

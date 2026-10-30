@@ -4,6 +4,8 @@
 
 .env
 data/
+# written by ops/update.sh for the image (imzam/settings.py, app_version)
+/VERSION
 backups/
 exports/
 

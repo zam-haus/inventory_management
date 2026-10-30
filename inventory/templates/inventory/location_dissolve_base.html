@@ -7,7 +7,6 @@
     <link rel="stylesheet" href="{% static 'inventory/location_detail.css' %}">
 {% endblock %}
 {% block title %}{% if delete_root %}{% trans "Dissolve location" %}{% else %}{% trans "Move contents" %}{% endif %}: {{ object.title_with_code }}{% endblock %}
-{% block admin_url %}{{ object.get_admin_url }}{% endblock %}
 {% block page_header %}
     <header class="location-header">
         {% include "inventory/location_breadcrumb.html" with location=object %}

@@ -6,5 +6,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <link rel="stylesheet" href="{% static 'inventory/pull_refresh.css' %}">
+{# First script: notices what goes wrong in the tab, for "Report a problem" (problem_report.js). #}
+<script src="{% static 'inventory/problem_report_log.js' %}"></script>
 <script>if ("serviceWorker" in navigator) navigator.serviceWorker.register("{% url 'service_worker' %}");</script>
 <script src="{% static 'inventory/pull_refresh.js' %}" defer></script>

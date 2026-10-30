@@ -44,6 +44,8 @@ if [[ -z "$before" ]]; then
 fi
 
 info "Pulling images and building the app image"
+# The image has no .git; problem reports name this version (imzam/settings.py, app_version).
+git describe --always --dirty > VERSION
 compose pull db web redis
 compose build --pull python worker ocr
 

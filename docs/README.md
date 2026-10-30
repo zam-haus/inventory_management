@@ -26,3 +26,5 @@ How the ZAM inventory works, feature by feature. Setup is covered in the
 * [Logo and icons](branding/README.md): source design and how the served icons are derived
 * [Icons and action buttons](icons.md): Bootstrap Icons instead of emojis, the agreed meaning of each icon, filled vs. outlined actions and the actions menu
 * [Data export](data-export.md): a copy of the inventory without personal data for development databases
+* [Reporting problems](problem-reports.md): users report technical problems by mail to the admins, with screenshot,
+  address and what went wrong in the browser

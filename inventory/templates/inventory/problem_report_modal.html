@@ -1,0 +1,26 @@
+{% load i18n static %}{# "Report a problem" on every page (problem_report.js); without JavaScript the menu leads to the page /problem/. #}
+<div class="modal fade" id="problem-report" tabindex="-1" aria-labelledby="problem-report-title" aria-hidden="true"
+     data-screenshot-script="{% static 'inventory/vendor/modern-screenshot/modern-screenshot.js' %}"
+     data-error="{% trans 'The report could not be sent. Please try again later.' %}">
+    <div class="modal-dialog modal-dialog-scrollable">
+        <form class="modal-content" action="{% url 'problem_report' %}" method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+            <div class="modal-header">
+                <h2 class="modal-title fs-5" id="problem-report-title">{% trans "Report a problem" %}</h2>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{% trans 'Close' %}"></button>
+            </div>
+            <div class="modal-body" data-problem-report-fields>
+                {% include "inventory/problem_report_fields.html" with dialog=True %}
+            </div>
+            <div class="modal-body" data-problem-report-done hidden>
+                <p class="mb-0" role="status"></p>
+            </div>
+            <div class="modal-footer">
+                <div class="alert alert-danger w-100 mb-2 py-2" role="alert" data-problem-report-error hidden></div>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" data-problem-report-cancel>{% trans "Cancel" %}</button>
+                <button type="submit" class="btn btn-primary" data-problem-report-send>{% trans "Send" %}</button>
+                <button type="button" class="btn btn-primary" data-bs-dismiss="modal" data-problem-report-close hidden>{% trans "Close" %}</button>
+            </div>
+        </form>
+    </div>
+</div>
