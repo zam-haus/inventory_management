@@ -181,6 +181,28 @@ class DissolveLocationTests(DissolutionTestCase):
         response = self.client.post(self.url, data)
         self.assertContains(response, "may not contain cycles")
         self.assert_unchanged()
+        # Deeper than the plan loads without recursion: found by loading the destination with what is above it.
+        deep = Location.objects.create(type=self.box_type, name="Deep", short_name="DP", parent_location=self.leaf)
+        data[f"location_{self.child.pk}_destination"] = str(deep.pk)
+        self.assertContains(self.client.post(self.url, data), "may not contain cycles")
+        self.assert_unchanged()
+
+    def test_short_names_at_a_destination_outside_the_location(self):
+        Location.objects.create(type=self.box_type, name="Other", short_name="C", parent_location=self.destination)
+        response = self.client.post(self.url, self.data())
+        self.assertContains(response, "Two sub-locations would have the same short name at the destination.")
+        self.assert_unchanged()
+
+    def test_the_plan_loads_only_the_location_its_surroundings_and_destinations(self):
+        from ..dissolution import DissolutionPlan
+        unrelated = Location.objects.create(type=self.room_type, name="Unrelated", short_name="U")
+        ItemLocation.objects.create(item=self.item, location=unrelated, amount=1)
+        plan = DissolutionPlan(self.root, delete_root=False)
+        self.assertEqual(set(plan.locations), {self.parent.pk, self.root.pk, self.child.pk, self.leaf.pk})
+        self.assertEqual(set(plan.entries), {self.stock.pk})
+        plan.validate([["item", self.stock.pk, "move", self.destination.pk], ["location", self.child.pk, "keep", None]])
+        self.assertIn(self.destination.pk, plan.locations)
+        self.assertNotIn(unrelated.pk, plan.locations)
 
     def test_duplicate_stock_destinations_are_not_merged(self):
         ItemLocation.objects.create(item=self.item, location=self.destination, amount=8)
@@ -429,7 +451,7 @@ class LocationTypeDeletionTests(DissolutionTestCase):
         plan = DissolutionPlan(self.root, delete_root=True)
         operations = [["item", self.stock.pk, "move", self.destination.pk], ["location", self.child.pk, "delete", None]]
         token = signing.dumps({"root": self.root.pk, "recursive": False, "delete_root": True, "operations": operations,
-                               "fingerprint": plan.fingerprint()}, salt=DissolveLocationView.salt, compress=True)
+                               "fingerprint": plan.fingerprint(operations)}, salt=DissolveLocationView.salt, compress=True)
         self.assertEqual(self.client.post(self.url, {"stage": "confirm", "plan": token}).status_code, 403)
         self.assertTrue(Location.active.filter(pk=self.child.pk).exists())
 

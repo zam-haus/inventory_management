@@ -65,7 +65,7 @@ class DissolveLocationView(PermissionRequiredMixin, View):
                 try:
                     with transaction.atomic():
                         plan = DissolutionPlan(root, recursive, lock=True, delete_root=delete_root)
-                        if payload["fingerprint"] != plan.fingerprint():
+                        if payload["fingerprint"] != plan.fingerprint(payload["operations"]):
                             raise ValidationError(_("The inventory changed. Review the plan again."))
                         with change_context(source=ChangeLog.Source.DISSOLUTION,
                                             decrease_reason=ChangeLog.Reason.OTHER):
@@ -98,7 +98,7 @@ class DissolveLocationView(PermissionRequiredMixin, View):
         require_dissolution_permissions(request.user, operations, delete_root, root)
         token = signing.dumps({
             "root": pk, "recursive": recursive, "delete_root": delete_root, "operations": operations,
-            "fingerprint": plan.fingerprint(),
+            "fingerprint": plan.fingerprint(operations),
         }, salt=self.salt, compress=True)
         rows = plan.review_rows(operations)
         return render(request, "inventory/location_dissolve_confirm.html", {
