@@ -155,6 +155,8 @@ gaps.
 
 The "On the map" links lead to the level with `#p=loc:<pk>` (or `item:`): the map shows that location, or the
 place it is in, highlighted with its popup open. The small map in the location window shows that popup too.
+A location's popup shows its overview photo above its name and code; the thumbnail is made when the popup first
+opens (`maps:location_photo`), not for the whole level.
 
 The map page keeps its view in the address: `#z=<zoom>&b=<south>,<west>,<north>,<east>`, and `&p=loc:<pk>` while a
 location's popup is open. Such a link shows the same rectangle (and opens the popup); switching the level keeps it.

@@ -158,11 +158,23 @@
         return Boolean(stack && stack[1] === feature.properties.pk);
     }
 
-    // As locations are shown everywhere: purpose or name (a link to its page), the code chip in the line below.
-    function popup(feature) {
+    // As locations are shown everywhere: purpose or name (a link to its page), the code chip in the line below; above
+    // them the overview photo, if there is one (the popup is laid out again once it has loaded).
+    function popup(feature, layer) {
         var p = feature.properties;
         var box = document.createElement('div');
         box.className = 'map-popup';
+        if (p.photo) {
+            var photo = L.DomUtil.create('img', 'map-popup-photo', box);
+            photo.alt = '';
+            photo.addEventListener('load', function () {
+                var open = layer.getPopup();
+                if (open && open.isOpen()) {
+                    open.update();
+                }
+            });
+            photo.src = p.photo;
+        }
         var link = L.DomUtil.create('a', 'map-popup-title', box);
         link.href = p.url;
         link.textContent = p.title;
@@ -242,7 +254,10 @@
                 result.layers[name].addLayer(casing);
             }
             if (options.interactive !== false) {
-                layer.bindPopup(function () { return popup(feature); });
+                // Made once: laying it out again (the photo's load) asks for the content anew, and a new photo
+                // would load and ask again.
+                var content = null;
+                layer.bindPopup(function () { return content || (content = popup(feature, layer)); });
             }
             var text = label(feature);
             if (text && name !== 'item') {  // a tooltip once it is shown (filterStacks)

@@ -5,6 +5,7 @@ import shutil
 import tempfile
 import unittest
 
+from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Permission
 from django.core.exceptions import ValidationError
@@ -80,6 +81,29 @@ class MapViewTests(Building, TestCase):
         BackgroundLayer.objects.update(active=False)
         page = self.client.get(reverse("maps:level", args=[-1]))
         self.assertContains(page, '"layers": []')
+
+    def test_the_popup_shows_the_overview_photo(self):
+        positions.set_location_shape(self.pallet, None, local_point(1, -1))
+
+        def photo():
+            data = self.client.get(reverse("maps:level_data", args=[-1])).json()
+            return {f["properties"]["id"]: f["properties"] for f in data["features"]["features"]}[
+                f"loc:{self.pallet.pk}"]["photo"]
+
+        self.assertIsNone(photo())
+        self.pallet.overview_photo.save("pallet.png", SimpleUploadedFile("pallet.png", png()))
+        url = photo()
+        response = self.client.get(url)  # a guest, like the map
+        self.assertEqual(response.status_code, 302)
+        self.assertIn("max-age=86400", response["Cache-Control"])
+        thumbnail = response.url.removeprefix(settings.MEDIA_URL)
+        self.assertTrue(self.pallet.overview_photo.storage.exists(thumbnail))
+        self.pallet.overview_photo.save("again.png", SimpleUploadedFile("again.png", png()))
+        self.assertNotEqual(photo(), url)  # a new photo, a new URL
+        self.pallet.overview_photo = ""
+        self.pallet.save()
+        self.assertIsNone(photo())
+        self.assertEqual(self.client.get(url).status_code, 404)
 
     def test_levels_are_listed_top_down(self):
         Location.objects.create(type=self.level.type, name="Werkhaus +1", short_name="WH+1")

@@ -106,6 +106,13 @@
 .map-popup .loc-code {
     white-space: nowrap;
 }
+.map-popup-photo {
+    display: block;
+    max-width: min(280px, 70vw);
+    max-height: 240px;
+    margin-bottom: .2rem;
+    border-radius: var(--bs-border-radius-sm);
+}
 /* The placing dialog (map_place.js) */
 .map-place-canvas {
     height: min(60vh, 32rem);

@@ -13,12 +13,14 @@ from django.contrib.gis.db.models.functions import AsGeoJSON
 from django.contrib.gis.geos import Point
 from django.core.exceptions import PermissionDenied
 from django.db import transaction
-from django.http import FileResponse, Http404, JsonResponse
+from django.http import FileResponse, Http404, HttpResponseRedirect, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
+from django.utils.cache import patch_cache_control
 from django.utils.translation import gettext as _
 from django.views import View
 from django.views.decorators.http import require_GET
+from sorl.thumbnail import get_thumbnail
 
 from inventory.models import Location, LocationType, UniqueItem
 
@@ -75,6 +77,14 @@ def _label(location, tree):
             "style": settings_.label_style() if settings_ else {}}
 
 
+def location_photo_url(location):
+    """The URL of a location's overview photo for its popup (location_photo), or None; it changes with every new
+    photo (each one gets its own name), since browsers keep it for a day."""
+    if not location.overview_photo:
+        return None
+    return reverse("maps:location_photo", args=[location.pk]) + "?v=" + PurePath(location.overview_photo.name).stem
+
+
 def _location_feature(shape, tree):
     location = shape.location
     size = shape.size_cm()
@@ -86,7 +96,8 @@ def _location_feature(shape, tree):
         "structure": location.type.structure or "", "kind": shape.kind, "rotation": shape.rotation,
         "size": [size[0] / 100, size[1] / 100] if size else None,
         "code": location.unique_identifier, "short": location.short_name, "title": location.title,
-        "url": location.get_absolute_url(), "stack": tree.stack(location.pk), "depth": tree.depth(location.pk),
+        "url": location.get_absolute_url(), "photo": location_photo_url(location), "stack": tree.stack(location.pk),
+        "depth": tree.depth(location.pk),
     }}
 
 
@@ -340,6 +351,18 @@ def plan_image(request, pk):
         raise Http404
     response = _serve(plan.image)
     response["Cache-Control"] = "public, max-age=86400"  # a new image gets a new URL (plan_image_url)
+    return response
+
+
+@require_GET
+def location_photo(request, pk):
+    """The overview photo in a location's popup: its thumbnail, made when the popup is opened rather than for every
+    location of the level (level_data); the size of the location window's, so that most exist already."""
+    location = get_object_or_404(Location.active, pk=pk)
+    if not location.overview_photo:
+        raise Http404
+    response = HttpResponseRedirect(get_thumbnail(location.overview_photo, "640x480").url)
+    patch_cache_control(response, public=True, max_age=86400)  # a new photo gets a new URL (location_photo_url)
     return response
 
 

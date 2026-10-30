@@ -26,6 +26,7 @@ urlpatterns = [
     path("place/", views.place_context, name="place_context"),
     path("at/", views.area_at, name="area_at"),
     path("loc/<int:pk>/", views.LocationShapeView.as_view(), name="location_shape"),
+    path("loc/<int:pk>/photo", views.location_photo, name="location_photo"),
     path("loc/row/", views.LocationShapeRowView.as_view(), name="location_shape_row"),
     path("item/<int:pk>/", views.ItemPositionView.as_view(), name="item_position"),
     path("plans/", views.PlansView.as_view(), name="plans"),
