@@ -520,8 +520,8 @@ msgstr "Standort suchen…"
 msgid "Locations to move here"
 msgstr "Hierher zu bewegende Standorte"
 
-msgid "Enter unique identifiers, locatable identifiers, numeric IDs or /loc URLs. Separate entries with spaces, newlines, tabs or semicolons."
-msgstr "Eindeutige Kennungen, vollständige Standortkennungen, numerische IDs oder /loc-URLs eingeben. Einträge durch Leerzeichen, Zeilenumbrüche, Tabulatoren oder Semikolons trennen."
+msgid "Enter unique identifiers, locatable identifiers, numeric IDs or location URLs. Separate entries with spaces, newlines, tabs or semicolons."
+msgstr "Eindeutige Kennungen, vollständige Standortkennungen, numerische IDs oder Standort-URLs eingeben. Einträge durch Leerzeichen, Zeilenumbrüche, Tabulatoren oder Semikolons trennen."
 
 msgid "Enter at least one location."
 msgstr "Mindestens einen Standort eingeben."
@@ -4847,3 +4847,63 @@ msgstr "Markierungen entfernen"
 #: inventory/link_preview.py
 msgid "Disposed."
 msgstr "Ausgesondert."
+
+#: inventory/views.py
+msgid ""
+"This link names the former code {old}; the location's code is now {new}. A "
+"label with the former code should be printed anew."
+msgstr ""
+"Dieser Link nennt den früheren Code {old}; der Standort hat jetzt den Code "
+"{new}. Ein Etikett mit dem alten Code sollte neu gedruckt werden."
+
+#: inventory/models/location.py
+#, python-format
+msgid ""
+"The code %(code)s is a word the inventory's addresses use; choose another one."
+msgstr ""
+"Der Code %(code)s ist ein Wort, das die Adressen des Inventars verwenden; "
+"bitte einen anderen wählen."
+
+#: inventory/models/location.py
+msgid ""
+"Moveable locations need building-wide codes (unique flag): moving them must "
+"not change their code."
+msgstr ""
+"Bewegliche Standorte brauchen hausweite Codes („Eindeutig“): Verschieben "
+"darf ihren Code nicht ändern."
+
+#: inventory/templates/inventory/location_gone.html
+msgid "Location deleted"
+msgstr "Standort gelöscht"
+
+#: inventory/templates/inventory/location_gone.html
+msgid "Location not found"
+msgstr "Standort nicht gefunden"
+
+#: inventory/templates/inventory/location_gone.html
+#, python-format
+msgid "The location %(title)s was deleted."
+msgstr "Der Standort %(title)s wurde gelöscht."
+
+#: inventory/templates/inventory/location_gone.html
+msgid "It was in:"
+msgstr "Er war in:"
+
+#: inventory/templates/inventory/location_gone.html
+#, python-format
+msgid "The location %(code)s was deleted for good on %(date)s."
+msgstr "Der Standort %(code)s wurde am %(date)s endgültig gelöscht."
+
+#: inventory/templates/inventory/location_gone.html
+#, python-format
+msgid "There is no location with the code %(code)s."
+msgstr "Es gibt keinen Standort mit dem Code %(code)s."
+
+#: inventory/templates/inventory/location_gone.html
+msgid "Search for it"
+msgstr "Danach suchen"
+
+#: inventory/templates/inventory/location_gone.html
+#, python-format
+msgid "The location %(code)s was deleted for good."
+msgstr "Der Standort %(code)s wurde endgültig gelöscht."

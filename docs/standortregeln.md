@@ -2,7 +2,7 @@
 
 Wie im ZAM Häuser, Ebenen, Räume und Bereiche benannt und codiert werden. Die technische Seite
 (Modell, Kategorien, Nummernkreise) steht in [Building structure](location-structure.md). Der
-aktuelle Stand aller Orte steht im Inventar; die Seite **Ebenen und Achsen** (`/loc/structure/`,
+aktuelle Stand aller Orte steht im Inventar; die Seite **Ebenen und Achsen** (`/location/structure/`,
 verlinkt im Standortbaum) zeigt ihn als Übersicht.
 
 ## Grundsätze

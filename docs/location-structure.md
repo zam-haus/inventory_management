@@ -18,7 +18,9 @@ are in [Standortregeln](standortregeln.md) (German).
   pallets); empty for anything else (*Mobil*). Validation fills a missing category from the type
   (building structure → space, number ranges per area → storage unit) and rejects a contradicting
   one. Migration `inventory.0037` made the then moveable types containers; since `inventory.0039` shelves
-  and cabinets are moveable, too, so *moveable* no longer tells containers apart.
+  and cabinets are moveable, too, so *moveable* no longer tells containers apart. Moveable types have
+  building-wide codes (*unique*, enforced by validation): moving must not change a code, the location's address
+  ([addresses](locations.md#addresses)).
   The location page lists
   sub-locations in one panel per category (`LocationType.group_by_category`), below the
   full-width “At this location” panel with the items on the left; a page whose sub-locations
@@ -76,7 +78,7 @@ are in [Standortregeln](standortregeln.md) (German).
   (`Location.active` leaves them out): no list, search, choice, overview or page shows them, but their
   numbers are taken. Scanning the label (also with the navbar scanner), entering the code in the
   resolver lookup (`/id/?q=`) or the location search, or opening its page leads to **Activate container**
-  (`ContainerActivateView`, `/loc/<pk>/activate/`): who may add locations says where it is now
+  (`ContainerActivateView`, `/location/<pk>/activate/`): who may add locations says where it is now
   (required) and may add the purpose, physical description and overview photo; guests are asked to log
   in. A location field that scans or looks up a reserved code says it is not activated yet and links
   the activation (new tab). The change log records **Activated**, also on the page of the location it
@@ -153,7 +155,7 @@ properties yet; the admin shows and filters the new fields.
 
 ## Overview
 
-*Levels and axes* (`/loc/structure/`, `StructureOverviewView`, linked from the [location tree](trees.md),
+*Levels and axes* (`/location/structure/`, `StructureOverviewView`, linked from the [location tree](trees.md),
 public like the other location pages) draws the structure from the database: levels across, axes
 down, grouped by house. Each level, room and area shows its purpose (or name), then its code
 (linked to its page), description, team badges and the fire-load mark; rooms, areas and outdoor

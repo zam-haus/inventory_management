@@ -21,6 +21,10 @@ from ..signals import send_moved
 from ..soft_delete import ActiveManager, SoftDeleteModel
 
 
+# Fixed paths beside /location/<code> (inventory/urls.py): no location's code may equal one of them.
+RESERVED_CODES = {"lookup", "structure", "move", "dissolve", "move-here"}
+
+
 class LocationType(models.Model):
     class Meta:
         verbose_name = _("location type")
@@ -146,6 +150,11 @@ class LocationType(models.Model):
             raise ValidationError({"category": _("Types of the building structure are spaces.")})
         if self.area_numbering and self.category != self.Category.STORAGE_UNIT:
             raise ValidationError({"category": _("Number ranges per area are for storage units only.")})
+        # A location's code is its address (/location/<code>): moving it must not change it, so what moves has a
+        # building-wide code of its own (not one following its parent's).
+        if self.moveable and not self.unique:
+            raise ValidationError({"moveable": _(
+                "Moveable locations need building-wide codes (unique flag): moving them must not change their code.")})
         if self.admin_only and (self.moveable or self.deletable_in_frontend):
             raise ValidationError({"admin_only": _(
                 "Locations of an admin-only type can be neither moved nor deleted on the inventory pages.")})
@@ -744,6 +753,11 @@ class Location(SoftDeleteModel, ComputedFieldsModel):
             if entry.location_id is None or entry.location_id != owners[entry.upper]:
                 raise ValidationError({"short_name": _("The code %(code)s was used before and stays blocked.") % {
                     "code": entry.code}})
+        # A location's page is /location/<code>, beside fixed paths: no code may equal one of them.
+        for code in codes.values():
+            if code.lower() in RESERVED_CODES:
+                raise ValidationError({"short_name": _(
+                    "The code %(code)s is a word the inventory's addresses use; choose another one.") % {"code": code}})
         # Codes and label IDs are read alike (inventory/codes.py): a code must not read as an issued label ID.
         from ..codes import reads_as_label_id
         for code in codes.values():
@@ -1025,10 +1039,8 @@ class Location(SoftDeleteModel, ComputedFieldsModel):
     label_image_tag.short_description = _("label")
 
     def get_absolute_url(self):
-        return reverse(
-            "view_location",
-            kwargs={"pk": self.pk, "unique_identifier": self.unique_identifier},
-        )
+        """/location/<code> (docs/locations.md)."""
+        return reverse("view_location", kwargs={"code": self.unique_identifier})
 
     def get_admin_url(self):
         return reverse(

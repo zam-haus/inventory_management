@@ -81,7 +81,6 @@ class InventoryPermissionTests(TestCase):
             reverse("create_item"), reverse("update_item", args=[self.item.pk]),
             reverse("location_move", args=[self.child.pk]),
             reverse("locations_move_here", args=[self.root.pk]), reverse("location_dissolve", args=[self.root.pk]),
-            reverse("update_location", args=[self.root.pk, self.root.unique_identifier]),
         ):
             with self.subTest(url=url):
                 self.assertEqual(self.client.get(url).status_code, 403)

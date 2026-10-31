@@ -89,9 +89,9 @@ class LocationsMoveHereTests(TestCase):
             self.assertEqual(location.parent_location_id, self.parent.pk)
 
     def test_urls_follow_routing_and_accept_outdated_identifiers(self):
-        stale_url = reverse("view_location", args=[self.box.pk, "outdated"])
-        numeric_url = reverse("view_location2", args=[self.unique.pk])
-        response = self.post(f"https://inv.zam.haus{stale_url}?scan=1#label;{numeric_url}")
+        stale_url = reverse("view_location_legacy", args=[self.box.pk, "outdated"])  # a printed label, by its number
+        code_url = reverse("view_location", args=[self.unique.unique_identifier.lower()])
+        response = self.post(f"https://inv.zam.haus{stale_url}?scan=1#label;{code_url}")
         self.assertContains(response, "Locations moved: 2. Errors: 0.")
         self.child.refresh_from_db()
         self.assertEqual(self.child.parent_location_id, self.box.pk)
@@ -436,3 +436,133 @@ class PrintableInventoryTests(TestCase):
         self.assertContains(direct, "Also include child locations")
         recursive = self.report([self.root], include_children=True)
         self.assertContains(recursive, '<article class="item">', count=2)
+
+
+@override_settings(
+    MIDDLEWARE=[
+        "django.contrib.sessions.middleware.SessionMiddleware",
+        "django.middleware.csrf.CsrfViewMiddleware",
+        "django.contrib.auth.middleware.AuthenticationMiddleware",
+        "django.contrib.messages.middleware.MessageMiddleware",
+    ],
+    LANGUAGE_CODE="en",
+    DEFAULT_URL="https://inv.zam.haus",
+)
+class LocationAddressTests(TestCase):
+    """/location/<code>, and /loc/<pk>/<code> of the labels printed before (docs/locations.md)."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.room_type = LocationType.objects.create(name="Room", unique=True)
+        cls.shelf_type = LocationType.objects.create(name="Shelf", unique=True, moveable=True)
+        cls.compartment_type = LocationType.objects.create(name="Compartment")
+        cls.room = Location.objects.create(type=cls.room_type, name="Hall", short_name="HH+0")
+        cls.shelf = Location.objects.create(type=cls.shelf_type, name="Shelf 303", short_name="R303",
+                                            parent_location=cls.room)
+        cls.compartment = Location.objects.create(type=cls.compartment_type, name="Compartment a", short_name="a",
+                                                  parent_location=cls.shelf)
+
+    def notices(self, response):
+        return [str(message) for message in response.context["messages"]] if response.context else []
+
+    def test_the_page_is_under_its_code(self):
+        self.assertEqual(self.compartment.get_absolute_url(), "/location/R303.a")
+        self.assertEqual(self.room.get_absolute_url(), "/location/HH+0")
+        for location in (self.room, self.shelf, self.compartment):
+            response = self.client.get(location.get_absolute_url())
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(response.context["object"], location)
+        self.assertEqual(resolve("/location/HH+0").kwargs, {"code": "HH+0"})
+
+    def test_another_spelling_goes_on_without_a_notice(self):
+        response = self.client.get("/location/r303.A?loc=1")
+        self.assertEqual((response.status_code, response["Location"]), (301, "/location/R303.a?loc=1"))
+        self.assertEqual(self.notices(self.client.get(response["Location"])), [])
+
+    def test_a_former_code_goes_on_with_a_notice(self):
+        self.shelf.short_name = "R305"  # in the admin: the compartment's code follows
+        self.shelf.save()
+        self.compartment.refresh_from_db()
+        self.assertEqual(self.compartment.unique_identifier, "R305.a")
+        response = self.client.get("/location/R303.a", follow=True)
+        self.assertEqual(response.redirect_chain, [("/location/R305.a", 301)])
+        self.assertEqual(self.notices(response), [
+            "This link names the former code R303.a; the location's code is now R305.a. A label with the former code "
+            "should be printed anew."])
+
+    def test_printed_labels_keep_working(self):
+        url = reverse("view_location_legacy", args=[self.compartment.pk, "R303.a"])
+        self.assertEqual(url, f"/loc/{self.compartment.pk}/R303.a")
+        response = self.client.get(url + "?scan=1")
+        self.assertEqual((response.status_code, response["Location"]), (301, "/location/R303.a?scan=1"))
+        self.assertEqual(self.notices(self.client.get(response["Location"])), [])
+        # The shelf got a new code since: the label still leads to it, by its number, and says so.
+        self.shelf.short_name = "R305"
+        self.shelf.save()
+        response = self.client.get(url, follow=True)
+        self.assertEqual(response.redirect_chain, [("/location/R305.a", 301)])
+        self.assertEqual(len(self.notices(response)), 1)
+        self.assertIn("R303.a", self.notices(response)[0])
+        # Through an earlier domain (and the canonical host) too: resolve_code reads it as well.
+        from ..codes import resolve_code
+        self.assertEqual(resolve_code(f"https://inv.zam.haus{url}").location, self.compartment)
+        self.assertEqual(resolve_code("https://inv.zam.haus/location/r305.A").location, self.compartment)
+        self.assertEqual(resolve_code(f"https://inv.zam.haus/loc/{self.compartment.pk}").location, self.compartment)
+
+    def test_earlier_addresses(self):
+        response = self.client.get(f"/loc/{self.shelf.pk}?x=1")  # by its number, as before
+        self.assertEqual((response.status_code, response["Location"]), (301, "/location/R303?x=1"))
+        self.assertEqual(self.notices(self.client.get(response["Location"])), [])
+        self.assertEqual(self.client.get(f"/loc/{self.shelf.pk + 100}").status_code, 404)
+        for old, new in (("/loc/", "/location/"), ("/loc/structure/", "/location/structure/"),
+                         ("/loc/?q=box", "/location/?q=box")):
+            response = self.client.get(old)
+            self.assertEqual((response.status_code, response["Location"]), (301, new))
+        self.assertRedirects(self.client.get("/location/?q=box"), "/?q=box")
+
+    def test_reserved_containers_are_activated(self):
+        reserved = Location.objects.create(type=self.shelf_type, name="Box", short_name="K9", is_reserved=True)
+        activate = reverse("container_activate", args=[reserved.pk])
+        self.assertRedirects(self.client.get("/location/K9"), activate, fetch_redirect_response=False)
+        self.assertRedirects(self.client.get(f"/loc/{reserved.pk}/K9"), activate, fetch_redirect_response=False)
+
+    def test_deleted_locations_say_so(self):
+        self.compartment.delete()  # archived
+        for url in ("/location/R303.a", f"/loc/{self.compartment.pk}/R303.a"):
+            response = self.client.get(url)
+            self.assertEqual(response.status_code, 404)
+            self.assertContains(response, "The location Compartment a was deleted.", status_code=404)
+            self.assertContains(response, f'href="{self.shelf.get_absolute_url()}"', status_code=404)
+        # A former code of it: the shelf got another code after it was archived.
+        self.shelf.short_name = "R305"
+        self.shelf.save()
+        response = self.client.get("/location/R303.a")
+        self.assertContains(response, "The location Compartment a was deleted.", status_code=404)
+        self.assertContains(response, "R305.a", status_code=404)
+        pk = self.compartment.pk
+        Location.objects.get(pk=pk).delete()  # for good
+        for url in ("/location/R305.a", f"/loc/{pk}/R305.a"):
+            response = self.client.get(url)
+            self.assertContains(response, "The location R305.a was deleted for good on", status_code=404)
+        # Its code before (kept when it changed): deleted for good, but not on the day that code changed.
+        response = self.client.get("/location/R303.a")
+        self.assertContains(response, "The location R303.a was deleted for good.", status_code=404)
+        response = self.client.get("/location/NOPE")
+        self.assertContains(response, "There is no location with the code NOPE.", status_code=404)
+        self.assertContains(self.client.get(f"/loc/{pk + 100}/NOPE"), "There is no location", status_code=404)
+
+    def test_codes_in_notices_and_pages_are_text(self):
+        bad = "<img src=x onerror=alert(1)>"
+        response = self.client.get(f"/loc/{self.shelf.pk}/{bad}", follow=True)
+        self.assertNotIn(bad, self.notices(response)[0])
+        self.assertIn("&lt;img", self.notices(response)[0])
+        response = self.client.get(f"/location/{bad}")
+        self.assertNotContains(response, bad, status_code=404)
+
+    def test_codes_and_types_that_would_break_addresses_are_refused(self):
+        from django.core.exceptions import ValidationError
+        with self.assertRaises(ValidationError):
+            Location(type=self.room_type, name="Lookup", short_name="LOOKUP").full_clean()
+        with self.assertRaises(ValidationError):
+            LocationType(name="Crate", moveable=True, unique=False).full_clean()
+        LocationType(name="Crate", moveable=True, unique=True).full_clean()

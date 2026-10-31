@@ -75,7 +75,7 @@ class LocationSoftDeletionTests(TestCase):
     def test_archived_urls_are_unavailable(self):
         urls = [
             self.archived.get_absolute_url(),
-            reverse("view_location2", args=[self.archived.pk]),
+            reverse("view_location_legacy", args=[self.archived.pk, self.archived.unique_identifier]),
             reverse("location_move", args=[self.archived.pk]),
             reverse("locations_move_here", args=[self.archived.pk]),
             reverse("location_dissolve", args=[self.archived.pk]),

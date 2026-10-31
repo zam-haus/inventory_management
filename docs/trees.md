@@ -18,7 +18,7 @@ styles in `actions.css`).
   items and the categories below it; emptied, it shows all items again.
   Item and unique item pages show the item's category path above the title: *Items* (the tree, opened at
   the category), then each category down to its own, each linked to its page.
-* **Locations** (`/loc/`): every location below its parent, in the order of their codes, numbers by value
+* **Locations** (`/location/`): every location below its parent, in the order of their codes, numbers by value
   (R2 before R10) and levels by number (WH-1 before WH+0); the top level is open. Below a location come its
   building parts and other sub-locations, then its storage units as one group (open, each storage unit
   closed), then its containers as one group (closed). A group only where it sets them apart from other
@@ -28,19 +28,19 @@ styles in `actions.css`).
   ([locations](locations.md)), and counts with icons, in this order: its sub-locations in all by kind
   (building parts and others, storage units, containers), then the items stored right there, counted ones
   and unique items; the words are in the tooltip.
-  Reserved containers and deleted locations are left out. *Levels and axes* (`/loc/structure/`) is linked at
+  Reserved containers and deleted locations are left out. *Levels and axes* (`/location/structure/`) is linked at
   the top.
 
 Both load whole: every node is a `<details>`, so it opens and closes without JavaScript, and the browser's
 find (Ctrl+F) opens the nodes it finds something in (Chrome, Edge). `tree.js` adds *Open all* and *Close
-all*, and opens the way to a node named in the address: `/loc/#loc-<id>`, `/item/#cat-<id>`. The keyboard:
+all*, and opens the way to a node named in the address: `/location/#loc-<id>`, `/item/#cat-<id>`. The keyboard:
 the first arrow key starts at the first row; the pointer over a row moves the focus there, and the focused
 row is marked the same way, so mouse and keys go on from one row; up and down move through the visible rows, right opens a branch, left closes it (on a closed branch or a leaf: the branch
 it is in, going there), space opens or closes it, Enter opens the page of the location or category itself.
 A location's name leads to its page, its code chip opens it in brief ([locations](locations.md)). *Create New
 Item* and *Levels and axes* stand at the right.
 
-An old link with a search (`/item/?q=…`, `/loc/?q=…`) goes to the search with those words.
+An old link with a search (`/item/?q=…`, `/loc/?q=…`, `/location/?q=…`) goes to the search with those words.
 
 ## How it works
 

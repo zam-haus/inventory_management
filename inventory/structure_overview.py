@@ -1,4 +1,4 @@
-"""The levels-and-axes overview of the fixed building structure (``/loc/structure/``).
+"""The levels-and-axes overview of the fixed building structure (``/location/structure/``).
 
 Levels run across, axes down; each level, room and area is shown with its code, purpose or name,
 description, team badges and the fire-load mark. Containers such as shelves and boxes are left out.

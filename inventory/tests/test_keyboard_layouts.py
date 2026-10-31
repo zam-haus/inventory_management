@@ -73,7 +73,8 @@ class ScannedLayoutMismatchTests(TestCase):
         cls.user.user_permissions.add(Permission.objects.get(codename="change_location", content_type__app_label="inventory"))
 
     def label_url(self, location):
-        return settings.DEFAULT_URL + reverse("view_location", args=[location.pk, location.unique_identifier])
+        """As printed on labels before /location/<code>: /loc/<pk>/<code>."""
+        return settings.DEFAULT_URL + reverse("view_location_legacy", args=[location.pk, location.unique_identifier])
 
     def test_garbled_label_urls_resolve_to_their_location(self):
         box = self.boxes[0]
@@ -100,7 +101,7 @@ class ScannedLayoutMismatchTests(TestCase):
     @override_settings(DEFAULT_URL="https://inventar.zam.haus", DOMAIN_ALIASES=["https://inv.zam.haus"])
     def test_old_labels_with_an_earlier_domain_still_resolve(self):
         box = self.boxes[0]
-        old_label = "https://inv.zam.haus" + reverse("view_location", args=[box.pk, box.unique_identifier])
+        old_label = "https://inv.zam.haus" + reverse("view_location_legacy", args=[box.pk, box.unique_identifier])
         self.assertEqual(resolve_location_reference(old_label), box)
         self.assertEqual(resolve_location_reference(retype(old_label, "us", "de")), box)
 

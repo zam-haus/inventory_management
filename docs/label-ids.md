@@ -16,9 +16,10 @@ Two kinds of codes lead somewhere: a **location's code** (`unique_identifier`: `
 location labels) and a **label ID** (ZAMid, on the labels of items and unique items, and of the few locations
 that got one). Everywhere they are read by one function, `inventory/codes.py` `resolve_code`: the resolver
 behind the QR codes (`i.zam.haus/…`, `/id/…`, the lookup `/id/?q=`), the [search](search.md) (`/?q=`),
-the location fields (scan button, `/loc/lookup`) and *Move here*. In this order:
+the location fields (scan button, `/location/lookup`) and *Move here*. In this order:
 
-1. an inventory location URL (`/loc/<pk>/…`), by its number;
+1. an inventory location URL: `/location/<code>` by its code, the earlier `/loc/<pk>/<code>` of printed labels by
+   its number ([addresses](locations.md#addresses));
 2. a location's code in any case, also as a label URL (`HTTPS://I.ZAM.HAUS/R303.A`), then a former code;
 3. a reserved container's code: it opens the container's activation;
 4. the full short-name path (`HH-1.SK.K0520`), still accepted, no longer shown;

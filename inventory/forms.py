@@ -861,7 +861,7 @@ class LocationsMoveHereForm(Form):
         label=_("Locations to move here"),
         max_length=20000,
         widget=Textarea(attrs={"rows": 8, "autofocus": True}),
-        help_text=_("Enter unique identifiers, locatable identifiers, numeric IDs or /loc URLs. Separate entries with spaces, newlines, tabs or semicolons."),
+        help_text=_("Enter unique identifiers, locatable identifiers, numeric IDs or location URLs. Separate entries with spaces, newlines, tabs or semicolons."),
     )
 
     def __init__(self, *args, dialog=False, **kwargs):

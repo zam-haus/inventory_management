@@ -1,0 +1,22 @@
+{% extends 'base.html' %}
+{% load i18n locations %}
+{# No location under this code (views.location_gone, status 404): what is known of it, if anything. #}
+
+{% block title %}{% if location or former %}{% trans "Location deleted" %}{% else %}{% trans "Location not found" %}{% endif %}{% endblock %}
+
+{% block content %}
+    {% url 'index' as search_url %}
+    {% if location %}
+        <p>{% blocktrans with title=location.title %}The location {{ title }} was deleted.{% endblocktrans %} {% location_code code %}</p>
+        {% if parent %}
+            <p>{% trans "It was in:" %} {% location_label parent url=parent.get_absolute_url %}</p>
+        {% endif %}
+    {% elif deleted_on %}
+        <p>{% blocktrans with date=deleted_on|date:"SHORT_DATE_FORMAT" %}The location {{ code }} was deleted for good on {{ date }}.{% endblocktrans %}</p>
+    {% elif former %}
+        <p>{% blocktrans %}The location {{ code }} was deleted for good.{% endblocktrans %}</p>
+    {% else %}
+        <p>{% blocktrans %}There is no location with the code {{ code }}.{% endblocktrans %}</p>
+    {% endif %}
+    <p><a href="{{ search_url }}?q={{ code|urlencode:'' }}">{% trans "Search for it" %}</a></p>
+{% endblock %}

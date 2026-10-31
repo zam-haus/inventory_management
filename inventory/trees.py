@@ -1,5 +1,5 @@
 """
-The item and location trees (docs/trees.md): items by category at /item/, locations as a tree at /loc/. Each
+The item and location trees (docs/trees.md): items by category at /item/, locations as a tree at /location/. Each
 tree comes from a fixed number of queries and is rendered here instead of by template recursion, which would
 be slow for thousands of nodes. Nodes are <details>, so they open and close without JavaScript; icons are
 drawn once in a sprite and referenced by every row.
@@ -153,7 +153,7 @@ def group_html(parent, category, title, nodes, is_open, depth):
 
 
 def location_tree():
-    """(sprite, the tree's <li>s) for /loc/."""
+    """(sprite, the tree's <li>s) for /location/."""
     roots = location_nodes()
     return sprite({"geo-alt", KINDS["item"][0], KINDS["unique"][0], *CATEGORY_ICONS.values()}), nodes_html(roots, 0)
 

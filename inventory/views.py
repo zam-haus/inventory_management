@@ -15,16 +15,16 @@ from django.db import IntegrityError, transaction
 from django.forms import all_valid
 from django.db.models import Case, Prefetch, Q, Value, When
 from django.db.models.functions import Coalesce, Lower
-from django.http import FileResponse, Http404, HttpResponseForbidden, JsonResponse
+from django.http import FileResponse, Http404, HttpResponseForbidden, HttpResponsePermanentRedirect, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse, reverse_lazy
-from django.utils import timezone
+from django.utils import timezone, translation
 from django.utils.html import format_html, format_html_join
 from django.utils.translation import gettext_lazy as _
 from django.views import View
-from django.views.generic import DetailView, TemplateView, UpdateView
+from django.views.generic import DetailView, RedirectView, TemplateView, UpdateView
 
-from . import forms, link_preview, location_display, models, search, trees
+from . import codes, forms, link_preview, location_display, models, search, trees
 from .location_lookup import resolve_location_reference
 from .permissions import (
     QUICK_ITEM_PERMISSIONS, UNIQUE_ITEM_CREATE_PERMISSIONS, ItemEditorPermissionMixin, location_deletion_denied,
@@ -263,19 +263,88 @@ class DetailLocationView(DetailView):
         return context
 
     def get(self, request, *args, **kwargs):
-        # Reserved containers have no page until activated; links to them lead there.
-        if models.Location.objects.filter(pk=kwargs["pk"], is_reserved=True, is_deleted=False).exists():
-            return redirect("container_activate", pk=kwargs["pk"])
-        self.object = self.get_object()
-        if "unique_identifier" in kwargs and self.object.unique_identifier != kwargs["unique_identifier"]:
-            return redirect(self.object)
+        """/location/<code> (docs/locations.md): the page under its code as it is written; another spelling of it or
+        a former code goes on to it (a former one with a notice), a reserved container to its activation, a deleted
+        location to a page saying so."""
+        code = kwargs["code"]
+        self.object = self.get_queryset().filter(unique_identifier=code).first()
+        if self.object is None:
+            found = codes.locations_by_code(code)
+            if len(found) == 1:
+                location = found[0]
+                if location.unique_identifier.upper() != code.upper():
+                    former_code_notice(request, code, location)
+                return permanent_redirect(request, location.get_absolute_url())
+            if (reserved := codes.reserved_by_code(code)) is not None:
+                return redirect("container_activate", pk=reserved.pk)
+            return location_gone(request, code)
         context = self.get_context_data(object=self.object)
         return self.render_to_response(context)
 
 
-@permission_required("inventory.change_location", raise_exception=True)
-def update_location(request, pk, unique_identifier):
-    return redirect("location_move", pk=pk)
+def permanent_redirect(request, url):
+    """A 301 to url, keeping the query (e.g. ?loc= of an item label)."""
+    query = request.META.get("QUERY_STRING", "")
+    return HttpResponsePermanentRedirect(f"{url}?{query}" if query else url)
+
+
+def former_code_notice(request, code, location):
+    """The notice that a link names a former code of the location: its label may need printing anew."""
+    messages.info(request, format_html(
+        _("This link names the former code {old}; the location's code is now {new}. A label with the former code "
+          "should be printed anew."), old=code, new=location.unique_identifier))
+
+
+def location_gone(request, code, location=None):
+    """404: no location here, saying what is known: deleted (still archived, or for good with its date), or never
+    there."""
+    location = location or models.Location.objects.filter(
+        is_deleted=True, unique_identifier__iexact=code).select_related("parent_location").first()
+    former = None
+    if location is None:
+        former = models.LocationFormerCode.objects.filter(code__iexact=code).select_related(
+            "location__parent_location").first()
+        if former and former.location:  # a former code of an archived location
+            location, former = (former.location, None) if former.location.is_deleted else (None, None)
+    parent = location.parent_location if location else None
+    # Its date is when it was deleted only if deleting made the entry (block_code_of_deleted_location notes so, in
+    # the language of then); an older former code of it was kept when its code changed.
+    deleted_on = None
+    if former is not None:
+        notes = set()
+        for language, _name in settings.LANGUAGES:
+            with translation.override(language):
+                notes.add(translation.gettext("deleted"))
+        deleted_on = former.created_at if former.note in notes else None
+    return render(request, "inventory/location_gone.html", {
+        "code": location.unique_identifier if location else (former.code if former else code),
+        "location": location, "former": former, "deleted_on": deleted_on,
+        "parent": parent if parent and not parent.is_deleted and not parent.is_reserved else None,
+    }, status=404)
+
+
+def legacy_location(request, pk, code=None):
+    """/loc/<pk>/<code>: the address in the QR code of every label printed before /location/<code>. It goes on to
+    the location by its number, which never changes; the code only tells whether the label is outdated. /loc/<pk>
+    without a code goes on alike."""
+    location = models.Location.objects.filter(pk=pk).first()
+    if location is None:
+        if code is None:
+            raise Http404
+        return location_gone(request, code)
+    if location.is_deleted:
+        return location_gone(request, location.unique_identifier, location)
+    if location.is_reserved:
+        return redirect("container_activate", pk=pk)
+    if code is not None and location.unique_identifier.upper() != code.upper():
+        former_code_notice(request, code, location)
+    return permanent_redirect(request, location.get_absolute_url())
+
+
+class LegacyRedirectView(RedirectView):
+    """An earlier address under /loc/ (bookmarks): for good to the new one, with the query."""
+    permanent = True
+    query_string = True
 
 class LocationMoveView(PermissionRequiredMixin, UpdateView):
     permission_required = "inventory.change_location"
@@ -715,7 +784,7 @@ class ItemTreeView(TreeView):
 
 
 class LocationTreeView(TreeView):
-    """/loc/: all locations as a tree, the top level open."""
+    """/location/: all locations as a tree, the top level open."""
     template_name = "inventory/location_tree.html"
 
     def get_context_data(self, **kwargs):

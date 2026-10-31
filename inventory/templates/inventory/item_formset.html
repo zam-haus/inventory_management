@@ -7,7 +7,7 @@
 {% block title %}
     {{ title }}
     {% if location %}
-        @ <a href={% url 'view_location' location.id location.unique_identifier %}>{% location_label location %}</a>
+        @ <a href={{ location.get_absolute_url }}>{% location_label location %}</a>
     {% endif %}
 {% endblock %}
 

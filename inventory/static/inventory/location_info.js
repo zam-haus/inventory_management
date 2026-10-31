@@ -14,7 +14,7 @@
         controller?.abort();
         controller = new AbortController();
         try {
-            const response = await fetch(`/loc/${pk}/info/`, {signal: controller.signal, credentials: 'same-origin'});
+            const response = await fetch(`/location/${pk}/info/`, {signal: controller.signal, credentials: 'same-origin'});
             if (!response.ok) throw new Error(`HTTP ${response.status}`);
             content.innerHTML = await response.text();
         } catch (failure) {

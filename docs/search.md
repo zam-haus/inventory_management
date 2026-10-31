@@ -8,7 +8,7 @@ while the pointer rests on the magnifier (speculation rules), so that it opens a
 opens a search field right of it, over the navbar's other items, and Enter shows the results: phones open the
 keyboard only for a field tapped on the same page, so a new page would need a second tap. On the search page
 the magnifier goes to the page's field. To browse instead, *Items* and *Locations* in the navbar show
-[trees](trees.md); an old link with a search there (`/item/?q=`, `/loc/?q=`) comes here.
+[trees](trees.md); an old link with a search there (`/item/?q=`, `/loc/?q=`, `/location/?q=`) comes here.
 
 ## Using it
 

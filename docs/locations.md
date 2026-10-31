@@ -20,7 +20,7 @@ A UX rule for every page, list and dialog (`inventory/location_display.py`, `{% 
 * Location fields (`widgets.LocationSelect`) show their suggestions the same way, with the parent
   below; their autocompletes give HTML only to them (`?html=1`), the admin's fields get the path as
   text. The breadcrumb shows the path with each location's title and short name.
-* **In brief:** a location's code chip opens it in a window (`location_info.js`, `/loc/<id>/info/`; click,
+* **In brief:** a location's code chip opens it in a window (`location_info.js`, `/location/<id>/info/`; click,
   Enter or space): the path with the titles and short names of the locations above it, its title and code,
   overview photo and description, and *Open location*. Its name still leads to its page. Closing the window
   returns the focus to the chip. Chips in the suggestions of location fields only show the code, as a click
@@ -63,6 +63,28 @@ Every change of a location, including those through the admin, is recorded in th
 [change log](change-log.md); the page shows the last ones, together with those of what is stored
 there and of the locations inside it, to those allowed to see them. Replaced and removed photos remain
 in media storage.
+
+## Addresses
+
+A location's page is **`/location/<code>`** (its code, `unique_identifier`: `/location/R303.a`, not the full path
+`HH+0.MSL.R303.a`; `Location.get_absolute_url`). Codes stay: a moveable type has building-wide codes (validation of
+the location type), so moving a location never changes its code; only changing a short name in the admin does
+(also for the compartments below it), or hanging a compartment or part of a room elsewhere in the admin. Former
+codes stay blocked for good (`LocationFormerCode`), so a link never leads to another location.
+
+* Another spelling of the code (`/location/r303.A`) goes on to the page (301).
+* A former code goes on to the location's current code (301) with a notice: the link names the former code,
+  a label with it should be printed anew.
+* **Earlier addresses** live on under `/loc/` and go on to the new ones: **`/loc/<pk>/<code>`** is in the QR
+  code of every label printed before (`views.legacy_location`); it leads to the location by its number, which
+  never changes, and gives the notice above if the code in it is not the current one. `/loc/` and
+  `/loc/structure/` go to `/location/…`; `/loc/<pk>` without a code leads to the location by its number, too.
+* A reserved container's code leads to **Activate container**.
+* **Deleted:** status 404 with what is known: an archived location by its title, code and the location it was
+  in; one deleted for good (its code kept as a former code without location) with the date; else that there is
+  no location with that code (`location_gone.html`).
+* The other pages of a location keep its number: `/location/<id>/info/`, `/purpose/`, `/activate/`, …
+  (`inventory/urls.py`). No code may equal one of the fixed words beside them (`RESERVED_CODES`).
 
 ## Long lists
 

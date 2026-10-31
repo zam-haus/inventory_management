@@ -3,7 +3,8 @@ One way to read a code (docs/label-ids.md, "Codes: what counts where"): whatever
 pasted, wherever: the resolver behind the QR codes (i.zam.haus/…, /id/…, /id/?q=), ?q= of the lists, the
 location fields and "Move here". resolve_code() reads, in this order:
 
-1. an inventory location URL (/loc/<pk>/…), by its primary key;
+1. an inventory location URL: /location/<code> by its code, the earlier /loc/<pk>/<code> (printed labels) by its
+   primary key;
 2. a location's code, ignoring case, also as a label URL (HTTPS://I.ZAM.HAUS/R303.A), then a former code;
 3. a reserved container's code (it is activated on first use);
 4. the full short-name path of a location (HH-1.SK.K0520), still accepted;
@@ -72,7 +73,7 @@ def reserved_by_code(code):
 
 
 def _location_url(raw):
-    """The location an inventory URL (/loc/<pk>/<code>) names, by its primary key, or None."""
+    """The location an inventory URL names (/location/<code>, or /loc/<pk>/<code> by its primary key), or None."""
     try:
         url = urlsplit(raw)
     except ValueError:  # e.g. a broken host in brackets
@@ -83,7 +84,10 @@ def _location_url(raw):
         match = resolve(unquote(url.path), urlconf=settings.ROOT_URLCONF)  # also on the resolver hosts
     except Resolver404:
         return None
-    if match.url_name not in ("view_location", "view_location2"):
+    if match.url_name == "view_location":
+        found = locations_by_code(match.kwargs["code"])
+        return found[0] if len(found) == 1 else None
+    if match.url_name not in ("view_location_legacy", "view_location_legacy_pk"):
         return None
     return Location.active.filter(pk=match.kwargs["pk"]).first()
 
