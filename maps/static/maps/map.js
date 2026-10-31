@@ -657,7 +657,7 @@
     }
     fit();
     var map = create(element);
-    // The levels (left, below the zoom buttons) and the actions (bottom right) as parts of the map.
+    // The levels (left, below the zoom buttons) and the actions (below them) as parts of the map.
     function asControl(part, position) {
         if (!part) {
             return;
@@ -672,7 +672,7 @@
         control.addTo(map);
     }
     asControl(document.querySelector('[data-map-levels]'), 'topleft');
-    asControl(document.querySelector('[data-map-actions]'), 'bottomright');
+    asControl(document.querySelector('[data-map-actions]'), 'topleft');
     window.addEventListener('resize', function () {
         fit();
         map.invalidateSize();
@@ -861,7 +861,8 @@
         var bounds = map.getBounds(), digits = function (value) { return value.toFixed(6); };
         var view = 'z=' + (Math.round(map.getZoom() * 100) / 100) + '&b=' + [bounds.getSouth(), bounds.getWest(),
             bounds.getNorth(), bounds.getEast()].map(digits).join(',');
-        history.replaceState(null, '', '#' + view + (openPopup ? '&p=' + encodeURIComponent(openPopup) : '') +
+        // the state stays: the edit mode's steps (map_edit.js)
+        history.replaceState(history.state, '', '#' + view + (openPopup ? '&p=' + encodeURIComponent(openPopup) : '') +
             (page.markHash ? page.markHash() : ''));
         // The other levels keep the view.
         document.querySelectorAll('[data-map-level]').forEach(function (link) {

@@ -73,7 +73,8 @@ coordinates.
 - **Snapping:** while placing, a corner of the rectangle (or the point) snaps to a corner of the rooms, areas and
   storage units around it within 12 pixels, else onto their edges; turning snaps parallel or at right angles to the
   edges nearby and to the plan's walls, within 4°. Drawing an area snaps its corners to the corners and edges of the
-  others (Leaflet-Geoman). Alt while dragging: no snapping.
+  others (Leaflet-Geoman). Alt while dragging: no snapping; in the edit mode, the first snap on the page says so beside
+  the snapped point for a few seconds (not on touch screens, which have no Alt key).
 - **Which location types are placeable, and as what** is set in the admin, on each location type's page (section
   *Map*: placeable on the map; as point, as rectangle, as area; usual width and depth), or for all at once under *Maps → Map settings of location types*. For now
   containers (pallets, boxes) are not placed, nor the parts of storage units (compartments and drawers), which are
@@ -87,13 +88,37 @@ coordinates.
 ### Edit mode of the map
 
 Map editors (all staff, and whoever has `maps.edit_map`) switch the map page (`/map/`) to **Edit**: a click selects
-a building part, storage unit (or unique item, if they are placed) and a bar at the bottom shows what can be done.
-Areas: drag the corners, or with "Move as a whole" the area; rectangles: the middle handle moves, the outer one turns;
-points: the handle. Snapping as when placing. "Save" saves it (what is on or in it moves along), "Discard" or Esc
-forgets the change, "Remove position" removes it. Rectangles show their width and depth there, to change them.
+a building part, storage unit (or unique item, if they are placed). Handles are rings (white, blue, white; turning:
+pink) under a crosshair cursor, so the exact spot stays visible. Areas: drag the corners (a new one from the small
+handle between two), the area as a whole by its inside; rectangles and rows: the middle handle moves, any of the four
+outer ones turns (one on each side, at least 28 px outside the edge, as one may lie under something); points: the
+handle. While something is dragged, the box above it fades almost away. Snapping as when placing. Width, depth and turn of rectangles are in the bar at the bottom.
 
-**New** (point, rectangle, area) makes a position on the map first: a click for a point or rectangle, the corners for
-an area. Then the bar offers the locations of this level that are placeable but have no position yet (building
+Above the selected position, on the map, a box names what it belongs to: a click on it searches another location of
+this level without a position, which then gets the position (`take_from`: the old one's goes in the same step; unique
+items only show theirs). Its X asks, then removes the position at once (saved); the shape stays, to give it to
+another location, and is saved only once one is chosen ("Done" then offers to assign it or to discard it). On a shape
+that belongs to nothing (new, or after that) the X drops it. A click on the map beside the selection lets it go (with a
+change, asked as for "Done"). A tapped corner (pink ring) gets an X above it, not while it is dragged; tapping it again, Delete or a right
+click remove it, too; at least three stay. While there is a change that can be saved, "Save" and "Discard" show
+indented below "Done" and "Save" in the box, too (`map_edit.js`); saved, it stays selected. With nothing selected, the
+**New** buttons are there instead.
+
+Each step on the selected position (a drag, a removed corner, a size, number or turn entered, another location) can be
+undone and redone (not the X's removal, which is saved at once):
+with the arrows beside "Done", Ctrl+Z / Ctrl+Y (⌘Z / ⇧⌘Z), or the browser's back and forward, since each step is an
+entry of the browser's history (`map_edit.js`; `map.js` keeps that state when it writes the view into the address).
+The steps belong to the selection: once it is saved, discarded or another one is selected, back and forward pass
+over its entries.
+
+Leaving the page with a change not saved asks first (in the edit mode, another level is another page, too); "Done"
+then offers to save it, discard it or keep editing. Esc drops a new position not saved yet, else it is "Done". A
+popup open when the edit mode starts selects what it was opened for, and so does the pencil in the popups (for map
+editors: small, below the popup's close button); what is selected when it ends shows its popup. Enter (not on a button or link) or Ctrl+S / ⌘S saves.
+
+**New** (point, rectangle, area, row; below "Done" while nothing is selected) makes a position on the map first: a click for a point or rectangle, the corners for
+an area (the cursor a crosshair). Then the box above it offers the locations of this level that are placeable but have
+no position yet (building
 parts for an area, storage units for a point or rectangle); choosing one and saving gives it the position. A
 rectangle takes the usual size of the chosen location's type, unless a size was entered.
 
@@ -117,7 +142,9 @@ the free place nearest its middle that lies wholly inside its outline (better of
 nowhere stays in the middle if that is free, else it is hidden until one zooms in.
 
 The map page is the map alone, below the navbar (which marks the section of each page: items, locations, map): the
-levels at the left below the zoom buttons, "Edit" and "Floor plans" at the bottom right.
+levels at the left below the zoom buttons, below them "Mark", "Measure", "Edit" and "Floor plans" (a map with a
+pencil), one below the other. On small screens these show their icons only, the text while one is pressed or its
+menu open (`maps.css`). The bars of the edit mode and of measuring are at the bottom left.
 
 On a touchpad, a pinch zooms and a two-finger swipe pans. A pinch scales the map at once, as Leaflet's pinch on
 touch screens: the background tiles of another zoom level load only when the fingers rest, without fading in; the
@@ -138,7 +165,7 @@ outline, so it shows on photos, plans and other areas; the **label's first line*
 
 ### Measuring
 
-*Measure* (bottom right, for everyone; `map_measure.js`) measures a **distance** along a line (click its points,
+*Measure* (at the left, for everyone; `map_measure.js`) measures a **distance** along a line (click its points,
 the last one again to finish), an **area** with its perimeter (click its corners, the first one again to finish)
 and a **radius** around a point, with the circle's area (click the centre, then a point on the circle). Clicks go
 through what is drawn, so no popup opens; the points can be dragged afterwards. Lengths and areas are metres on the

@@ -734,14 +734,70 @@ msgstr "Erst den Standort wählen."
 msgid "Click a building part or storage unit to change its position."
 msgstr "Ein Gebäudeteil oder Lagermöbel anklicken, um seine Position zu ändern."
 
-#: templates/maps/map.html:42
-msgid "Drag the corners (or, with “Move as a whole”, the area); then save."
-msgstr "Die Ecken ziehen (oder mit „Ganz verschieben“ die Fläche); dann speichern."
+msgid "Remove corner"
+msgstr "Ecke entfernen"
+
+msgid "Snapped. Hold Alt (⌥) while dragging to place without snapping."
+msgstr "Eingerastet. Mit gedrückter Alt-Taste (⌥) ziehen, um ohne Einrasten zu platzieren."
+
+msgid "Save the change?"
+msgstr "Änderung speichern?"
+
+msgid "Keep editing"
+msgstr "Weiter bearbeiten"
+
+msgid "Undo"
+msgstr "Rückgängig"
+
+msgid "Redo"
+msgstr "Wiederholen"
+
+msgid "Edit the position"
+msgstr "Position bearbeiten"
+
+msgid "Change the location"
+msgstr "Standort ändern"
+
+msgid "Drop the shape"
+msgstr "Form verwerfen"
+
+msgid "Assign the shape?"
+msgstr "Form zuordnen?"
+
+msgid "The shape belongs to no location yet: assign it and save it, or discard it."
+msgstr "Die Form gehört noch zu keinem Standort: zuordnen und speichern oder verwerfen."
+
+msgid "Assign"
+msgstr "Zuordnen"
+
+msgid "Remove the position?"
+msgstr "Position entfernen?"
+
+msgid "It no longer has a position on the map; that is saved at once. The shape stays, to give it to another location, until it is dropped."
+msgstr "Es hat dann keine Position mehr auf der Karte; das wird sofort gespeichert. Die Form bleibt, um sie einem anderen Standort zu geben, bis sie verworfen wird."
+
+msgid "New point"
+msgstr "Neuer Punkt"
+
+msgid "New rectangle"
+msgstr "Neues Rechteck"
+
+msgid "New area"
+msgstr "Neue Fläche"
+
+msgid "New row"
+msgstr "Neue Reihe"
+
+msgid "The location the position belonged to does not exist (any more)."
+msgstr "Der Standort, zu dem die Position gehörte, existiert nicht (mehr)."
+
+msgid "The position was changed and is not saved yet."
+msgstr "Die Position wurde geändert und ist noch nicht gespeichert."
 
 #: templates/maps/map.html:43
 msgid ""
-"Drag the middle handle to move it and the outer one to turn it; then save."
-msgstr "Mit dem mittleren Griff verschieben, mit dem äußeren drehen; dann speichern."
+"Drag the middle handle to move it and one of the outer ones to turn it; then save."
+msgstr "Mit dem mittleren Griff verschieben, mit einem der äußeren drehen; dann speichern."
 
 #: templates/maps/map.html:44
 msgid "Drag the handle; then save."
@@ -774,14 +830,6 @@ msgstr "Breite"
 #: templates/maps/map.html:65 templates/maps/place_tools.html:15
 msgid "Depth"
 msgstr "Tiefe"
-
-#: templates/maps/map.html:72
-msgid "Corners"
-msgstr "Ecken"
-
-#: templates/maps/map.html:74
-msgid "Move as a whole"
-msgstr "Ganz verschieben"
 
 #: templates/maps/map.html:77 templates/maps/place_tools.html:22
 msgid "Turned"
@@ -1418,9 +1466,8 @@ msgstr "Die Mitte der Reihe anklicken, dann den ersten Standort wählen; die nä
 
 #: maps/templates/maps/map.html
 msgid ""
-"Drag the middle handle to move the row and the outer one to turn it; then "
-"save."
-msgstr "Am mittleren Griff die Reihe verschieben, am äußeren drehen; dann speichern."
+"Drag the middle handle to move the row and one of the outer ones to turn it; then save."
+msgstr "Am mittleren Griff die Reihe verschieben, an einem der äußeren drehen; dann speichern."
 
 #: maps/templates/maps/map.html
 msgid ""

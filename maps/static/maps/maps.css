@@ -26,13 +26,54 @@
     background: var(--bs-primary);
     color: #fff;
 }
-/* Edit and floor plans, at the bottom right of the map. */
+/* Marking, measuring, editing and the floor plans: at the left of the map, one below the other under the levels. */
 .map-actions {
     display: flex;
+    flex-direction: column;
+    align-items: flex-start;
     gap: .35rem;
 }
 .map-actions .btn {
+    display: inline-flex;
+    align-items: center;
     box-shadow: 0 1px 5px rgba(0, 0, 0, .4);
+}
+.map-actions a.btn {  /* not in Leaflet's colour of links */
+    color: var(--bs-btn-color);
+}
+.map-actions a.btn:hover {
+    color: var(--bs-btn-hover-color);
+}
+/* "Edit" with undo and redo beside it, in the edit mode. */
+.map-edit-toggle-group {
+    display: flex;
+    gap: .35rem;
+}
+/* Indented below "Done" (map_edit.js): "Save" and "Discard" while there is a change, "New" while nothing is
+   selected. */
+.map-edit-pending,
+.map-edit-new {
+    display: flex;
+    gap: .35rem;
+    margin-left: 1rem;
+}
+.map-actions .map-edit-pending .btn {
+    gap: .4rem;
+}
+/* On small screens their icons only; the text shows while one is pressed (marking, measuring, editing) or its menu
+   open. Hidden, it still names the button for screen readers. */
+@media (max-width: 767.98px) {
+    .map-actions .btn:not([aria-pressed="true"], [aria-expanded="true"]) .action-label {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+    }
+    .map-actions .btn:not([aria-pressed="true"], [aria-expanded="true"]) {
+        gap: 0;
+    }
 }
 .map-focus-message {
     margin-bottom: .5rem;
@@ -105,6 +146,27 @@
 }
 .map-popup .loc-code {
     white-space: nowrap;
+}
+/* The pencil of a popup, for map editors (map_edit.js): at once into the edit mode, with it selected. Small as the
+   popup's close button and below it, far enough from it for a finger. */
+.map-popup:has(.map-popup-edit) {
+    min-height: 3.75rem;
+}
+.leaflet-container .map-popup-edit {
+    position: absolute;
+    top: 2.5rem;
+    right: 0;
+    width: 24px;
+    height: 24px;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: #757575;
+    font-size: 14px;
+    line-height: 1;
+}
+.leaflet-container .map-popup-edit:hover {
+    color: #585858;
 }
 .map-popup-photo {
     display: block;
@@ -180,12 +242,17 @@
     background: var(--map-align-reticle);
     cursor: move;  /* dragged to correct the point */
 }
+/* Handles are rings, white, blue, white, so the exact spot stays visible inside on any background; the cursor a
+   crosshair (also the corners of the edit mode's areas, below). */
 .map-place-handle {
-    background: #fff;
-    border: 3px solid #d63384;
+    background: transparent;
+    border: 2px solid #0d6efd;
     border-radius: 50%;
-    box-shadow: 0 0 0 2px rgba(255, 255, 255, .8);
-    cursor: move;
+    box-shadow: 0 0 0 1.5px #fff, inset 0 0 0 1.5px #fff;
+    cursor: crosshair;
+}
+.leaflet-dragging .leaflet-marker-draggable.map-place-handle {
+    cursor: crosshair;
 }
 .result-map {
     white-space: nowrap;
@@ -194,9 +261,8 @@
     display: block;
     margin-top: .25rem;
 }
-.map-place-knob {
-    border-color: #0d6efd;
-    cursor: grab;
+.map-place-knob {  /* turning: pink */
+    border-color: #d63384;
 }
 .map-place-size {
     display: inline-flex;
@@ -252,6 +318,104 @@ body:has(.map-page-canvas) > .container {
 }
 .map-editing .leaflet-interactive {
     cursor: pointer;
+}
+/* The note at the first snap: a line of its own at the end of the bar. */
+/* The note at the first snap, beside the snapped point. */
+.leaflet-tooltip.map-snap-note {
+    color: var(--bs-info-text-emphasis);
+    background: var(--bs-info-bg-subtle);
+    border-color: var(--bs-info-border-subtle);
+    white-space: normal;
+    width: max-content;
+    max-width: 16rem;
+}
+/* Above the selected position and its chosen corner, on the map (map_edit.js): a box whose triangle points at it.
+   The marker holding it is a point (map-edit-anchor). */
+.map-edit-box {
+    position: absolute;
+    left: 0;
+    bottom: 16px;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    gap: .35rem;
+    padding: .25rem .35rem;
+    background: #fff;
+    border-radius: var(--bs-border-radius);
+    box-shadow: 0 1px 5px rgba(0, 0, 0, .4);
+    white-space: nowrap;
+    pointer-events: auto;
+    cursor: default;
+}
+.map-edit-box::after {
+    content: "";
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    margin-left: -7px;
+    border: 7px solid transparent;
+    border-top-color: #fff;
+    pointer-events: none;  /* the handle below stays draggable */
+}
+.map-edit-moving .map-edit-box {  /* while something is dragged */
+    opacity: .15;
+    pointer-events: none;
+    transition: opacity .15s;
+}
+.map-edit-corner-box {
+    bottom: 14px;
+    padding: .2rem;
+}
+.map-edit-box-button {
+    line-height: 1;
+}
+.map-edit-assign {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: .1rem;
+    padding: .1rem .3rem;
+    border: 0;
+    text-align: left;
+}
+.map-edit-assign:disabled {  /* a unique item's: only shown */
+    opacity: 1;
+    color: inherit;
+}
+.map-edit-assign-title {
+    font-weight: 600;
+}
+.map-edit-assign .loc-code {
+    font-size: .75rem;
+}
+/* Without anything to show (an area selected), the bar goes; its label goes while the box above it names it. */
+.map-edit-bar:not(:has(> :not([hidden], :empty))) {
+    display: none;
+}
+.leaflet-tooltip.map-label-selected {
+    visibility: hidden;
+}
+/* The selected area, dragged as a whole by its inside (map_edit.js). */
+.map-editing .leaflet-interactive.map-edit-area {
+    cursor: move;
+}
+/* The corner of an area tapped last, to remove it (map_edit.js). */
+.map-editing .marker-icon:not(.marker-icon-middle) {
+    background: transparent;
+    border: 2px solid #0d6efd;
+    box-shadow: 0 0 0 1.5px #fff, inset 0 0 0 1.5px #fff;
+    cursor: crosshair;
+}
+.leaflet-dragging .map-editing .marker-icon {
+    cursor: crosshair;
+}
+.map-editing .marker-icon.map-corner-chosen {
+    border-color: #d63384;
+    border-width: 3px;
+}
+/* Placing a new one: the spot under a crosshair. */
+.map-drawing.leaflet-container {
+    cursor: crosshair;
 }
 /* Drawing a new position: clicks on what is drawn go to the map (their popups would stop them). */
 .map-drawing .leaflet-pane > svg path.map-feature {

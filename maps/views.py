@@ -177,18 +177,33 @@ class _SaveView(View):
 
 
 class LocationShapeView(_SaveView):
+    """Places a location, or removes its position. take_from=<pk> (the edit mode's change of what a position belongs
+    to, map_edit.js): that location's position goes, in the same step."""
+
     def post(self, request, pk):
         with transaction.atomic():
             location = get_object_or_404(Location.active.select_for_update().select_related("type"), pk=pk)
             if reason := shape_denied(request.user, location):
                 return self.answer(reason, status=403)
+            previous = None
+            if (take_from := request.POST.get("take_from", "")) and take_from != str(pk):
+                previous = Location.active.select_for_update().select_related("type").filter(
+                    pk=take_from if take_from.isdigit() else None).first()
+                if previous is None:
+                    return self.answer(_("The location the position belonged to does not exist (any more)."),
+                                       status=404)
+                if reason := shape_denied(request.user, previous):
+                    return self.answer(reason, status=403)
             try:
                 placement = positions.placement_from(request.POST) or {"kind": None, "geometry": None,
                                                                        "rotation": 0.0, "size": None}
                 kind = placement["kind"]
                 shape = positions.set_location_shape(location, kind, placement["geometry"], placement["rotation"],
                                                      size=placement["size"])
+                if previous is not None:
+                    positions.set_location_shape(previous, None, None)
             except positions.PlacementError as error:
+                transaction.set_rollback(True)
                 return self.answer(error)
         return self.answer(description=positions.describe(shape))
 

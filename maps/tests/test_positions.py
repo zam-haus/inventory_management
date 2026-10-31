@@ -246,6 +246,23 @@ class StorageUnitTests(Building, TestCase):
         shape.refresh_from_db()
         self.assertEqual((shape.width_cm, shape.depth_cm), (180, 50))  # its own size
 
+    def test_a_position_can_go_to_another_location(self):
+        # The edit mode's change of what a position belongs to: the other one gets it, this one's goes, together.
+        other = Location.objects.create(type=self.shelf.type, name="Regal 302", short_name="R302",
+                                        parent_location=self.store)
+        positions.set_location_shape(self.shelf, None, CENTER)
+        self.client.force_login(self.member)
+        url = reverse("maps:location_shape", args=[other.pk])
+        response = self.client.post(url, {"map_geometry": CENTER.json, "map_kind": "point", "take_from": self.shelf.pk})
+        self.assertTrue(response.json()["ok"], response.content)
+        self.assertIsNotNone(LocationShape.objects.get(location=other).geometry)
+        self.assertIsNone(LocationShape.objects.get(location=self.shelf).geometry)
+        # Nothing changes when the one it belonged to may not be changed.
+        response = self.client.post(reverse("maps:location_shape", args=[self.shelf.pk]),
+                                    {"map_geometry": CENTER.json, "map_kind": "point", "take_from": self.compartment.pk})
+        self.assertEqual(response.status_code, 403)
+        self.assertIsNone(LocationShape.objects.get(location=self.shelf).geometry)
+
     def test_compartments_are_where_their_shelf_is(self):
         self.client.force_login(self.member)
         response = self.client.post(reverse("maps:location_shape", args=[self.compartment.pk]),

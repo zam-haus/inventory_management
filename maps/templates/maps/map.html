@@ -21,10 +21,11 @@
                data-title="{% blocktrans with label=level_label %}Map, level {{ label }}{% endblocktrans %}"{% if n == number %} aria-current="page"{% endif %} title="{% blocktrans %}Level {{ level_label }}{% endblocktrans %}: {{ codes|join:', ' }}">{{ level_label }}</a>
         {% endfor %}
     </nav>
-    {# On the map, at the bottom right: editing it, and the floor plans. #}
+    {# On the map, at the left below the levels: marking, measuring, editing, the floor plans. #}
+    {# On small screens only their icons; the text shows while one is pressed or open (maps.css). #}
     <span class="map-actions" data-map-actions hidden>
         {# Marking a place or an area to send a link to it (map_mark.js), for everyone: what, from a menu. #}
-        <span class="dropup">
+        <span class="dropend">
         <button type="button" class="btn btn-sm btn-light dropdown-toggle" aria-pressed="false" aria-expanded="false"
                 data-bs-toggle="dropdown" data-map-mark-toggle
                 data-armed="{% trans 'Click the spot' %}" data-armed-area="{% trans 'Click the corners' %}"
@@ -32,17 +33,33 @@
                 data-in="{% trans 'In' context 'located in' %}"
                 data-area-url="{% url 'maps:area_at' %}" data-copy="{% trans 'Copy link' %}"
                 data-copied="{% trans 'Link copied.' %}" data-copy-by-hand="{% trans 'Copy the link with Ctrl+C or ⌘C:' %}"
-                data-share="{% trans 'Share link' %}" data-remove="{% trans 'Remove' context 'map marker' %}">{% icon "geo-alt" %} <span data-mark-label>{% trans "Mark" context "map" %}</span></button>
-        <ul class="dropdown-menu dropdown-menu-end">
+                data-share="{% trans 'Share link' %}" data-remove="{% trans 'Remove' context 'map marker' %}">{% icon "geo-alt" %} <span class="action-label" data-mark-label>{% trans "Mark" context "map" %}</span></button>
+        <ul class="dropdown-menu">
             <li><button type="button" class="dropdown-item" data-mark-kind="point">{% icon "geo-alt" %} {% trans "Place" context "map marker" %}</button></li>
             <li><button type="button" class="dropdown-item" data-mark-kind="area">{% icon "pentagon" %} {% trans "Area" context "map marker" %}</button></li>
         </ul>
         </span>
         <template data-mark-icons><span data-icon="share">{% icon "box-arrow-up" %}</span><span data-icon="remove">{% icon "x-lg" %}</span></template>
-        <button type="button" class="btn btn-sm btn-light" aria-pressed="false" data-map-measure-toggle>{% include "maps/icons/tape_measure.svg" %} {% trans "Measure" %}</button>
-        {% if not edit_denied %}<button type="button" class="btn btn-sm btn-warning" data-map-edit-toggle data-done="{% trans 'Done' %}">{% icon "pencil" %} <span>{% trans "Edit" %}</span></button>
+        <button type="button" class="btn btn-sm btn-light" aria-pressed="false" data-map-measure-toggle>{% include "maps/icons/tape_measure.svg" %} <span class="action-label">{% trans "Measure" %}</span></button>
+        {% if not edit_denied %}<span class="map-edit-toggle-group">
+            <button type="button" class="btn btn-sm btn-warning" data-map-edit-toggle data-done="{% trans 'Done' %}">{% icon "pencil" %} <span class="action-label">{% trans "Edit" %}</span></button>
+            {# Undo and redo in the edit mode, as the browser's back and forward (map_edit.js). #}
+            <button type="button" class="btn btn-sm btn-light" data-map-edit-undo hidden disabled title="{% trans 'Undo' %}" aria-label="{% trans 'Undo' %}">{% icon "arrow-counterclockwise" %}</button>
+            <button type="button" class="btn btn-sm btn-light" data-map-edit-redo hidden disabled title="{% trans 'Redo' %}" aria-label="{% trans 'Redo' %}">{% icon "arrow-clockwise" %}</button>
+        </span>
+        {# Below "Done": with nothing selected, a new position; while there is a change to save, saving it (map_edit.js). #}
+        <span class="map-edit-new" role="group" aria-label="{% trans 'New position' %}" data-edit-new hidden>
+            <button type="button" class="btn btn-sm btn-light" data-new="point" title="{% trans 'New point' %}">{% icon "record-circle" %} <span class="action-label">{% trans "Point" %}</span></button>
+            <button type="button" class="btn btn-sm btn-light" data-new="rectangle" title="{% trans 'New rectangle' %}">{% icon "square" %} <span class="action-label">{% trans "Rectangle" %}</span></button>
+            <button type="button" class="btn btn-sm btn-light" data-new="area" title="{% trans 'New area' %}">{% icon "pentagon" %} <span class="action-label">{% trans "Area" %}</span></button>
+            <button type="button" class="btn btn-sm btn-light" data-new="row" title="{% trans 'New row' %}">{% icon "layout-three-columns" %} <span class="action-label">{% trans "Row" %}</span></button>
+        </span>
+        <span class="map-edit-pending" data-map-edit-pending hidden>
+            <button type="button" class="btn btn-sm btn-primary" data-edit-save>{% icon "floppy" %} <span>{% trans "Save" %}</span></button>
+            <button type="button" class="btn btn-sm btn-light" data-edit-discard>{% trans "Discard" %}</button>
+        </span>
         {% elif user.is_authenticated %}{% icon "pencil" as edit_icon %}{% disabled_action edit_icon label=_("Edit") name=_("Edit the map") reason=edit_denied classes="btn btn-sm btn-warning" %}{% endif %}
-        {% if can_manage_plans %}<a class="btn btn-sm btn-light" href="{% url 'maps:plans' %}">{% trans "Floor plans" %}</a>{% endif %}
+        {% if can_manage_plans %}<a class="btn btn-sm btn-light" href="{% url 'maps:plans' %}">{% include "maps/icons/map_edit.svg" %} <span class="action-label">{% trans "Floor plans" %}</span></a>{% endif %}
     </span>
     {# Out to the edges of the window (maps.css); map.js sizes it down to the bottom. #}
     <div class="map-canvas map-page-canvas" data-map-page data-url="{% url 'maps:level_data' number %}"
@@ -75,31 +92,16 @@
          data-new-point="{% trans 'Click where it is, then choose the location.' %}"
          data-new-area="{% trans 'Click the corners of the area one after the other (the first again to finish), then choose the location.' %}"
          data-new-row="{% trans 'Click where the middle of the row is, then choose the first location; the next ones of its type without a position follow in the order of their codes.' %}"
-         data-row="{% trans 'Drag the middle handle to move the row and the outer one to turn it; then save.' %}"
+         data-row="{% trans 'Drag the middle handle to move the row and one of the outer ones to turn it; then save.' %}"
          data-row-short="{% trans 'Only {count} locations of this type without a position follow; choose another first one or fewer.' %}"
          data-none-left="{% trans 'Every location of this kind on this level has a position already.' %}"
          data-choose="{% trans 'Choose the location first.' %}"
          data-pick="{% trans 'Click a building part or storage unit to change its position.' %}"
-         data-area="{% trans 'Drag the corners (or, with “Move as a whole”, the area); then save.' %}"
-         data-rectangle="{% trans 'Drag the middle handle to move it and the outer one to turn it; then save.' %}"
+         data-rectangle="{% trans 'Drag the middle handle to move it and one of the outer ones to turn it; then save.' %}"
          data-point="{% trans 'Drag the handle; then save.' %}"
-         data-error="{% trans 'Not saved:' %}">
+         data-edit-this="{% trans 'Edit the position' %}" data-error="{% trans 'Not saved:' %}"
+         data-snap-note="{% trans 'Snapped. Hold Alt (⌥) while dragging to place without snapping.' %}">
         {% csrf_token %}
-        <span class="btn-group btn-group-sm" role="group" aria-label="{% trans 'New position' %}" data-edit-new>
-            <span class="btn btn-sm disabled">{% trans "New" %}:</span>
-            <button type="button" class="btn btn-outline-secondary" data-new="point">{% trans "Point" %}</button>
-            <button type="button" class="btn btn-outline-secondary" data-new="rectangle">{% trans "Rectangle" %}</button>
-            <button type="button" class="btn btn-outline-secondary" data-new="area">{% trans "Area" %}</button>
-            <button type="button" class="btn btn-outline-secondary" data-new="row">{% trans "Row" %}</button>
-        </span>
-        <strong data-edit-title></strong>
-        {# Searchable by any words of code, purpose and name; the hits show purpose or name, the code chip below. #}
-        <span class="map-edit-search" data-edit-search hidden>
-            <input type="search" class="form-control form-control-sm" data-edit-location role="combobox"
-                   aria-label="{% trans 'Location' %}" aria-expanded="false" aria-controls="map-edit-results"
-                   aria-autocomplete="list" placeholder="{% trans 'Search the location…' %}" autocomplete="off">
-            <span class="map-edit-results list-group" id="map-edit-results" role="listbox" data-edit-results hidden></span>
-        </span>
         <span class="map-place-size" data-edit-size hidden>
             <label for="map-edit-width">{% trans "Width" %}</label>
             <input type="number" class="form-control form-control-sm" id="map-edit-width" min="1" step="1" inputmode="numeric">
@@ -114,22 +116,75 @@
             <button type="button" class="btn btn-sm btn-outline-secondary" aria-pressed="false" data-edit-reverse>{% trans "Reverse order" %}</button>
         </span>
         <span class="text-muted" data-edit-hint></span>
-        <span class="btn-group btn-group-sm" role="group" data-edit-area-mode hidden>
-            <input type="radio" class="btn-check" name="map-edit-area-mode" id="map-edit-corners" value="corners" autocomplete="off" checked>
-            <label class="btn btn-outline-secondary" for="map-edit-corners">{% trans "Corners" %}</label>
-            <input type="radio" class="btn-check" name="map-edit-area-mode" id="map-edit-whole" value="whole" autocomplete="off">
-            <label class="btn btn-outline-secondary" for="map-edit-whole">{% trans "Move as a whole" %}</label>
-        </span>
         <span class="map-edit-rotation" data-edit-rotation hidden>
             <label for="map-edit-rotation">{% trans "Turned" %}</label>
             <input type="range" class="form-range" id="map-edit-rotation" min="0" max="359" step="1" value="0">
             <output for="map-edit-rotation">0°</output>
         </span>
-        <span class="map-edit-actions" data-edit-actions hidden>
-            <button type="button" class="btn btn-sm btn-outline-danger" data-edit-remove>{% trans "Remove position" %}</button>
-            <button type="button" class="btn btn-sm btn-secondary" data-edit-discard>{% trans "Discard" %}</button>
-            <button type="button" class="btn btn-sm btn-primary" data-edit-save>{% trans "Save" %}</button>
+    </div>
+    {# On the map, above the selected position (map_edit.js): what it belongs to, which can be changed (a location of #}
+    {# this level without a position: searchable by any words of code, purpose and name), saving a change, the X: #}
+    {# ending what it belongs to (asked, saved at once; the shape stays, for another location), or, without one, #}
+    {# dropping the shape. #}
+    <div class="map-edit-box" data-edit-box hidden>
+        <button type="button" class="btn btn-sm map-edit-assign" data-edit-assign title="{% trans 'Change the location' %}"></button>
+        <span class="map-edit-search" data-edit-search hidden>
+            <input type="search" class="form-control form-control-sm" data-edit-location role="combobox"
+                   aria-label="{% trans 'Location' %}" aria-expanded="false" aria-controls="map-edit-results"
+                   aria-autocomplete="list" placeholder="{% trans 'Search the location…' %}" autocomplete="off">
+            <span class="map-edit-results list-group" id="map-edit-results" role="listbox" data-edit-results hidden></span>
         </span>
+        <button type="button" class="btn btn-sm btn-primary map-edit-box-button" data-edit-box-save hidden
+                title="{% trans 'Save' %}" aria-label="{% trans 'Save' %}">{% icon "floppy" %}</button>
+        <button type="button" class="btn btn-sm btn-outline-danger map-edit-box-button" data-edit-remove
+                data-remove="{% trans 'Remove position' %}" data-drop="{% trans 'Drop the shape' %}">{% icon "x-lg" %}</button>
+    </div>
+    {# Above the chosen corner of an area (also: tapping it again, Delete; a right click removes a corner at once). #}
+    <div class="map-edit-box map-edit-corner-box" data-edit-corner-box hidden>
+        <button type="button" class="btn btn-sm btn-outline-danger map-edit-box-button" data-edit-remove-corner
+                title="{% trans 'Remove corner' %}" aria-label="{% trans 'Remove corner' %}">{% icon "x-lg" %}</button>
+    </div>
+    {# The box's X on a position that belongs to something (map_edit.js). #}
+    <div class="modal fade" id="map-edit-unassign" tabindex="-1" aria-labelledby="map-edit-unassign-title" aria-hidden="true" data-edit-unassign>
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2 class="modal-title fs-5" id="map-edit-unassign-title">{% trans "Remove the position?" %}</h2>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{% trans 'Cancel' %}"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="fw-semibold" data-unassign-title></p>
+                    <p class="mb-0">{% trans "It no longer has a position on the map; that is saved at once. The shape stays, to give it to another location, until it is dropped." %}</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{% trans "Cancel" %}</button>
+                    <button type="button" class="btn btn-danger" data-unassign-confirm>{% trans "Remove position" %}</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    {# Leaving the selection with a change not saved, or a shape without a location (map_edit.js). #}
+    <div class="modal fade" id="map-edit-unsaved" tabindex="-1" aria-labelledby="map-edit-unsaved-title" aria-hidden="true" data-edit-unsaved>
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2 class="modal-title fs-5" id="map-edit-unsaved-title" data-save="{% trans 'Save the change?' %}"
+                        data-assign="{% trans 'Assign the shape?' %}">{% trans "Save the change?" %}</h2>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{% trans 'Keep editing' %}"></button>
+                </div>
+                <div class="modal-body">
+                    <p data-unsaved-text data-save="{% trans 'The position was changed and is not saved yet.' %}"
+                       data-assign="{% trans 'The shape belongs to no location yet: assign it and save it, or discard it.' %}">{% trans "The position was changed and is not saved yet." %}</p>
+                    <p class="fw-semibold mb-0" data-unsaved-title></p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-danger me-auto" data-unsaved-discard>{% trans "Discard" %}</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" data-unsaved-keep>{% trans "Keep editing" %}</button>
+                    <button type="button" class="btn btn-primary" data-unsaved-save>{% trans "Save" %}</button>
+                    <button type="button" class="btn btn-primary" data-unsaved-assign hidden>{% trans "Assign" %}</button>
+                </div>
+            </div>
+        </div>
     </div>
     {% endif %}
     {% map_config %}
