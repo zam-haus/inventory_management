@@ -111,11 +111,13 @@ buttons; the tooltip can keep the longer name.
 
 Where actions share a row with a title (`data-action-row` on the row,
 `data-action-group` on the buttons; the title comes first), they stand right-aligned beside the
-title. Those that would not fit there on one line, on narrow screens or with a long title, move
-into an **actions menu** (three dots) at the right end, one by one from the right, until the
-others fit; with none left, the menu alone stays beside the title. **Important actions**
-(`data-action-primary`) never move: if they still do not fit, they show their icon only and are
-listed in the menu as well. They are taking stock out on a bulk item's page, moving a container,
+title. When they do not fit there on one line, on narrow screens or with a long title, an
+**actions menu** (three dots) at the right end takes them in this order, until the rest fits:
+first the **unavailable** ones, one by one from the right; then the usable ones show their **icon
+only** (all at once, so the row stays alike) and are listed in the menu as well; last the usable
+ones **move** into the menu, from the right. With none left, the menu alone stays beside the
+title. **Important actions** (`data-action-primary`) never move while usable: at most they show
+their icon only. They are taking stock out on a bulk item's page, moving a container,
 "move here" on a storage unit (shelf, cabinet) and moving a unique item. The menu lists the moved
 actions with their icon and name; unavailable ones are greyed out with their reason. Its entries
 click the hidden original buttons, so dialogs and scripts work as before. Without JavaScript the

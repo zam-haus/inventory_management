@@ -25,11 +25,12 @@
 .action-label { font-size: var(--bs-btn-font-size); white-space: nowrap; }
 .btn:has(> .action-label) { gap: .4rem; }
 
-/* Action rows (actions.js): actions that would not fit beside the title move into a menu at the right end, from
-   the right; with none left, the menu stays beside the title, which then wraps. */
+/* Action rows (actions.js): actions that would not fit beside the title go into a menu at the right end, the
+   unavailable ones first, then the usable ones after showing their icon only; with none left, the menu stays beside
+   the title, which then wraps. */
 [data-action-row].is-collapsed { flex-wrap: nowrap; }
 [data-action-row] [data-action-group] > .is-overflowed { display: none !important; }
-/* Important actions that stay when space is short: their icon only (they are in the menu, too). */
+/* Usable actions when space is short: their icon only (they are in the menu, too). */
 [data-action-row] [data-action-group] > .is-compact .action-label { display: none; }
 [data-action-row] > [data-action-group],
 [data-action-row].is-collapsed > .action-menu { margin-left: auto; }

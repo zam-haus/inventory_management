@@ -53,11 +53,12 @@ window.appIcon = name => {
     };
 })();
 
-// Action rows: a title and its actions ([data-action-row] containing [data-action-group]). Actions that do not fit
-// beside the title move into a menu at the right end, one by one from the right (#action-menu-template); if none
-// fit, the menu alone stays beside the title. Important actions ([data-action-primary], e.g. taking stock out)
-// stay: if the others are in the menu and they still do not fit, they show their icon only and are listed in the
-// menu, too. Menu entries forward clicks to the hidden originals, which keep their
+// Action rows: a title and its actions ([data-action-row] containing [data-action-group]). When the actions do not
+// fit beside the title, a menu at the right end (#action-menu-template) takes them in this order, until the rest
+// fits: first the unavailable ones (.disabled-action), one by one from the right; then the usable ones show their
+// icon only (all at once, so the row stays alike) and are listed in the menu, too; last the usable ones move into
+// it, from the right. Important actions ([data-action-primary], e.g. taking stock out) stay while usable. With none
+// left, the menu alone stays beside the title. Menu entries forward clicks to the hidden originals, which keep their
 // behaviour; unavailable actions are listed disabled with their reason.
 (() => {
     const template = document.getElementById('action-menu-template');
@@ -100,6 +101,21 @@ window.appIcon = name => {
     const overflowed = action => action.classList.contains('is-overflowed');
     const primary = action => action.hasAttribute('data-action-primary');
     const compact = action => action.classList.contains('is-compact');
+    const unavailable = action => action.matches('.disabled-action');
+
+    // Its icon only; its text, now hidden, stays its name and tooltip.
+    function shorten(action) {
+        action.classList.add('is-compact');
+        const name = action.textContent.trim();
+        if (!action.hasAttribute('aria-label')) {
+            action.setAttribute('aria-label', name);
+            action.dataset.compactName = 'true';
+        }
+        if (!action.hasAttribute('title') && !action.hasAttribute('data-bs-original-title')) {
+            action.setAttribute('title', name);
+            action.dataset.compactTitle = 'true';
+        }
+    }
     const rows = [...document.querySelectorAll('[data-action-row]')].map(row => {
         const group = row.querySelector('[data-action-group]');
         if (!group || group === row.firstElementChild) return null;
@@ -141,23 +157,17 @@ window.appIcon = name => {
                 return;
             }
             menu.hidden = false;
-            for (let index = all.length - 1; index >= 0 && wraps(); index--) {
-                if (!primary(all[index])) all[index].classList.add('is-overflowed');
-            }
-            if (wraps()) {
-                all.filter(primary).forEach(action => {
-                    action.classList.add('is-compact');
-                    // Its text is hidden: it keeps it as its name and tooltip.
-                    const name = action.textContent.trim();
-                    if (!action.hasAttribute('aria-label')) {
-                        action.setAttribute('aria-label', name);
-                        action.dataset.compactName = 'true';
-                    }
-                    if (!action.hasAttribute('title') && !action.hasAttribute('data-bs-original-title')) {
-                        action.setAttribute('title', name);
-                        action.dataset.compactTitle = 'true';
-                    }
-                });
+            const usable = all.filter(action => !unavailable(action));
+            const fromRight = list => [...list].reverse();
+            const steps = [
+                ...fromRight(all.filter(unavailable)).map(action => () => action.classList.add('is-overflowed')),
+                () => usable.filter(action => action.querySelector('.action-label')).forEach(shorten),
+                ...fromRight(usable.filter(action => !primary(action)))
+                    .map(action => () => action.classList.add('is-overflowed')),
+            ];
+            for (const step of steps) {
+                if (!wraps()) break;
+                step();
             }
             if (all.every(overflowed)) {  // only the menu, beside the title, which wraps instead
                 row.classList.add('is-collapsed');
