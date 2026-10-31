@@ -13,6 +13,7 @@ How the ZAM inventory works, feature by feature. Setup is covered in the
 * [Change log](change-log.md): every change of items, unique items, stock and locations, and printed labels; who sees what
 * [Unique items](unique-items.md): single objects (*Einzelobjekte*) with their own label ID and owner
 * [Label IDs](label-ids.md): permanent IDs on labels (shown as *ZAMid*), resolver, lifecycle and label PNGs
+* [Link previews](link-previews.md): what a shared link shows in a chat (OpenGraph tags), map links with a picture of the map
 * [Search](search.md): one search over locations, items and unique items, results while typing; never internal information
 * [Text recognition on photos](ocr.md): text lines found by a detection model and read by Tesseract, EAN barcodes; for the search
 * [Maps](maps.md) (optional): floor plans of the levels, positions of building parts, storage units, containers and unique items; placing with a click

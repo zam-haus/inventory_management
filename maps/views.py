@@ -13,8 +13,9 @@ from django.contrib.gis.db.models.functions import AsGeoJSON
 from django.contrib.gis.geos import Point
 from django.core.exceptions import PermissionDenied
 from django.db import transaction
-from django.http import FileResponse, Http404, HttpResponseRedirect, JsonResponse
+from django.http import FileResponse, Http404, HttpResponse, HttpResponseRedirect, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.templatetags.static import static
 from django.urls import reverse
 from django.utils.cache import patch_cache_control
 from django.utils.translation import gettext as _
@@ -22,9 +23,10 @@ from django.views import View
 from django.views.decorators.http import require_GET
 from sorl.thumbnail import get_thumbnail
 
+from inventory.favicon import favicon_dir
 from inventory.models import Location, LocationType, UniqueItem
 
-from . import geo, levels, plans, positions
+from . import geo, levels, plans, positions, preview
 from .render import RenderError, crop_polygon
 from .forms import FloorPlanForm
 from .models import FloorPlan, LocationShape, SurveyedPoint, UniqueItemPosition
@@ -151,7 +153,12 @@ def map_view(request, number=None):
     if number not in numbers and numbers:
         raise Http404
     houses = {n: [tree.code(pk) for pk in pks] for n, pks in numbers.items()}
+    # What a shared link shows in a chat (preview.py): the target the query names, else the level; the level's data
+    # only for a target.
+    named = any(request.GET.get(key) for key in ("p", "m", "a"))
+    target = preview.target(request.GET, level_payload(number, tree)) if named else preview.Target()
     return render(request, "maps/map.html", {
+        "link_preview": preview.describe(number, target),
         # Top down, as the floors lie in the building.
         "levels": [(n, levels.label(n), houses[n]) for n in sorted(numbers, reverse=True)], "number": number,
         "label": levels.label(number), "can_manage_plans": plans_denied(request.user) is None,
@@ -334,17 +341,12 @@ def area_at(request):
         number = int(request.GET["level"])
     except (KeyError, ValueError):
         raise Http404
-    tree = levels.Tree()
-    candidates = [pk for pk in LocationShape.objects.filter(kind=LocationShape.Kind.AREA, geometry__contains=point)
-                  .values_list("location_id", flat=True) if tree.level_number(pk) == number]
-    if not candidates:
-        return JsonResponse({"area": None})
-    # Where it is now wins (stacked parts share their footprint: HBB.1 and HBB.2), else the deepest area.
     current = request.GET.get("current", "")
-    pk = int(current) if current.isdigit() and int(current) in candidates else max(candidates, key=tree.depth)
-    location = Location.active.get(pk=pk)
-    return JsonResponse({"area": {"pk": pk, "code": location.unique_identifier, "title": location.title_with_code,
-                                  "url": location.get_absolute_url()}})
+    location = preview.area_at_point(point, number, int(current) if current.isdigit() else None)
+    if location is None:
+        return JsonResponse({"area": None})
+    return JsonResponse({"area": {"pk": location.pk, "code": location.unique_identifier,
+                                  "title": location.title_with_code, "url": location.get_absolute_url()}})
 
 
 def _serve(file, as_attachment=False, name=None):
@@ -536,3 +538,18 @@ class PlanAlignView(PermissionRequiredMixin, View):
                 return redirect("maps:plan_align", pk=pk)
         messages.success(request, message)
         return redirect("maps:plan_align", pk=pk)
+
+
+@require_GET
+def preview_image(request, number):
+    """The picture of a shared map link (preview.py), public like the map."""
+    if number not in levels.Tree().levels():
+        raise Http404
+    payload = level_payload(number)
+    data = preview.picture(number, payload, preview.target(request.GET, payload))
+    if data is None:  # nothing on the level: the logo
+        return HttpResponseRedirect(static(f"{favicon_dir()}/icon-maskable-512.png"))
+    response = HttpResponse(data, content_type="image/png")
+    response["Cache-Control"] = "public, max-age=86400"
+    response["X-Content-Type-Options"] = "nosniff"
+    return response

@@ -17,7 +17,7 @@ from django.utils.translation import gettext as _
 from django.views import View
 from django.views.generic import DetailView
 
-from . import forms
+from . import forms, link_preview
 from .models import Item, Location, UniqueItem
 from .permissions import UNIQUE_ITEM_CREATE_PERMISSIONS, ItemEditorPermissionMixin
 from .label_ids import services
@@ -38,9 +38,11 @@ class DetailUniqueItemView(DetailView):
         self.object.label_code = lid.code if lid else None
         # This object's own photos and files come first, then those of the item in general.
         images = self.object.item.general_images
+        own_images = list(self.object.images.all())
         context.update(
             lid=lid,
-            own_images=list(self.object.images.all()), images=images, item_images_count=len(images),
+            own_images=own_images, images=images, item_images_count=len(images),
+            link_preview=link_preview.for_unique_item(self.object, own_images, images),
             files=list(self.object.files.all()),
             general_files=list(self.object.item.itemfile_set.filter(unique_item__isnull=True)),
             general_files_count=self.object.item.itemfile_set.filter(unique_item__isnull=True).count(),

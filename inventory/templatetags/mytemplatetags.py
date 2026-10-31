@@ -40,10 +40,14 @@ def markdown(text):
     return mark_safe(render_markdown(text))
 
 
-@register.filter
-def markdown_plain(text):
+def plain_markdown(text):
     """The text of rendered Markdown, for short previews."""
     return " ".join(strip_tags(render_markdown(text)).split())
+
+
+@register.filter
+def markdown_plain(text):
+    return plain_markdown(text)
 
 
 @register.inclusion_tag("inventory/usage_level.html")

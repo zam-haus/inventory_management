@@ -180,13 +180,17 @@ gaps.
 
 ### Sharing a view
 
-The "On the map" links lead to the level with `#p=loc:<pk>` (or `item:`): the map shows that location, or the
+The "On the map" links lead to the level with `?p=loc:<pk>` (or `item:`): the map shows that location, or the
 place it is in, highlighted with its popup open. The small map in the location window shows that popup too.
 A location's popup shows its overview photo above its name and code; the thumbnail is made when the popup first
 opens (`maps:location_photo`), not for the whole level.
 
-The map page keeps its view in the address: `#z=<zoom>&b=<south>,<west>,<north>,<east>`, and `&p=loc:<pk>` while a
-location's popup is open. Such a link shows the same rectangle (and opens the popup); switching the level keeps it.
+The map page keeps in its address what it shows in the query, and its view after `#`:
+`?p=loc:<pk>#z=<zoom>&b=<south>,<west>,<north>,<east>` while a location's popup is open. The query is what a
+chat's link preview sees (the part after `#` never reaches the server): such links get a picture of the map
+([link previews](link-previews.md)). A link shows the same rectangle (and opens the popup); switching the level
+keeps the view and drops the query (popup and marking belong to their level). Links of earlier versions, with `p`,
+`m`, `a` and `t` after `#`, still work.
 Switching the level does not load the page anew: the map draws the other level's data in place (the background,
 the view and measurements stay; the plans shown so far stay until the new ones are loaded), and the address
 changes, so the browser's back button returns to the level before. In the edit mode the level buttons load the page.
@@ -197,10 +201,10 @@ To send a link to a spot or an area, "Mark" (for everyone) offers "Place" and "A
 Escape gives it up). One marking at a time; a new one replaces it. It belongs to its level: switching to another level hides it
 (and leaves it out of the address) until its level is shown again; an area being drawn is given up. A click on "Here" changes that text (`&t=<text>`;
 empty: "Here" again). Its popup names the area it is in (`maps:area_at`) and offers the link to copy or share (on
-touch screens only sharing: the system's share sheet copies too). `#z=<zoom>&m=<lat>,<lng>` opens the level centred
-on the pin, `&a=<lat>,<lng>;…` with the whole area in view (at most at `z`), the popup closed; with a marking, any
+touch screens only sharing: the system's share sheet copies too). `?m=<lat>,<lng>#z=<zoom>` opens the level centred
+on the pin, `?a=<lat>,<lng>;…` with the whole area in view (at most at `z`), the popup closed; with a marking, any
 address shows it, whatever rectangle (`b`) it has. The page's own address keeps the marking too (`map_mark.js`). A
-link to the same level pasted into the open page's address applies at once (only the part after `#` changes).
+link of an earlier version pasted into the open page's address applies at once (only the part after `#` changes).
 
 ### When things move
 

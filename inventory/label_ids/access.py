@@ -7,9 +7,13 @@ Label scans arrive on the resolver hosts, where the inventory login is unknown
 web form entries, to /id/<code>?via=<method> on the inventory host first, which
 records the access with the logged-in user and then resolves as usual. The
 marker is not protected: such URLs only exist between these redirects.
+
+A label link shared in a chat is fetched by the chat's link preview bot: it is resolved as usual but not recorded,
+or it would push the real scans out of the few kept.
 """
 from django.conf import settings
 
+from ..link_preview import is_link_preview
 from ..models import LabelIdAccess
 
 
@@ -18,9 +22,12 @@ def keep():
 
 
 def method_from(request):
-    """The access method a GET request was marked with by the resolver or the search, or None."""
+    """The access method a GET request was marked with by the resolver or the search, or None (also for link
+    preview bots)."""
     method = request.GET.get("via")
-    return method if request.method == "GET" and method in LabelIdAccess.Method.values else None
+    if request.method != "GET" or method not in LabelIdAccess.Method.values or is_link_preview(request):
+        return None
+    return method
 
 
 def record(request, lid, method):

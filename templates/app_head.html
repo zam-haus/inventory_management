@@ -10,3 +10,4 @@
 <script src="{% static 'inventory/problem_report_log.js' %}"></script>
 <script>if ("serviceWorker" in navigator) navigator.serviceWorker.register("{% url 'service_worker' %}");</script>
 <script src="{% static 'inventory/pull_refresh.js' %}" defer></script>
+{% load link_preview %}{% link_preview_tags %}

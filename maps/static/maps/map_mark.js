@@ -38,14 +38,14 @@
         return latlng.lat.toFixed(7) + ',' + latlng.lng.toFixed(7);
     }
 
-    // For the address (map.js writeHash) and the link.
-    page.markHash = function () {
+    // For the address's query (map.js writeHash) and the link: its parts, e.g. ["m=49.5,11.0", "t=Here"].
+    page.markQuery = function () {
         if (!marked || marked.level !== currentLevel()) {
-            return '';
+            return [];
         }
-        var where = marked.kind === 'point' ? '&m=' + corner(marked.layer.getLatLng()) :
-            '&a=' + marked.layer.getLatLngs()[0].map(corner).join(';');
-        return where + (text ? '&t=' + encodeURIComponent(text) : '');
+        var where = marked.kind === 'point' ? 'm=' + corner(marked.layer.getLatLng()) :
+            'a=' + marked.layer.getLatLngs()[0].map(corner).join(';');
+        return [where].concat(text ? ['t=' + encodeURIComponent(text)] : []);
     };
 
     // "Here" or the text given instead: a button over the marking; a click makes it a field, Enter or a click
@@ -132,7 +132,9 @@
     }
 
     function link() {
-        return window.location.href.split('#')[0] + '#z=' + Math.round(map.getZoom() * 100) / 100 + page.markHash();
+        var query = page.markQuery();
+        return window.location.origin + window.location.pathname + (query.length ? '?' + query.join('&') : '') +
+            '#z=' + Math.round(map.getZoom() * 100) / 100;
     }
 
     function updatePopup() {

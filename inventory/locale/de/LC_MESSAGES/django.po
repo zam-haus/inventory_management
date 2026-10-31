@@ -4843,3 +4843,7 @@ msgstr "Tippe im Bild auf das Problem oder umkreise es, um es zu markieren."
 #: inventory/templates/inventory/problem_report_fields.html
 msgid "Remove marks"
 msgstr "Markierungen entfernen"
+
+#: inventory/link_preview.py
+msgid "Disposed."
+msgstr "Ausgesondert."

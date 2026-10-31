@@ -60,6 +60,8 @@ codes that collide anyway (created around these checks).
   `inventory.view_labelid_access_user`; it is personal data and no group has it by
   default. Label scans first redirect from the resolver host to
   `/id/<code>?via=label_scan` on the inventory host, where the login is known.
+  A label link shared in a chat is fetched by the chat's preview bot: it is
+  resolved, but not recorded ([link previews](link-previews.md)).
   Clicking links inside the inventory is not recorded.
 * **Hosts:** `LABEL_ID_RESOLVER_HOSTS` lists the hosts served by the resolver only;
   they must also be in `ALLOWED_HOSTS`. `LABEL_ID_BASE_URL` (default

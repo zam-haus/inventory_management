@@ -58,6 +58,17 @@ class AccessTests(InventoryFixture, TestCase):
         self.scan()
         self.assertEqual(self.accesses(), [("label_scan", None)])
 
+    def test_link_preview_bots_are_not_scans(self):
+        """A label link shared in a chat: its preview resolves, but does not push the real scans out."""
+        for agent in ("TelegramBot (like TwitterBot)", "WhatsApp/2", "Synapse (bot; +https://github.com/element-hq/synapse)"):
+            self.client = Client(HTTP_USER_AGENT=agent)
+            response = self.scan()
+            self.assertEqual(response["Location"], self.item.get_absolute_url())
+        self.assertEqual(self.accesses(), [])
+        self.client = Client(HTTP_USER_AGENT="Mozilla/5.0 (Android 15; Mobile) Firefox/140.0")
+        self.scan()
+        self.assertEqual(self.accesses(), [("label_scan", None)])
+
     def test_scanning_a_reserved_id_is_recorded_too(self):
         response = self.scan("/5S8B24")
         self.assertEqual(response["Location"], "/id/5S8B24/claim/")

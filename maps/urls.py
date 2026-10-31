@@ -22,6 +22,7 @@ urlpatterns = [
     path("", views.map_view, name="map"),
     path("<level:number>/", views.map_view, name="level"),
     path("level/<level:number>/data/", views.level_data, name="level_data"),
+    path("level/<level:number>/preview.png", views.preview_image, name="preview_image"),
     path("level/<level:number>/unplaced/", views.unplaced, name="unplaced"),
     path("place/", views.place_context, name="place_context"),
     path("at/", views.area_at, name="area_at"),

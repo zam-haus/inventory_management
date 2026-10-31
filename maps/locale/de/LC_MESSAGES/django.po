@@ -1520,3 +1520,33 @@ msgstr "Neue Quelldatei: Der Plan behält Ausrichtung und Zuschnitt, an denselbe
 #: maps/views.py
 msgid "New source file."
 msgstr "Neue Quelldatei."
+
+#: maps/preview.py
+#, python-format
+msgid "Marked point in %(area)s, level %(level)s"
+msgstr "Markierter Punkt in %(area)s, Ebene %(level)s"
+
+#: maps/preview.py
+#, python-format
+msgid "Marked point on level %(level)s"
+msgstr "Markierter Punkt auf Ebene %(level)s"
+
+#: maps/preview.py
+#, python-format
+msgid "Marked area in %(area)s, level %(level)s, about %(size)s m²"
+msgstr "Markierter Bereich in %(area)s, Ebene %(level)s, etwa %(size)s m²"
+
+#: maps/preview.py
+#, python-format
+msgid "Marked area on level %(level)s, about %(size)s m²"
+msgstr "Markierter Bereich auf Ebene %(level)s, etwa %(size)s m²"
+
+#: maps/preview.py
+#, python-format
+msgid "%(where)s, on the map of level %(level)s"
+msgstr "%(where)s, auf der Karte von Ebene %(level)s"
+
+#: maps/preview.py
+#, python-format
+msgid "On the map of level %(level)s"
+msgstr "Auf der Karte von Ebene %(level)s"

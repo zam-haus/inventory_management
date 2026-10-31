@@ -679,8 +679,8 @@
     });
     // The level, drawn anew after changes in the edit mode (map_edit.js); the view stays where it is then.
     var start = readHash();  // the view of the address (below)
-    // `markHash`: the marked point or area for the address (map_mark.js).
-    var page = {map: map, drawn: null, element: element, controls: [], start: start, markHash: null};
+    // `markQuery`: the marked point or area for the address (map_mark.js).
+    var page = {map: map, drawn: null, element: element, controls: [], start: start, markQuery: null};
     ZamMap.page = page;
 
     // The plans drawn before go once the new ones' images are there (or after RETIRE_MS), so that the map does not
@@ -829,9 +829,12 @@
         }
     });
 
-    // The view in the address, to share it: #z=<zoom>&b=<south>,<west>,<north>,<east>&p=<open popup, e.g. loc:12>
-    // &m=<lat>,<lng> or &a=<lat>,<lng>;<lat>,<lng>;… and &t=<its text> (the marked point or area, map_mark.js).
-    function readHash() {
+    // The address, to share it: what it shows in the query, ?p=<open popup, e.g. loc:12> or ?m=<lat>,<lng> or
+    // ?a=<lat>,<lng>;<lat>,<lng>;… and &t=<its text> (the marked point or area, map_mark.js), so that a chat's link
+    // preview shows it too (maps/preview.py: the server never sees the part after #); the view after #:
+    // #z=<zoom>&b=<south>,<west>,<north>,<east>. Older links have p, m, a and t after # as well; with hashOnly only
+    // that part counts (a link pasted into the open page's address: hashchange, below).
+    function readHash(hashOnly) {
         var values = {};
         window.location.hash.replace(/^#/, '').split('&').forEach(function (part) {
             var pair = part.split('=');
@@ -839,6 +842,15 @@
                 values[decodeURIComponent(pair[0])] = decodeURIComponent(pair[1] || '');
             }
         });
+        var query = new URLSearchParams(window.location.search);
+        if (!hashOnly && (query.has('p') || query.has('m') || query.has('a'))) {
+            ['p', 'm', 'a', 't'].forEach(function (key) {
+                delete values[key];
+                if (query.has(key)) {
+                    values[key] = query.get(key);
+                }
+            });
+        }
         var b = (values.b || '').split(',').map(Number), m = (values.m || '').split(',').map(Number);
         var a = values.a ? values.a.split(';').map(function (corner) { return corner.split(',').map(Number); }) : [];
         var areaOk = a.length >= 3 && a.every(function (c) { return c.length === 2 && c.every(isFinite); });
@@ -861,9 +873,11 @@
         var bounds = map.getBounds(), digits = function (value) { return value.toFixed(6); };
         var view = 'z=' + (Math.round(map.getZoom() * 100) / 100) + '&b=' + [bounds.getSouth(), bounds.getWest(),
             bounds.getNorth(), bounds.getEast()].map(digits).join(',');
+        var target = (openPopup ? ['p=' + encodeURIComponent(openPopup).replace('%3A', ':')] : [])
+            .concat(page.markQuery ? page.markQuery() : []);
         // the state stays: the edit mode's steps (map_edit.js)
-        history.replaceState(history.state, '', '#' + view + (openPopup ? '&p=' + encodeURIComponent(openPopup) : '') +
-            (page.markHash ? page.markHash() : ''));
+        history.replaceState(history.state, '', window.location.pathname + (target.length ? '?' + target.join('&') : '') +
+            '#' + view);
         // The other levels keep the view.
         document.querySelectorAll('[data-map-level]').forEach(function (link) {
             link.href = link.href.split('#')[0] + '#' + view;
@@ -902,7 +916,7 @@
     // A link to this level pasted into the address of the open page changes only the part after #, without loading
     // the page: its view (and marker, map_mark.js) apply then too. Not fired by writeHash (replaceState).
     window.addEventListener('hashchange', function () {
-        var target = readHash();
+        var target = readHash(true);
         document.dispatchEvent(new CustomEvent('zam-map-address', {detail: target}));
         showView(target);
         writeHash();

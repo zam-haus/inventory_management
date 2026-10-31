@@ -24,7 +24,7 @@ from django.utils.translation import gettext_lazy as _
 from django.views import View
 from django.views.generic import DetailView, TemplateView, UpdateView
 
-from . import forms, location_display, models, search, trees
+from . import forms, link_preview, location_display, models, search, trees
 from .location_lookup import resolve_location_reference
 from .permissions import (
     QUICK_ITEM_PERMISSIONS, UNIQUE_ITEM_CREATE_PERMISSIONS, ItemEditorPermissionMixin, location_deletion_denied,
@@ -205,6 +205,7 @@ class DetailLocationView(DetailView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        context["link_preview"] = link_preview.for_location(self.object)
         entries = list(self.object.itemlocation_set.all())
         context["quick_entries"] = [entry for entry in entries if entry.is_quick_item]
         context["entries"] = [entry for entry in entries if not entry.is_quick_item]
@@ -412,6 +413,7 @@ class DetailItemView(DetailView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        context["link_preview"] = link_preview.for_item(self.object)
         # The item page shows what applies to the item in general.
         context["files"] = self.object.itemfile_set.filter(unique_item__isnull=True)
         if self.object.tracks_unique_items:
@@ -482,7 +484,7 @@ class CategoryView(DetailView):
                             offset=next_offset) if next_offset else None
         context = self.get_context_data(
             query=query, words=words, entries=entries, next_url=next_url, capped=capped,
-            kinds=kinds_param(chosen, offered), kind_filters=filters,
+            kinds=kinds_param(chosen, offered), kind_filters=filters, link_preview=link_preview.for_category(category),
             subcategories=models.Category.objects.filter(parent_category=category))
         if request.GET.get("partial"):
             template = "inventory/results/more.html" if offset else "inventory/category_results.html"

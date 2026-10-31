@@ -330,10 +330,10 @@ class MapViewTests(Building, TestCase):
         self.assertContains(self.client.get(reverse("admin:maps_backgroundlayer_changelist")), "Luftbild Bayern")
 
     def test_map_links_name_what_is_shown(self):
-        # One parameter: the level in the path, #p= what the map highlights and opens (map.js).
+        # One parameter: the level in the path, ?p= what the map highlights and opens (map.js).
         positions.set_location_shape(self.pallet, None, CENTER)
         page = self.client.get(reverse("view_unique_item", args=[self.saw.pk])).content.decode()
-        self.assertIn(f'href="/map/-1/#p=loc:{self.pallet.pk}"', page)  # the saw is on the pallet
+        self.assertIn(f'href="/map/-1/?p=loc:{self.pallet.pk}"', page)  # the saw is on the pallet
         self.assertNotIn("?focus=", page)
         self.assertEqual(self.client.get(reverse("maps:map") + "?focus=x").context["number"], -1)  # ignored
 
@@ -345,11 +345,11 @@ class MapViewTests(Building, TestCase):
         self.assertEqual(response.status_code, 403)
         page = self.client.get(self.pallet.get_absolute_url()).content.decode()
         self.assertNotIn("map-place-modal", page)  # nothing to show, nothing to place: no "Position"
-        self.assertNotIn("#p=", page)
+        self.assertNotIn("/map/-1/?p=", page)
         positions.set_location_shape(self.store, LocationShape.Kind.AREA, geo.rectangle(local_point(20, 0), 5, 5))
         positions.set_location_shape(self.hbb, LocationShape.Kind.AREA, geo.rectangle(local_point(5, 0), 5, 5))
         page = self.client.get(self.pallet.get_absolute_url()).content.decode()
-        self.assertIn(f"/map/-1/#p=loc:{self.hbb.pk}", page)  # shown by HBB, the area it is in
+        self.assertIn(f"/map/-1/?p=loc:{self.hbb.pk}", page)  # shown by HBB, the area it is in
         self.assertIn("map-place-modal", page)  # to look at
         self.assertNotIn("data-place-edit", page)  # but not to place
 

@@ -84,14 +84,14 @@ def _index(context):
 
 @register.simple_tag(takes_context=True)
 def map_focus_url(context, obj):
-    """The map of the level, showing (highlighted, its popup open: #p=…, map.js) a location, unique item or item
+    """The map of the level, showing (highlighted, its popup open: ?p=…, map.js) a location, unique item or item
     (where it is first) or the place it is in, or "" if nothing of it is on the map: links to the map only where there
     is something to show."""
     index = _index(context)
 
     def link(shown, feature):
         number = index.tree.level_number(shown)
-        return f"{reverse('maps:level', args=[number])}#p={feature}" if number is not None else ""
+        return f"{reverse('maps:level', args=[number])}?p={feature}" if number is not None else ""
 
     if hasattr(obj, "places") and hasattr(obj, "obj"):  # a result row (inventory/search/render.py Entry)
         obj = obj.obj if isinstance(obj.obj, (Location, UniqueItem)) else [place.location.pk for place in obj.places]

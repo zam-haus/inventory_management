@@ -50,7 +50,7 @@
                     map.fitBounds(bounds, {maxZoom: 21, padding: [30, 30], animate: false});
                 }
                 if (focused) {
-                    focused.openPopup();  // its name and chip on the map, as on the large map with #p=…
+                    focused.openPopup();  // its name and chip on the map, as on the large map with ?p=…
                 }
             });
         }).catch(function () {

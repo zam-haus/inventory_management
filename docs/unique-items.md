@@ -45,7 +45,8 @@ stock entries and unique items; its kind can only change while it has neither.
   `inventory.view_internal_details`; without it those fields are not part of the
   forms. The user search used by these fields requires the same permission.
   Pages still show that such information exists: the hidden part is replaced
-  by an *internal* chip.
+  by an *internal* chip. Link previews in chats show even less: the item's
+  description, never notes, teams or names ([link previews](link-previews.md)).
 * **Files and photos** belong to an item, either to the item in general (e.g. a
   manual) or to one of its unique items (e.g. that object's invoice). Both forms
   let you choose: the item form offers its unique items per row, the unique item
