@@ -24,6 +24,7 @@ How the ZAM inventory works, feature by feature. Setup is covered in the
 * [Label printing](label-printing.md): printers, label media, the print queue, print agent and simulator;
   a Raspberry Pi as print agent: [ops/raspberry-pi/](../ops/raspberry-pi/README.md)
 * [Installable app](installable-app.md): manifest, offline page and its service worker
+* [Error pages](error-pages.md): 404, 403, the failed form check, 400 and 500; which stand alone
 * [Logo and icons](branding/README.md): source design and how the served icons are derived
 * [Icons and action buttons](icons.md): Bootstrap Icons instead of emojis, the agreed meaning of each icon, filled vs. outlined actions and the actions menu
 * [Data export](data-export.md): a copy of the inventory without personal data for development databases

@@ -195,6 +195,8 @@ MIDDLEWARE = [
 ]
 
 ROOT_URLCONF = "imzam.urls"
+# The page of a failed form check (CSRF): the error pages are in inventory/errors.py.
+CSRF_FAILURE_VIEW = "inventory.errors.csrf_failure"
 
 TEMPLATES = [
     {

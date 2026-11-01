@@ -15,3 +15,9 @@ urlpatterns = [
     path("<str:raw>/", resolver_views.resolve),
     path("<str:raw>", resolver_views.resolve, name="label_id_resolve"),
 ]
+
+# Error pages that stand alone: these hosts have no inventory pages to link (inventory/errors.py).
+handler400 = "inventory.errors.bad_request"
+handler403 = "inventory.errors.standalone_permission_denied"
+handler404 = "inventory.errors.standalone_page_not_found"
+handler500 = "inventory.errors.server_error"

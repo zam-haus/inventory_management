@@ -4907,3 +4907,55 @@ msgstr "Danach suchen"
 #, python-format
 msgid "The location %(code)s was deleted for good."
 msgstr "Der Standort %(code)s wurde endgültig gelöscht."
+
+msgid "Bad request"
+msgstr "Ungültige Anfrage"
+
+msgid "No access"
+msgstr "Kein Zugriff"
+
+msgid "Page not found"
+msgstr "Seite nicht gefunden"
+
+msgid "Something went wrong"
+msgstr "Etwas ist schiefgelaufen"
+
+msgid "Form expired"
+msgstr "Formular abgelaufen"
+
+#, python-format
+msgid "Error %(status)s"
+msgstr "Fehler %(status)s"
+
+msgid "An error on the server kept the inventory from showing this page. Please try again in a moment."
+msgstr "Ein Fehler auf dem Server hat verhindert, dass das Inventar diese Seite anzeigt. Bitte versuche es gleich noch einmal."
+
+msgid "The inventory admins have been notified."
+msgstr "Die Inventar-Admins wurden benachrichtigt."
+
+msgid "The inventory could not read this request. Check the address, or start again from the home page."
+msgstr "Das Inventar konnte diese Anfrage nicht lesen. Prüfe die Adresse oder beginne noch einmal auf der Startseite."
+
+msgid "This page may not be opened here."
+msgstr "Diese Seite kann hier nicht geöffnet werden."
+
+msgid "There is no page at this address. The link may be mistyped or outdated."
+msgstr "Unter dieser Adresse gibt es keine Seite. Vielleicht ist der Link vertippt oder veraltet."
+
+msgid "To the home page"
+msgstr "Zur Startseite"
+
+msgid "The form could not be sent because its security check failed. That happens when the page was open for a long time, or when you logged in or out in another tab meanwhile."
+msgstr "Das Formular konnte nicht gesendet werden, weil seine Sicherheitsprüfung fehlgeschlagen ist. Das passiert, wenn die Seite lange offen war oder du dich inzwischen in einem anderen Tab an- oder abgemeldet hast."
+
+msgid "Your browser did not send the cookie the check needs. Allow cookies for this site."
+msgstr "Dein Browser hat das Cookie nicht gesendet, das die Prüfung braucht. Erlaube Cookies für diese Seite."
+
+msgid "Go back, reload the page and send the form again."
+msgstr "Geh zurück, lade die Seite neu und sende das Formular noch einmal."
+
+msgid "Back to the form"
+msgstr "Zurück zum Formular"
+
+msgid "Log in to open this page."
+msgstr "Melde dich an, um diese Seite zu öffnen."

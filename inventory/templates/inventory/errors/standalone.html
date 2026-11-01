@@ -1,0 +1,26 @@
+{% extends 'inventory/standalone_page.html' %}
+{% load i18n %}
+{# 400 and 500, and every error on the resolver hosts (inventory/errors.py): without database or context processors. #}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+    <h1>{{ title }}</h1>
+    <p>{% blocktrans %}Error {{ status }}{% endblocktrans %}</p>
+    {% if status == 500 %}
+        <p>{% trans "An error on the server kept the inventory from showing this page. Please try again in a moment." %}</p>
+        {% if admins_notified %}<p>{% trans "The inventory admins have been notified." %}</p>{% endif %}
+    {% elif status == 400 %}
+        <p>{% trans "The inventory could not read this request. Check the address, or start again from the home page." %}</p>
+    {% elif status == 403 %}
+        <p>{% trans "This page may not be opened here." %}</p>
+    {% else %}
+        <p>{% trans "There is no page at this address. The link may be mistyped or outdated." %}</p>
+    {% endif %}
+    <div class="actions">
+        {# An empty link loads the address again. #}
+        {% if status == 500 %}<a href="">{% trans "Try again" %}</a>{% endif %}
+        <a href="{{ home_url }}">{% trans "To the home page" %}</a>
+        {% if report_url %}<a href="{{ report_url }}">{% trans "Report a problem" %}</a>{% endif %}
+    </div>
+{% endblock %}

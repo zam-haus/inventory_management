@@ -23,3 +23,9 @@ urlpatterns = [
 # Maps are optional (MAPS_ENABLED, docs/maps.md).
 if apps.is_installed("maps"):
     urlpatterns.insert(-1, path("map/", include("maps.urls")))
+
+# Error pages (inventory/errors.py); the form check's page is CSRF_FAILURE_VIEW in settings.py.
+handler400 = "inventory.errors.bad_request"
+handler403 = "inventory.errors.permission_denied"
+handler404 = "inventory.errors.page_not_found"
+handler500 = "inventory.errors.server_error"

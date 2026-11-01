@@ -48,7 +48,7 @@ def manifest(request):
 
 
 def offline_context():
-    # The logo is inlined: while offline, nothing but the page itself can be loaded.
+    # The logo is inlined: while offline, nothing but the page itself can be loaded (error pages use it, too).
     return {"logo": Path(finders.find(f"{favicon_dir()}/favicon.svg")).read_text()}
 
 

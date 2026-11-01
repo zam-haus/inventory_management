@@ -1,0 +1,33 @@
+{% extends 'base.html' %}
+{% load i18n icons %}
+{# 403, 404 and the failed form check (inventory/errors.py), with the navigation: the search, and Login for guests. #}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+    <p class="text-body-secondary">{% blocktrans %}Error {{ status }}{% endblocktrans %}</p>
+    {% if csrf %}
+        <p>{% trans "The form could not be sent because its security check failed. That happens when the page was open for a long time, or when you logged in or out in another tab meanwhile." %}</p>
+        {% if no_cookie %}<p>{% trans "Your browser did not send the cookie the check needs. Allow cookies for this site." %}</p>{% endif %}
+        <p>{% trans "Go back, reload the page and send the form again." %}</p>
+        {% if back_url %}<a class="btn btn-secondary" href="{{ back_url }}">{% trans "Back to the form" %}</a>{% endif %}
+    {% elif status == 403 %}
+        {% if reason %}
+            <p>{{ reason }}</p>
+        {% elif user.is_authenticated %}
+            <p>{% trans "Your account is not allowed to do this. Ask an inventory admin for the permission." %}</p>
+        {% else %}
+            <p>{% trans "Log in to open this page." %}</p>
+            <a class="btn btn-secondary" href="{% if oidc_enabled %}{% url 'oidc_authentication_init' %}{% else %}{% url 'login' %}{% endif %}?next={{ request.get_full_path|urlencode }}">{% trans 'Login' %}</a>
+        {% endif %}
+    {% else %}
+        <p>{% trans "There is no page at this address. The link may be mistyped or outdated." %}</p>
+        <div class="row"><div class="col-md-8 col-lg-6">
+            <form class="input-group" method="get" action="{% url 'index' %}" role="search">
+                <input type="search" class="form-control" name="q" aria-label="{% trans 'Search' %}"
+                       placeholder="{% blocktrans with name=label_id_name %}Name, identifier or {{ name }}{% endblocktrans %}" enterkeyhint="search" autocomplete="off">
+                <button class="btn btn-info" type="submit">{% icon "search" %} {% trans "Search" %}</button>
+            </form>
+        </div></div>
+    {% endif %}
+{% endblock %}
