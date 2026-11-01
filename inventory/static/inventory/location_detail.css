@@ -7,9 +7,6 @@
 }
 
 .location-header { padding: .5rem 0 1.5rem; }
-.location-breadcrumb { display: flex; flex-wrap: wrap; gap: .35rem .65rem; align-items: baseline; margin-bottom: 1.25rem; font-size: .9rem; }
-.location-breadcrumb a { padding: .35rem 0; }
-.location-breadcrumb .loc-code { font-size: .75em; }
 .location-heading { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1.25rem; }
 .location-heading-text { min-width: 0; flex: 1 1 auto; }
 .location-heading h1 { margin: .2rem 0 .6rem; font-size: clamp(1.6rem, 4vw, 2.3rem); font-weight: 650; }

@@ -17,6 +17,8 @@
 {% block page_header %}
     <header class="item-header">
         {% include "inventory/category_breadcrumb.html" with category=object.item.category %}
+        {# Below it the path of where it is, as on the location page. #}
+        {% if object.location %}{% include "inventory/location_breadcrumb.html" with location=object.location %}{% endif %}
         <div class="item-heading" data-action-row>
             <div class="item-heading-text">
                 <p class="item-eyebrow">{% trans "Unique item" %}</p>

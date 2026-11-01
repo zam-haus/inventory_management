@@ -46,3 +46,8 @@ a:has(> .loc-label):hover > .loc-label > .loc-title { text-decoration-thickness:
 
 /* A unique item's label ID in its name (UniqueItem.name_html). */
 .unique-item-code { font-family: monospace; font-size: 1.05em; letter-spacing: .04em; white-space: nowrap; }
+/* The path of a location (location_breadcrumb.html): on its page, and on a unique item's below its category path. */
+.location-breadcrumb { display: flex; flex-wrap: wrap; gap: .35rem .65rem; align-items: baseline; margin-bottom: 1.25rem; font-size: .9rem; }
+.location-breadcrumb a { padding: .35rem 0; }
+.location-breadcrumb .loc-code { font-size: .75em; }
+.item-breadcrumb:has(+ .location-breadcrumb) { margin-bottom: 0; }

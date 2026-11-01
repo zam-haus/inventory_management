@@ -212,11 +212,10 @@ gaps.
 ### Sharing a view
 
 The "On the map" links lead to the level with `?p=loc:<pk>` (or `item:`): the map shows that location, or the
-place it is in, highlighted with its popup open (`map.js` focus). The small map in the location window shows that
-popup too; the small map in the grey box of a location's or unique item's page highlights it the same way, without a
-popup. What lies in the highlighted area (its parts, storage units, unique items) stays above it, to be clicked.
-Highlighted (what a link names, and what is clicked while its popup is open) means a wide white halo under it and
-its own outline twice as thick, in its own colours, so one still sees what kind of thing it is (`map.js` select).
+place it is in, highlighted with its popup open (`map.js` focus). The small maps in the location window and in the grey box
+of a location's or unique item's page highlight it the same way, without a popup (it would cover it there). What lies in the highlighted area (its parts, storage units, unique items) stays above it, to be clicked.
+Highlighted (what a link names, and what is clicked while its popup is open) means a wide white halo around it, only
+outside its outline (clipped to it, so it covers nothing inside), and its own outline twice as thick, in its own colours, so one still sees what kind of thing it is (`map.js` select).
 One thing at a time on each map: clicking another moves it there. A link's stays when its popup is closed, a clicked
 one's goes with its popup; the edit mode and drawing the level anew end it, too.
 A popup goes right above what it is about (also when clicked) if it fits there wholly in view without moving the map,

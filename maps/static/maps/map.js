@@ -605,7 +605,36 @@
         }).addTo(map);
         layer.setStyle({weight: weight * 2, opacity: 1});
         raise(drawn, layer, halo);
-        map._zamSelection = {layer: layer, halo: halo, kept: Boolean(kept)};
+        map._zamSelection = {layer: layer, halo: halo, kept: Boolean(kept), clips: clipOutside(layer, halo)};
+    }
+
+    // The halo only outside the outline, so it covers nothing inside it: each of its paths is clipped to what lies
+    // outside the matching path of the layer (a large square minus it, even-odd). Leaflet draws the paths anew when the
+    // map moves or zooms; the clips follow their `d`. Returns what to release (unselect).
+    var SVG = 'http://www.w3.org/2000/svg', OUTSIDE = 'M-1e6 -1e6H1e6V1e6H-1e6Z', clipIds = 0;
+
+    function clipOutside(layer, halo) {
+        var parts = layer.getLayers();
+        return halo.getLayers().map(function (ring, index) {
+            var path = ring._path, own = parts[index] && parts[index]._path, svg = path && path.ownerSVGElement;
+            if (!svg || !own) {
+                return null;
+            }
+            var defs = svg.querySelector('defs') ||
+                svg.insertBefore(document.createElementNS(SVG, 'defs'), svg.firstChild);
+            var clip = document.createElementNS(SVG, 'clipPath'), shape = document.createElementNS(SVG, 'path');
+            clip.id = 'map-halo-clip-' + (clipIds += 1);
+            clip.setAttribute('clipPathUnits', 'userSpaceOnUse');
+            shape.setAttribute('clip-rule', 'evenodd');
+            clip.appendChild(shape);
+            defs.appendChild(clip);
+            var follow = function () { shape.setAttribute('d', OUTSIDE + (own.getAttribute('d') || '')); };
+            follow();
+            var observer = new MutationObserver(follow);
+            observer.observe(own, {attributes: true, attributeFilter: ['d']});
+            path.setAttribute('clip-path', 'url(#' + clip.id + ')');
+            return {observer: observer, clip: clip};
+        }).filter(Boolean);
     }
 
     function unselect(map) {
@@ -614,6 +643,10 @@
             return;
         }
         map.removeLayer(selection.halo);
+        selection.clips.forEach(function (clip) {
+            clip.observer.disconnect();
+            clip.clip.remove();
+        });
         selection.layer.resetStyle();
         map._zamSelection = null;
     }

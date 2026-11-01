@@ -44,12 +44,11 @@
             var map = ZamMap.create(element, {zoomControl: true});
             return ZamMap.load(element.dataset.url).then(function (data) {
                 var drawn = ZamMap.draw(map, data);
+                // Highlighted as on the large map with ?p=…, without its popup: the window names it already, and the
+                // popup would cover it on the small map.
                 var focused = ZamMap.focus(drawn, element.dataset.focus);
                 if (!focused && drawn.bounds) {
                     map.fitBounds(drawn.bounds, {padding: [10, 10], animate: false});
-                }
-                if (focused) {
-                    ZamMap.openPopupAbove(focused);  // its name and chip on the map, as on the large map with ?p=…
                 }
             });
         }).catch(function () {
