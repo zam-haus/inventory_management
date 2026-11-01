@@ -9,6 +9,7 @@
     <link rel="stylesheet" href="{% static 'inventory/change_log.css' %}">
     <link rel="stylesheet" href="{% static 'inventory/media_gallery.css' %}">
     {% if move_form %}{{ move_form.media.css }}{% endif %}
+    {% if notes_form %}{{ notes_form.media.css }}{% endif %}
 {% endblock %}
 
 {% block title %}{{ object }}{% endblock %}
@@ -111,10 +112,24 @@
 
         <div class="item-layout">
             <div class="item-main">
-                {% if object.notes %}
+                {# What the item says first, then this unique item's notes, photos and files (photos above files). #}
+                <section class="item-panel" aria-labelledby="unique-item-about-heading">
+                    <div class="item-panel-heading">
+                        <h2 id="unique-item-about-heading">{% trans "About this item" %}</h2>
+                    </div>
+                    <div class="item-panel-body item-description">
+                        {% if object.item.description %}{{ object.item.description|markdown }}{% else %}<p class="item-muted">{% trans "No description provided." %}</p>{% endif %}
+                    </div>
+                </section>
+
+                {% if object.notes or notes_form %}
                 <section class="item-panel" aria-labelledby="unique-item-notes-heading">
-                    <div class="item-panel-heading"><h2 id="unique-item-notes-heading">{% trans "Notes" %}</h2></div>
-                    <div class="item-panel-body item-description">{{ object.notes|markdown }}</div>
+                    <div class="item-panel-heading item-panel-title-row">
+                        <h2 id="unique-item-notes-heading">{% trans "Notes" %}</h2>
+                        {# Like the pencils of a location's fields: only for whoever may change it (a dialog, unique_item_notes_editor.html). #}
+                        {% if notes_form %}<a class="btn btn-warning item-panel-add" href="#unique-item-notes-editor" data-field-editor-open="unique-item-notes-editor" data-bs-toggle="tooltip" title="{% trans 'Edit notes' %}" aria-label="{% trans 'Edit notes' %}">{% icon "pencil" %}</a>{% endif %}
+                    </div>
+                    <div class="item-panel-body item-description">{% if object.notes %}{{ object.notes|markdown }}{% else %}<p class="item-muted">{% trans "No notes yet." %}</p>{% endif %}</div>
                 </section>
                 {% endif %}
 
@@ -133,19 +148,11 @@
                 </section>
                 {% endif %}
 
-                <section class="item-panel" aria-labelledby="unique-item-about-heading">
-                    <div class="item-panel-heading">
-                        <h2 id="unique-item-about-heading">{% trans "About this item" %}</h2>
-                    </div>
-                    <div class="item-panel-body item-description">
-                        {% if object.item.description %}{{ object.item.description|markdown }}{% else %}<p class="item-muted">{% trans "No description provided." %}</p>{% endif %}
-                    </div>
-                </section>
-
-                {% include 'inventory/procurement_panel.html' with warranty_until=object.warranty_until warranty_expired=object.warranty_expired purchase_date=object.purchase_date purchase_price=object.purchase_price source=object.procurement_source date_label=_("Purchase date") price_label=_("Purchase price") %}
                 {% url 'update_unique_item' object.pk as edit_url %}
                 {% if not object.is_disposed %}{% firstof perms.inventory.add_itemfile '' as can_add_file %}{% endif %}
                 {% include 'inventory/files_panel.html' with file_count=files|length|add:general_files_count show_add=object.is_disposed|yesno:",True" can_add=can_add_file add_fallback=edit_url %}
+
+                {% include 'inventory/procurement_panel.html' with warranty_until=object.warranty_until warranty_expired=object.warranty_expired purchase_date=object.purchase_date purchase_price=object.purchase_price source=object.procurement_source date_label=_("Purchase date") price_label=_("Purchase price") %}
             </div>
 
             <div class="item-main">
@@ -160,6 +167,7 @@
         {% if move_form %}{% include 'inventory/unique_item_move_modal.html' %}{% endif %}
     {% endif %}
     {% if not object.is_disposed %}{% label_print_dialog object "uniqueitem" %}{% slot "unique_item_detail.dialogs" %}{% endif %}
+    {% if notes_form %}{% include 'inventory/unique_item_notes_editor.html' %}{% endif %}
 {% endblock %}
 
 {% block bootstrap5_extra_script %}
@@ -174,5 +182,6 @@
         {{ move_form.media.js }}
         <script src="{% static 'inventory/unique_item_move.js' %}"></script>
     {% endif %}
+    {% if notes_form %}{{ notes_form.media.js }}<script src="{% static 'inventory/location_field_editor.js' %}"></script>{% endif %}
     {% if not object.is_disposed %}{% slot "unique_item_detail.scripts" %}{% endif %}
 {% endblock %}

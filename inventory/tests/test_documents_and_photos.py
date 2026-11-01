@@ -218,7 +218,8 @@ class LevelTests(MediaMixin, UniqueItemFixture, TestCase):
         # Photos and files next to each other, then the stock.
         self.assertEqual([inline.prefix for inline in response.context["inlines"]],
                          ["itemimage_set", "itemfile_set", "itemlocation_set"])
-        self.assertEqual(len(self.client.get(reverse("create_unique_item")).context["inlines"][0].forms), 1)
+        step_two = f'{reverse("create_unique_item")}?item={self.extinguisher.pk}'  # its item chosen in step 1
+        self.assertEqual(len(self.client.get(step_two).context["inlines"][0].forms), 1)
 
     def test_item_form_assigns_to_a_unique_item(self):
         url = reverse("update_item", args=[self.extinguisher.pk])

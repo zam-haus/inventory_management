@@ -4,6 +4,8 @@ Every unique_item is created together with its label ID, either a pre-printed la
 or a newly generated one. UniqueItems leave the inventory one by one (dispose);
 they are never deleted with their location.
 """
+import uuid
+
 import extra_views
 from dal import autocomplete
 from django.contrib import messages
@@ -13,12 +15,13 @@ from django.core.exceptions import PermissionDenied
 from django.db import transaction
 from django.db.models import Q
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 from django.utils.translation import gettext as _
 from django.views import View
 from django.views.generic import DetailView
 
 from . import forms, link_preview
-from .models import Item, Location, UniqueItem
+from .models import Category, Item, Location, UniqueItem
 from .permissions import UNIQUE_ITEM_CREATE_PERMISSIONS, ItemEditorPermissionMixin
 from .label_ids import services
 from .widgets import NEW_ITEM_PREFIX
@@ -48,9 +51,33 @@ class DetailUniqueItemView(DetailView):
             general_files_count=self.object.item.itemfile_set.filter(unique_item__isnull=True).count(),
             can_view_internal=self.request.user.has_perm(forms.INTERNAL_DETAILS_PERMISSION),
         )
+        # Its notes, edited in a dialog (unique_item_notes_editor.html), for whoever may change it.
+        if not self.object.is_disposed and self.request.user.has_perm("inventory.change_uniqueitem"):
+            context.setdefault("notes_form", forms.UniqueItemNotesForm(instance=self.object))
         if not self.object.is_disposed and self.request.user.has_perm("inventory.change_uniqueitem"):
             context["move_form"] = forms.MoveUniqueItemForm(instance=self.object)
         return context
+
+
+class UniqueItemNotesUpdateView(PermissionRequiredMixin, View):
+    """Saves the notes of a unique item from the dialog on its page; then back to the page."""
+    permission_required = "inventory.change_uniqueitem"
+    http_method_names = ["post"]
+
+    def post(self, request, pk):
+        with transaction.atomic():
+            unique_item = get_object_or_404(UniqueItem.active.select_for_update(of=("self",)), pk=pk)
+            form = forms.UniqueItemNotesForm(request.POST, instance=unique_item)
+            if form.is_valid():
+                form.save(commit=False).save(actor=request.user, update_fields=["notes"])
+                messages.success(request, _("Notes saved."))
+                return redirect(unique_item)
+        # Kept on its page with the dialog open and what was entered.
+        detail = DetailUniqueItemView()
+        detail.setup(request, pk=pk)
+        detail.object = detail.get_object()
+        context = detail.get_context_data(notes_form=form, notes_editor_open=True)
+        return detail.render_to_response(context, status=400)
 
 
 class UniqueItemEditorMixin(ItemEditorPermissionMixin):
@@ -59,25 +86,105 @@ class UniqueItemEditorMixin(ItemEditorPermissionMixin):
     template_name = "inventory/unique_item_form.html"
 
 
+# New items chosen in step 1 of a new unique item, kept until it is saved in step 2: {token: draft}.
+NEW_ITEMS_SESSION_KEY = "unique_item_new_items"
+
+
+def new_item_draft(request, token):
+    """A new item from step 1 (UniqueItemItemForm.draft), unsaved, or None."""
+    data = request.session.get(NEW_ITEMS_SESSION_KEY, {}).get(token or "")
+    if not data:
+        return None
+    return Item(kind=Item.Kind.UNIQUE, name=data["name"], description=data["description"],
+                usage_level=data["usage_level"], category=Category.objects.filter(pk=data["category"]).first())
+
+
+def with_location(url, request):
+    """The URL, keeping the location a new unique item was started at (?location=)."""
+    location = request.GET.get("location", "")
+    return f"{url}&location={location}" if location.isdigit() else url
+
+
+class UniqueItemItemStepView(PermissionRequiredMixin, View):
+    """Step 1 of a new unique item: its item (UniqueItemItemForm); then step 2 with it (?item= or, for a new
+    one, ?new=: kept in the session, created with the unique item)."""
+    permission_required = UNIQUE_ITEM_CREATE_PERMISSIONS
+    template_name = "inventory/unique_item_item_step.html"
+    # A page that creates a unique item: the navbar's Admin link leads to adding one (admin_links).
+    model, object = UniqueItem, None
+
+    def render(self, request, form):
+        return render(request, self.template_name, {"form": form, "title": _("New unique item"), "view": self})
+
+    def get(self, request):
+        return self.render(request, forms.UniqueItemItemForm(user=request.user))
+
+    def post(self, request):
+        form = forms.UniqueItemItemForm(request.POST, user=request.user)
+        if not form.is_valid():
+            return self.render(request, form)
+        draft = form.draft()
+        if draft is None:
+            return redirect(with_location(f"{reverse('create_unique_item')}?item={form.cleaned_data['item'].pk}",
+                                          request))
+        token = uuid.uuid4().hex[:16]
+        request.session[NEW_ITEMS_SESSION_KEY] = {**request.session.get(NEW_ITEMS_SESSION_KEY, {}), token: draft}
+        return redirect(with_location(f"{reverse('create_unique_item')}?new={token}", request))
+
+
 class CreateUniqueItemView(UniqueItemEditorMixin, extra_views.CreateWithInlinesView):
+    """Step 2 of a new unique item: the unique item, its item chosen in step 1 (?item=, or ?new= for a new one).
+    Without either, step 1 comes first; a form sent without them still names its item itself."""
     permission_required = UNIQUE_ITEM_CREATE_PERMISSIONS
     form_class = forms.NewUniqueItemForm
 
+    def chosen_item(self):
+        if not hasattr(self, "_chosen_item"):
+            item = None
+            if self.request.GET.get("item", "").isdigit():
+                item = Item.active.filter(kind=Item.Kind.UNIQUE, pk=self.request.GET["item"]).first()
+            elif self.request.GET.get("new"):
+                item = new_item_draft(self.request, self.request.GET["new"])
+            self._chosen_item = item
+        return self._chosen_item
+
+    def get(self, request, *args, **kwargs):
+        if self.chosen_item() is None:
+            step = reverse("create_unique_item_item")
+            location = request.GET.get("location", "")
+            return redirect(f"{step}?location={location}" if location.isdigit() else step)
+        return super().get(request, *args, **kwargs)
+
+    def get_form_kwargs(self):
+        return {**super().get_form_kwargs(), "item": self.chosen_item()}
+
     def get_initial(self):
         initial = super().get_initial()
-        for name, queryset in (("item", Item.active.filter(kind=Item.Kind.UNIQUE)), ("location", Location.active)):
-            try:
-                initial[name] = queryset.get(pk=int(self.request.GET[name]))
-            except (KeyError, ValueError, queryset.model.DoesNotExist):
-                pass
+        try:
+            initial["location"] = Location.active.get(pk=int(self.request.GET["location"]))
+        except (KeyError, ValueError, Location.DoesNotExist):
+            pass
         return initial
 
     def get_context_data(self, **kwargs):
-        return super().get_context_data(**kwargs, title=_("New unique item"))
+        item = self.chosen_item()
+        location = self.request.GET.get("location", "")
+        step = reverse("create_unique_item_item") + (f"?location={location}" if location.isdigit() else "")
+        return super().get_context_data(
+            **kwargs, title=_("New unique item"), item=item, step_one_url=step,
+            item_barcodes=list(item.itembarcode_set.select_related("type")) if item is not None and item.pk else [],
+            item_images_count=len(item.general_images) if item is not None and item.pk else 0,
+            item_files_count=item.itemfile_set.filter(unique_item__isnull=True).count() if item is not None and item.pk else 0,
+        )
 
     @transaction.atomic
     def forms_valid(self, form, inlines):
         response = super().forms_valid(form, inlines)
+        # The new item from step 1 is saved now: no longer kept.
+        drafts = self.request.session.get(NEW_ITEMS_SESSION_KEY, {})
+        if self.request.GET.get("new") in drafts:
+            drafts.pop(self.request.GET["new"])
+            self.request.session[NEW_ITEMS_SESSION_KEY] = drafts
         # The unique item and its ID are saved together, or not at all.
         code = form.cleaned_data.get("label_code")
         if code:
@@ -106,7 +213,14 @@ class UpdateUniqueItemView(UniqueItemEditorMixin, extra_views.UpdateWithInlinesV
     queryset = UniqueItem.active.select_related("item")
 
     def get_context_data(self, **kwargs):
-        return super().get_context_data(**kwargs, title=_("Edit unique item"))
+        # What its item says for all of its unique items, shown read only (unique_item_item_info.html).
+        item = self.object.item
+        return super().get_context_data(
+            **kwargs, title=_("Edit unique item"), item=item,
+            item_barcodes=list(item.itembarcode_set.select_related("type")),
+            item_images_count=len(item.general_images),
+            item_files_count=item.itemfile_set.filter(unique_item__isnull=True).count(),
+        )
 
     def get_success_url(self):
         return self.object.get_absolute_url()

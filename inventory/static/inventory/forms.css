@@ -1,0 +1,23 @@
+/* Parts of a form that open and close (forms.Section, layout/section.html): optional fields stay out of the way until
+   needed; a part with something entered (or an error) is open. The summary reads like a fieldset's legend. */
+.form-section { margin-bottom: 1rem; border-top: 1px solid var(--bs-border-color); }
+.form-section-summary { display: flex; align-items: center; gap: .5rem; padding: .65rem 0; font-size: 1.25rem; font-weight: 500; cursor: pointer; list-style: none; }
+.form-section-summary::-webkit-details-marker { display: none; }
+.form-section-summary::before {
+    content: ""; flex: none; width: .55em; height: .55em; margin: 0 .15em;
+    border-right: 2px solid currentColor; border-bottom: 2px solid currentColor; transform: rotate(-45deg);
+    transition: transform .15s;
+}
+.form-section[open] > .form-section-summary::before { transform: rotate(45deg); }
+.form-section-summary:focus-visible { outline: 3px solid #0d6efd; outline-offset: 2px; border-radius: .25rem; }
+.form-section-body { padding-bottom: .25rem; }
+@media (prefers-reduced-motion: reduce) {
+    .form-section-summary::before { transition: none; }
+}
+
+/* A field with a scan button on its right (widgets.LabelCodeInput); the button sits in a .disabled-action until the
+   camera is known to work. */
+.label-scan-group { flex-wrap: nowrap; }
+.label-scan-group > .disabled-action > .btn,
+.label-scan-group > .scan-field-button { border-top-left-radius: 0; border-bottom-left-radius: 0; }
+.scan-field-button { display: inline-flex; align-items: center; justify-content: center; min-width: 2.75rem; font-size: 1.15rem; }

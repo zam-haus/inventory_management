@@ -1900,8 +1900,8 @@ msgid "Leave empty if the unique item belongs to the ZAM. First names are shown 
 msgstr "Leer lassen, wenn das Einzelobjekt dem ZAM gehört. Vornamen werden öffentlich angezeigt."
 
 #: forms.py:1065
-msgid "Generate a new ID and print its label"
-msgstr "Neue ID erzeugen und Etikett drucken"
+msgid "Generate a new ID"
+msgstr "Neue ID erzeugen"
 
 #: forms.py:1066
 msgid "Use a pre-printed label"
@@ -4968,3 +4968,138 @@ msgstr "Wie am Standort: %(teams)s"
 #: forms.py
 msgid "As for its location"
 msgstr "Wie am Standort"
+
+#: templates/inventory/unique_item_from_item.html
+msgid "opens in a new tab"
+msgstr "öffnet in einem neuen Tab"
+
+#: templates/inventory/unique_item_from_item.html
+msgid "From the item, for all of its unique items"
+msgstr "Von der Sache, für alle ihre Einzelobjekte"
+
+#: templates/inventory/unique_item_from_item.html
+msgid "Usage level of the item"
+msgstr "Einweisungspflicht der Sache"
+
+#: templates/inventory/unique_item_from_item.html
+msgid "Description of the item"
+msgstr "Beschreibung der Sache"
+
+#: templates/inventory/unique_item_from_item.html
+msgid "Photos of the item"
+msgstr "Fotos der Sache"
+
+#: templates/inventory/unique_item_from_item.html
+msgid "Files of the item"
+msgstr "Dateien der Sache"
+
+#: templates/inventory/unique_item_from_item.html
+msgid "Change on the item"
+msgstr "An der Sache ändern"
+
+#: templates/inventory/unique_item_from_item.html
+msgid ""
+"Its name, category, description, usage level, photos and files apply to all "
+"of its unique items and can only be changed on the item; they are shown here "
+"beside the fields they go with."
+msgstr ""
+"Name, Kategorie, Beschreibung, Einweisungspflicht, Fotos und Dateien der "
+"Sache gelten für alle ihre Einzelobjekte und lassen sich nur an der Sache "
+"ändern; sie stehen hier bei den Feldern, zu denen sie gehören."
+
+#: templates/inventory/unique_item_from_item.html
+#, python-format
+msgid ""
+"%(counter)s photo of the item is shown with every unique item, after its own."
+msgid_plural ""
+"%(counter)s photos of the item are shown with every unique item, after its "
+"own."
+msgstr[0] ""
+"%(counter)s Foto der Sache wird bei jedem Einzelobjekt nach dessen eigenen "
+"gezeigt."
+msgstr[1] ""
+"%(counter)s Fotos der Sache werden bei jedem Einzelobjekt nach dessen eigenen "
+"gezeigt."
+
+#: templates/inventory/unique_item_from_item.html
+#, python-format
+msgid ""
+"%(counter)s file of the item is listed with every unique item, after its own."
+msgid_plural ""
+"%(counter)s files of the item are listed with every unique item, after its "
+"own."
+msgstr[0] ""
+"%(counter)s Datei der Sache wird bei jedem Einzelobjekt nach dessen eigenen "
+"aufgeführt."
+msgstr[1] ""
+"%(counter)s Dateien der Sache werden bei jedem Einzelobjekt nach dessen "
+"eigenen aufgeführt."
+
+
+#: templates/inventory/unique_item_from_item.html
+msgid "None set"
+msgstr "Keine festgelegt"
+
+#: unique_item_views.py templates/inventory/unique_item_notes_editor.html
+msgid "Edit notes"
+msgstr "Notizen bearbeiten"
+
+#: unique_item_views.py templates/inventory/unique_item_notes_editor.html
+msgid "No notes yet."
+msgstr "Noch keine Notizen."
+
+#: unique_item_views.py templates/inventory/unique_item_notes_editor.html
+msgid "Save notes"
+msgstr "Notizen speichern"
+
+#: unique_item_views.py templates/inventory/unique_item_notes_editor.html
+msgid "Notes saved."
+msgstr "Notizen gespeichert."
+
+#: unique_item_views.py templates/inventory/unique_item_notes_editor.html
+msgid "About this one unique item, e.g. its state, what is special about it or what to watch out for."
+msgstr "Zu genau diesem Einzelobjekt, z. B. sein Zustand, was es besonders macht oder worauf zu achten ist."
+
+#: templates/inventory/unique_item_item_step.html forms.py
+msgid "Step 1 of 2"
+msgstr "Schritt 1 von 2"
+
+#: templates/inventory/unique_item_item_step.html forms.py
+msgid "Step 2 of 2"
+msgstr "Schritt 2 von 2"
+
+#: templates/inventory/unique_item_item_step.html forms.py
+msgid "Which item is it?"
+msgstr "Welche Sache ist es?"
+
+#: templates/inventory/unique_item_item_step.html forms.py
+msgid "First the item it is one of, then this unique item itself: where it is, its label and what is special about it."
+msgstr "Erst die Sache, zu der es gehört, dann dieses Einzelobjekt selbst: wo es ist, sein Etikett und was es besonders macht."
+
+#: templates/inventory/unique_item_item_step.html forms.py
+msgid "Choose another item"
+msgstr "Andere Sache wählen"
+
+#: templates/inventory/unique_item_item_step.html forms.py
+msgid "Change in step 1"
+msgstr "In Schritt 1 ändern"
+
+#: templates/inventory/unique_item_item_step.html forms.py
+msgid "For a new item"
+msgstr "Für eine neue Sache"
+
+#: templates/inventory/unique_item_item_step.html forms.py
+msgid "Only for a new item: what it says for all of its unique items. An existing item keeps what it says; change that on the item."
+msgstr "Nur für eine neue Sache: was für alle ihre Einzelobjekte gilt. Eine bestehende Sache behält ihre Angaben; die lassen sich an der Sache ändern."
+
+#: templates/inventory/unique_item_item_step.html forms.py
+msgid "An item with unique items; for a new one, type its name and choose “Create new item …”."
+msgstr "Eine Sache mit Einzelobjekten; für eine neue ihren Namen eingeben und „Neue Sache … anlegen“ wählen."
+
+#: widgets.py
+msgid "Scan label"
+msgstr "Etikett scannen"
+
+#: widgets.py
+msgid "Hold the QR code of the label in front of the camera."
+msgstr "Halte den QR-Code des Etiketts vor die Kamera."

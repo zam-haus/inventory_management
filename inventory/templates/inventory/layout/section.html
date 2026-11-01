@@ -1,0 +1,5 @@
+{# A part of a form that opens and closes (forms.Section): closed while its fields are empty. #}
+<details class="form-section{% if fieldset.css_class %} {{ fieldset.css_class }}{% endif %}"{% if fieldset.css_id %} id="{{ fieldset.css_id }}"{% endif %}{% if section_open %} open{% endif %} {{ fieldset.flat_attrs }}>
+    <summary class="form-section-summary">{{ legend|safe }}</summary>
+    <div class="form-section-body">{{ fields|safe }}</div>
+</details>

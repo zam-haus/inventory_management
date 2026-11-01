@@ -80,3 +80,9 @@
 
 /* Taking stock out, first among the actions (stock_take_panel.html); a location's code as a chip inside. */
 .item-take-button .loc-code { vertical-align: .05em; }
+/* Headings in a description or notes lie below the section's own (an h2 of 1.2rem; # is an h3, mytemplatetags). */
+.item-description :is(h3, h4, h5, h6) { margin: 1rem 0 .4rem; font-weight: 650; line-height: 1.3; }
+.item-description h3 { font-size: 1.1rem; }
+.item-description h4 { font-size: 1rem; }
+.item-description :is(h5, h6) { font-size: .95rem; color: var(--item-muted); }
+.item-description > :first-child { margin-top: 0; }

@@ -1,0 +1,60 @@
+/* The WYSIWYG editor of Markdown fields (markdown_editor.js), in the page's font. */
+.markdown-editor .toastui-editor-defaultUI {
+    border-color: var(--bs-border-color);
+    border-radius: var(--bs-border-radius);
+}
+
+.markdown-editor .toastui-editor-contents,
+.markdown-editor .toastui-editor-md-container {
+    font-family: var(--bs-body-font-family);
+    font-size: 1rem;
+}
+
+.markdown-editor .toastui-editor-contents img {
+    max-width: 100%;
+}
+
+/* Our image button (markdown_editor.js) sits in a wrapper of the editor's; in line with the others. */
+.markdown-editor .toastui-editor-toolbar-item-wrapper {
+    margin: 0;
+}
+
+.markdown-editor .toastui-editor-toolbar-item-wrapper .toastui-editor-toolbar-icons {
+    display: block;
+}
+
+/* The editor's popups (link, heading …) stay within the editor, whatever its width: they are placed below
+   their button by the editor and may otherwise reach past the screen's left edge. */
+.markdown-editor .toastui-editor-popup {
+    left: 0 !important;
+    right: 0;
+    width: auto;
+    max-width: 100%;
+    margin-left: 0;
+}
+
+.markdown-editor .toastui-editor-popup input {
+    width: 100%;
+    font-size: 16px;  /* phones zoom into smaller fields */
+}
+
+.markdown-editor-message {
+    color: var(--bs-secondary-color);
+    font-size: .875em;
+    margin-top: .25rem;
+}
+
+.markdown-editor-message.markdown-editor-error {
+    color: var(--bs-form-invalid-color);
+}
+
+@media (max-width: 575.98px) {
+    /* No room for both: the Markdown source is for larger screens. */
+    .markdown-editor .toastui-editor-mode-switch {
+        display: none !important;
+    }
+
+    .markdown-editor .toastui-editor-toolbar-icons {
+        margin: 7px 2px;
+    }
+}

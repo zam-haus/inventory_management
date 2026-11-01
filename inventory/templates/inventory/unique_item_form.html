@@ -6,8 +6,8 @@
 {% block content %}
 <form method="post" enctype="multipart/form-data">
     {% csrf_token %}
-    {% crispy form %}
-    {% include 'inventory/inline_formsets.html' %}
+    {% if not object and item %}<p class="text-muted mb-3">{% trans "Step 2 of 2" %} · <a href="{{ step_one_url }}">{% trans "Choose another item" %}</a></p>{% endif %}
+    {% crispy form %}{# with its photos and files after the notes (UniqueItemForm.layout_fields) #}
     <button type="submit" class="btn {% if object %}btn-warning{% else %}btn-success{% endif %} mb-3">{% trans "Save" %}</button>
     {% if object %}<a class="btn btn-secondary mb-3" href="{{ object.get_absolute_url }}">{% trans "Cancel" %}</a>{% endif %}
 </form>
@@ -17,6 +17,7 @@
     {{ block.super }}
     {{ form.media.css }}
     <link rel="stylesheet" href="{% static 'inventory/media_gallery.css' %}">
+    <link rel="stylesheet" href="{% static 'inventory/unique_item.css' %}">
 {% endblock %}
 
 {% block bootstrap5_extra_script %}

@@ -18,6 +18,11 @@ stock entries and unique items; its kind can only change while it has neither.
   offers *Create new item* as its last entry (requires `inventory.add_item`),
   both in the unique item form and on the claim page; the new item is only
   created when the unique item is saved.
+  *New unique item* takes two steps: first its item (`/item/unique/create/item`: one found in the search, or a new
+  one with its category, description and briefing requirement), then the unique item itself, with what its item
+  says shown before the fields it goes with. A new item from step 1 is kept in the session until step 2 saves it
+  together with the unique item; nothing is created before. Opening `/item/unique/create` without an item leads to
+  step 1 (keeping `?location=`); a form sent there without `?item=`/`?new=` still names its item itself.
   Creating requires `inventory.add_uniqueitem` and
   `inventory.claim_labelid`; migration `inventory.0023` grants `add`/`change` on
   unique items to the local group (photos and files use the item permissions they
@@ -34,7 +39,9 @@ stock entries and unique items; its kind can only change while it has neither.
   warranty, notes, responsible team and person, owner, purchase date, price and
   source, files. Without a team of its own the teams of its location are responsible, as a location takes those of
   the one it is in (`UniqueItem.effective_responsible_teams`): its page and the item's list show them with "from
-  <location>", and the form's empty choice names them ("As for its location: …"). Without an owner a unique item belongs to the ZAM and no
+  <location>", and the form's empty choice names them ("As for its location: …"). The form of a unique item also
+  shows what its item says for all of its unique items (category, name, briefing requirement, barcodes, the number of
+  its photos and files, description), read only, with "Edit item" opening the item's form in a new tab. Without an owner a unique item belongs to the ZAM and no
   ownership is shown. The owner is set when the unique item is created; after
   that only admins or users with `inventory.change_uniqueitem_owner` can change
   it (frontend and admin). Teams (**Admin → Accounts → Teams**) are account groups
@@ -75,6 +82,6 @@ stock entries and unique items; its kind can only change while it has neither.
 * **Item search:** for items tracked as unique items, the locations column lists
   each unique item's name, label ID and location; searching for a unique item's name, or for a
   location name or identifier, also finds them.
-* **URLs:** `/item/unique/<pk>` (with `/update` and `/dispose`) and
-  `/item/unique/create?item=<pk>&location=<pk>`; new items take `?kind=bulk` or
+* **URLs:** `/item/unique/<pk>` (with `/update`, `/notes` and `/dispose`),
+  `/item/unique/create/item` (step 1) and `/item/unique/create?item=<pk>&location=<pk>` (step 2); new items take `?kind=bulk` or
   `?kind=unique` on `/item/create`.

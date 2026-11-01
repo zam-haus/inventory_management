@@ -23,3 +23,24 @@
     .unique-item-facts { grid-template-columns: minmax(0, 1fr); gap: .15rem; }
     .unique-item-facts dd { margin-bottom: .5rem; }
 }
+/* In the form of a unique item, beside its fields: what its item says, read only (unique_item_from_item.html); a grey
+   box like the detail pages' overview, labelled with where it comes from. */
+.unique-item-from-item { display: grid; gap: .4rem; margin: -.25rem 0 1rem; padding: .6rem .85rem; background: #f7f9fb; border: 1px solid #dee2e6; border-radius: .5rem; font-size: .95rem; }
+.unique-item-from-item-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .25rem 1rem; }
+.unique-item-from-item-label { color: #59636e; font-size: .8rem; font-weight: 600; }
+.unique-item-from-item-edit { display: inline-flex; align-items: center; gap: .3rem; font-size: .85rem; }
+.btn.unique-item-from-item-edit { padding: 0; }
+.unique-item-from-item-facts { display: flex; flex-wrap: wrap; gap: .5rem 2rem; margin: 0; }
+.unique-item-from-item-facts dt { color: #59636e; font-size: .8rem; font-weight: 600; }
+.unique-item-from-item-facts dd { margin: 0; }
+.unique-item-from-item code { color: inherit; }
+.unique-item-from-item-note { margin: 0; color: #59636e; font-size: .85rem; }
+.unique-item-from-item-description { max-height: 12rem; overflow-y: auto; line-height: 1.6; }
+.unique-item-from-item-description > :last-child { margin-bottom: 0; }
+/* The notes editor (unique_item_notes_editor.html): a dialog; without JavaScript a box below the page. */
+.unique-item-notes-editor:not(.modal) { margin: 1.5rem 0; border: 1px solid #dee2e6; border-radius: .65rem; }
+.unique-item-notes-editor:not(.modal) .modal-dialog { max-width: none; margin: 0; }
+.unique-item-from-item-description :is(h3, h4, h5, h6) { margin: .75rem 0 .3rem; font-weight: 650; line-height: 1.3; }
+.unique-item-from-item-description h3 { font-size: 1.05rem; }
+.unique-item-from-item-description :is(h4, h5, h6) { font-size: .95rem; }
+.unique-item-from-item-description > :first-child { margin-top: 0; }

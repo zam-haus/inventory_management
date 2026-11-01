@@ -1,6 +1,7 @@
 
 from crispy_forms.helper import FormHelper
 from crispy_forms import layout, bootstrap
+from crispy_forms.utils import TEMPLATE_PACK
 from crispy_bootstrap5.bootstrap5 import FloatingField
 from django.core.exceptions import ValidationError
 from django.db.models import Q
@@ -21,12 +22,28 @@ from .keyboard_layouts import layout_corrections
 from .location_lookup import scan_prefixes
 from .permissions import location_deletion_denied
 from .models import (
-    USAGE_LEVEL_DESCRIPTIONS, BarcodeType, Item, ItemBarcode, ItemFile, ItemImage, ItemLocation, Location, LocationType, ChangeLog,
+    USAGE_LEVEL_DESCRIPTIONS, BarcodeType, Category, Item, ItemBarcode, ItemFile, ItemImage, ItemLocation, Location, LocationType, ChangeLog,
     UniqueItem, UsageLevel, LabelId,
 )
-from .widgets import NEW_ITEM_PREFIX, AutocompleteSelect, CategorySelect, ItemOrNewSelect, LocationSelect
+from .widgets import (NEW_ITEM_PREFIX, AutocompleteSelect, CategorySelect, ItemOrNewSelect, LabelCodeInput,
+                      LocationSelect, MarkdownEditor)
 from .label_ids import core as label_id_core, naming as label_id_naming, parsing as label_id_parsing
 from .label_ids.lookup import annotate_label_code
+
+
+class Section(layout.Fieldset):
+    """A fieldset that opens and closes (layout/section.html, a <details>): closed while its fields are empty, open
+    once one of them has a value or an error, so that optional parts (responsibility, owner, procurement) do not
+    lengthen the form while they are not used."""
+
+    template = "inventory/layout/section.html"
+
+    def render(self, form, context, template_pack=TEMPLATE_PACK, **kwargs):
+        names = {pointer.name for pointer in self.get_field_names()}
+        bound = [form[name] for name in names if name in form.fields]
+        context.update({"section_open": any(field.errors or field.value() not in (None, "", [], False)
+                                            for field in bound)})
+        return super().render(form, context, template_pack, **kwargs)
 
 
 def _valid_location_pk(pk):
@@ -72,6 +89,14 @@ class LocationDescriptionForm(ModelForm):
         model = Location
         fields = ["physical_description"]
         widgets = {"physical_description": Textarea(attrs={"class": "form-control", "rows": 4, "data-modal-focus": ""})}
+
+
+class UniqueItemNotesForm(ModelForm):
+    """The notes of a unique item, edited in a dialog on its page (UniqueItemNotesUpdateView)."""
+    class Meta:
+        model = UniqueItem
+        fields = ["notes"]
+        widgets = {"notes": MarkdownEditor(attrs={"class": "form-control", "rows": 6, "data-modal-focus": ""})}
 
 
 class LocationOverviewForm(ModelForm):
@@ -173,7 +198,7 @@ class BaseItemForm(ModelForm):
         widgets = {
             "kind": RadioSelect,
             "category": CategorySelect,
-            "description": Textarea(attrs={"rows": 3}),
+            "description": MarkdownEditor,
             "procurement_source": Textarea(attrs={"rows": 2}),
             "last_purchase_date": DateInput(attrs={"type": "date"}),
         }
@@ -223,7 +248,7 @@ class BaseItemForm(ModelForm):
         raise NotImplementedError
 
     def procurement_layout(self):
-        return layout.Fieldset(
+        return Section(
             _("Procurement"),
             layout.Div(
                 layout.Div("last_purchase_date", css_class="col"),
@@ -1095,10 +1120,12 @@ class UniqueItemForm(NewItemAlongsideMixin, ModelForm):
             "owner_user": AutocompleteSelect(url="user_autocomplete", attrs={"data-allow-clear": 1}),
             "warranty_until": DateInput(attrs={"type": "date"}),
             "purchase_date": DateInput(attrs={"type": "date"}),
-            "notes": Textarea(attrs={"rows": 3}),
+            "notes": MarkdownEditor,
             "owner_contact": Textarea(attrs={"rows": 2}),
             "procurement_source": Textarea(attrs={"rows": 2}),
         }
+
+    chosen_item = None  # a new unique item's item from step 1 (NewUniqueItemForm): existing, or new (unsaved)
 
     def __init__(self, *args, user=None, **kwargs):
         super().__init__(*args, **kwargs)
@@ -1109,6 +1136,11 @@ class UniqueItemForm(NewItemAlongsideMixin, ModelForm):
         if self.instance.pk:
             # A unique item stays the kind of thing it is.
             self.fields["item"].disabled = True
+        elif self.chosen_item is not None and self.chosen_item.pk:
+            self.fields["item"].initial = self.chosen_item
+            self.fields["item"].disabled = True
+        elif self.chosen_item is not None:
+            del self.fields["item"]  # new: created when the unique item is saved (NewItemAlongsideMixin)
         self.fields["usage_level"].choices = usage_level_choices(_("As set for the item"))
         # Without a team of its own, the teams of its location are responsible (UniqueItem.effective_responsible_teams).
         inherited = self.instance.location.effective_responsible_teams if self.instance.location_id else []
@@ -1135,15 +1167,32 @@ class UniqueItemForm(NewItemAlongsideMixin, ModelForm):
     def optional(self, *names):
         return [name for name in names if name in self.fields]
 
+    def known_item(self):
+        """Its item: the unique item's, or the one chosen in step 1 for a new one; else None (still to be chosen)."""
+        return self.instance.item if self.instance.pk else self.chosen_item
+
+    def from_item(self, part):
+        """What its item says, before the field of the unique item it goes with, once the item is known
+        (unique_item_from_item.html)."""
+        if self.known_item() is None:
+            return []
+        return [layout.HTML('{% include "inventory/unique_item_from_item.html" with part="' + part + '" %}')]
+
     def layout_fields(self):
         return [
-            "item",
+            *self.optional("item"),
+            *self.from_item("item"),
             "name",
             "location",
+            # What the item says first, then what the unique item may set for itself.
+            *self.from_item("usage"),
             "usage_level",
+            *self.from_item("description"),
             "notes",
-            layout.Fieldset(_("Responsibility"), "responsible_team", *self.optional("responsible_user")),
-            layout.Fieldset(
+            # Its photos and files beside its notes (the view's inline formsets, after what the item brings).
+            layout.HTML('{% include "inventory/inline_formsets.html" %}'),
+            Section(_("Responsibility"), "responsible_team", *self.optional("responsible_user")),
+            Section(
                 _("Owner"),
                 layout.HTML('<p class="text-muted small">{}</p>'.format(
                     _("Only admins or people with the permission can change the owner after the unique item was created.")
@@ -1151,7 +1200,7 @@ class UniqueItemForm(NewItemAlongsideMixin, ModelForm):
                     _("Leave empty if the unique item belongs to the ZAM. First names are shown publicly."))),
                 *self.optional("owner_user"), "owner_first_name", *self.optional("owner_contact"),
             ),
-            layout.Fieldset(
+            Section(
                 _("Procurement"),
                 layout.Div(
                     layout.Div("purchase_date", css_class="col-sm"),
@@ -1170,13 +1219,14 @@ class LabelIdChoiceForm(Form):
     GENERATE, RESERVED = "generate", "reserved"
     label_choice = ChoiceField(
         label=label_id_naming.NAME, initial=GENERATE, widget=RadioSelect,
-        choices=[(GENERATE, _("Generate a new ID and print its label")),
+        # Nothing is printed here: the new unique item's page offers its label.
+        choices=[(GENERATE, _("Generate a new ID")),
                  (RESERVED, _("Use a pre-printed label"))],
     )
     label_code = CharField(
         label=_("ID on the label"), required=False, max_length=200,
         help_text=_("Scan the label or type the ID printed on it."),
-        widget=TextInput(attrs={"autocomplete": "off", "autocapitalize": "characters"}),
+        widget=LabelCodeInput,
     )
 
     @staticmethod
@@ -1212,8 +1262,72 @@ class LabelIdChoiceForm(Form):
 
 
 class NewUniqueItemForm(LabelIdChoiceForm, UniqueItemForm):
+    """Step 2 of a new unique item (CreateUniqueItemView): the unique item itself, its item chosen in step 1
+    (`item`: existing, or new and unsaved, created with it). Without `item` the item field is in the form."""
+
+    def __init__(self, *args, item=None, **kwargs):
+        self.chosen_item = item
+        super().__init__(*args, **kwargs)
+
+    def clean(self):
+        cleaned = super().clean()
+        if self.chosen_item is not None and self.chosen_item.pk is None:
+            cleaned["item"] = self.chosen_item
+        return cleaned
+
     def layout_fields(self):
         return [layout.Fieldset(_("Label"), self.label_row()), *super().layout_fields()]
+
+
+class UniqueItemItemForm(Form):
+    """Step 1 of a new unique item (CreateUniqueItemView): its item, found in the search, or a new one ("Create new
+    item …" at its end) with what it says for all of its unique items. A new item is not saved here: it is created
+    together with its first unique item in step 2."""
+
+    item = ItemOrNewField(
+        label=_("Item"), queryset=Item.active.filter(kind=Item.Kind.UNIQUE),
+        widget=ItemOrNewSelect(url="unique_kind_item_autocomplete",
+                               attrs={"data-placeholder": _("Search for an item with unique items…")}),
+        help_text=_("An item with unique items; for a new one, type its name and choose “Create new item …”."),
+    )
+    category = ModelChoiceField(label=_("Category"), queryset=Category.objects.all(), required=False,
+                                widget=CategorySelect)
+    description = CharField(label=_("Description"), required=False, widget=MarkdownEditor)
+    usage_level = ChoiceField(label=_("Usage level"), required=False)
+
+    def __init__(self, *args, user=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.user = user
+        self.fields["usage_level"].choices = usage_level_choices(_("None set"))
+        self.new_allowed = bool(user and user.has_perm("inventory.add_item"))
+        self.helper = FormHelper()
+        self.helper.form_tag = False
+        self.helper.disable_csrf = True
+        self.helper.include_media = False
+        new_part = [layout.Fieldset(
+            _("For a new item"),
+            layout.HTML('<p class="text-muted small">{}</p>'.format(
+                _("Only for a new item: what it says for all of its unique items. An existing item keeps what it "
+                  "says; change that on the item."))),
+            "category", "description", "usage_level")] if self.new_allowed else []
+        self.helper.layout = layout.Layout("item", *new_part)
+
+    def clean_item(self):
+        item = self.cleaned_data.get("item")
+        if item is not None and item.pk is None and not self.new_allowed:
+            raise ValidationError(_("You do not have permission to create items."))
+        return item
+
+    def draft(self):
+        """What step 2 needs of a new item (kept in the session until the unique item is saved), or None for an
+        existing one."""
+        item = self.cleaned_data["item"]
+        if item.pk:
+            return None
+        category = self.cleaned_data.get("category")
+        return {"name": item.name, "category": category.pk if category else None,
+                "description": self.cleaned_data.get("description", ""),
+                "usage_level": self.cleaned_data.get("usage_level", "")}
 
 
 class FirstUniqueItemForm(LabelIdChoiceForm, ModelForm):

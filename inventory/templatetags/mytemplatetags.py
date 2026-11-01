@@ -1,5 +1,7 @@
 import markdown as markdown_lib
 import nh3
+from markdown.extensions import Extension
+from markdown.treeprocessors import Treeprocessor
 from django import template
 from django.utils.html import strip_tags
 from django.utils.safestring import mark_safe
@@ -26,9 +28,24 @@ def url_delete(request, field):
     return d.urlencode()
 
 
+class _HeadingsBelowTheSection(Treeprocessor):
+    """A text is shown in a section with its own heading (an h2, e.g. "Notes"): its headings go below it, # an h3,
+    ## an h4 and so on, at most an h6."""
+
+    def run(self, root):
+        for element in root.iter():
+            if element.tag in ("h1", "h2", "h3", "h4", "h5", "h6"):
+                element.tag = f"h{min(6, int(element.tag[1]) + 2)}"
+
+
+class _HeadingsBelowTheSectionExtension(Extension):
+    def extendMarkdown(self, md):
+        md.treeprocessors.register(_HeadingsBelowTheSection(md), "headings_below_the_section", 5)
+
+
 def render_markdown(text):
     # nl2br keeps the line breaks of descriptions written before Markdown.
-    html = markdown_lib.markdown(text or "", extensions=["nl2br", "sane_lists"])
+    html = markdown_lib.markdown(text or "", extensions=["nl2br", "sane_lists", _HeadingsBelowTheSectionExtension()])
     return nh3.clean(
         html, tags=MARKDOWN_TAGS, attributes={"a": {"href", "title"}},
         url_schemes={"http", "https", "mailto"}, link_rel="nofollow noopener noreferrer",

@@ -16,7 +16,7 @@ from django.urls import reverse
 
 from accounts.models import Team
 from ..actor import acting_as
-from ..models import ChangeLog, Item, ItemLocation, LabelId, Location, LocationType, UniqueItem, UsageLevel
+from ..models import Category, ChangeLog, Item, ItemLocation, LabelId, Location, LocationType, UniqueItem, UsageLevel
 from ..label_ids import services
 from ..label_ids.views import label_preview_url
 from ..label_ids.testing import SETTINGS, InventoryFixture, make_id, local_group
@@ -192,6 +192,29 @@ class UniqueItemViewTests(UniqueItemFixture, TestCase):
                          "As for its location: Metalwork")
         self.assertEqual(UniqueItemForm().fields["responsible_team"].empty_label, "As for its location")
 
+    def test_notes_are_edited_in_a_dialog_on_its_page(self):
+        url = self.unique_item.get_absolute_url()
+        guest = self.client.get(url).content.decode()
+        self.assertNotIn("unique-item-notes-editor", guest)
+        editor = get_user_model().objects.create_user(username="noter")
+        grant(editor, "change_uniqueitem")
+        self.client.force_login(editor)
+        page = self.client.get(url).content.decode()
+        self.assertIn('data-field-editor-open="unique-item-notes-editor"', page)
+        self.assertIn('id="unique-item-notes-editor"', page)
+        self.assertIn("data-markdown-editor", page)  # the Markdown editor in the dialog
+        response = self.client.post(reverse("unique_item_notes_update", args=[self.unique_item.pk]),
+                                    {"notes": "Hose **replaced** 2024"})
+        self.assertRedirects(response, url, fetch_redirect_response=False)
+        self.unique_item.refresh_from_db()
+        self.assertEqual(self.unique_item.notes, "Hose **replaced** 2024")
+        change = self.unique_item.change_log.filter(action=ChangeLog.Action.CHANGED).latest("pk")
+        self.assertEqual((change.actor, [entry["field"] for entry in change.changes]), (editor, ["notes"]))
+        self.assertContains(self.client.get(url), "<strong>replaced</strong>")
+        self.client.force_login(get_user_model().objects.create_user(username="reader"))
+        self.assertEqual(self.client.post(reverse("unique_item_notes_update", args=[self.unique_item.pk]),
+                                          {"notes": ""}).status_code, 403)
+
     def test_hidden_internal_details_are_marked(self):
         chip = '<span class="unique-item-internal" title="Only visible with the permission for internal details.">internal</span>'
         content = self.client.get(self.unique_item.get_absolute_url()).content.decode()
@@ -283,6 +306,47 @@ class UniqueItemViewTests(UniqueItemFixture, TestCase):
         self.client.force_login(user)
         self.assertEqual(self.client.get(reverse("create_unique_item")).status_code, 403)
 
+    def test_the_form_shows_what_its_item_says_beside_its_fields(self):
+        # Read only, each part beside the field it goes with, with the way to change it on the item: in a new tab, so
+        # the form stays as it is.
+        self.extinguisher.description = "Check the **pressure** monthly."
+        self.extinguisher.save()
+        url = reverse("update_unique_item", args=[self.unique_item.pk])
+        editor = get_user_model().objects.create_user(username="editor")
+        grant(editor, "change_uniqueitem")
+        self.client.force_login(editor)
+        page = self.client.get(url).content.decode()
+        self.assertIn("From the item, for all of its unique items", page)
+        # What the item says first, then the field of the unique item: its usage level, its description and notes.
+        self.assertLess(page.index("Usage level of the item"), page.index('name="usage_level"'))
+        self.assertLess(page.index('name="usage_level"'), page.index("<strong>pressure</strong>"))
+        self.assertLess(page.index("<strong>pressure</strong>"), page.index('name="notes"'))
+        self.assertNotIn(f'href="{reverse("update_item", args=[self.extinguisher.pk])}"', page)  # disabled, with why
+        self.assertEqual(page.count("unique-item-from-item-edit"), 3)
+        grant(editor, "change_item")
+        editor = get_user_model().objects.get(pk=editor.pk)  # permissions anew
+        self.client.force_login(editor)
+        page = self.client.get(url).content.decode()
+        link = f'href="{reverse("update_item", args=[self.extinguisher.pk])}" target="_blank" rel="noopener"'
+        self.assertEqual(page.count(link), 3)
+        # Its photos and files right after its notes; responsibility, owner and procurement closed while empty, open
+        # once something is entered.
+        grant(editor, "add_itemimage", "add_itemfile")
+        editor = get_user_model().objects.get(pk=editor.pk)
+        self.client.force_login(editor)
+        page = self.client.get(url).content.decode()
+        self.assertLess(page.index('name="notes"'), page.index('data-formset="images"'))
+        self.assertLess(page.index('data-formset="files"'), page.index('class="form-section'))
+        sections = page.count('<details class="form-section"')
+        opened = page.count('<details class="form-section" open')
+        self.assertEqual((sections, opened), (3, 1))  # its responsible team is set; owner and procurement empty
+        self.assertLess(page.index('<details class="form-section" open'), page.index('name="responsible_team"'))
+        self.assertLess(page.index('name="responsible_team"'), page.index('<details class="form-section" >'))
+        self.unique_item.purchase_date = "2024-05-01"
+        self.unique_item.save()
+        page = self.client.get(url).content.decode()
+        self.assertEqual(page.count('<details class="form-section" open'), 2)
+
     def test_internal_fields_are_not_rendered_or_changed_without_permission(self):
         self.client.force_login(self.member)
         url = reverse("update_unique_item", args=[self.unique_item.pk])
@@ -302,7 +366,8 @@ class UniqueItemViewTests(UniqueItemFixture, TestCase):
     def test_an_optional_name_between_item_and_label_id(self):
         self.assertEqual(str(self.unique_item), "Fire extinguisher K7R-4XD")  # without a name
         self.client.force_login(self.member)
-        for url in (reverse("update_unique_item", args=[self.unique_item.pk]), reverse("create_unique_item")):
+        for url in (reverse("update_unique_item", args=[self.unique_item.pk]),
+                    f'{reverse("create_unique_item")}?item={self.extinguisher.pk}'):
             self.assertContains(self.client.get(url), 'name="name"')
         data = {"location": self.location.pk, "name": "Workshop spare", "owner_first_name": "",
                 "files-TOTAL_FORMS": "0", "files-INITIAL_FORMS": "0", "images-TOTAL_FORMS": "0", "images-INITIAL_FORMS": "0"}
@@ -366,6 +431,60 @@ class UniqueItemViewTests(UniqueItemFixture, TestCase):
         visitor = get_user_model().objects.create_user(username="visitor")
         self.client.force_login(visitor)
         self.assertEqual(self.client.get(url, {"q": "Bench"}).json()["results"], [])
+
+    def test_two_steps_first_the_item_then_the_unique_item(self):
+        self.client.force_login(self.member)
+        start = reverse("create_unique_item")
+        step_one = reverse("create_unique_item_item")
+        self.assertRedirects(self.client.get(f"{start}?location={self.location.pk}"),
+                             f"{step_one}?location={self.location.pk}", fetch_redirect_response=False)
+        self.assertContains(self.client.get(step_one), "Step 1 of 2")
+        # An existing item: on to step 2 with it, its field fixed there.
+        response = self.client.post(f"{step_one}?location={self.location.pk}", {"item": self.extinguisher.pk})
+        self.assertRedirects(response, f"{start}?item={self.extinguisher.pk}&location={self.location.pk}",
+                             fetch_redirect_response=False)
+        page = self.client.get(response.url)
+        self.assertContains(page, "Step 2 of 2")
+        self.assertTrue(page.context["form"].fields["item"].disabled)
+        self.assertEqual(page.context["form"].initial["location"], self.location)
+
+    def test_a_new_item_from_step_one_is_created_with_the_unique_item(self):
+        self.client.force_login(self.member)
+        category = Category.objects.create(name="Ladders")
+        response = self.client.post(reverse("create_unique_item_item"), {
+            "item": "new:Ladder 3 m", "category": category.pk, "description": "Check the **feet**.", "usage_level": "red"})
+        self.assertEqual(response.status_code, 302)
+        self.assertFalse(Item.objects.filter(name="Ladder 3 m").exists())  # not yet: only with its unique item
+        page = self.client.get(response.url).content.decode()
+        self.assertIn("Ladder 3 m", page)
+        self.assertIn("<strong>feet</strong>", page)  # what it says, before the unique item's fields
+        self.assertNotIn('name="item"', page)
+        response = self.client.post(response.url, self.create_data(item=""))
+        ladder = Item.objects.get(name="Ladder 3 m")
+        unique_item = ladder.unique_items.get()
+        self.assertRedirects(response, unique_item.get_absolute_url(), fetch_redirect_response=False)
+        self.assertEqual((ladder.kind, ladder.category, ladder.description, ladder.usage_level),
+                         (Item.Kind.UNIQUE, category, "Check the **feet**.", "red"))
+        self.assertEqual(self.client.session.get("unique_item_new_items"), {})
+
+    def test_the_label_id_can_be_scanned(self):
+        # Beside the field: a QR scan button (label_scan.js), in step 2 and when an item comes with its first one.
+        self.client.force_login(self.member)
+        grant(self.member, "add_item", "add_itemlocation")
+        for url in (f'{reverse("create_unique_item")}?item={self.extinguisher.pk}', f'{reverse("create_item")}?kind=unique'):
+            with self.subTest(url=url):
+                page = self.client.get(url).content.decode()
+                self.assertIn("data-label-scan", page)
+                self.assertIn("inventory/label_scan.js", page)
+
+    def test_a_new_item_in_step_one_needs_permission(self):
+        user = get_user_model().objects.create_user(username="adder2")
+        grant(user, "add_uniqueitem", "claim_labelid")
+        self.client.force_login(user)
+        self.assertNotContains(self.client.get(reverse("create_unique_item_item")), 'name="category"')
+        response = self.client.post(reverse("create_unique_item_item"), {"item": "new:Ladder"})
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("item", response.context["form"].errors)
 
     def test_new_item_alongside_a_new_unique_item(self):
         self.client.force_login(self.member)
@@ -668,7 +787,7 @@ class OwnerChangeTests(UniqueItemFixture, TestCase):
 
     def test_owner_is_free_when_creating(self):
         self.client.force_login(self.member)
-        form = self.client.get(reverse("create_unique_item")).context["form"]
+        form = self.client.get(f'{reverse("create_unique_item")}?item={self.extinguisher.pk}').context["form"]
         self.assertFalse(form.fields["owner_first_name"].disabled)
 
     def test_admin_shows_owner_read_only_without_permission(self):
@@ -700,7 +819,7 @@ class InternalFieldsOnCreationTests(UniqueItemFixture, TestCase):
 
     def test_not_offered_or_saved_without_permission(self):
         self.client.force_login(self.member)
-        response = self.client.get(reverse("create_unique_item"))
+        response = self.client.get(f'{reverse("create_unique_item")}?item={self.extinguisher.pk}')
         for name in self.INTERNAL:
             self.assertNotIn(name, response.context["form"].fields)
             self.assertNotContains(response, f'name="{name}"')
@@ -712,7 +831,7 @@ class InternalFieldsOnCreationTests(UniqueItemFixture, TestCase):
 
     def test_offered_and_saved_with_permission(self):
         self.client.force_login(self.insider)
-        response = self.client.get(reverse("create_unique_item"))
+        response = self.client.get(f'{reverse("create_unique_item")}?item={self.extinguisher.pk}')
         for name in self.INTERNAL:
             self.assertIn(name, response.context["form"].fields)
         self.assertEqual(self.create(self.insider).status_code, 302)

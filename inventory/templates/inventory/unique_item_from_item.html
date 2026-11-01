@@ -1,0 +1,26 @@
+{% load i18n icons actions mytemplatetags %}{# In the form of a unique item, before the fields they go with: what its item says for all of its unique items (part: item, usage, description, photos, files), read only, with the way to change it on the item (a new tab, so the form stays as it is). From the view: item (saved, or new from step 1 of a new unique item: changed there), item_barcodes, item_images_count, item_files_count, step_one_url. #}
+<div class="unique-item-from-item">
+    <div class="unique-item-from-item-head">
+        <span class="unique-item-from-item-label">{% if part == "item" %}{% trans "From the item, for all of its unique items" %}{% elif part == "usage" %}{% trans "Usage level of the item" %}{% elif part == "description" %}{% trans "Description of the item" %}{% elif part == "photos" %}{% trans "Photos of the item" %}{% else %}{% trans "Files of the item" %}{% endif %}</span>
+        {% trans "Change on the item" as edit_label %}{% icon "pencil" as edit_icon %}
+        {% if not item.pk %}<a class="unique-item-from-item-edit" href="{{ step_one_url }}">{{ edit_icon }} {% trans "Change in step 1" %}</a>
+        {% elif perms.inventory.change_item %}<a class="unique-item-from-item-edit" href="{% url 'update_item' item.pk %}" target="_blank" rel="noopener">{{ edit_icon }} {{ edit_label }} {% icon "box-arrow-up-right" %}<span class="visually-hidden"> ({% trans "opens in a new tab" %})</span></a>
+        {% else %}{% disabled_action edit_icon label=edit_label classes="btn btn-sm btn-link unique-item-from-item-edit" %}{% endif %}
+    </div>
+    {% if part == "item" %}
+        <dl class="unique-item-from-item-facts">
+            {% if not item.pk %}<div><dt>{% trans "Name" %}</dt><dd>{{ item.name }} <span class="badge text-bg-secondary">{% trans "new" %}</span></dd></div>{% endif %}
+            <div><dt>{% trans "Category" %}</dt><dd>{% if item.category %}{{ item.category.full_name }}{% else %}–{% endif %}</dd></div>
+            {% if item_barcodes %}<div><dt>{% trans "Barcodes" %}</dt><dd>{% for barcode in item_barcodes %}<code>{{ barcode.data }}</code>{% if barcode.type %} {{ barcode.type }}{% endif %}{% if not forloop.last %}<br>{% endif %}{% endfor %}</dd></div>{% endif %}
+        </dl>
+        <p class="unique-item-from-item-note">{% trans "Its name, category, description, usage level, photos and files apply to all of its unique items and can only be changed on the item; they are shown here beside the fields they go with." %}</p>
+    {% elif part == "usage" %}
+        <div>{% if item.usage_level %}{% usage_level item.usage_level long=True %}{% else %}<span class="text-muted">{% trans "None set" %}</span>{% endif %}</div>
+    {% elif part == "description" %}
+        <div class="unique-item-from-item-description">{% if item.description %}{{ item.description|markdown }}{% else %}<span class="text-muted">{% trans "No description provided." %}</span>{% endif %}</div>
+    {% elif part == "photos" %}
+        <p class="unique-item-from-item-note">{% blocktrans count counter=item_images_count %}{{ counter }} photo of the item is shown with every unique item, after its own.{% plural %}{{ counter }} photos of the item are shown with every unique item, after its own.{% endblocktrans %}</p>
+    {% else %}
+        <p class="unique-item-from-item-note">{% blocktrans count counter=item_files_count %}{{ counter }} file of the item is listed with every unique item, after its own.{% plural %}{{ counter }} files of the item are listed with every unique item, after its own.{% endblocktrans %}</p>
+    {% endif %}
+</div>

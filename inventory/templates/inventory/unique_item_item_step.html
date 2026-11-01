@@ -1,0 +1,26 @@
+{% extends 'base.html' %}
+{% load i18n static crispy_forms_tags %}{# Step 1 of a new unique item (UniqueItemItemStepView): its item; step 2 is the unique item itself. #}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<p class="text-muted mb-1">{% trans "Step 1 of 2" %}</p>
+<h2 class="h4">{% trans "Which item is it?" %}</h2>
+<p class="text-muted">{% trans "First the item it is one of, then this unique item itself: where it is, its label and what is special about it." %}</p>
+<form method="post">
+    {% csrf_token %}
+    {% crispy form %}
+    <button type="submit" class="btn btn-success mb-3">{% trans "Next" %}</button>
+</form>
+{% endblock %}
+
+{% block bootstrap5_extra_head %}
+    {{ block.super }}
+    {{ form.media.css }}
+{% endblock %}
+
+{% block bootstrap5_extra_script %}
+    {{ block.super }}
+    <script src="{% static 'static_jquery/js/jquery.min.js' %}"></script>
+    {{ form.media.js }}
+{% endblock %}

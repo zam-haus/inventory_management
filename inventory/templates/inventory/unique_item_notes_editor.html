@@ -1,0 +1,24 @@
+{% load i18n %}{# The notes of a unique item; location_field_editor.js makes this a dialog (without JavaScript it stays here, below the page). #}
+<section id="unique-item-notes-editor" class="unique-item-notes-editor" data-field-editor tabindex="-1" aria-labelledby="unique-item-notes-editor-title" data-open="{{ notes_editor_open|yesno:'true,false' }}">
+    <div class="modal-dialog modal-lg modal-fullscreen-sm-down">
+        <div class="modal-content">
+            <form action="{% url 'unique_item_notes_update' object.pk %}" method="post">
+                {% csrf_token %}
+                <div class="modal-header">
+                    <h2 class="modal-title fs-5" id="unique-item-notes-editor-title">{% trans "Edit notes" %}</h2>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" data-field-editor-enhanced hidden aria-label="{% trans 'Cancel' %}"></button>
+                </div>
+                <div class="modal-body">
+                    <label for="{{ notes_form.notes.id_for_label }}" class="form-label">{% trans "Notes" %}</label>
+                    {{ notes_form.notes }}
+                    <p class="form-text">{% trans "About this one unique item, e.g. its state, what is special about it or what to watch out for." %}</p>
+                    <div class="text-danger" data-field-editor-errors>{{ notes_form.notes.errors }}</div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" data-field-editor-enhanced hidden>{% trans "Cancel" %}</button>
+                    <button type="submit" class="btn btn-warning">{% trans "Save notes" %}</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</section>

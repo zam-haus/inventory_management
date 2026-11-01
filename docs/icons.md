@@ -72,6 +72,7 @@ when they are first used:
 | Crop photo | `crop` | reserved |
 | Primary photo | `star-fill` | done |
 | From → to | `arrow-right` | done |
+| Opens in a new tab (after the link's text) | `box-arrow-up-right` | done |
 | Warning, invalid | `exclamation-triangle` | done |
 | Briefing green / yellow / red | `check-lg` / `exclamation-lg` / `x-lg` | done |
 | Label ID, QR code | `qr-code` | reserved |

@@ -1,7 +1,7 @@
 """Form widgets for the frontend."""
 from dal import autocomplete
 from django.contrib.admin.widgets import get_select2_language
-from django.forms import Media, Select
+from django.forms import Media, Select, Textarea, TextInput
 from django.urls import reverse
 from django.utils.html import format_html
 from django.utils.safestring import mark_safe
@@ -21,8 +21,12 @@ class AutocompleteSelect(autocomplete.ModelSelect2):
     every autocomplete outside the admin; the admin keeps dal's ModelSelect2.
     """
 
-    class Media:
-        css = {"all": ["inventory/autocomplete.css"]}
+    @property
+    def media(self):
+        # observer_guard.js before dal's scripts: dal watches the whole page from the moment its script runs, and
+        # must not see the Markdown editor's own changes (Firefox hangs in that loop).
+        return Media(js=["inventory/observer_guard.js"]) + super().media + \
+            Media(css={"all": ["inventory/autocomplete.css"]})
 
     def __init__(self, url=None, forward=None, *args, attrs=None, **kwargs):
         attrs = {"data-width": "100%", **(attrs or {})}
@@ -30,6 +34,35 @@ class AutocompleteSelect(autocomplete.ModelSelect2):
         if "form-select" not in classes:
             attrs["class"] = " ".join([*classes, "form-select"])
         super().__init__(url, forward, *args, attrs=attrs, **kwargs)
+
+
+class LabelCodeInput(TextInput):
+    """
+    The ID on a label, typed or scanned: a QR scan button on its right (label_scan.js) puts what the scanned label
+    holds (its URL or ID) into the field, which reads the ID from it (label_ids.parsing.code_from_scan), and chooses
+    the pre-printed label. Without a camera the button stays disabled and says why; disabled fields get no button.
+    """
+
+    class Media:
+        js = ["inventory/label_scan.js"]
+
+    def __init__(self, attrs=None):
+        super().__init__({"autocomplete": "off", "autocapitalize": "characters", **(attrs or {})})
+
+    def render(self, name, value, attrs=None, renderer=None):
+        html = super().render(name, value, attrs, renderer)
+        if (attrs or {}).get("disabled") or self.attrs.get("disabled"):
+            return html
+        label = gettext("Scan label")
+        return format_html(
+            '<div class="input-group label-scan-group">{}'
+            '<span class="disabled-action" tabindex="0" data-bs-toggle="tooltip" title="{}" aria-label="{}">'
+            '<button type="button" class="btn btn-secondary scan-field-button" data-label-scan disabled aria-label="{}"'
+            ' data-title="{}" data-hint="{}" data-added="{}" data-duplicate="{}">{}</button></span></div>',
+            html, gettext("This needs JavaScript."), label, label, label,
+            gettext("Hold the QR code of the label in front of the camera."),
+            gettext("Scanned: {code}"), gettext("Already scanned: {code}"), icon("qr-code-scan"),
+        )
 
 
 class LocationSelect(AutocompleteSelect):
@@ -158,3 +191,25 @@ class ItemOrNewSelect(AutocompleteSelect):
             label = gettext("New item “%(name)s”") % {"name": new[len(NEW_ITEM_PREFIX):]}
             groups.append((None, [self.create_option(name, new, label, True, len(groups))], len(groups)))
         return groups
+
+
+class MarkdownEditor(Textarea):
+    """
+    A Markdown text edited with a WYSIWYG editor (markdown_editor.js, TOAST UI Editor), which writes the
+    Markdown back into this textarea; without JavaScript, the textarea stays. Images cannot be embedded yet:
+    no upload URL, so the editor has no image button (docs/markdown.md). Use it for every Markdown field
+    (the description of items, the notes of unique items).
+    """
+
+    class Media:
+        css = {"all": ["inventory/vendor/toastui-editor/toastui-editor.min.css", "inventory/markdown_editor.css"]}
+        js = ["inventory/vendor/toastui-editor/toastui-editor-all.min.js",
+              "inventory/vendor/toastui-editor/toastui-editor-de-de.min.js", "inventory/markdown_editor.js"]
+
+    def __init__(self, attrs=None):
+        super().__init__({"rows": 3, **(attrs or {})})
+
+    def build_attrs(self, *args, **kwargs):
+        attrs = super().build_attrs(*args, **kwargs)
+        attrs["data-markdown-editor"] = ""  # no image upload
+        return attrs
