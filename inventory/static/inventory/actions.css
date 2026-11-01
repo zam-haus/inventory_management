@@ -39,6 +39,21 @@
 .action-menu .dropdown-menu { min-width: 14rem; max-width: min(22rem, calc(100vw - 2rem)); }
 .action-menu-item { display: grid; grid-template-columns: 1.15em minmax(0, 1fr); align-items: center; column-gap: .75rem; min-height: 44px; white-space: normal; }
 .action-menu-item > .bi { width: 1.15em; height: 1.15em; }
+/* An "add" button ({% add_icon %}): the icon of what it adds with a plus badge at the top right. The plus is cut out
+   of the badge, and the icon around the badge, so both stand out on any button, outline or menu. --add-badge: its
+   size; its middle lies .05em right of the icon and .1em below its top. (svg.: before rules that size every icon of a button.) */
+.action-add-icon { --add-badge: .55em; position: relative; display: inline-flex; margin-right: .25em; }
+.action-add-icon > svg.action-add-kind {
+    --add-cut: radial-gradient(circle at calc(100% + .05em) .1em, transparent calc(var(--add-badge) / 2 + .08em),
+                               #000 calc(var(--add-badge) / 2 + .08em + .5px));
+    -webkit-mask: var(--add-cut);
+    mask: var(--add-cut);
+}
+.action-add-icon > svg.action-add-plus {
+    position: absolute; top: calc(.1em - var(--add-badge) / 2); right: calc(-.05em - var(--add-badge) / 2);
+    width: var(--add-badge); height: var(--add-badge);
+}
+.action-menu-item > .action-icon { font-size: 1.15em; }
 .action-menu-reason { grid-column: 2; font-size: .8rem; }
 
 /* Navbar: logo, QR scanner, search, the … menu, login and the user menu share one height.

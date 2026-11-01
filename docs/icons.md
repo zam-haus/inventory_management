@@ -13,12 +13,19 @@ there for each icon a script needs. To add an icon, copy its SVG from the
 Bootstrap Icons site into that folder; unknown names raise an error (see
 `inventory/tests/test_icons.py`).
 
-Three icons are our own, drawn in the style of Bootstrap Icons and kept in the same folder: `box-star`
+Six icons are our own, drawn in the style of Bootstrap Icons and kept in the same folder: `box-star`
 (Bootstrap's `box` with a star on its side: one single, individually tracked object, next to the
 `boxes` of counted items), `box-star-stack` (a smaller `box-star` with a plain box behind it: an item tracked
 as unique items, several of them; the back box is drawn as lines that stop short of the front one, so the icon
-needs no mask and no `id`) and `eurobox-open` (a Euro container with its lid open, on a 64 grid, its
-lines thickened to match the others at 16 px).
+needs no mask and no `id`), `eurobox-open` (a Euro container with its lid open, on a 64 grid, its
+lines thickened to match the others at 16 px), `plus-badge` (a disc with a plus cut out: the badge on the icon of
+what an "add" button adds, `{% add_icon %}`), `tag-id` (a tag lying flat, its hole on the left, "ID" on it: a label
+with a code) and `price-label` (a price frame as the labels print it, `shape bulge` in
+`label_printing/design/layout.py`: straight top and bottom, the sides arching out like a price gun's labels, a € in
+it).
+
+Where an action row shows actions by their icon only (`actions.js`), no icon stands twice without its text: actions
+whose icon another one shows too keep their text (or go into the menu). Give different actions different icons.
 
 Agreed meaning of each icon, so the same action always looks the same. *Reserved*
 icons are agreed but not shown yet (those places have text buttons); vendor them
@@ -42,6 +49,8 @@ when they are first used:
 | Report a problem (menu entry) | `bug` | done |
 | Yes / no (location type facts on the help page) | `check-lg` / `x-lg` | done |
 | Print (labels; a label's printer mark in the print dialog) | `printer` | done |
+| Print labels of a location, unique item or label ID (button, dialog, print page) | `tag-id` (own) | done |
+| Print price tags (the bulk items at a location; an item's label, the same templates) | `price-label` (own) | done |
 | Levels-and-axes overview of the building | `grid-3x3` | done |
 | Search | `search` | done |
 | Item (counted, *Sache*) | `boxes` | done |
@@ -52,7 +61,8 @@ when they are first used:
 | Location: storage unit (*Lagermöbel*: shelf, cabinet, …) | `bookshelf` | done |
 | Location: container (*Behälter*: Euro box, carton, …) | `eurobox-open` (own) | done |
 | Edit (item, unique item, purpose) | `pencil` | done |
-| Add | `plus-lg` | done |
+| Add (a photo, file, item, unique item, storage unit, container, sub-location) | the icon of what is added with `plus-badge` (own) at its top right, `{% add_icon "camera" %}`; never a plain plus, so no two "add" buttons look alike without their text | done |
+| File (files panel, adding one) | `file-earmark` | done |
 | Move a location or unique item | `arrows-move` | done |
 | Delete an entry (quick-item) | `x-lg` | done |
 | Open details, next entry | `chevron-right` | done |

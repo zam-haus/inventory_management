@@ -23,3 +23,10 @@ def location_code(code, classes="", location=None):
 def icon_name(location):
     """The icon of a location's kind: {% icon location|icon_name %}."""
     return location_display.icon_name(location)
+
+
+@register.filter
+def category_icon(category):
+    """The icon of the locations of a category: {% add_icon "container"|category_icon %}."""
+    return location_display.category_icon_name(category)
+

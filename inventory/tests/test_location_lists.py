@@ -1,3 +1,4 @@
+from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
 from django.test import TestCase
 from django.urls import reverse
@@ -73,6 +74,30 @@ class SubLocationCategoryTests(TestCase):
         self.assertIn('data-modal-open="locations-move-here-modal"', container_panel)
         # "At this location" comes before both columns.
         self.assertLess(page.index('id="location-stored-heading"'), page.index('class="location-layout'))
+
+    def test_add_actions_show_what_they_add(self):
+        # Without their text (actions.js) the + buttons still differ: the icon of what they add, with a plus.
+        LocationType.objects.filter(name="Kiste").update(auto_short_name_prefix="K",
+                                                         auto_sequence=LocationType.Sequence.NUMERIC)
+        self.client.force_login(self.member)
+        page = self.client.get(self.area.get_absolute_url()).content.decode()
+        actions = page[page.index("data-action-group"):page.index("location-summary")]
+        for url, kind in ((reverse("numbered_location_create", args=[self.area.pk]), "bi-bookshelf"),
+                          (reverse("container_create", args=[self.area.pk]), "bi-eurobox-open")):
+            button = actions[actions.index(f'href="{url}"'):]
+            button = button[:button.index("</a>")]
+            self.assertIn('class="action-icon action-add-icon"', button)
+            self.assertIn(kind, button)
+            self.assertIn("action-add-plus", button)
+        self.client.force_login(get_user_model().objects.create_user(username="reader"))  # disabled, same icons
+        page = self.client.get(self.area.get_absolute_url()).content.decode()
+        actions = page[page.index("data-action-group"):page.index("location-summary")]
+        self.assertEqual(actions.count('class="action-icon action-add-icon"'), 2)
+        # The panels' + buttons, too: what each adds (items, unique items, storage units, containers).
+        panels = page[page.index("location-summary"):]
+        for kind in ("bi-boxes", "bi-box-star", "bi-bookshelf", "bi-eurobox-open"):
+            self.assertIn(f'class="bi {kind} action-add-kind"', panels)
+        self.assertNotIn("bi-plus-lg", page)
 
     def test_guests_see_no_empty_storage_unit_panel(self):
         page = self.client.get(self.area.get_absolute_url()).content.decode()

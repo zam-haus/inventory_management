@@ -56,8 +56,8 @@ window.appIcon = name => {
 // Action rows: a title and its actions ([data-action-row] containing [data-action-group]). When the actions do not
 // fit beside the title, a menu at the right end (#action-menu-template) takes them in this order, until the rest
 // fits: first the unavailable ones (.disabled-action), one by one from the right; then the usable ones show their
-// icon only (all at once, so the row stays alike) and are listed in the menu, too; last the usable ones move into
-// it, from the right. Important actions ([data-action-primary], e.g. taking stock out) stay while usable. With none
+// icon only (all at once, so the row stays alike; those whose icon another one shows too keep their text, so that no
+// icon stands twice without it) and are listed in the menu, too; last the usable ones move into it, from the right. Important actions ([data-action-primary], e.g. taking stock out) stay while usable. With none
 // left, the menu alone stays beside the title. Menu entries forward clicks to the hidden originals, which keep their
 // behaviour; unavailable actions are listed disabled with their reason.
 (() => {
@@ -68,8 +68,9 @@ window.appIcon = name => {
         const unavailable = action.matches('.disabled-action');
         const item = document.createElement(unavailable ? 'div' : action.matches('a[href]') ? 'a' : 'button');
         item.className = 'dropdown-item action-menu-item';
-        // Entries without an icon keep its column, so the labels line up.
-        const icon = action.querySelector('svg.bi');
+        // Entries without an icon keep its column, so the labels line up. An icon made of several (the + buttons of
+        // a location: what they add, with a plus) as a whole.
+        const icon = action.querySelector('.action-icon, svg.bi');
         item.append(icon ? icon.cloneNode(true) : document.createElement('span'));
         const label = document.createElement('span');
         label.textContent = action.getAttribute('aria-label') || action.textContent.trim();
@@ -102,6 +103,16 @@ window.appIcon = name => {
     const primary = action => action.hasAttribute('data-action-primary');
     const compact = action => action.classList.contains('is-compact');
     const unavailable = action => action.matches('.disabled-action');
+    // What its icon shows: the names of its icons (Bootstrap Icons' bi-… classes), together.
+    const iconKey = action => [...action.querySelectorAll('svg.bi')]
+        .map(svg => [...svg.classList].filter(name => name.startsWith('bi-')).join(' ')).join('+');
+    // Of those that would show their icon only, the ones whose icon no other one without its text shows (`iconOnly`:
+    // those that never have one).
+    function distinct(actions, iconOnly) {
+        const counts = {};
+        [...actions, ...iconOnly].forEach(action => { counts[iconKey(action)] = (counts[iconKey(action)] || 0) + 1; });
+        return actions.filter(action => counts[iconKey(action)] === 1);
+    }
 
     // Its icon only; its text, now hidden, stays its name and tooltip.
     function shorten(action) {
@@ -161,7 +172,8 @@ window.appIcon = name => {
             const fromRight = list => [...list].reverse();
             const steps = [
                 ...fromRight(all.filter(unavailable)).map(action => () => action.classList.add('is-overflowed')),
-                () => usable.filter(action => action.querySelector('.action-label')).forEach(shorten),
+                () => distinct(usable.filter(action => action.querySelector('.action-label')),
+                    usable.filter(action => !action.querySelector('.action-label'))).forEach(shorten),
                 ...fromRight(usable.filter(action => !primary(action)))
                     .map(action => () => action.classList.add('is-overflowed')),
             ];

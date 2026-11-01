@@ -166,7 +166,7 @@
                 add.className = 'media-tile media-tile-add';
                 add.setAttribute('role', 'listitem');
                 add.innerHTML = '<span class="media-tile-plus" aria-hidden="true"></span>';
-                if (window.appIcon) add.firstChild.append(window.appIcon('plus-lg'));
+                if (window.appIcon) add.firstChild.append(window.appIcon(this.kind === 'photo' ? 'add-camera' : 'add-file'));
                 add.append(this.kind === 'photo' ? text.newPhoto : text.newFile);
                 add.addEventListener('click', () => open(this, this.newRow(), true));
                 this.list.append(add);

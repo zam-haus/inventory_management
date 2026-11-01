@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% load i18n static icons %}
+{% load i18n static icons label_printing %}
 
 {% block bootstrap5_extra_head %}
     {{ block.super }}
@@ -9,7 +9,7 @@
 {% block title %}{% trans "Print labels" %}: {{ print_title }}{% endblock %}
 
 {% block content %}
-    <h1 class="h3 mt-3">{% icon "tag" %} {% trans "Print labels" %}</h1>
+    <h1 class="h3 mt-3">{% icon subject_type|label_icon %} {% trans "Print labels" %}</h1>
     <p><a href="{{ back_url }}">{{ print_heading }}</a></p>
     {% if not unavailable %}
         {{ print_options|json_script:options_id }}

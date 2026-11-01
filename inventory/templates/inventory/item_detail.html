@@ -89,7 +89,7 @@
                     <div class="item-panel-heading">
                         <div class="item-panel-title-row">
                             <h2 id="item-photos-heading">{% trans "Photos" %} <span class="item-count">{{ images|length }}</span></h2>
-                            {% if perms.inventory.add_itemimage %}<a class="btn btn-success item-panel-add" href="{% url 'update_item' object.pk %}" data-quick-open="quick-photo-modal" data-bs-toggle="tooltip" title="{% trans 'Add photo' %}" aria-label="{% trans 'Add photo' %}">{% icon "plus-lg" %}</a>{% else %}{% icon "plus-lg" as plus_icon %}{% disabled_action plus_icon name=_("Add photo") classes="btn btn-success item-panel-add" %}{% endif %}
+                            {% if perms.inventory.add_itemimage %}<a class="btn btn-success item-panel-add" href="{% url 'update_item' object.pk %}" data-quick-open="quick-photo-modal" data-bs-toggle="tooltip" title="{% trans 'Add photo' %}" aria-label="{% trans 'Add photo' %}">{% add_icon "camera" %}</a>{% else %}{% add_icon "camera" as plus_icon %}{% disabled_action plus_icon name=_("Add photo") classes="btn btn-success item-panel-add" %}{% endif %}
                         </div>
                         {% if images %}<p class="item-muted">{% trans "Click a photo to enlarge it; click again to close. Use arrow keys or swipe to browse." %}</p>{% endif %}
                     </div>
@@ -142,9 +142,9 @@
                     <div class="item-panel-title-row">
                         <h2 id="item-unique-items-heading">{% trans "Unique items" %} <span class="item-count">{{ unique_items|length }}</span></h2>
                         {% if perms.inventory.add_uniqueitem and perms.inventory.claim_labelid %}
-                        <a class="btn btn-success item-panel-add" href="{% url 'create_unique_item' %}?item={{ object.pk }}" data-bs-toggle="tooltip" title="{% trans 'Add unique item' %}" aria-label="{% trans 'Add unique item' %}">{% icon "plus-lg" %}</a>
+                        <a class="btn btn-success item-panel-add" href="{% url 'create_unique_item' %}?item={{ object.pk }}" data-bs-toggle="tooltip" title="{% trans 'Add unique item' %}" aria-label="{% trans 'Add unique item' %}">{% add_icon "box-star" %}</a>
                         {% else %}
-                        {% icon "plus-lg" as plus_icon %}{% disabled_action plus_icon name=_("Add unique item") classes="btn btn-success item-panel-add" %}
+                        {% add_icon "box-star" as plus_icon %}{% disabled_action plus_icon name=_("Add unique item") classes="btn btn-success item-panel-add" %}
                         {% endif %}
                     </div>
                     <p class="item-muted">{% blocktrans with name=label_id_name %}Each unique item is a single object with its own {{ name }}.{% endblocktrans %} {% help_link "zamid" %}{% if disposed_count %} {% blocktrans count counter=disposed_count %}{{ counter }} unique item has been removed from the inventory.{% plural %}{{ counter }} unique items have been removed from the inventory.{% endblocktrans %}{% endif %}</p>

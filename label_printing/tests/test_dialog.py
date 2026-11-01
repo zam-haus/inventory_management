@@ -187,6 +187,12 @@ class PrintDialogTests(SimulatedPrinters, InventoryData, TestCase):
         response = self.client.get(self.part.get_absolute_url())
         self.assertContains(response, 'id="label-print-modal-items"')
         self.assertContains(response, "Only items with a sale price (2)")
+        # Two print buttons, two icons (actions.js shows them without their text then): a price frame for the price
+        # tags, a tag with "ID" for the labels.
+        content = response.content.decode()
+        for subject_type, kind in (("items", "bi-price-label"), ("location", "bi-tag-id")):
+            button = content[content.index(f'data-modal-open="label-print-modal-{subject_type}"'):]
+            self.assertIn(kind, button[:button.index("</a>")])
         options = dialog.options("items", self.part)
         self.assertEqual([(row["name"], row["priced"]) for row in options["rows"]],
                          [("Kabelbinder", False), ("Muttern M4 (0.05 € / Stk)", True), ("Schrauben M4 (0.15 € / Stk)", True)])

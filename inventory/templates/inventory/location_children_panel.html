@@ -6,26 +6,26 @@ children, child_entries, category). Storage units and containers have a shortcut
         <div class="location-panel-title-row">
             <h2 id="{{ anchor }}-heading" class="fs-4">{% if children|length > 10 %}<label class="list-collapse-toggle" for="{{ anchor }}-expanded">{% endif %}<span class="list-collapse-title">{{ title }} <span class="location-count">{{ children|length }}</span></span>{% if children|length > 10 %}</label>{% endif %}</h2>
             {% if category == "storage_unit" %}
-                {% if numbering_types %}{% with numbering_label=numbering_types|join:" / " %}{% blocktrans asvar add_title %}Add {{ numbering_label }}{% endblocktrans %}
+                {% if numbering_types %}{% with numbering_label=numbering_types|join:" / " %}{% blocktrans asvar add_title %}Add {{ numbering_label }}{% endblocktrans %}{% add_icon "storage_unit"|category_icon as numbering_icon %}
                     {% if perms.inventory.add_location %}
-                        <a class="btn btn-success location-add-item" href="{% url 'numbered_location_create' pk=object.pk %}" data-bs-toggle="tooltip" title="{{ add_title }}" aria-label="{{ add_title }}">{% icon "plus-lg" %}</a>
+                        <a class="btn btn-success location-add-item" href="{% url 'numbered_location_create' pk=object.pk %}" data-bs-toggle="tooltip" title="{{ add_title }}" aria-label="{{ add_title }}">{{ numbering_icon }}</a>
                     {% else %}
-                        {% icon "plus-lg" as add_icon %}{% disabled_action add_icon name=add_title classes="btn btn-success location-add-item" %}
+                        {% disabled_action numbering_icon name=add_title classes="btn btn-success location-add-item" %}
                     {% endif %}
-                {% endwith %}{% elif object.type.sublocation_type and not object.type.no_sublocations %}{% blocktrans with type=object.type.sublocation_type.name asvar add_title %}Add {{ type }} with the next free letters{% endblocktrans %}
+                {% endwith %}{% elif object.type.sublocation_type and not object.type.no_sublocations %}{% blocktrans with type=object.type.sublocation_type.name asvar add_title %}Add {{ type }} with the next free letters{% endblocktrans %}{% add_icon object.type.sublocation_type.category|category_icon as sub_icon %}
                     {% if perms.inventory.add_location %}
-                        <a class="btn btn-success location-add-item" href="{% url 'sublocation_add' pk=object.pk %}" data-bs-toggle="tooltip" title="{{ add_title }}" aria-label="{{ add_title }}">{% icon "plus-lg" %}</a>
+                        <a class="btn btn-success location-add-item" href="{% url 'sublocation_add' pk=object.pk %}" data-bs-toggle="tooltip" title="{{ add_title }}" aria-label="{{ add_title }}">{{ sub_icon }}</a>
                     {% else %}
-                        {% icon "plus-lg" as add_icon %}{% disabled_action add_icon name=add_title classes="btn btn-success location-add-item" %}
+                        {% disabled_action sub_icon name=add_title classes="btn btn-success location-add-item" %}
                     {% endif %}
                 {% endif %}
             {% elif category == "container" and not object.type.no_sublocations %}
                 <div class="location-panel-actions">
-                {% if container_types %}
+                {% if container_types %}{% add_icon "container"|category_icon as container_icon %}
                     {% if perms.inventory.add_location %}
-                        <a class="btn btn-success location-add-item" href="{% url 'container_create' pk=object.pk %}" data-bs-toggle="tooltip" title="{% trans 'Add a box, carton or pallet with the next number' %}" aria-label="{% trans 'Add a box, carton or pallet with the next number' %}">{% icon "plus-lg" %}</a>
+                        <a class="btn btn-success location-add-item" href="{% url 'container_create' pk=object.pk %}" data-bs-toggle="tooltip" title="{% trans 'Add a box, carton or pallet with the next number' %}" aria-label="{% trans 'Add a box, carton or pallet with the next number' %}">{{ container_icon }}</a>
                     {% else %}
-                        {% icon "plus-lg" as add_icon %}{% disabled_action add_icon name=_("Add a box, carton or pallet with the next number") classes="btn btn-success location-add-item" %}
+                        {% disabled_action container_icon name=_("Add a box, carton or pallet with the next number") classes="btn btn-success location-add-item" %}
                     {% endif %}
                 {% endif %}
                 {% if perms.inventory.change_location %}

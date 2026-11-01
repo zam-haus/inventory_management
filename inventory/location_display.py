@@ -12,7 +12,13 @@ CATEGORY_ICONS = {"storage_unit": "bookshelf", "container": "eurobox-open"}
 
 def icon_name(location):
     """The icon of a location (inventory/icons.py), from its type's category; needs location.type."""
-    return CATEGORY_ICONS.get(location.type.category, "geo-alt")
+    return category_icon_name(location.type.category)
+
+
+def category_icon_name(category):
+    """The icon of the locations of a type's category ("storage_unit", "container", …)."""
+    return CATEGORY_ICONS.get(category, "geo-alt")
+
 
 
 def code_html(code, classes="", location=None):

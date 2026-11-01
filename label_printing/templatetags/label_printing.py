@@ -24,6 +24,13 @@ def print_state(context, obj, subject_type):
     return cache[key]
 
 
+@register.filter
+def label_icon(subject_type):
+    """The icon of what a dialog prints (docs/icons.md): price labels for items (those of the bulk items at a location,
+    "items", and of an item: the same templates), else labels with an ID."""
+    return "price-label" if subject_type in ("item", "items") else "tag-id"
+
+
 @register.inclusion_tag("label_printing/print_button.html", takes_context=True)
 def label_print_button(context, obj, subject_type, classes="btn btn-info"):
     allowed, _options, reason = print_state(context, obj, subject_type)

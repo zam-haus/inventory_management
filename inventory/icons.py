@@ -32,6 +32,13 @@ def icon(name, classes=""):
     return mark_safe(svg)
 
 
+def add_icon(name):
+    """The icon of what an "add" button adds with a plus badge at its top right (docs/icons.md), so that each such
+    button shows what it adds, also without its text (actions.js)."""
+    return format_html('<span class="action-icon action-add-icon">{}{}</span>', icon(name, "action-add-kind"),
+                       icon("plus-badge", "action-add-plus"))
+
+
 def sprite(names, prefix, classes):
     """The icons as <symbol>s (ids prefix-name), drawn once per page; use() shows one. Long lists stay small: an icon
     inline is about a kilobyte, a reference to it a few bytes."""

@@ -32,7 +32,7 @@
                 </div>
                 <div class="location-actions location-move-form">
                     {% for kind in kinds %}
-                        <a class="btn btn-success" href="{{ url }}?type={{ kind.pk }}">{% icon "plus-lg" %} {{ kind.name }}</a>
+                        <a class="btn btn-success" href="{{ url }}?type={{ kind.pk }}">{% add_icon kind.category|category_icon %} {{ kind.name }}</a>
                     {% endfor %}
                 </div>
             </section>
@@ -60,9 +60,9 @@
                     {% bootstrap_field form.purpose %}
                     {% bootstrap_field form.physical_description %}
                     <div class="location-actions mt-3">
-                        <button class="btn btn-success" type="submit">{% icon "plus-lg" %} {% blocktrans with type=kind.name %}Add {{ type }}{% endblocktrans %}</button>
+                        <button class="btn btn-success" type="submit">{% add_icon kind.category|category_icon %} {% blocktrans with type=kind.name %}Add {{ type }}{% endblocktrans %}</button>
                     </div>
-                    {% if perms.label_printing.print_label %}<p class="form-text mt-2 mb-0">{% icon "tag" %} {% trans "Then the label print dialog opens with the labels of the new locations checked." %}</p>{% endif %}
+                    {% if perms.label_printing.print_label %}<p class="form-text mt-2 mb-0">{% icon "tag-id" %} {% trans "Then the label print dialog opens with the labels of the new locations checked." %}</p>{% endif %}
                 </form>
             </section>
         {% endif %}
