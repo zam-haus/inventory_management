@@ -95,6 +95,15 @@
                         {% for team in source.responsible_teams.all %}<span class="location-team">{% include "inventory/team_badge.html" %} {{ team.group.name }}</span>{% endfor %}
                     {% else %}<span class="location-muted">{% trans "No team yet." %}</span>{% endif %}{% endwith %}</dd>
                 </div>
+                {# Width, depth and height; a compartment shows those of its shelf (Location.footprint_source). #}
+                {% with dimensions=object.dimensions_text footprint=object.footprint_source %}{% if dimensions or not edit_denied %}
+                <div class="location-summary-dimensions">
+                    <dt><span class="location-eyebrow">{% trans "Dimensions" %}</span>
+                        {% if not edit_denied %}<a href="#location-dimensions-editor" class="btn btn-sm btn-warning location-edit-dimensions" data-field-editor-open="location-dimensions-editor" data-bs-toggle="tooltip" title="{% trans 'Edit dimensions' %}">{% icon "pencil" %} <span class="action-label">{% trans "Dimensions" %}</span></a>{% endif %}</dt>
+                    <dd>{% if dimensions %}{{ dimensions }}{% if footprint and footprint.pk != object.pk %} <span class="location-muted">{% blocktrans with location=footprint.title %}width and depth from {{ location }}{% endblocktrans %}</span>{% endif %}
+                        {% else %}<span class="location-muted">{% trans "No dimensions yet." %}</span>{% endif %}</dd>
+                </div>
+                {% endif %}{% endwith %}
                 {% with fire=object.fire_load_free_source %}{% if fire %}
                 <div class="location-summary-fire">
                     <dt><span class="location-eyebrow">{% trans "Free of fire load" as fire_load %}{{ fire_load|capfirst }}</span></dt>
@@ -216,7 +225,7 @@
     {% include 'inventory/location_metadata.html' %}
     {% if not edit_denied %}{% include 'inventory/location_overview_editor.html' %}{% endif %}
     {% if not purpose_denied %}{% include 'inventory/location_purpose_editor.html' %}{% endif %}
-    {% if not edit_denied %}{% include 'inventory/location_description_editor.html' %}{% endif %}
+    {% if not edit_denied %}{% include 'inventory/location_description_editor.html' %}{% include 'inventory/location_dimensions_editor.html' %}{% endif %}
     {% if perms.inventory.change_location %}{% include 'inventory/location_move_modals.html' %}{% endif %}
     {% label_print_dialog object "location" %}
     {% label_print_dialog object "items" %}

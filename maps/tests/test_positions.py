@@ -1,6 +1,8 @@
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Permission
-from django.test import TestCase, override_settings
+from django.db import connection
+from django.db.migrations.executor import MigrationExecutor
+from django.test import TestCase, TransactionTestCase, override_settings
 from django.urls import reverse
 
 from inventory.models import ChangeLog, Item, Location, LocationType, MeasurementUnit, UniqueItem
@@ -258,28 +260,51 @@ class StorageUnitTests(Building, TestCase):
                                           "map_width_cm": "200", "map_depth_cm": "60"})
         self.assertTrue(response.json()["ok"], response.content)
         shape = LocationShape.objects.get(location=self.shelf)
-        self.assertEqual((shape.kind, shape.width_cm, shape.depth_cm, shape.rotation), ("rectangle", 200, 60, 90))
+        self.assertEqual((shape.kind, shape.size_cm(), shape.rotation), ("rectangle", (200, 60), 90))
         self.assertAlmostEqual(geo.area_m2(shape.geometry), 1.2, places=3)
+        self.shelf.refresh_from_db()
+        self.assertEqual((self.shelf.width_cm, self.shelf.depth_cm), (200, 60))  # the size it was placed in
+        entry = ChangeLog.objects.get(location=self.shelf, action=ChangeLog.Action.CHANGED)  # one, with the position
+        self.assertEqual([change["field"] for change in entry.changes], ["width_cm", "depth_cm", "map_position"])
         response = self.client.post(url, {"map_geometry": CENTER.json, "map_kind": "point"})
         self.assertEqual(LocationShape.objects.get(location=self.shelf).kind, "point")
         response = self.client.post(url, {"map_geometry": CENTER.json, "map_kind": "rectangle",
                                           "map_width_cm": "-3", "map_depth_cm": "60"})
         self.assertFalse(response.json()["ok"])
 
-    def test_the_types_usual_size_comes_first_and_can_be_changed(self):
+    def test_the_types_usual_size_comes_first_and_the_locations_is_fixed(self):
         LocationTypeMap.objects.create(type=self.shelf.type, placeable=True, default_width_cm=100, default_depth_cm=40)
         self.client.force_login(self.member)
         context = self.client.get(reverse("maps:place_context"), {"location": self.shelf.pk}).json()["own"]
-        self.assertEqual((context["kind"], context["size"], context["type_size"]), (None, [1.0, 0.4], [1.0, 0.4]))
+        self.assertEqual((context["kind"], context["size"], context["type_size"], context["size_fixed"]),
+                         (None, [1.0, 0.4], [1.0, 0.4], False))
         url = reverse("maps:location_shape", args=[self.shelf.pk])
         self.client.post(url, {"map_geometry": CENTER.json, "map_kind": "rectangle",
-                               "map_width_cm": "100", "map_depth_cm": "40"})
+                               "map_width_cm": "180", "map_depth_cm": "50"})  # another size than the usual one
         shape = LocationShape.objects.get(location=self.shelf)
-        self.assertEqual((shape.kind, shape.width_cm, shape.depth_cm, shape.size_cm()), ("rectangle", None, None, (100, 40)))
-        self.client.post(url, {"map_geometry": CENTER.json, "map_kind": "rectangle",
-                               "map_width_cm": "180", "map_depth_cm": "50"})
+        self.assertEqual((shape.kind, shape.size_cm(), shape.size_fixed()), ("rectangle", (180, 50), True))
+        response = self.client.post(url, {"map_geometry": CENTER.json, "map_kind": "rectangle",
+                                          "map_width_cm": "100", "map_depth_cm": "40"})
+        self.assertFalse(response.json()["ok"])  # its dimensions: changed on its page
+        self.assertIn("180 × 50 cm", response.json()["error"])
+        self.assertTrue(self.client.post(url, {"map_geometry": CENTER.json, "map_kind": "rectangle", "map_rotation": "45",
+                                               "map_width_cm": "180", "map_depth_cm": "50"}).json()["ok"])  # turned
+        context = self.client.get(reverse("maps:place_context"), {"location": self.shelf.pk}).json()["own"]
+        self.assertEqual((context["size"], context["size_fixed"]), ([1.8, 0.5], True))
+        Location.objects.filter(pk=self.shelf.pk).update(width_cm=90)
         shape.refresh_from_db()
-        self.assertEqual((shape.width_cm, shape.depth_cm), (180, 50))  # its own size
+        self.assertEqual(shape.size_cm(), (90, 50))  # the location's, as it is now
+
+    def test_a_compartment_has_the_size_of_its_shelf(self):
+        self.assertIsNone(self.compartment.footprint_cm)
+        Location.objects.filter(pk=self.shelf.pk).update(width_cm=120, depth_cm=40, height_cm=200)
+        compartment = Location.objects.get(pk=self.compartment.pk)
+        self.assertEqual((compartment.footprint_cm, compartment.footprint_source), ((120, 40), self.shelf))
+        self.assertEqual(compartment.dimensions_text(), "W 120 × D 40 cm")  # not its height
+        Location.objects.filter(pk=self.compartment.pk).update(width_cm=60, depth_cm=40, height_cm=30)
+        compartment = Location.objects.get(pk=self.compartment.pk)
+        self.assertEqual((compartment.footprint_cm, compartment.dimensions_text()), ((60, 40), "W 60 × D 40 × H 30 cm"))
+        self.assertIsNone(self.store.footprint_cm)  # the shelf's room has none of its own
 
     def test_a_position_can_go_to_another_location(self):
         # The edit mode's change of what a position belongs to: the other one gets it, this one's goes, together.
@@ -348,3 +373,36 @@ class ResultMapLinkTests(Building, TestCase):
         page = self.client.get(self.store.get_absolute_url()).content.decode()
         lists = page[page.index("data-result-list"):]
         self.assertNotIn("result-map", lists)
+
+
+class LocationSizeMigrationTests(TransactionTestCase):
+    def test_own_sizes_on_the_map_become_the_locations_and_back(self):
+        before = [("inventory", "0052_location_dimensions"), ("maps", "0005_unique_item_shapes")]
+        after = [("maps", "0006_location_size_to_location")]
+        executor = MigrationExecutor(connection)
+        executor.migrate(before)
+        try:
+            apps = executor.loader.project_state(before).apps
+            Location = apps.get_model("inventory", "Location")
+            Shape = apps.get_model("maps", "LocationShape")
+            kind = apps.get_model("inventory", "LocationType").objects.create(name="Regal", unique=True)
+            shelves = [Location.objects.create(type=kind, name=f"Regal {n}", short_name=f"R{n}",
+                                               unique_identifier=f"R{n}", locatable_identifier=f"R{n}",
+                                               descriptive_identifier=f"Regal {n}") for n in (1, 2, 3)]
+            Location.objects.filter(pk=shelves[1].pk).update(width_cm=90, depth_cm=30)  # its own already
+            for shelf in shelves[:2]:
+                Shape.objects.create(location=shelf, kind="rectangle", geometry=CENTER, width_cm=200, depth_cm=60)
+            Shape.objects.create(location=shelves[2], kind="rectangle", geometry=CENTER)  # the usual size
+            executor = MigrationExecutor(connection)
+            executor.migrate(after)
+            Location = executor.loader.project_state(after).apps.get_model("inventory", "Location")
+            self.assertEqual([(shelf.width_cm, shelf.depth_cm) for shelf in Location.objects.order_by("pk")],
+                             [(200, 60), (90, 30), (None, None)])
+            executor = MigrationExecutor(connection)
+            executor.migrate(before)
+            Shape = executor.loader.project_state(before).apps.get_model("maps", "LocationShape")
+            self.assertEqual([(shape.width_cm, shape.depth_cm) for shape in Shape.objects.order_by("location_id")],
+                             [(200, 60), (90, 30), (None, None)])
+        finally:
+            executor = MigrationExecutor(connection)
+            executor.migrate(executor.loader.graph.leaf_nodes())

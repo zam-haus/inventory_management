@@ -405,6 +405,14 @@ body.map-place-fullscreen {
 .map-place-knob {  /* turning: pink */
     border-color: #d63384;
 }
+.map-place-corner {  /* sizing (map_shape_edit.js sizeHandle): a small square */
+    border-radius: 2px;
+    background: #fff;
+    cursor: move;
+}
+.leaflet-dragging .leaflet-marker-draggable.map-place-corner {
+    cursor: move;
+}
 .map-place-size {
     display: inline-flex;
     gap: .35rem;
@@ -453,7 +461,7 @@ body:has(.map-page-canvas) > .container {
 .map-edit-rotation input {
     width: 10rem;
 }
-.map-edit-actions {
+.map-edit-actions, .map-edit-kinds {
     display: inline-flex;
     gap: .35rem;
 }

@@ -100,6 +100,24 @@ def _own_size(shape, size):
         shape.width_cm, shape.depth_cm = (None, None) if tuple(size) == shape.usual_size_cm() else size
 
 
+def _location_size(location, kind, size):
+    """A rectangle's size is the location's width and depth (Location.footprint_cm): one without them gets the
+    size it is placed in (the change log's entry of that, or None); one with them keeps them, a different size
+    is refused."""
+    if not size or kind != Shape.Kind.RECTANGLE:
+        return None
+    footprint = location.footprint_cm
+    if footprint:
+        if tuple(size) != tuple(footprint):
+            raise PlacementError(
+                _("“%(location)s” is %(width)s × %(depth)s cm: change its dimensions on its page.")
+                % {"location": location, "width": footprint[0], "depth": footprint[1]})
+        return None
+    location.width_cm, location.depth_cm = size
+    location.save(update_fields=["width_cm", "depth_cm"])
+    return getattr(location, "_change_log_entry", None)
+
+
 def _moved(shape, start, end, turn):
     """Carries the shape along (see _carry); False if it stays (areas of locations: building parts)."""
     if shape.geometry is None:
@@ -131,8 +149,9 @@ def _carry(location_pks, item_location_pks, start, end, turn):
 
 @transaction.atomic
 def set_location_shape(location, kind, geometry, rotation=0.0, *, size=None, entry=None):
-    """Places the location (geometry None: removes its position); `size` (width, depth) in cm is its own, e.g. from
-    the dialog. What is on or in it moves along when it had a position before and gets a new one."""
+    """Places the location (geometry None: removes its position); `size` (width, depth) in cm of a rectangle becomes
+    the location's, unless it has its own (_location_size). What is on or in it moves along when it had a position
+    before and gets a new one."""
     allowed = permissions.allowed_kinds(location.type)
     if geometry is not None:
         if kind is None and allowed == [LocationShape.Kind.AREA]:
@@ -145,7 +164,9 @@ def set_location_shape(location, kind, geometry, rotation=0.0, *, size=None, ent
             raise PlacementError(_("Locations of type “%(type)s” are not placed as %(kind)s.") % {
                 "type": location.type, "kind": LocationShape.Kind(kind).label})
     shape, _created = LocationShape.objects.select_for_update().get_or_create(location=location)
-    _own_size(shape, size)
+    shape.location = location  # with the size it may get here
+    if geometry is not None:
+        entry = _location_size(location, kind or (Shape.Kind.RECTANGLE if size else None), size) or entry
     kind, geometry, rotation = shaped(shape, kind, geometry, rotation)
     before, old = describe(shape), shape.geometry
     old_rotation = shape.rotation

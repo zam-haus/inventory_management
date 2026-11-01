@@ -3,14 +3,17 @@
 //   ZamMap.shapeEditor  an area gets draggable corners (Leaflet-Geoman) and is dragged as a whole by its inside; a
 //                       corner tapped is chosen (an X above it removes it, so do tapping it again and Delete; a right
 //                       click removes one at once; a triangle keeps its corners). A rectangle has a middle handle to
-//                       move it and one on each side to turn it, a point a handle. Corners snap to the corners and
-//                       edges around, turning to the edges nearby and the plan's walls (Alt while dragging: no
-//                       snapping; the first snap on the page says so beside the point).
+//                       move it and one on each side to turn it (options.resizable: and one on each corner to size
+//                       it, the opposite one staying, unless its size is fixed), a point a handle. Corners snap to
+//                       the corners and edges around, turning to the edges nearby and the plan's walls (Alt while
+//                       dragging: no snapping; the first snap on the page says so beside the point).
 //   ZamMap.editSteps    each step can be undone and redone: the arrows, Ctrl+Z (⌘Z) and Ctrl+Y, the browser's back
 //                       and forward (each step is an entry of its history).
-//   ZamMap.editKeys     Enter or Ctrl+S (⌘S) saves; Delete removes the chosen corner.
-// What is edited is a state object of the caller: {center, rotation, size ([width, depth] in m; a rectangle), count
-// (a row of rectangles side by side), area (an L.Polygon)}; the editor adds its layers (shape, handle, knobs).
+//   ZamMap.editKeys     Enter or Ctrl+S (⌘S) saves; Delete or Backspace removes the chosen corner, else (options.remove)
+//                       what the X of the selection does.
+// What is edited is a state object of the caller: {center, rotation, size ([width, depth] in m; a rectangle), sizeFixed
+// (not sized on the map), count (a row of rectangles side by side), area (an L.Polygon)}; the editor adds its layers
+// (shape, handle, knobs, corners).
 (function () {
     'use strict';
 
@@ -28,10 +31,10 @@
     var snapNoted = false;  // once on the page
 
     // The boxes over the map (the X above a corner; map_edit.js: what the position belongs to) are markers of their
-    // own pane, over the handles and below the popups; clicks in them stay there.
+    // own pane, over the handles and the labels (tooltips: 650) and below the popups (700); clicks in them stay there.
     function overlay(map, element) {
         if (!map.getPane('mapEditBoxes')) {
-            map.createPane('mapEditBoxes').style.zIndex = 640;
+            map.createPane('mapEditBoxes').style.zIndex = 660;
         }
         element.remove();  // only on the map, in its marker
         element.hidden = false;
@@ -289,6 +292,14 @@
                     knob.setLatLng(knobPosition(s, side));
                 }
             });
+            if (s.corners) {
+                var at = geometry.rectangle(s.center, s.size, s.rotation);
+                s.corners.forEach(function (handle, index) {
+                    if (index !== s.sizing) {
+                        handle.setLatLng(at[index]);
+                    }
+                });
+            }
         }
         map.on('zoomend', function () {
             if (current && current.knobs) {
@@ -393,6 +404,49 @@
                 });
                 return knob;
             });
+            s.corners = options.resizable && !s.count && !s.sizeFixed ? [0, 1, 2, 3].map(function (index) {
+                return sizeHandle(s, index);
+            }) : null;
+        }
+
+        // A corner of a rectangle that sizes it: dragged, the opposite corner stays (snapping as a corner does).
+        function sizeHandle(s, index) {
+            var handle = L.marker(geometry.rectangle(s.center, s.size, s.rotation)[index], {draggable: true,
+                keyboard: false, title: options.sizeHandle || '',
+                icon: L.divIcon({className: 'map-place-handle map-place-corner', iconSize: [12, 12]})}).addTo(map);
+            var opposite = null;
+            handle.on('dragstart', function () {
+                moving(true);
+                s.sizing = index;
+                opposite = geometry.rectangle(s.center, s.size, s.rotation)[(index + 2) % 4];
+            });
+            handle.on('drag', function (event) {
+                var at = event.target.getLatLng();
+                if (!(event.originalEvent && event.originalEvent.altKey)) {
+                    var snapped_ = geometry.snapCenter(map, targets(), at, function (corner) { return [corner]; });
+                    if (snapped_ !== at) {
+                        snapped(snapped_);
+                    }
+                    at = snapped_;
+                }
+                var drawn = geometry.fromCorners(opposite, at, s.rotation);
+                if (drawn.size[0] < 0.01 || drawn.size[1] < 0.01) {  // at least a centimetre
+                    return;
+                }
+                s.center = drawn.center;
+                s.size = drawn.size.map(function (metres) { return Math.max(1, Math.round(metres * 100)) / 100; });
+                s.handle.setLatLng(s.center);
+                follow(s);
+                call('sized', s);
+                call('changed', s);
+            });
+            handle.on('dragend', function () {
+                moving(false);
+                s.sizing = null;
+                placeKnobs(s);
+                call('stepped', s);
+            });
+            return handle;
         }
 
         function dropHandles(s) {
@@ -402,8 +456,8 @@
                     s[name] = null;
                 }
             });
-            (s.knobs || []).forEach(function (knob) { map.removeLayer(knob); });
-            s.knobs = null;
+            (s.knobs || []).concat(s.corners || []).forEach(function (handle) { map.removeLayer(handle); });
+            s.knobs = s.corners = null;
         }
 
         function dropArea(s) {
@@ -570,10 +624,14 @@
             if (!options.active() || event.defaultPrevented || event.isComposing || event.target.closest('.modal')) {
                 return;
             }
-            if ((event.key === 'Delete' || event.key === 'Backspace') && options.editor && options.editor.corner() &&
+            if ((event.key === 'Delete' || event.key === 'Backspace') &&
                     !event.target.closest('input, textarea, select, [contenteditable]')) {
-                event.preventDefault();
-                options.editor.removeCorner();
+                if (options.editor && options.editor.corner()) {
+                    event.preventDefault();
+                    options.editor.removeCorner();
+                } else if (options.remove && options.remove()) {
+                    event.preventDefault();
+                }
                 return;
             }
             var saveKey = (event.ctrlKey || event.metaKey) && !event.altKey && !event.shiftKey &&

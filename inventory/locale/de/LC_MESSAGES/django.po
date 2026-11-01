@@ -5107,3 +5107,64 @@ msgstr "Etikett scannen"
 #: widgets.py
 msgid "Hold the QR code of the label in front of the camera."
 msgstr "Halte den QR-Code des Etiketts vor die Kamera."
+
+#: models/location.py
+msgid "width (cm)"
+msgstr "Breite (cm)"
+
+#: models/location.py
+msgid "depth (cm)"
+msgstr "Tiefe (cm)"
+
+#: models/location.py
+msgid "height (cm)"
+msgstr "Höhe (cm)"
+
+#: models/location.py
+msgctxt "width"
+msgid "W"
+msgstr "B"
+
+#: models/location.py
+msgctxt "depth"
+msgid "D"
+msgstr "T"
+
+#: models/location.py
+msgctxt "height"
+msgid "H"
+msgstr "H"
+
+#: location_overview_views.py
+msgid "Dimensions saved."
+msgstr "Maße gespeichert."
+
+#: templates/inventory/location_detail.html
+msgid "Dimensions"
+msgstr "Maße"
+
+#: templates/inventory/location_detail.html templates/inventory/location_dimensions_editor.html
+msgid "Edit dimensions"
+msgstr "Maße bearbeiten"
+
+#: templates/inventory/location_detail.html
+#, python-format
+msgid "width and depth from %(location)s"
+msgstr "Breite und Tiefe von %(location)s"
+
+#: templates/inventory/location_detail.html
+msgid "No dimensions yet."
+msgstr "Noch keine Maße."
+
+#: templates/inventory/location_dimensions_editor.html
+#, python-format
+msgid "Each one optional, outer dimensions in cm. Without width and depth of its own it has those of %(location)s."
+msgstr "Jedes Maß optional, Außenmaße in cm. Ohne eigene Breite und Tiefe gelten die von %(location)s."
+
+#: templates/inventory/location_dimensions_editor.html
+msgid "Each one optional, outer dimensions in cm."
+msgstr "Jedes Maß optional, Außenmaße in cm."
+
+#: templates/inventory/location_dimensions_editor.html
+msgid "Save dimensions"
+msgstr "Maße speichern"

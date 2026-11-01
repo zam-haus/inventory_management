@@ -98,7 +98,7 @@ def _location_feature(shape, tree):
         "label": _label(location, tree), "style": settings_.style() if settings_ else {},
         "id": f"loc:{location.pk}", "pk": location.pk, "category": location.type.category or "",
         "structure": location.type.structure or "", "kind": shape.kind, "rotation": shape.rotation,
-        "size": [size[0] / 100, size[1] / 100] if size else None,
+        "size": [size[0] / 100, size[1] / 100] if size else None, "sizeFixed": shape.size_fixed(),
         "code": location.unique_identifier, "short": location.short_name, "title": location.title,
         "url": location.get_absolute_url(), "photo": location_photo_url(location), "stack": tree.stack(location.pk),
         "depth": tree.depth(location.pk),
@@ -301,12 +301,13 @@ def type_size(kind):
 
 def _own(shape, kinds, usual_kind=None):
     """A shape as the placing dialog takes it (map_place.js): kind (without a position: the usual one), geometry,
-    rotation, size in m, the kinds offered."""
+    rotation, size in m (fixed: that of the location, not changed there), the kinds offered."""
     size = shape.size_cm()
     has_geometry = shape.geometry is not None
     return {"kind": shape.kind if has_geometry else usual_kind,
             "geometry": json.loads(shape.geometry.json) if has_geometry else None, "rotation": shape.rotation,
-            "size": [size[0] / 100, size[1] / 100] if size else None, "kinds": kinds}
+            "size": [size[0] / 100, size[1] / 100] if size else None, "size_fixed": shape.size_fixed(),
+            "kinds": kinds}
 
 
 @require_GET
@@ -359,31 +360,40 @@ def place_context(request):
 
 @require_GET
 def unplaced(request, number):
-    """For the edit mode (map editors): the locations on a level that can be placed but have no position yet, to link
-    a new shape to (?kind=point, rectangle or area: those whose type allows it); and the unique items in them without
-    a position of their own (every shape)."""
+    """For the edit mode (map editors): the locations on a level that can be placed but have no position yet, to
+    place next (?kind=point, rectangle or area: only those whose type allows it); and the unique items in them
+    without a position of their own (every shape). Each with the shapes it can have, the usual one, and its size in
+    m: fixed for a location with dimensions (Location.footprint_cm), else the usual one of its type or item."""
     if edit_map_denied(request.user):
         raise PermissionDenied
-    kind = request.GET.get("kind", "point")
+    kind = request.GET.get("kind") or None
     # Placeable is a matter of the type: only the locations of those types are looked at.
     types = [location_type.pk for location_type in LocationType.objects.select_related("map_settings")
-             if placeable(Location(type=location_type)) and kind in allowed_kinds(location_type)]
+             if placeable(Location(type=location_type)) and (kind is None or kind in allowed_kinds(location_type))]
     unplaced_ = Location.active.filter(type__in=types).exclude(map_shape__geometry__isnull=False)
     tree = levels.Tree()
     on_level = set(tree.on_level(unplaced_.values_list("pk", flat=True), number))
     rows = []
     for location in unplaced_.filter(pk__in=on_level).select_related(
             "type__map_settings", "parent_location__type").order_by("unique_identifier"):
+        kinds = allowed_kinds(location.type)
+        footprint = location.footprint_cm
+        size = [footprint[0] / 100, footprint[1] / 100] if footprint else type_size(location.type)
         rows.append({"pk": location.pk, "code": location.unique_identifier, "title": location.title,
-                     "type": location.type_id, "size": type_size(location.type)})
+                     "type": location.type_id, "kinds": kinds,
+                     "default_kind": "rectangle" if size and "rectangle" in kinds else kinds[0],
+                     "size": size, "size_fixed": footprint is not None})
     items = []
     unplaced_items = UniqueItem.active.filter(location__isnull=False).exclude(map_position__geometry__isnull=False)
     on_level = set(tree.on_level(unplaced_items.values_list("location_id", flat=True), number))
     # Where they are as the chip, as in the box above the map's selection.
     for item in unplaced_items.filter(location__in=on_level).select_related(
             "item__map_settings", "location").order_by("location__unique_identifier", "item__name", "pk"):
+        settings_ = getattr(item.item, "map_settings", None)
         items.append({"pk": item.pk, "item": True, "code": item.location.unique_identifier, "title": str(item),
-                      "type": None, "size": type_size(item.item)})
+                      "type": None, "kinds": list(UniqueItemPosition.Kind.values),
+                      "default_kind": settings_.default_kind if settings_ else "point",
+                      "size": type_size(item.item), "size_fixed": False})
     return JsonResponse({"locations": rows, "items": items})
 
 

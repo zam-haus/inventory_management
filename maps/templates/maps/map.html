@@ -48,23 +48,21 @@
             <button type="button" class="btn btn-sm btn-light" aria-pressed="false" data-measure-tool="circle">{% include "maps/icons/measure_radius.svg" %} <span class="action-label">{% trans "Radius" %}</span></button>
         </span>
         {% if not edit_denied %}<span class="map-edit-toggle-group">
-            <button type="button" class="btn btn-sm btn-warning" data-map-edit-toggle data-done="{% trans 'Done' %}">{% icon "pencil" %} <span class="action-label">{% trans "Edit" %}</span></button>
+            <button type="button" class="btn btn-sm btn-light" aria-pressed="false" data-map-edit-toggle data-done="{% trans 'Done' %}">{% icon "pencil" %} <span class="action-label">{% trans "Edit" %}</span></button>
             {# Undo and redo in the edit mode, as the browser's back and forward (map_edit.js). #}
             <button type="button" class="btn btn-sm btn-light" data-map-edit-undo hidden disabled title="{% trans 'Undo' %}" aria-label="{% trans 'Undo' %}">{% icon "arrow-counterclockwise" %}</button>
             <button type="button" class="btn btn-sm btn-light" data-map-edit-redo hidden disabled title="{% trans 'Redo' %}" aria-label="{% trans 'Redo' %}">{% icon "arrow-clockwise" %}</button>
         </span>
-        {# Below "Done": with nothing selected, a new position; while there is a change to save, saving it (map_edit.js). #}
-        <span class="map-edit-new" role="group" aria-label="{% trans 'New position' %}" data-edit-new hidden>
-            <button type="button" class="btn btn-sm btn-light" data-new="point" title="{% trans 'New point' %}">{% icon "record-circle" %} <span class="action-label">{% trans "Point" %}</span></button>
-            <button type="button" class="btn btn-sm btn-light" data-new="rectangle" title="{% trans 'New rectangle' %}">{% icon "square" %} <span class="action-label">{% trans "Rectangle" %}</span></button>
-            <button type="button" class="btn btn-sm btn-light" data-new="area" title="{% trans 'New area' %}">{% icon "pentagon" %} <span class="action-label">{% trans "Area" %}</span></button>
-            <button type="button" class="btn btn-sm btn-light" data-new="row" title="{% trans 'New row' %}">{% icon "layout-three-columns" %} <span class="action-label">{% trans "Row" %}</span></button>
+        {# Below "Done": with nothing selected, a new position (what for first, then its shape in the bar); while there #}
+        {# is a change to save, saving it (map_edit.js). #}
+        <span class="map-edit-new" data-edit-new hidden>
+            <button type="button" class="btn btn-sm btn-light" data-new>{% add_icon "pin-map" %} <span class="action-label">{% trans "New position" %}</span></button>
         </span>
         <span class="map-edit-pending" data-map-edit-pending hidden>
             <button type="button" class="btn btn-sm btn-primary" data-edit-save>{% icon "floppy" %} <span>{% trans "Save" %}</span></button>
             <button type="button" class="btn btn-sm btn-light" data-edit-discard>{% trans "Discard" %}</button>
         </span>
-        {% elif user.is_authenticated %}{% icon "pencil" as edit_icon %}{% disabled_action edit_icon label=_("Edit") name=_("Edit the map") reason=edit_denied classes="btn btn-sm btn-warning" %}{% endif %}
+        {% elif user.is_authenticated %}{% icon "pencil" as edit_icon %}{% disabled_action edit_icon label=_("Edit") name=_("Edit the map") reason=edit_denied classes="btn btn-sm btn-light" %}{% endif %}
         {% if can_manage_plans %}<a class="btn btn-sm btn-light" href="{% url 'maps:plans' %}">{% include "maps/icons/map_edit.svg" %} <span class="action-label">{% trans "Floor plans" %}</span></a>{% endif %}
     </span>
     {# Out to the edges of the window (maps.css); map.js sizes it down to the bottom. #}
@@ -90,20 +88,35 @@
     <div class="map-edit-bar" data-map-edit hidden
          data-shape-url="{% url 'maps:location_shape' 0 %}" data-item-url="{% url 'maps:item_position' 0 %}"
          data-unplaced-url="{% url 'maps:unplaced' number %}" data-row-url="{% url 'maps:location_shape_row' %}"
-         data-new-point="{% trans 'Click where it is, then choose what it belongs to.' %}"
-         data-new-rectangle="{% trans 'Click two opposite corners, or drag from one to the other; then choose what it belongs to.' %}"
-         data-new-area="{% trans 'Click the corners of the area one after the other (the first again to finish), then choose what it belongs to.' %}"
-         data-new-row="{% trans 'Click where the middle of the row is, then choose the first location; the next ones of its type without a position follow in the order of their codes.' %}"
+         data-choose-first="{% trans 'Choose what the new position is for.' %}"
+         data-new-point="{% trans 'Click where it is.' %}"
+         data-new-rectangle="{% trans 'Click a corner; then enter width and depth (Enter), or click the opposite corner.' %}"
+         data-new-rectangle-sized="{% trans 'Click a corner, then where it lies (or Enter); or enter another size.' %}"
+         data-new-rectangle-fixed="{% trans 'Click where its middle is.' %}"
+         data-new-area="{% trans 'Click the corners of the area one after the other (the first again to finish).' %}"
+         data-new-row="{% trans 'Click where the middle of the row is; the next locations of its type without a position follow in the order of their codes.' %}"
+         data-size-fixed="{% trans '{width} × {depth} cm, the dimensions of the location (changed on its page)' %}"
+         data-size-handle="{% trans 'Drag to change the size' %}"
          data-row="{% trans 'Drag the middle handle to move the row and one of the outer ones to turn it; then save.' %}"
          data-row-short="{% trans 'Only {count} locations of this type without a position follow; choose another first one or fewer.' %}"
          data-none-left="{% trans 'Everything of this kind on this level has a position already.' %}"
          data-choose="{% trans 'Choose what it belongs to first.' %}"
          data-pick="{% trans 'Click a building part or storage unit to change its position.' %}"
-         data-rectangle="{% trans 'Drag the middle handle to move it and one of the outer ones to turn it; then save.' %}"
+         data-rectangle="{% trans 'Drag the middle handle to move it, one of the outer ones to turn it and a corner to size it; then save.' %}"
+         data-rectangle-fixed="{% trans 'Drag the middle handle to move it and one of the outer ones to turn it; then save.' %}"
          data-point="{% trans 'Drag the handle; then save.' %}"
          data-edit-this="{% trans 'Edit the position' %}" data-error="{% trans 'Not saved:' %}"
          data-snap-note="{% trans 'Snapped. Hold Alt (⌥) while dragging to place without snapping.' %}">
         {% csrf_token %}
+        {# A new position: what it is for, and the shapes it can have (views.unplaced), the usual one chosen. #}
+        <strong class="map-edit-target" data-edit-target hidden></strong>
+        <span class="map-edit-kinds" role="group" aria-label="{% trans 'Shape' %}" data-edit-kinds hidden>
+            <button type="button" class="btn btn-sm btn-light" aria-pressed="false" data-kind="point">{% icon "record-circle" %} <span class="action-label">{% trans "Point" %}</span></button>
+            <button type="button" class="btn btn-sm btn-light" aria-pressed="false" data-kind="rectangle">{% icon "square" %} <span class="action-label">{% trans "Rectangle" %}</span></button>
+            <button type="button" class="btn btn-sm btn-light" aria-pressed="false" data-kind="area">{% icon "pentagon" %} <span class="action-label">{% trans "Area" %}</span></button>
+            <button type="button" class="btn btn-sm btn-light" aria-pressed="false" data-kind="row">{% icon "layout-three-columns" %} <span class="action-label">{% trans "Row" %}</span></button>
+        </span>
+        <span class="text-muted" data-edit-size-fixed hidden></span>
         <span class="map-place-size" data-edit-size hidden>
             <label for="map-edit-width">{% trans "Width" %}</label>
             <input type="number" class="form-control form-control-sm" id="map-edit-width" min="1" step="1" inputmode="numeric">

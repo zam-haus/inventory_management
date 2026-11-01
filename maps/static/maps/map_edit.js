@@ -10,13 +10,17 @@
 // that belongs to nothing goes. A chosen corner gets an X, too. Below "Done": "Save" and "Discard" while there is a
 // change, the "New" buttons while nothing is selected. Saving goes to the same views as the placing dialog
 // (LocationShapeView, ItemPositionView); then the level is drawn anew, the saved one still selected.
-// "New": a point, rectangle or area drawn on the map, then linked to a location or unique item of this level without a
-// position (views.unplaced); a rectangle by two opposite corners (clicked, or dragged from one to the other), its size
-// then counts as entered. "Row": storage units of one size side by side, turned and moved as one; the first location is
-// chosen, the next ones without a position of the same type follow in the order of their codes; saved together
+// "New position": first what it is for, a location or unique item of this level without a position (views.unplaced),
+// in the box in the middle of the map; then the bar offers the shapes it can have, the usual one chosen, and it is
+// drawn: a point by a click, an area by its corners, a rectangle by a corner and then its width and depth (Enter) or
+// the opposite corner (clicked, or dragged from one to the other). A location with dimensions (Location.footprint_cm)
+// has that size: a click places its middle, and it is not sized on the map; else a rectangle's corners size it, and
+// saving gives the location that size. "Row": storage units of one size side by side, turned and moved as one; the
+// next ones without a position of the chosen one's type follow in the order of their codes; saved together
 // (views.LocationShapeRowView). Leaving the page or the edit mode ("Done", Esc) with a change not saved asks first; Esc
 // while drawing a new one drops it instead. A popup open when the edit mode starts selects its building part,
-// storage unit or unique item; so does the pencil in such a popup. Enter or Ctrl+S (⌘S) saves. Each step on the
+// storage unit or unique item; so does the pencil in such a popup. Enter or Ctrl+S (⌘S) saves; Delete or Backspace
+// does what the box's X does (a chosen corner of an area goes first). Each step on the
 // selected position can be undone and redone (the arrows beside "Done", the browser's back and forward, Ctrl+Z).
 (function () {
     'use strict';
@@ -40,9 +44,11 @@
     var depthInput = sizeBox.querySelectorAll('input')[1];
     var countBox = bar.querySelector('[data-edit-count]'), countInput = countBox.querySelector('input');
     var reverseButton = countBox.querySelector('[data-edit-reverse]');
+    var kindsBox = bar.querySelector('[data-edit-kinds]'), targetText = bar.querySelector('[data-edit-target]');
+    var fixedText = bar.querySelector('[data-edit-size-fixed]');
     var ROW_MAX = 50;
-    // {pk, code, title, size} of the locations offered for a new position, or to change to; unique items (item: true,
-    // their location's code) only for a new one
+    // {pk, code, title, kinds, default_kind, size, size_fixed} of the locations offered for a new position, or to
+    // change to; unique items (item: true, their location's code) only for a new one
     var candidates = [];
     var chosen = null, active = -1, hits = [];
 
@@ -97,6 +103,12 @@
         locationSelect.value = location.title + ' · ' + location.code;
         closeResults();
         assignBox.classList.remove('is-searching');
+        if (selected && selected.choosing) {  // a new position: now its shape
+            selected.choosing = false;
+            showKinds(location);
+            startKind(location.default_kind);
+            return;
+        }
         chosenChanged();
         showAssignment();
         record();
@@ -174,11 +186,12 @@
         showAssignment();
     }
 
-    // The locations of this level without a position whose type allows it (views.unplaced), for a new one or another;
-    // `withItems`: the unique items without one, too (a shape of a location goes to another location only).
+    // The locations of this level without a position (views.unplaced; with a `kind`: whose type allows it), for a new
+    // one or another; `withItems`: the unique items without one, too (a shape of a location goes to another location
+    // only).
     function loadCandidates(kind, withItems) {
         candidates = [];
-        return ZamMap.load(strings.unplacedUrl + '?kind=' + kind).then(function (answer) {
+        return ZamMap.load(strings.unplacedUrl + (kind ? '?kind=' + kind : '')).then(function (answer) {
             candidates = answer.locations.concat(withItems ? answer.items || [] : []);
             return candidates;
         });
@@ -256,13 +269,18 @@
     var assignMarker = ZamMap.editBox(map, assignBox);
 
     // What it belongs to: above the middle of the area, or above the handle (the X above the chosen corner: the
-    // shape editor).
+    // shape editor); while choosing what a new one is for, in the middle of the map.
     function placeBoxes() {
         var s = selected;
-        ZamMap.showBox(map, assignMarker, !editing || !s ? null : s.area ? (map.hasLayer(s.area) ? s.area.getCenter() :
-            null) : s.center);
+        ZamMap.showBox(map, assignMarker, !editing || !s ? null : s.choosing ? map.getCenter() : s.area ?
+            (map.hasLayer(s.area) ? s.area.getCenter() : null) : s.center);
         shapes.showCorner();
     }
+    map.on('move', function () {
+        if (selected && selected.choosing) {
+            placeBoxes();
+        }
+    });
     var HIGHLIGHT = {color: '#d63384', weight: 3, fillOpacity: 0.2};
     var editing = false;
     var selected = null;  // {feature, layer, kind, center, rotation, size, area, shape, handle, knobs}
@@ -293,6 +311,12 @@
         moving: function (on) { moving(on); },
         changed: function () { placeBoxes(); },
         stepped: function () { record(); },
+        resizable: true, sizeHandle: strings.sizeHandle,
+        sized: function (s) {
+            widthInput.value = Math.round(s.size[0] * 100);
+            depthInput.value = Math.round(s.size[1] * 100);
+            showPending();
+        },
         followed: function (s) {
             placeBoxes();
             if (s.size) {
@@ -329,7 +353,8 @@
         selected = null;
         page.element.classList.remove('map-drawing');
         hint.textContent = editing ? strings.pick : '';
-        rotationBox.hidden = sizeBox.hidden = countBox.hidden = true;
+        rotationBox.hidden = sizeBox.hidden = countBox.hidden = fixedText.hidden = true;
+        kindsBox.hidden = targetText.hidden = true;
         steps.end();
         closeResults();
         chosen = null;
@@ -364,30 +389,40 @@
         s.shape.clearLayers();
         var locations = rowLocations();
         shapes.centers(s, s.center).forEach(function (middle, index) {
-            L.polygon(geometry.rectangle(middle, s.size, s.rotation), HIGHLIGHT)
+            L.polygon(geometry.rectangle(middle, rowSize(locations[index]), s.rotation), HIGHLIGHT)
                 .bindTooltip(locations[index] ? locations[index].code : '?', {permanent: true, direction: 'center',
                     className: 'map-label map-row-label'})
                 .addTo(s.shape);
         });
     }
 
+    // A location of a row keeps its own dimensions; the others get the row's size.
+    function rowSize(location) {
+        return location && location.size_fixed ? location.size : selected.size;
+    }
+
     function follow() {
         shapes.follow(selected);
     }
 
+    // The size: entered, or (fixed) said; a new rectangle's fields from its first corner on, for its size.
     function showSize() {
-        sizeBox.hidden = !selected.size;
+        var rectangle = Boolean(selected.size || selected.awaitingCorners);
+        sizeBox.hidden = !rectangle || selected.sizeFixed;
+        fixedText.hidden = !rectangle || !selected.sizeFixed;
+        if (selected.sizeFixed && selected.size) {
+            fixedText.textContent = strings.sizeFixed.replace('{width}', Math.round(selected.size[0] * 100))
+                .replace('{depth}', Math.round(selected.size[1] * 100));
+        }
         countBox.hidden = !selected.count;
         if (selected.count) {
             countInput.value = selected.count;
             reverseButton.setAttribute('aria-pressed', selected.reversed ? 'true' : 'false');
             reverseButton.classList.toggle('active', selected.reversed);
         }
-        if (selected.size) {
-            widthInput.value = Math.round(selected.size[0] * 100);
-            depthInput.value = Math.round(selected.size[1] * 100);
-        }
-        rotationBox.hidden = !selected.size;
+        widthInput.value = selected.size ? Math.round(selected.size[0] * 100) : '';
+        depthInput.value = selected.size ? Math.round(selected.size[1] * 100) : '';
+        rotationBox.hidden = !rectangle;
         rotationInput.value = Math.round(selected.rotation || 0);
         rotationOutput.textContent = Math.round(selected.rotation || 0) + '°';
     }
@@ -395,13 +430,29 @@
     [widthInput, depthInput].forEach(function (input) {
         input.addEventListener('input', function () {
             var width = Number(widthInput.value), depth = Number(depthInput.value);
-            if (selected && selected.size && width > 0 && depth > 0) {
+            if (selected && selected.awaitingCorners) {  // a new rectangle: of this size, or by its corners
+                selected.size = width > 0 && depth > 0 ? [width / 100, depth / 100] : null;
+                cornerTool.preview();
+                return;
+            }
+            if (selected && selected.size && !selected.sizeFixed && width > 0 && depth > 0) {
                 selected.size = [width / 100, depth / 100];
                 selected.sizeChanged = true;
                 if (selected.shape) {
                     follow();
                 }
                 showPending();
+            }
+        });
+    });
+
+    // Enter in the size of a new rectangle: placed from its first corner.
+    [widthInput, depthInput].forEach(function (input) {
+        input.addEventListener('keydown', function (event) {
+            if (event.key === 'Enter' && selected && selected.awaitingCorners && cornerTool.hasFirst()) {
+                event.preventDefault();
+                event.stopPropagation();
+                cornerTool.apply();
             }
         });
     });
@@ -468,9 +519,10 @@
         selected.center = L.latLng(layer.getBounds().getCenter());
         selected.rotation = p.rotation || 0;
         selected.size = p.kind === 'rectangle' && p.size ? p.size.slice() : null;
+        selected.sizeFixed = Boolean(selected.size && p.sizeFixed);
         showSize();
         drawHandles();
-        hint.textContent = selected.size ? strings.rectangle : strings.point;
+        hint.textContent = shapeHint();
         showAssignment();
         steps.begin();
     }
@@ -481,6 +533,7 @@
             if (selected.shape) {  // a new one turns before it is placed, too
                 follow();
             }
+            cornerTool.preview();
             showPending();
         }
     });
@@ -494,6 +547,11 @@
                 geometry.snapCenter(map, targets(), latlng, function (at) { return [at]; });
         },
         style: HIGHLIGHT,
+        size: function () { return selected.size; },
+        started: function () {  // the first corner: now the size, or the opposite corner
+            widthInput.focus({preventScroll: true});
+            widthInput.select();
+        },
         done: function (drawn) {
             selected.awaitingCorners = false;
             selected.center = drawn.center;
@@ -503,53 +561,106 @@
         }
     });
 
-    // A new position: drawn first, then linked to a location of this level that has none yet.
-    function startNew(kind) {
+    // A new position: first what it is for, a location or unique item of this level that has none yet.
+    function startNew() {
         clearSelection();
-        var row = kind === 'row';
-        selected = {kind: kind, isNew: true, rotation: walls() || 0, size: row ? [1, 0.5] : null,
-            count: row ? 3 : 0, reversed: false};
-        page.element.classList.add('map-drawing');  // clicks go through what is drawn, to the map
+        selected = {isNew: true, choosing: true, kind: null, rotation: walls() || 0, size: null, count: 0,
+            reversed: false};
         newButtons.hidden = true;
-        loadCandidates(row ? 'rectangle' : kind, !row).then(function (locations) {
+        hint.textContent = strings.chooseFirst;
+        assignBox.classList.add('is-searching');
+        showAssignment();
+        loadCandidates(null, true).then(function (locations) {
             if (!locations.length) {
                 hint.textContent = strings.noneLeft;
             } else if (document.activeElement === locationSelect) {
-                showResults();  // placed before they were there
+                showResults();  // typed before they were there
             }
         });
+        locationSelect.focus({preventScroll: true});
+    }
+
+    newButtons.querySelector('[data-new]').addEventListener('click', startNew);
+
+    // The shapes the chosen one can have (a row: storage units side by side, of a type with rectangles).
+    function showKinds(location) {
+        kindsBox.querySelectorAll('[data-kind]').forEach(function (button) {
+            var kind = button.dataset.kind;
+            button.hidden = kind === 'row' ? location.item || location.kinds.indexOf('rectangle') < 0 :
+                location.kinds.indexOf(kind) < 0;
+        });
+        kindsBox.hidden = false;
+        targetText.textContent = selectionTitle();
+        targetText.hidden = false;
+    }
+
+    // Only the shape being drawn is highlighted.
+    function markKind(kind) {
+        kindsBox.querySelectorAll('[data-kind]').forEach(function (button) {
+            button.classList.toggle('active', button.dataset.kind === kind);
+            button.setAttribute('aria-pressed', button.dataset.kind === kind ? 'true' : 'false');
+        });
+    }
+
+    kindsBox.querySelectorAll('[data-kind]').forEach(function (button) {
+        button.addEventListener('click', function () {
+            if (selected && selected.isNew && chosen && !selected.center && !selected.area) {
+                startKind(button.dataset.kind);
+            }
+        });
+    });
+
+    // The new position is drawn as `kind`, of the chosen one's size: fixed (its dimensions) or the usual one.
+    function startKind(kind) {
+        var s = selected, row = kind === 'row', sized = kind === 'rectangle' || row;
+        shapes.clear(s);
+        cornerTool.reset();
+        s.kind = kind;
+        s.awaitingClick = s.awaitingCorners = false;
+        s.count = row ? 3 : 0;
+        s.size = sized ? (chosen.size ? chosen.size.slice() : row ? [1, 0.5] : null) : null;
+        s.sizeFixed = sized && Boolean(chosen.size_fixed);
+        s.sizeChanged = false;
+        page.element.classList.add('map-drawing');  // clicks go through what is drawn, to the map
+        markKind(kind);
         if (kind === 'area') {
-            shapes.drawArea(selected, function () {
+            shapes.drawArea(s, function () {
                 hint.textContent = '';
+                kindsBox.hidden = targetText.hidden = true;
                 showAssignment();
                 placeBoxes();
                 steps.begin();
-                searchOwner();
             });
             hint.textContent = strings.newArea;
-        } else if (kind === 'rectangle') {
-            selected.awaitingCorners = true;
-            hint.textContent = strings.newRectangle;
-            showSize();
-            rotationBox.hidden = false;
+        } else if (kind === 'rectangle' && !s.sizeFixed) {
+            s.awaitingCorners = true;
+            hint.textContent = s.size ? strings.newRectangleSized : strings.newRectangle;
         } else {
-            selected.awaitingClick = true;
-            hint.textContent = row ? strings.newRow : strings.newPoint;
-            countBox.hidden = !row;
-            if (row) {
-                showSize();
-            }
+            s.awaitingClick = true;
+            hint.textContent = row ? strings.newRow : kind === 'rectangle' ? strings.newRectangleFixed :
+                strings.newPoint;
         }
+        showSize();
+        placeBoxes();
     }
 
-    newButtons.querySelectorAll('[data-new]').forEach(function (button) {
-        button.addEventListener('click', function () { startNew(button.dataset.new); });
-    });
+    // What can be done with the selected point or rectangle.
+    function shapeHint() {
+        return !selected.size ? strings.point : selected.sizeFixed ? strings.rectangleFixed : strings.rectangle;
+    }
 
-    // A new rectangle takes the usual size of the chosen location's type, unless a size was entered.
+    // A rectangle given to a location with dimensions gets that size; a new one else takes the usual size of the
+    // chosen location's type, unless a size was entered.
     function chosenChanged() {
         var location = chosenLocation();
-        if (selected && selected.isNew && (selected.kind === 'rectangle' || selected.kind === 'row') &&
+        if (selected && selected.size && selected.center && !selected.count && location && location.size_fixed) {
+            selected.size = location.size.slice();
+            selected.sizeFixed = true;
+            shapes.dropHandles(selected);
+            drawHandles();
+            showSize();
+            hint.textContent = shapeHint();
+        } else if (selected && selected.isNew && (selected.kind === 'rectangle' || selected.kind === 'row') &&
                 !selected.sizeChanged && location && location.size) {
             selected.size = location.size.slice();
             showSize();
@@ -584,21 +695,14 @@
 
     // A new one has its place: handles, the box above it, the steps.
     function placed() {
+        kindsBox.hidden = targetText.hidden = true;
         showSize();
         drawHandles();
-        hint.textContent = selected.size ? strings.rectangle : strings.point;
+        hint.textContent = shapeHint();
         rowHint();
         showAssignment();
         placeBoxes();
         steps.begin();
-        searchOwner();
-    }
-
-    // A new one placed: the search for what it belongs to has the focus, to type at once.
-    function searchOwner() {
-        if (selected && selected.isNew && !chosen) {
-            locationSelect.focus({preventScroll: true});
-        }
     }
 
     // A row: all its storage units at once.
@@ -611,9 +715,10 @@
         var body = new FormData();
         body.append('csrfmiddlewaretoken', bar.querySelector('[name=csrfmiddlewaretoken]').value);
         body.append('rows', JSON.stringify(shapes.centers(selected, selected.center).map(function (middle, index) {
+            var size = rowSize(locations[index]);
             return {pk: locations[index].pk, kind: 'rectangle', rotation: selected.rotation,
                 geometry: JSON.stringify({type: 'Point', coordinates: [middle.lng, middle.lat]}),
-                width_cm: Math.round(selected.size[0] * 100), depth_cm: Math.round(selected.size[1] * 100)};
+                width_cm: Math.round(size[0] * 100), depth_cm: Math.round(size[1] * 100)};
         })));
         return send(strings.rowUrl, body);
     }
@@ -690,10 +795,18 @@
     boxSave.addEventListener('click', function () { post(); });
     pending.querySelector('[data-edit-discard]').addEventListener('click', clearSelection);
     // Enter or Ctrl+S (⌘S): "Save" (also in the fields of the bar and the box, not in the location search's list: it
-    // chooses a hit there); Delete: the chosen corner goes.
+    // chooses a hit there); Delete or Backspace: the chosen corner goes, else as the box's X: asked first, the position
+    // is removed (a new shape that belongs to nothing yet is dropped).
     ZamMap.editKeys({
         active: function () { return editing; }, editor: shapes,
         fields: function (element) { return bar.contains(element) || assignBox.contains(element); },
+        remove: function () {
+            if (!selected || selected.choosing || (selected.isNew && !selected.center && !selected.area)) {
+                return false;
+            }
+            removeButton.click();
+            return true;
+        },
         save: function () {
             if (selected && !pending.hidden) {
                 saveButton.click();
@@ -836,10 +949,14 @@
         var last = on ? null : selectedId();
         editing = on;
         clearSelection();
+        if (on) {
+            ZamMap.unselect(map);  // its halo (map.js select): the edit mode shows what is selected its own way
+        }
         bar.hidden = !on;
         page.element.classList.toggle('map-editing', on);
         toggleButton.querySelector('span').textContent = on ? toggleButton.dataset.done : startLabel;
         toggleButton.setAttribute('aria-pressed', on ? 'true' : 'false');
+        toggleButton.classList.toggle('active', on);
         undoButton.hidden = redoButton.hidden = !on;
         hint.textContent = on ? strings.pick : '';
         showPending();

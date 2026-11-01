@@ -13,7 +13,7 @@ from .dissolve_views import DissolveLocationView
 from .help_views import HelpView
 from .problem_reports import ProblemReportView
 from .location_overview_views import (
-    LocationDescriptionUpdateView, LocationOverviewUpdateView, LocationPurposeUpdateView,
+    LocationDescriptionUpdateView, LocationDimensionsUpdateView, LocationOverviewUpdateView, LocationPurposeUpdateView,
 )
 from .numbered_location_views import (
     ContainerActivateView, ContainerCreateView, NumberedLocationCreateView, SublocationAddView, SublocationPurposeView,
@@ -29,6 +29,7 @@ urlpatterns = [
     path("location/<int:pk>/overview/", LocationOverviewUpdateView.as_view(), name="location_overview_update"),
     path("location/<int:pk>/purpose/", LocationPurposeUpdateView.as_view(), name="location_purpose_update"),
     path("location/<int:pk>/description/", LocationDescriptionUpdateView.as_view(), name="location_description_update"),
+    path("location/<int:pk>/dimensions/", LocationDimensionsUpdateView.as_view(), name="location_dimensions_update"),
     path("location/<int:pk>/new-shelf/", NumberedLocationCreateView.as_view(), name="numbered_location_create"),
     path("location/<int:pk>/new-container/", ContainerCreateView.as_view(), name="container_create"),
     path("location/<int:pk>/activate/", ContainerActivateView.as_view(), name="container_activate"),

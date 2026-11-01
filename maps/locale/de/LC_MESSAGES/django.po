@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-01 17:38+0100\n"
+"POT-Creation-Date: 2026-11-01 20:03+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -64,16 +64,16 @@ msgstr ""
 "und teilen sich eine Karte; eine Ebene kann mehrere Pläne haben (z. B. einen "
 "je Haus)."
 
-#: models.py:24 templates/maps/map.html:58 templates/maps/place_tools.html:5
+#: models.py:24 templates/maps/map.html:114 templates/maps/place_tools.html:5
 msgid "Point"
 msgstr "Punkt"
 
-#: models.py:25 templates/maps/map.html:59 templates/maps/place_tools.html:7
+#: models.py:25 templates/maps/map.html:115 templates/maps/place_tools.html:7
 #: templates/maps/plan_align.html:54
 msgid "Rectangle"
 msgstr "Rechteck"
 
-#: models.py:26 templates/maps/map.html:60 templates/maps/place_tools.html:9
+#: models.py:26 templates/maps/map.html:116 templates/maps/place_tools.html:9
 msgid "Area"
 msgstr "Polygon"
 
@@ -93,21 +93,9 @@ msgstr "Drehung"
 msgid "Degrees clockwise; rectangles only."
 msgstr "Grad im Uhrzeigersinn; nur bei Rechtecken."
 
-#: models.py:50
+#: models.py:54
 msgid "location"
 msgstr "Standort"
-
-#: models.py:51 models.py:224
-msgid "width (cm)"
-msgstr "Breite (cm)"
-
-#: models.py:52 models.py:54
-msgid "Empty: the default of the location type."
-msgstr "Leer: die übliche Größe des Standorttyps."
-
-#: models.py:53 models.py:226
-msgid "depth (cm)"
-msgstr "Tiefe (cm)"
 
 #: models.py:56
 msgid "parts stacked"
@@ -141,19 +129,19 @@ msgstr ""
 "Darf alles auf der Karte bearbeiten und verschieben (alle Mitarbeitenden "
 "dürfen das)"
 
-#: models.py:74
+#: models.py:85
 msgid "A colour as #rrggbb."
 msgstr "Eine Farbe als #rrggbb."
 
-#: models.py:102
+#: models.py:113
 msgid "location type"
 msgstr "Standorttyp"
 
-#: models.py:103
+#: models.py:114
 msgid "placeable on the map"
 msgstr "auf der Karte platzierbar"
 
-#: models.py:104
+#: models.py:115
 msgid ""
 "Locations of this type get a position on the map. Otherwise they are shown "
 "where the location they are in is (e.g. the compartments of a shelf, boxes)."
@@ -162,71 +150,71 @@ msgstr ""
 "dort gezeigt, wo der Standort ist, in dem sie liegen (z. B. die Fächer eines "
 "Regals, Kisten)."
 
-#: models.py:107
+#: models.py:118
 msgid "as point"
 msgstr "als Punkt"
 
-#: models.py:108
+#: models.py:119
 msgid "as rectangle"
 msgstr "als Rechteck"
 
-#: models.py:108
+#: models.py:119
 msgid "Of the usual size, or its own."
 msgstr "In der üblichen Größe oder einer eigenen."
 
-#: models.py:109
+#: models.py:120
 msgid "as area"
 msgstr "als Polygon"
 
-#: models.py:109
+#: models.py:120
 msgid "An outline drawn on the map, e.g. rooms."
 msgstr "Ein auf der Karte gezeichneter Umriss, z. B. Räume."
 
-#: models.py:110 models.py:207
+#: models.py:121 models.py:218
 msgid "default width (cm)"
 msgstr "Standardbreite (cm)"
 
-#: models.py:111 models.py:208
+#: models.py:122 models.py:219
 msgid "Of a rectangle, offered when placing one."
 msgstr "Eines Rechtecks, beim Platzieren vorgeschlagen."
 
-#: models.py:112 models.py:209
+#: models.py:123 models.py:220
 msgid "default depth (cm)"
 msgstr "Standardtiefe (cm)"
 
-#: models.py:114
+#: models.py:125
 msgid "line colour"
 msgstr "Linienfarbe"
 
-#: models.py:115
+#: models.py:126
 msgid "#rrggbb; empty: as usual for its category."
 msgstr "#rrggbb; leer: wie für seine Kategorie üblich."
 
-#: models.py:116
+#: models.py:127
 msgid "fill colour"
 msgstr "Füllfarbe"
 
-#: models.py:117
+#: models.py:128
 msgid "fill opacity"
 msgstr "Deckkraft der Füllung"
 
-#: models.py:118
+#: models.py:129
 msgid "0 to 1."
 msgstr "0 bis 1."
 
-#: models.py:119
+#: models.py:130
 msgid "line width"
 msgstr "Linienbreite"
 
-#: models.py:120
+#: models.py:131
 msgid "Pixels."
 msgstr "Pixel."
 
-#: models.py:121
+#: models.py:132
 msgid "label from zoom"
 msgstr "Beschriftung ab Zoomstufe"
 
-#: models.py:123
+#: models.py:134
 msgid ""
 "Their labels show from this zoom level on (the map's address shows the "
 "current one as z=…; 18: a room, 20: a shelf fills some centimetres); empty: "
@@ -236,11 +224,11 @@ msgstr ""
 "die aktuelle als z=…; 18: ein Raum, 20: ein Regal ist einige Zentimeter "
 "groß); leer: immer."
 
-#: models.py:125
+#: models.py:136
 msgid "more style options"
 msgstr "weitere Stiloptionen"
 
-#: models.py:126
+#: models.py:137
 msgid ""
 "Leaflet's drawing options, e.g. {\"dashArray\": \"6 4\", \"lineJoin\": "
 "\"round\", \"fill\": false}: color, fillColor (#rrggbb), weight (0–20), "
@@ -255,28 +243,28 @@ msgstr ""
 "round, bevel), fill, stroke (true oder false). Die Felder oben gehen vor, "
 "wenn sie ausgefüllt sind."
 
-#: models.py:130
+#: models.py:141
 msgid "label size"
 msgstr "Schriftgröße der Beschriftung"
 
-#: models.py:132
+#: models.py:143
 msgid "Pixels of the label's first line; empty: as usual."
 msgstr "Pixel der ersten Zeile der Beschriftung; leer: wie üblich."
 
-#: models.py:133
+#: models.py:144
 msgid "label colour"
 msgstr "Farbe der Beschriftung"
 
-#: models.py:134
+#: models.py:145
 msgid "label bold"
 msgstr "Beschriftung fett"
 
-#: models.py:135
+#: models.py:146
 msgctxt "map"
 msgid "label"
 msgstr "Beschriftung"
 
-#: models.py:136
+#: models.py:147
 #, python-brace-format
 msgid ""
 "The first line of their label on the map, above the code chip, e.g. “{name}” "
@@ -289,76 +277,84 @@ msgstr ""
 "{name}, {purpose}, {title} (Zweck, sonst Name). Leer: Zweck, sonst Name; „-“ "
 "für gar keine Beschriftung."
 
-#: models.py:141
+#: models.py:152
 msgid "map settings of a location type"
 msgstr "Kartenangaben eines Standorttyps"
 
-#: models.py:142
+#: models.py:153
 msgid "map settings of location types"
 msgstr "Kartenangaben der Standorttypen"
 
-#: models.py:150
+#: models.py:161
 msgid "A placeable type needs at least one shape: point, rectangle or area."
 msgstr ""
 "Ein platzierbarer Typ braucht mindestens eine Form: Punkt, Rechteck oder "
 "Polygon."
 
-#: models.py:153
+#: models.py:164
 msgid "The style options are a JSON object: {\"option\": value}."
 msgstr "Die Stiloptionen sind ein JSON-Objekt: {\"option\": wert}."
 
-#: models.py:155
+#: models.py:166
 #, python-format
 msgid "Unknown style options: %(options)s."
 msgstr "Unbekannte Stiloptionen: %(options)s."
 
-#: models.py:158
+#: models.py:169
 #, python-format
 msgid "Not a fitting value for: %(options)s."
 msgstr "Kein passender Wert für: %(options)s."
 
-#: models.py:163
+#: models.py:174
 #, python-format
 msgid "Unknown placeholder or brace in the label: %(error)s"
 msgstr "Unbekannter Platzhalter oder Klammer in der Beschriftung: %(error)s"
 
-#: models.py:204
+#: models.py:215
 msgid "item"
 msgstr "Sache"
 
-#: models.py:205
+#: models.py:216
 msgid "usual shape"
 msgstr "übliche Form"
 
-#: models.py:212
+#: models.py:223
 msgid "map settings of an item"
 msgstr "Kartenangaben einer Sache"
 
-#: models.py:213
+#: models.py:224
 msgid "map settings of items"
 msgstr "Kartenangaben der Sachen"
 
-#: models.py:223
+#: models.py:234
 msgid "unique item"
 msgstr "Einzelobjekt"
 
-#: models.py:225 models.py:227
+#: models.py:235
+msgid "width (cm)"
+msgstr "Breite (cm)"
+
+#: models.py:236 models.py:238
 msgid "Empty: the default of the item."
 msgstr "Leer: die übliche Größe der Sache."
 
-#: models.py:230
+#: models.py:237
+msgid "depth (cm)"
+msgstr "Tiefe (cm)"
+
+#: models.py:241
 msgid "unique item position"
 msgstr "Position eines Einzelobjekts"
 
-#: models.py:231
+#: models.py:242
 msgid "unique item positions"
 msgstr "Positionen der Einzelobjekte"
 
-#: models.py:258
+#: models.py:269
 msgid "level"
 msgstr "Ebene"
 
-#: models.py:259
+#: models.py:270
 msgid ""
 "The level's number as in the codes: -1 for WH-1 and HH-1 (levels with the "
 "same number share one map)."
@@ -366,11 +362,11 @@ msgstr ""
 "Die Nummer der Ebene wie in den Codes: -1 für WH-1 und HH-1 (Ebenen mit "
 "gleicher Nummer teilen sich eine Karte)."
 
-#: models.py:262
+#: models.py:273
 msgid "stacked part"
 msgstr "Teil übereinander"
 
-#: models.py:263
+#: models.py:274
 msgid ""
 "Only for a plan of a stacked part (e.g. HBB.2): the map shows it when that "
 "part is chosen."
@@ -378,31 +374,31 @@ msgstr ""
 "Nur für den Plan eines übereinanderliegenden Teils (z. B. HBB.2): die Karte "
 "zeigt ihn, wenn dieser Teil gewählt ist."
 
-#: models.py:264 models.py:344 models.py:385
+#: models.py:275 models.py:355 models.py:396
 msgid "name"
 msgstr "Name"
 
-#: models.py:265
+#: models.py:276
 msgid "Where the plan comes from, e.g. “Bauaufnahme 02.2023, EG”."
 msgstr "Woher der Plan stammt, z. B. „Bauaufnahme 02.2023, EG“."
 
-#: models.py:266
+#: models.py:277
 msgid "source file"
 msgstr "Quelldatei"
 
-#: models.py:267
+#: models.py:278
 msgid "PDF, PNG or SVG. DWG: convert it first (docs/maps.md)."
 msgstr "PDF, PNG oder SVG. DWG vorher umwandeln (docs/maps.md)."
 
-#: models.py:268
+#: models.py:279
 msgid "page"
 msgstr "Seite"
 
-#: models.py:269
+#: models.py:280
 msgid "resolution (dpi)"
 msgstr "Auflösung (dpi)"
 
-#: models.py:270
+#: models.py:281
 msgid ""
 "For PDFs; at 1:100, 300 dpi are 8.5 mm per pixel (images wider or higher "
 "than 6000 pixels are made smaller)."
@@ -410,11 +406,11 @@ msgstr ""
 "Für PDFs; bei 1:100 sind 300 dpi 8,5 mm je Pixel (Bilder über 6000 Pixel "
 "Breite oder Höhe werden verkleinert)."
 
-#: models.py:272
+#: models.py:283
 msgid "crop"
 msgstr "Ausschnitt"
 
-#: models.py:273
+#: models.py:284
 msgid ""
 "Part of the page shown: its outline [[x, y], …] as fractions of the page's "
 "width and height; empty for the whole page. Easier: “Crop” on the plan's "
@@ -424,11 +420,11 @@ msgstr ""
 "Höhe der Seite; leer für die ganze Seite. Einfacher: „Zuschneiden“ auf der "
 "Seite des Plans."
 
-#: models.py:275
+#: models.py:286
 msgid "remove background"
 msgstr "Hintergrund entfernen"
 
-#: models.py:276
+#: models.py:287
 msgid ""
 "Makes the white paper transparent, so that the background map shows through; "
 "lines keep their colour."
@@ -436,31 +432,31 @@ msgstr ""
 "Macht das weiße Papier durchsichtig, damit die Hintergrundkarte "
 "durchscheint; Linien behalten ihre Farbe."
 
-#: models.py:277
+#: models.py:288
 msgid "image"
 msgstr "Bild"
 
-#: models.py:279
+#: models.py:290
 msgid "tiles"
 msgstr "Kacheln"
 
-#: models.py:283
+#: models.py:294
 msgid "control points"
 msgstr "Passpunkte"
 
-#: models.py:285
+#: models.py:296
 msgid "corners"
 msgstr "Ecken"
 
-#: models.py:286
+#: models.py:297
 msgid "outline"
 msgstr "Umriss"
 
-#: models.py:287
+#: models.py:298
 msgid "uneven scaling"
 msgstr "ungleichmäßig skaliert"
 
-#: models.py:288
+#: models.py:299
 msgid ""
 "Placed with uneven scaling and shearing (three control points or more), for "
 "distorted scans."
@@ -468,39 +464,39 @@ msgstr ""
 "Mit ungleichmäßigem Skalieren und Scheren ausgerichtet (ab drei "
 "Passpunkten), für verzerrte Scans."
 
-#: models.py:289
+#: models.py:300
 msgid "deviation (m)"
 msgstr "Abweichung (m)"
 
-#: models.py:290
+#: models.py:301
 msgid "Largest distance between a control point and where the fit puts it."
 msgstr ""
 "Größter Abstand zwischen einem Passpunkt und der Stelle, an die ihn die "
 "Ausrichtung legt."
 
-#: models.py:291
+#: models.py:302
 msgid "internal notes"
 msgstr "interne Notizen"
 
-#: models.py:292 templates/maps/plan_align.html:120
+#: models.py:303 templates/maps/plan_align.html:120
 msgid "For whoever looks after the plans; not shown on the map."
 msgstr "Für alle, die sich um die Pläne kümmern; nicht auf der Karte zu sehen."
 
-#: models.py:293
+#: models.py:304
 msgid "active"
 msgstr "aktiv"
 
-#: models.py:294
+#: models.py:305
 msgid "Offered on the map of its level; inactive plans stay for reference."
 msgstr ""
 "Auf der Karte seiner Ebene angeboten; inaktive Pläne bleiben zum "
 "Nachschlagen."
 
-#: models.py:295
+#: models.py:306
 msgid "shown at first"
 msgstr "gleich sichtbar"
 
-#: models.py:296
+#: models.py:307
 msgid ""
 "Shown when the map opens; otherwise it is switched on in the layer selection "
 "(e.g. an older survey)."
@@ -508,47 +504,47 @@ msgstr ""
 "Beim Öffnen der Karte sichtbar; sonst wird er in der Ebenenauswahl "
 "eingeschaltet (z. B. eine ältere Bauaufnahme)."
 
-#: models.py:297
+#: models.py:308
 msgid "opacity"
 msgstr "Deckkraft"
 
-#: models.py:298
+#: models.py:309
 msgid "created"
 msgstr "angelegt"
 
-#: models.py:300
+#: models.py:311
 msgid "created by"
 msgstr "angelegt von"
 
-#: models.py:303
+#: models.py:314
 msgid "floor plan"
 msgstr "Grundriss"
 
-#: models.py:304
+#: models.py:315
 msgid "floor plans"
 msgstr "Grundrisse"
 
-#: models.py:307
+#: models.py:318
 msgid "Can manage floor plans (upload, crop, place, download sources)"
 msgstr ""
 "Darf Grundrisse verwalten (hochladen, zuschneiden, ausrichten, Quelldateien "
 "laden)"
 
-#: models.py:310
+#: models.py:321
 #, python-format
 msgid "Plan of level %(level)+d"
 msgstr "Plan der Ebene %(level)+d"
 
-#: models.py:320
+#: models.py:331
 #, python-format
 msgid "%(location)s is not on level %(level)+d."
 msgstr "%(location)s liegt nicht auf Ebene %(level)+d."
 
-#: models.py:345
+#: models.py:356
 msgid "tile URL"
 msgstr "Kachel-URL"
 
-#: models.py:346
+#: models.py:357
 #, python-brace-format
 msgid ""
 "https://… with {z}, {x} and {y} for zoom, column and row, e.g. https://"
@@ -557,90 +553,90 @@ msgstr ""
 "https://… mit {z}, {x} und {y} für Zoomstufe, Spalte und Zeile, z. B. "
 "https://osm.rrze.fau.de/osmde/{z}/{x}/{y}.png"
 
-#: models.py:347
+#: models.py:358
 msgid "attribution"
 msgstr "Quellenangabe"
 
-#: models.py:348
+#: models.py:359
 msgid "Shown in the corner of the map, as the tiles' licence asks."
 msgstr "In der Ecke der Karte gezeigt, wie es die Lizenz der Kacheln verlangt."
 
-#: models.py:349
+#: models.py:360
 msgid "highest zoom of the tiles"
 msgstr "höchste Zoomstufe der Kacheln"
 
-#: models.py:350
+#: models.py:361
 msgid "Closer up, the tiles of this zoom are enlarged."
 msgstr "Näher heran werden die Kacheln dieser Zoomstufe vergrößert."
 
-#: models.py:351
+#: models.py:362
 msgid "included"
 msgstr "angeboten"
 
-#: models.py:351
+#: models.py:362
 msgid "Offered on the maps."
 msgstr "Auf den Karten angeboten."
 
-#: models.py:352
+#: models.py:363
 msgid "default"
 msgstr "Standard"
 
-#: models.py:353
+#: models.py:364
 msgid ""
 "Shown until a viewer chooses another one; only one layer is the default."
 msgstr ""
 "Gezeigt, bis jemand eine andere wählt; nur eine Ebene ist der Standard."
 
-#: models.py:354 models.py:390
+#: models.py:365 models.py:401
 msgid "order"
 msgstr "Reihenfolge"
 
-#: models.py:357
+#: models.py:368
 msgid "background layer"
 msgstr "Hintergrundebene"
 
-#: models.py:358
+#: models.py:369
 msgid "background layers"
 msgstr "Hintergrundebenen"
 
-#: models.py:368
+#: models.py:379
 msgid "Tiles are loaded over HTTPS: the URL starts with https://."
 msgstr "Kacheln werden über HTTPS geladen: die URL beginnt mit https://."
 
-#: models.py:370
+#: models.py:381
 #, python-format
 msgid "The URL needs %(parts)s."
 msgstr "Der URL fehlt %(parts)s."
 
-#: models.py:372
+#: models.py:383
 msgid "The default layer must be included."
 msgstr "Die Standardebene muss angeboten werden."
 
-#: models.py:386
+#: models.py:397
 msgid "What and where it is, e.g. “WH: corner Engelstraße next to the stairs”."
 msgstr "Was und wo er ist, z. B. „WH: Ecke Engelstraße neben der Treppe“."
 
-#: models.py:387
+#: models.py:398
 msgid "latitude"
 msgstr "Breite"
 
-#: models.py:388
+#: models.py:399
 msgid "longitude"
 msgstr "Länge"
 
-#: models.py:389
+#: models.py:400
 msgid "offered"
 msgstr "angeboten"
 
-#: models.py:389
+#: models.py:400
 msgid "Offered when placing plans."
 msgstr "Beim Ausrichten von Plänen angeboten."
 
-#: models.py:393
+#: models.py:404
 msgid "surveyed point"
 msgstr "eingemessener Punkt"
 
-#: models.py:394
+#: models.py:405
 msgid "surveyed points"
 msgstr "eingemessene Punkte"
 
@@ -721,12 +717,19 @@ msgstr "Die Position ist kein gültiges %(kinds)s."
 msgid "The position is outside the earth's coordinates."
 msgstr "Die Position liegt außerhalb der Erdkoordinaten."
 
-#: positions.py:145
+#: positions.py:112
+#, python-format
+msgid ""
+"“%(location)s” is %(width)s × %(depth)s cm: change its dimensions on its "
+"page."
+msgstr "„%(location)s“ ist %(width)s × %(depth)s cm groß: die Maße auf seiner Seite ändern."
+
+#: positions.py:163
 #, python-format
 msgid "Locations of type “%(type)s” are not placed as %(kind)s."
 msgstr "Standorte vom Typ „%(type)s“ werden nicht als %(kind)s platziert."
 
-#: positions.py:210 positions.py:212
+#: positions.py:230 positions.py:232
 msgid "Width and depth are numbers of centimetres."
 msgstr "Breite und Tiefe sind Zentimeterangaben."
 
@@ -818,7 +821,7 @@ msgstr "Das ist keine SVG-Datei."
 msgid "The SVG has neither a viewBox nor a width and height."
 msgstr "Das SVG hat weder eine viewBox noch Breite und Höhe."
 
-#: render.py:169 views.py:532
+#: render.py:169 views.py:542
 msgid "SVG plans cannot be cropped here; crop them before uploading."
 msgstr ""
 "SVG-Pläne lassen sich hier nicht zuschneiden; vor dem Hochladen zuschneiden."
@@ -923,11 +926,11 @@ msgstr "Fläche"
 msgid "Radius"
 msgstr "Radius"
 
-#: templates/maps/map.html:51 templates/maps/map.html:85
+#: templates/maps/map.html:51 templates/maps/map.html:83
 msgid "Done"
 msgstr "Fertig"
 
-#: templates/maps/map.html:51 templates/maps/map.html:67
+#: templates/maps/map.html:51 templates/maps/map.html:65
 msgid "Edit"
 msgstr "Bearbeiten"
 
@@ -939,118 +942,114 @@ msgstr "Rückgängig"
 msgid "Redo"
 msgstr "Wiederholen"
 
-#: templates/maps/map.html:57
+#: templates/maps/map.html:59
 msgid "New position"
 msgstr "Neue Position"
 
-#: templates/maps/map.html:58
-msgid "New point"
-msgstr "Neuer Punkt"
-
-#: templates/maps/map.html:59
-msgid "New rectangle"
-msgstr "Neues Rechteck"
-
-#: templates/maps/map.html:60
-msgid "New area"
-msgstr "Neues Polygon"
-
-#: templates/maps/map.html:61
-msgid "New row"
-msgstr "Neue Reihe"
-
-#: templates/maps/map.html:61
-msgid "Row"
-msgstr "Reihe"
-
-#: templates/maps/map.html:64 templates/maps/map.html:140
-#: templates/maps/map.html:181 templates/maps/place_inline.html:46
+#: templates/maps/map.html:62 templates/maps/map.html:153
+#: templates/maps/map.html:194 templates/maps/place_inline.html:46
 #: templates/maps/plan_align.html:129
 msgid "Save"
 msgstr "Speichern"
 
-#: templates/maps/map.html:65 templates/maps/map.html:179
+#: templates/maps/map.html:63 templates/maps/map.html:192
 msgid "Discard"
 msgstr "Verwerfen"
 
-#: templates/maps/map.html:67
+#: templates/maps/map.html:65
 msgid "Edit the map"
 msgstr "Karte bearbeiten"
 
-#: templates/maps/map.html:68 templates/maps/plans.html:4
+#: templates/maps/map.html:66 templates/maps/plans.html:4
 msgid "Floor plans"
 msgstr "Grundrisse"
 
-#: templates/maps/map.html:72
+#: templates/maps/map.html:70
 msgid "No floor plan or position on this level yet."
 msgstr "Auf dieser Ebene gibt es noch keinen Grundriss und keine Position."
 
-#: templates/maps/map.html:72 templates/maps/place_strings.html:1
+#: templates/maps/map.html:70 templates/maps/place_strings.html:1
 msgid "The map could not be loaded."
 msgstr "Die Karte ließ sich nicht laden."
 
-#: templates/maps/map.html:76
+#: templates/maps/map.html:74
 msgid "Choose what to measure."
 msgstr "Auswählen, was gemessen werden soll."
 
-#: templates/maps/map.html:77
+#: templates/maps/map.html:75
 msgid "Click the points of the line; click the last one again to finish."
 msgstr ""
 "Die Punkte der Linie anklicken; zum Abschließen den letzten noch einmal."
 
-#: templates/maps/map.html:78
+#: templates/maps/map.html:76
 msgid "Click the corners; click the first one again to finish."
 msgstr "Die Ecken anklicken; zum Abschließen die erste noch einmal."
 
-#: templates/maps/map.html:79
+#: templates/maps/map.html:77
 msgid "Click the centre, then a point on the circle."
 msgstr "Den Mittelpunkt anklicken, dann einen Punkt auf dem Kreis."
 
-#: templates/maps/map.html:80
+#: templates/maps/map.html:78
 msgid "Drag the points to correct them."
 msgstr "Zum Korrigieren die Punkte ziehen."
 
-#: templates/maps/map.html:81
+#: templates/maps/map.html:79
 msgid "perimeter"
 msgstr "Umfang"
 
-#: templates/maps/map.html:81
+#: templates/maps/map.html:79
 msgid "radius"
 msgstr "Radius"
 
-#: templates/maps/map.html:84
+#: templates/maps/map.html:82
 msgid "Remove all"
 msgstr "Alle entfernen"
 
+#: templates/maps/map.html:91
+msgid "Choose what the new position is for."
+msgstr "Wähle, wofür die neue Position ist."
+
+#: templates/maps/map.html:92
+msgid "Click where it is."
+msgstr "Dorthin klicken, wo es ist."
+
 #: templates/maps/map.html:93
-msgid "Click where it is, then choose what it belongs to."
-msgstr "Dorthin klicken, wo es ist; dann wählen, wozu es gehört."
+msgid ""
+"Click a corner; then enter width and depth (Enter), or click the opposite "
+"corner."
+msgstr "Eine Ecke anklicken; dann Breite und Tiefe eingeben (Enter) oder die gegenüberliegende Ecke anklicken."
 
 #: templates/maps/map.html:94
-msgid ""
-"Click two opposite corners, or drag from one to the other; then choose what "
-"it belongs to."
-msgstr ""
-"Zwei gegenüberliegende Ecken anklicken oder von einer zur anderen ziehen; "
-"dann wählen, wozu es gehört."
+msgid "Click a corner, then where it lies (or Enter); or enter another size."
+msgstr "Eine Ecke anklicken, dann die Richtung, in der es liegt (oder Enter); oder eine andere Größe eingeben."
 
 #: templates/maps/map.html:95
-msgid ""
-"Click the corners of the area one after the other (the first again to "
-"finish), then choose what it belongs to."
-msgstr ""
-"Die Ecken des Polygons nacheinander anklicken (zum Abschließen wieder die "
-"erste), dann wählen, wozu es gehört."
+msgid "Click where its middle is."
+msgstr "Dorthin klicken, wo seine Mitte ist."
 
 #: templates/maps/map.html:96
 msgid ""
-"Click where the middle of the row is, then choose the first location; the "
-"next ones of its type without a position follow in the order of their codes."
-msgstr ""
-"Die Mitte der Reihe anklicken, dann den ersten Standort wählen; die nächsten "
-"seines Typs ohne Position folgen in der Reihenfolge ihrer Codes."
+"Click the corners of the area one after the other (the first again to "
+"finish)."
+msgstr "Die Ecken der Fläche nacheinander anklicken (zum Abschließen wieder die erste)."
 
 #: templates/maps/map.html:97
+msgid ""
+"Click where the middle of the row is; the next locations of its type without "
+"a position follow in the order of their codes."
+msgstr "Die Mitte der Reihe anklicken; die nächsten Standorte seines Typs ohne Position folgen in der Reihenfolge ihrer Codes."
+
+#: templates/maps/map.html:98
+#, python-brace-format
+msgid ""
+"{width} × {depth} cm, the dimensions of the location (changed on its page)"
+msgstr "{width} × {depth} cm, die Maße des Standorts (auf seiner Seite änderbar)"
+
+#: templates/maps/map.html:99
+msgid "Drag to change the size"
+msgstr "Ziehen, um die Größe zu ändern"
+
+#: templates/maps/map.html:100
 msgid ""
 "Drag the middle handle to move the row and one of the outer ones to turn it; "
 "then save."
@@ -1058,7 +1057,7 @@ msgstr ""
 "Am mittleren Griff die Reihe verschieben, an einem der äußeren drehen; dann "
 "speichern."
 
-#: templates/maps/map.html:98
+#: templates/maps/map.html:101
 #, python-brace-format
 msgid ""
 "Only {count} locations of this type without a position follow; choose "
@@ -1067,20 +1066,26 @@ msgstr ""
 "Nur {count} Standorte dieses Typs ohne Position folgen; einen anderen ersten "
 "wählen oder weniger."
 
-#: templates/maps/map.html:99
+#: templates/maps/map.html:102
 msgid "Everything of this kind on this level has a position already."
 msgstr "Alles dieser Art auf dieser Ebene hat schon eine Position."
 
-#: templates/maps/map.html:100
+#: templates/maps/map.html:103
 msgid "Choose what it belongs to first."
 msgstr "Erst wählen, wozu es gehört."
 
-#: templates/maps/map.html:101
+#: templates/maps/map.html:104
 msgid "Click a building part or storage unit to change its position."
 msgstr ""
 "Ein Gebäudeteil oder Lagermöbel anklicken, um seine Position zu ändern."
 
-#: templates/maps/map.html:102
+#: templates/maps/map.html:105
+msgid ""
+"Drag the middle handle to move it, one of the outer ones to turn it and a "
+"corner to size it; then save."
+msgstr "Mit dem mittleren Griff verschieben, mit einem der äußeren drehen, an einer Ecke die Größe ändern; dann speichern."
+
+#: templates/maps/map.html:106
 msgid ""
 "Drag the middle handle to move it and one of the outer ones to turn it; then "
 "save."
@@ -1088,77 +1093,85 @@ msgstr ""
 "Mit dem mittleren Griff verschieben, mit einem der äußeren drehen; dann "
 "speichern."
 
-#: templates/maps/map.html:103
+#: templates/maps/map.html:107
 msgid "Drag the handle; then save."
 msgstr "Den Griff ziehen; dann speichern."
 
-#: templates/maps/map.html:104
+#: templates/maps/map.html:108
 msgid "Edit the position"
 msgstr "Position bearbeiten"
 
-#: templates/maps/map.html:104
+#: templates/maps/map.html:108
 msgid "Not saved:"
 msgstr "Nicht gespeichert:"
 
-#: templates/maps/map.html:105 templates/maps/place_strings.html:1
+#: templates/maps/map.html:109 templates/maps/place_strings.html:1
 msgid "Snapped. Hold Alt (⌥) while dragging to place without snapping."
 msgstr ""
 "Eingerastet. Mit gedrückter Alt-Taste (⌥) ziehen, um ohne Einrasten zu "
 "platzieren."
 
-#: templates/maps/map.html:108 templates/maps/place_tools.html:12
+#: templates/maps/map.html:113 templates/maps/place_tools.html:3
+msgid "Shape"
+msgstr "Form"
+
+#: templates/maps/map.html:117
+msgid "Row"
+msgstr "Reihe"
+
+#: templates/maps/map.html:121 templates/maps/place_tools.html:12
 msgid "Width"
 msgstr "Breite"
 
-#: templates/maps/map.html:111 templates/maps/place_tools.html:15
+#: templates/maps/map.html:124 templates/maps/place_tools.html:15
 msgid "Depth"
 msgstr "Tiefe"
 
-#: templates/maps/map.html:116
+#: templates/maps/map.html:129
 msgctxt "row"
 msgid "Number"
 msgstr "Anzahl"
 
-#: templates/maps/map.html:118
+#: templates/maps/map.html:131
 msgid "Reverse order"
 msgstr "Reihenfolge umdrehen"
 
-#: templates/maps/map.html:122 templates/maps/place_tools.html:22
+#: templates/maps/map.html:135 templates/maps/place_tools.html:23
 msgid "Turned"
 msgstr "Gedreht"
 
-#: templates/maps/map.html:132
+#: templates/maps/map.html:145
 msgid "Change the location"
 msgstr "Standort ändern"
 
-#: templates/maps/map.html:135
+#: templates/maps/map.html:148
 msgid "Location"
 msgstr "Standort"
 
-#: templates/maps/map.html:136
+#: templates/maps/map.html:149
 msgid "Search the location…"
 msgstr "Standort suchen …"
 
-#: templates/maps/map.html:142 templates/maps/map.html:159
+#: templates/maps/map.html:155 templates/maps/map.html:172
 #: templates/maps/place_inline.html:44
 msgid "Remove position"
 msgstr "Position entfernen"
 
-#: templates/maps/map.html:142
+#: templates/maps/map.html:155
 msgid "Drop the shape"
 msgstr "Form verwerfen"
 
-#: templates/maps/map.html:150
+#: templates/maps/map.html:163
 msgid "Remove the position?"
 msgstr "Position entfernen?"
 
-#: templates/maps/map.html:151 templates/maps/map.html:158
+#: templates/maps/map.html:164 templates/maps/map.html:171
 #: templates/maps/place_inline.html:18 templates/maps/place_inline.html:45
 #: templates/maps/plan_align.html:69
 msgid "Cancel"
 msgstr "Abbrechen"
 
-#: templates/maps/map.html:155
+#: templates/maps/map.html:168
 msgid ""
 "It no longer has a position on the map; that is saved at once. The shape "
 "stays, to give it to another location, until it is dropped."
@@ -1167,30 +1180,30 @@ msgstr ""
 "Die Form bleibt, um sie einem anderen Standort zu geben, bis sie verworfen "
 "wird."
 
-#: templates/maps/map.html:169 templates/maps/map.html:170
+#: templates/maps/map.html:182 templates/maps/map.html:183
 msgid "Save the change?"
 msgstr "Änderung speichern?"
 
-#: templates/maps/map.html:170
+#: templates/maps/map.html:183
 msgid "Assign the shape?"
 msgstr "Form zuordnen?"
 
-#: templates/maps/map.html:171 templates/maps/map.html:180
+#: templates/maps/map.html:184 templates/maps/map.html:193
 msgid "Keep editing"
 msgstr "Weiter bearbeiten"
 
-#: templates/maps/map.html:174 templates/maps/map.html:175
+#: templates/maps/map.html:187 templates/maps/map.html:188
 msgid "The position was changed and is not saved yet."
 msgstr "Die Position wurde geändert und ist noch nicht gespeichert."
 
-#: templates/maps/map.html:175
+#: templates/maps/map.html:188
 msgid ""
 "The shape belongs to no location yet: assign it and save it, or discard it."
 msgstr ""
 "Die Form gehört noch zu keinem Standort: zuordnen und speichern oder "
 "verwerfen."
 
-#: templates/maps/map.html:182
+#: templates/maps/map.html:195
 msgid "Assign"
 msgstr "Zuordnen"
 
@@ -1304,15 +1317,15 @@ msgstr "Beim Speichern wird es nach %(title)s (%(level)s) bewegt."
 msgid "Not on a level"
 msgstr "Auf keiner Ebene"
 
-#: templates/maps/place_tools.html:3
-msgid "Shape"
-msgstr "Form"
+#: templates/maps/place_tools.html:18
+msgid "The dimensions of the location; changed on its page."
+msgstr "Die Maße des Standorts; sie werden auf seiner Seite geändert."
 
-#: templates/maps/place_tools.html:25
+#: templates/maps/place_tools.html:26
 msgid "Turn a quarter to the left"
 msgstr "Eine Vierteldrehung nach links"
 
-#: templates/maps/place_tools.html:26
+#: templates/maps/place_tools.html:27
 msgid "Turn a quarter to the right"
 msgstr "Eine Vierteldrehung nach rechts"
 
@@ -1661,41 +1674,41 @@ msgstr "Die Reihe ist nicht lesbar."
 msgid "A location of the row does not exist (any more)."
 msgstr "Einen Standort der Reihe gibt es nicht (mehr)."
 
-#: views.py:503
+#: views.py:513
 msgid "Plan added. Now place it, then crop it to the drawing."
 msgstr ""
 "Plan hinzugefügt. Jetzt ausrichten, dann auf die Zeichnung zuschneiden."
 
-#: views.py:533
+#: views.py:543
 msgid "Place the plan first."
 msgstr "Erst den Plan ausrichten."
 
-#: views.py:560
+#: views.py:570
 msgid "Plan cropped; its placement stays."
 msgstr "Plan zugeschnitten; er bleibt, wo er ausgerichtet war."
 
-#: views.py:560
+#: views.py:570
 msgid "Plan cropped."
 msgstr "Plan zugeschnitten."
 
-#: views.py:565
+#: views.py:575
 #, python-format
 msgid "Plan placed; largest deviation %(residual).2f m."
 msgstr "Plan ausgerichtet; größte Abweichung %(residual).2f m."
 
-#: views.py:566
+#: views.py:576
 msgid "Control points saved."
 msgstr "Passpunkte gespeichert."
 
-#: views.py:569
+#: views.py:579
 msgid "Choose the new file."
 msgstr "Bitte die neue Datei wählen."
 
-#: views.py:572
+#: views.py:582
 msgid "The page is a number from 1."
 msgstr "Die Seite ist eine Zahl ab 1."
 
-#: views.py:576
+#: views.py:586
 msgid ""
 "New source file: the plan keeps its placement and crop, at the same places "
 "on the page. Check them."
@@ -1703,10 +1716,42 @@ msgstr ""
 "Neue Quelldatei: Der Plan behält Ausrichtung und Zuschnitt, an denselben "
 "Stellen der Seite. Bitte prüfen."
 
-#: views.py:577
+#: views.py:587
 msgid "New source file."
 msgstr "Neue Quelldatei."
 
-#: views.py:586
+#: views.py:596
 msgid "Saved."
 msgstr "Gespeichert."
+
+#~ msgid "Empty: the default of the location type."
+#~ msgstr "Leer: die übliche Größe des Standorttyps."
+
+#~ msgid "New point"
+#~ msgstr "Neuer Punkt"
+
+#~ msgid "New rectangle"
+#~ msgstr "Neues Rechteck"
+
+#~ msgid "New area"
+#~ msgstr "Neues Polygon"
+
+#~ msgid "New row"
+#~ msgstr "Neue Reihe"
+
+#~ msgid "Click where it is, then choose what it belongs to."
+#~ msgstr "Dorthin klicken, wo es ist; dann wählen, wozu es gehört."
+
+#~ msgid ""
+#~ "Click two opposite corners, or drag from one to the other; then choose "
+#~ "what it belongs to."
+#~ msgstr ""
+#~ "Zwei gegenüberliegende Ecken anklicken oder von einer zur anderen ziehen; "
+#~ "dann wählen, wozu es gehört."
+
+#~ msgid ""
+#~ "Click the corners of the area one after the other (the first again to "
+#~ "finish), then choose what it belongs to."
+#~ msgstr ""
+#~ "Die Ecken des Polygons nacheinander anklicken (zum Abschließen wieder die "
+#~ "erste), dann wählen, wozu es gehört."

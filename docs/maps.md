@@ -69,11 +69,17 @@ coordinates.
 - **Stacked parts:** a room or area whose parts lie on top of each other (the platforms `HBB.1` below and `HBB.2`
   above) gets "parts stacked" (admin: *Location shapes*). The map then offers a switch "HBB: all / .1 / .2".
 - **Shapes:** by default levels, rooms and areas are areas (polygons), storage units and containers points or
-  rectangles; a type's map settings can allow others (placing then offers a choice, "New" on the map only
-  lists locations whose type allows the drawn shape). **Storage units** (shelves, cabinets) as points or rectangles:
-  the dialog asks for width and depth in cm (filled in with the usual size of their type); the middle handle moves
-  it, the outer one turns it. Without a size, the rectangle is drawn by two opposite corners (a click on each, or
-  dragging from one to the other; its sides follow the turn set, at first the plan's walls), which fills in the size.
+  rectangles; a type's map settings can allow others (placing then offers a choice). **Storage units** (shelves,
+  cabinets) as points or rectangles: the dialog asks for width and depth in cm (filled in with the usual size of
+  their type); the middle handle moves it, the outer one turns it. Without a size, the rectangle is drawn by two
+  opposite corners (a click on each, or dragging from one to the other; its sides follow the turn set, at first the
+  plan's walls), which fills in the size.
+- **Sizes:** a location's rectangle has the location's width and depth (`Location.footprint_cm`, edited on its page
+  as *Dimensions*; a compartment or drawer without its own has those of its shelf or cabinet). Those are fixed on the
+  map: the dialog shows them without fields, and a different size is refused. A location without them gets the size
+  its rectangle is placed in, in the same change log entry as the position (`positions._location_size`); so does
+  every location of a row. Up to migration `maps.0006` the map kept its own size per location shape; that became the
+  location's, where it had none. Unique items keep their own size on the map (else their item's usual one).
 - **Snapping:** while placing, a corner of the rectangle (or the point) snaps to a corner of the rooms, areas and
   storage units around it within 12 pixels, else onto their edges; turning snaps parallel or at right angles to the
   edges nearby and to the plan's walls, within 4°. Drawing an area snaps its corners to the corners and edges of the
@@ -102,8 +108,12 @@ Map editors (all staff, and whoever has `maps.edit_map`) switch the map page (`/
 a building part, storage unit or unique item. Handles are rings (white, blue, white; turning:
 pink) under a crosshair cursor, so the exact spot stays visible. Areas: drag the corners (a new one from the small
 handle between two), the area as a whole by its inside; rectangles and rows: the middle handle moves, any of the four
-outer ones turns (one on each side, at least 28 px outside the edge, as one may lie under something); points: the
-handle. While something is dragged, the box above it fades almost away. Snapping as when placing. Width, depth and turn of rectangles are in the bar at the bottom.
+outer ones turns (one on each side, at least 28 px outside the edge, as one may lie under something), and the small
+squares on its corners size it, the opposite corner staying (not with a location's fixed size, which the bar names
+instead); points: the handle. While something is dragged, the box above it fades almost away. Snapping as when
+placing. Width, depth and turn of rectangles are in the bar at the bottom. The "Edit" button is plain and only
+highlighted while the edit mode is on, as are "Measure" and "Mark". The box lies above the labels of the map (its
+pane: z-index 660, the labels' 650, popups 700).
 
 Above the selected position, on the map, a box names what it belongs to: a click on it searches another location of
 this level without a position, which then gets the position (`take_from`: the old one's goes in the same step; unique
@@ -113,7 +123,7 @@ that belongs to nothing (new, or after that) the X drops it. A click on the map 
 change, asked as for "Done"). A tapped corner (pink ring) gets an X above it, not while it is dragged; tapping it again, Delete or a right
 click remove it, too; at least three stay. While there is a change that can be saved, "Save" and "Discard" show
 indented below "Done" and "Save" in the box, too (`map_edit.js`); saved, it stays selected. With nothing selected, the
-**New** buttons are there instead.
+**New position** button is there instead.
 
 Each step on the selected position (a drag, a removed corner, a size, number or turn entered, another location) can be
 undone and redone (not the X's removal, which is saved at once):
@@ -128,17 +138,22 @@ Leaving the page with a change not saved asks first (in the edit mode, another l
 then offers to save it, discard it or keep editing. Esc drops a new position not saved yet, else it is "Done". A
 popup open when the edit mode starts selects what it was opened for, and so does the pencil in the popups (for map
 editors: small, below the popup's close button); what is selected when it ends shows its popup. Enter (not on a button or link) or Ctrl+S / ⌘S saves.
+Delete or Backspace (not in a field) removes a chosen corner of an area; with none chosen, it does what the box's X
+does: asked first, the position is removed, and a new shape not saved yet is dropped.
 
-**New** (point, rectangle, area, row; below "Done" while nothing is selected) makes a position on the map first: a
-click for a point, two opposite corners for a rectangle (a click on each, or dragging from one to the other; its sides
-follow the turn set, at first the plan's walls), the corners for an area (the cursor a crosshair). Then the box above it
-offers the locations of this level that are placeable but have no position yet (building parts for an area, storage
-units for a point or rectangle) and the unique items of this level without one (every
-shape; their location as the chip); its search field has the focus at once, to type. Choosing one and saving gives it
-the position; a rectangle keeps the size it was drawn with.
+**New position** (below "Done" while nothing is selected) asks first what it is for: the box in the middle of the map
+offers the locations of this level that are placeable but have no position yet and the unique items of this level
+without one (their location as the chip); its search field has the focus at once, to type. Then the bar names it and
+offers the shapes it can have (`views.unplaced`: `kinds`; a row for locations whose type has rectangles), the usual
+one chosen (`default_kind`: a rectangle when a size is known), only the one being drawn highlighted. A point: a click.
+An area: its corners (the cursor a crosshair). A rectangle: with fixed dimensions a click sets its middle; else a
+click sets a corner, then width and depth (filled in with the usual size, if any) and Enter, or a click towards where
+it lies, place it from there; with the fields emptied, a click on the opposite corner (or dragging from one to the
+other; its sides follow the turn set, at first the plan's walls). Saving gives it the position.
 
 **Row** places several storage units of one size side by side, e.g. a run of shelves: a click sets the middle of
-the row; the number, width × depth and the turn apply to all of them, and the row moves, turns and snaps as one.
+the row; the number, width × depth and the turn apply to all of them (a location with dimensions of its own keeps
+those), and the row moves, turns and snaps as one.
 The location chosen is the first; the next ones of its type without a position follow in the order of their codes
 (also across gaps: a shelf in between that has a position already is skipped), shown on each rectangle;
 "Reverse order" numbers them from the other end. If too few follow, the bar says how many. Saving places all of them
@@ -200,6 +215,10 @@ The "On the map" links lead to the level with `?p=loc:<pk>` (or `item:`): the ma
 place it is in, highlighted with its popup open (`map.js` focus). The small map in the location window shows that
 popup too; the small map in the grey box of a location's or unique item's page highlights it the same way, without a
 popup. What lies in the highlighted area (its parts, storage units, unique items) stays above it, to be clicked.
+Highlighted (what a link names, and what is clicked while its popup is open) means a wide white halo under it and
+its own outline twice as thick, in its own colours, so one still sees what kind of thing it is (`map.js` select).
+One thing at a time on each map: clicking another moves it there. A link's stays when its popup is closed, a clicked
+one's goes with its popup; the edit mode and drawing the level anew end it, too.
 A popup goes right above what it is about (also when clicked) if it fits there wholly in view without moving the map,
 as low as the outline under it allows; else where it was clicked, or over its middle with the map moving to show it.
 A location's popup shows its overview photo above its name and code; the thumbnail is made when the popup first

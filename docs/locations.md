@@ -4,6 +4,12 @@ Each location can have a **purpose** (one line, up to 50 characters) and one
 overview photo. The purpose says what the location is for. Physical descriptions are kept separately.
 The purpose is included in location searches.
 
+**Dimensions:** width, depth and height in cm, each optional (`Location.width_cm`, `depth_cm`, `height_cm`), in the
+grey box of its page and edited there (*Dimensions*, as the physical description). A compartment or drawer (a part
+of the shelf's or cabinet's `sublocation_type`) without width and depth of its own has those of its shelf or
+cabinet, not its height (`Location.footprint_cm`, `footprint_source`). On the map a location's rectangle has that
+size ([maps](maps.md)).
+
 ## How locations are shown
 
 A UX rule for every page, list and dialog (`inventory/location_display.py`, `{% load locations %}`):

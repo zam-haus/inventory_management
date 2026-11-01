@@ -15,6 +15,7 @@
         <label for="{{ prefix }}-depth">{% trans "Depth" %}</label>
         <input type="number" class="form-control form-control-sm" id="{{ prefix }}-depth" min="1" step="1" inputmode="numeric" data-place-depth>
         <span>cm</span>
+        <span class="text-muted" data-place-size-fixed hidden>{% trans "The dimensions of the location; changed on its page." %}</span>
     </span>
 </div>
 <div class="map-place-canvas mt-2" data-place-canvas></div>

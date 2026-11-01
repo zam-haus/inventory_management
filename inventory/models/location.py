@@ -14,7 +14,7 @@ from django.dispatch import receiver
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.html import format_html
-from django.utils.translation import gettext, gettext_lazy as _
+from django.utils.translation import gettext, gettext_lazy as _, pgettext
 
 from ..actor import acting_as
 from ..signals import send_moved
@@ -646,6 +646,10 @@ class Location(SoftDeleteModel, ComputedFieldsModel):
         help_text=_("No combustible materials may be stored here. Applies to everything inside."),
     )
     outdoor = models.BooleanField(_("outdoors"), default=False)
+    # Outer dimensions, each optional; parts of a storage unit take width and depth from it (footprint_cm).
+    width_cm = models.PositiveIntegerField(_("width (cm)"), null=True, blank=True)
+    depth_cm = models.PositiveIntegerField(_("depth (cm)"), null=True, blank=True)
+    height_cm = models.PositiveIntegerField(_("height (cm)"), null=True, blank=True)
     responsible_teams = models.ManyToManyField(
         "accounts.Team", blank=True, related_name="locations", verbose_name=_("responsible teams"),
     )
@@ -885,6 +889,33 @@ class Location(SoftDeleteModel, ComputedFieldsModel):
         from accounts.models import Team
         source = self.responsible_teams_source
         return source.responsible_teams.all() if source else Team.objects.none()
+
+    @property
+    def footprint_source(self):
+        """The location whose width and depth this one has: itself, or for a compartment or drawer without
+        its own, the shelf or cabinet it is part of; None without dimensions."""
+        if self.width_cm and self.depth_cm:
+            return self
+        parent = self.parent_location
+        if parent is not None and self.type_id == parent.type.sublocation_type_id and parent.width_cm \
+                and parent.depth_cm:
+            return parent
+        return None
+
+    @property
+    def footprint_cm(self):
+        """(width, depth) in cm (footprint_source), or None."""
+        source = self.footprint_source
+        return (source.width_cm, source.depth_cm) if source else None
+
+    def dimensions_text(self):
+        """Its dimensions as people read them, e.g. "W 120 × D 80 × H 200 cm" ("" for none); width and depth
+        as in footprint_cm, so a compartment shows those of its shelf."""
+        footprint = self.footprint_cm or (self.width_cm, self.depth_cm)
+        parts = [f"{label} {value}" for label, value in zip(
+            (pgettext("width", "W"), pgettext("depth", "D"), pgettext("height", "H")), (*footprint, self.height_cm))
+            if value]
+        return f"{' × '.join(parts)} cm" if parts else ""
 
     @property
     def fire_load_free_source(self):

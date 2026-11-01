@@ -13,7 +13,9 @@
         item: {color: '#0f766e', weight: 1.5, fillColor: '#2dd4bf', fillOpacity: 0.35}
     };
     var ITEM_POINT = {color: '#ffffff', weight: 1.5, opacity: 1, fillColor: '#0f766e', fillOpacity: 0.95, radius: 5};
-    var HIGHLIGHT = {color: '#d63384', weight: 4, fillOpacity: 0.35};
+    // What is clicked on the map (while its popup is open) and what a link names: a wide white halo under it, its own
+    // outline twice as thick (select). It keeps its colours, so one still sees what kind of thing it is.
+    var HALO_PIXELS = 8;
     // Unique items that are points have a layer of their own, off at first (draw: showPoints): many of them hide the
     // rest. One a link names is shown all the same (reveal).
     var POINTS = 'item_point';
@@ -229,6 +231,8 @@
     // that are points only with `showPoints` (their layer, POINTS).
     function draw(map, data, options) {
         options = options || {};
+        unselect(map);  // of the level drawn before
+        selectOnPopups(map);
         // Each plan is a layer of its own: shown at first, or switched on in the layer selection.
         var result = {plans: [], layers: {}, byId: {}, stacks: data.stacks || [], bounds: null, revealed: {}};
         var bounds = L.latLngBounds([]);
@@ -265,6 +269,9 @@
                 interactive: options.interactive !== false
             });
             layer.feature = feature;
+            layer._drawn = result;
+            layer._baseStyle = style;
+            layer.eachLayer(function (part) { part._zamLayer = layer; });  // a popup's source is the part
             if (casing) {
                 layer.casing = casing;
                 result.layers[group].addLayer(casing);
@@ -545,24 +552,96 @@
         if (!layer) {
             return null;
         }
-        layer.setStyle(HIGHLIGHT);
-        if (layer.bringToFront) {
-            // Over the rest, but not over what lies in it (its parts, storage units, unique items: deeper in the tree):
-            // they stay to be clicked, in the order they were drawn.
-            layer.bringToFront();
-            var depth = layer.feature.properties.depth || 0;
-            Object.keys(drawn.byId).forEach(function (id) {
-                var other = drawn.byId[id];
-                if (other !== layer && other.bringToFront && (other.feature.properties.depth || 0) > depth &&
-                        other._extent.intersects(layer._extent)) {
-                    if (other.casing) {
-                        other.casing.bringToFront();
-                    }
-                    other.bringToFront();
-                }
-            });
-        }
+        select(layer, true);
         return layer;
+    }
+
+    // Over the rest, but not over what lies in it (its parts, storage units, unique items: deeper in the tree): they
+    // stay to be clicked, in the order they were drawn. `under`: a layer that goes right below it (the halo).
+    function raise(drawn, layer, under) {
+        if (!layer.bringToFront) {
+            return;
+        }
+        if (under) {
+            under.bringToFront();
+        }
+        layer.bringToFront();
+        var depth = layer.feature.properties.depth || 0;
+        Object.keys(drawn.byId).forEach(function (id) {
+            var other = drawn.byId[id];
+            if (other !== layer && other.bringToFront && (other.feature.properties.depth || 0) > depth &&
+                    other._extent.intersects(layer._extent)) {
+                if (other.casing) {
+                    other.casing.bringToFront();
+                }
+                other.bringToFront();
+            }
+        });
+    }
+
+    // What a popup is opened for, or a link names (highlight: `kept` when its popup closes), is selected (HALO_PIXELS),
+    // one at a time on each map (map._zamSelection: {layer, halo, kept}). Closing the popup of one clicked, selecting
+    // another, the edit mode (unselect) or drawing the level anew lets it go.
+    function select(layer, kept) {
+        var map = layer._map, drawn = layer._drawn, base = layer._baseStyle || {};
+        if (!map || !drawn) {
+            return;
+        }
+        var current = map._zamSelection;
+        if (current && current.layer === layer) {
+            current.kept = current.kept || Boolean(kept);
+            return;
+        }
+        unselect(map);
+        var weight = base.weight === undefined ? 2 : base.weight;
+        var halo = L.geoJSON(layer.feature, {interactive: false,
+            style: function () {
+                return {color: '#ffffff', opacity: 0.9, weight: weight + 2 * HALO_PIXELS, fill: false,
+                    lineCap: 'round', lineJoin: 'round', className: 'map-selected-halo'};
+            },
+            pointToLayer: function (_feature, latlng) {
+                return L.circleMarker(latlng, {radius: (base.radius || 7), interactive: false});
+            }
+        }).addTo(map);
+        layer.setStyle({weight: weight * 2, opacity: 1});
+        raise(drawn, layer, halo);
+        map._zamSelection = {layer: layer, halo: halo, kept: Boolean(kept)};
+    }
+
+    function unselect(map) {
+        var selection = map._zamSelection;
+        if (!selection) {
+            return;
+        }
+        map.removeLayer(selection.halo);
+        selection.layer.resetStyle();
+        map._zamSelection = null;
+    }
+
+    // The layer of a drawn feature a popup is about (Leaflet gives the part of it), else null (a marker's, a
+    // measurement's).
+    function popupSource(event) {
+        var source = event.popup._source;
+        return source ? source._zamLayer || (source._drawn ? source : null) : null;
+    }
+
+    function selectOnPopups(map) {
+        if (map._zamSelects) {
+            return;
+        }
+        map._zamSelects = true;
+        map.on('popupopen', function (event) {
+            var layer = popupSource(event);
+            if (layer) {
+                select(layer);
+            }
+        });
+        map.on('popupclose', function (event) {
+            var layer = popupSource(event);
+            if (layer && map._zamSelection && map._zamSelection.layer === layer && !map._zamSelection.kept) {
+                unselect(map);
+            }
+        });
     }
 
     // A popup (clicked, or opened for a link's ?p=, in the location window, after editing, for a marked area) goes
@@ -699,31 +778,59 @@
     // The rectangle with the opposite corners `a` and `b`, its sides turned clockwise by `rotation`: {center, size}
     // (width along the turned east-west, depth across, in metres).
     function fromCorners(a, b, rotation) {
+        var diagonal = alongAcross(a, b, rotation);
+        return {center: L.latLng((a.lat + b.lat) / 2, (a.lng + b.lng) / 2),
+            size: [Math.abs(diagonal[0]), Math.abs(diagonal[1])]};
+    }
+
+    // From `a` to `b` in the directions of a rectangle turned clockwise by `rotation`: [along, across] in metres
+    // (back from offset()).
+    function alongAcross(a, b, rotation) {
         var m = metresPerDegree((a.lat + b.lat) / 2), r = rotation * Math.PI / 180;
         var east = (b.lng - a.lng) * m[0], north = (b.lat - a.lat) * m[1];
-        // back from offset(): the diagonal in the rectangle's own directions
-        var along = east * Math.cos(r) - north * Math.sin(r), across = east * Math.sin(r) + north * Math.cos(r);
-        return {center: L.latLng((a.lat + b.lat) / 2, (a.lng + b.lng) / 2), size: [Math.abs(along), Math.abs(across)]};
+        return [east * Math.cos(r) - north * Math.sin(r), east * Math.sin(r) + north * Math.cos(r)];
+    }
+
+    // The rectangle of `size` with the corner `a`, lying towards `toward` (at first: to the right and down):
+    // {center, size}.
+    function fromCorner(a, toward, size, rotation) {
+        var way = toward ? alongAcross(a, toward, rotation) : [1, -1];
+        return {center: offset(a, (way[0] < 0 ? -1 : 1) * size[0] / 2, (way[1] > 0 ? 1 : -1) * size[1] / 2, rotation),
+            size: size.slice()};
     }
 
     // Drawing a rectangle by two opposite corners: a click on each, or pressing on one and letting go on the other
     // (the map does not pan meanwhile). While `options.active()`: the corners go through `options.snap(latlng, event)`,
     // the sides follow `options.rotation()`, the rectangle follows the pointer after the first corner; done({center,
-    // size}) once both are there. reset() drops a first corner; clickTaken(): the map's click that follows was one of
-    // the corners (other click handlers leave it alone).
+    // size}) once both are there. With a size entered after the first corner (`options.size()`: [width, depth] in m,
+    // else null) the rectangle has that size, towards the pointer: the second click or apply() (Enter in the size
+    // fields) places it. started() once the first corner is there. reset() drops a first corner; clickTaken(): the
+    // map's click that follows was one of the corners (other click handlers leave it alone); hasFirst(); preview()
+    // draws it anew (the size changed).
     var DRAG_PIXELS = 6;  // a press that moves less is a click
 
     function cornerDrawing(map, options) {
-        var first = null, pressed = null, preview = null, dragging = null, taken = false;
+        var first = null, pressed = null, preview = null, dragging = null, taken = false, pointer = null;
         function reset() {
-            first = pressed = null;
+            first = pressed = pointer = null;
             if (preview) {
                 map.removeLayer(preview);
                 preview = null;
             }
         }
+        function size() {
+            return options.size ? options.size() : null;
+        }
+        function drawnTo(latlng) {
+            var given = size();
+            return given ? fromCorner(first, latlng, given, options.rotation()) :
+                fromCorners(first, latlng, options.rotation());
+        }
         function show(latlng) {
-            var drawn = fromCorners(first, latlng, options.rotation());
+            if (!latlng && !size()) {
+                return;
+            }
+            var drawn = drawnTo(latlng);
             var corners = rectangle(drawn.center, drawn.size, options.rotation());
             if (preview) {
                 preview.setLatLngs(corners);
@@ -733,7 +840,7 @@
             }
         }
         function finish(latlng) {
-            var drawn = fromCorners(first, latlng, options.rotation());
+            var drawn = drawnTo(latlng);
             reset();
             if (drawn.size[0] >= 0.01 && drawn.size[1] >= 0.01) {  // not on one line: at least a centimetre
                 options.done(drawn);
@@ -753,7 +860,8 @@
         });
         map.on('mousemove', function (event) {
             if (first && options.active()) {
-                show(options.snap(event.latlng, event.originalEvent));
+                pointer = options.snap(event.latlng, event.originalEvent);
+                show(pointer);
             }
         });
         map.on('mouseup', function (event) {
@@ -770,9 +878,23 @@
             taken = true;
             if (moved || !firstPress) {  // dragged from the first corner, or a click on the second
                 finish(options.snap(event.latlng, event.originalEvent));
+            } else if (options.started) {
+                options.started();
             }
         });
-        return {reset: reset, clickTaken: function () { return taken; }};
+        return {
+            reset: reset, clickTaken: function () { return taken; }, hasFirst: function () { return Boolean(first); },
+            preview: function () {
+                if (first && options.active()) {
+                    show(pointer);
+                }
+            },
+            apply: function () {
+                if (first && size() && options.active()) {
+                    finish(pointer);
+                }
+            }
+        };
     }
 
     // How far a plan is turned clockwise (its top edge against east-west), so rectangles follow its walls.
@@ -865,7 +987,7 @@
     }
 
     window.ZamMap = {create: create, draw: draw, planLayer: planLayer, load: load, highlight: highlight, reveal: reveal,
-        focus: focus, openPopupAbove: openPopupAbove,
+        focus: focus, unselect: unselect, openPopupAbove: openPopupAbove,
         stackControl: stackControl,
         filterStacks: filterStacks, layerControl: layerControl, STYLES: STYLES, ITEM_POINT: ITEM_POINT,
         cornerDrawing: cornerDrawing,

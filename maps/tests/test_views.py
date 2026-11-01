@@ -170,10 +170,16 @@ class MapViewTests(Building, TestCase):
         self.client.force_login(self.staff)
         areas = [row["code"] for row in self.client.get(url, {"kind": "area"}).json()["locations"]]
         self.assertEqual(areas, ["HBB.1", "HBB.2", "HH-1", "LAG", "WH-1"])  # not HBB, which has one
-        self.assertEqual(self.client.get(url).json()["locations"], [])  # pallets and boxes: not placeable for now
+        self.assertEqual(self.client.get(url, {"kind": "point"}).json()["locations"], [])  # pallets, boxes: not yet
+        everything = [row["code"] for row in self.client.get(url).json()["locations"]]
+        self.assertEqual(everything, areas)  # without a kind: all, to choose first what is placed
         LocationTypeMap.objects.filter(type=self.pallet_type).update(placeable=True)
-        rows = self.client.get(url).json()["locations"]
-        self.assertEqual([(row["code"], row["size"]) for row in rows], [("P1", [1.2, 0.8])])
+        rows = self.client.get(url, {"kind": "point"}).json()["locations"]
+        self.assertEqual([(row["code"], row["size"], row["size_fixed"], row["kinds"], row["default_kind"])
+                          for row in rows], [("P1", [1.2, 0.8], False, ["point", "rectangle"], "rectangle")])
+        Location.objects.filter(pk=self.pallet.pk).update(width_cm=100, depth_cm=60)
+        rows = self.client.get(url, {"kind": "point"}).json()["locations"]
+        self.assertEqual([(row["size"], row["size_fixed"]) for row in rows], [([1.0, 0.6], True)])  # its own
 
     def test_new_positions_go_to_unique_items_without_one(self):
         url = reverse("maps:unplaced", args=[-1])
@@ -182,7 +188,8 @@ class MapViewTests(Building, TestCase):
         for kind in ("point", "rectangle", "area"):  # every shape
             items = self.client.get(url, {"kind": kind}).json()["items"]
             self.assertEqual(items, [{"pk": self.saw.pk, "item": True, "code": self.box.unique_identifier,
-                                      "title": str(self.saw), "type": None, "size": [2, 0.8]}])
+                                      "title": str(self.saw), "type": None, "kinds": ["point", "rectangle", "area"],
+                                      "default_kind": "rectangle", "size": [2, 0.8], "size_fixed": False}])
         self.assertEqual(self.client.get(reverse("maps:unplaced", args=[0])).json()["items"], [])  # another level
         positions.set_item_position(self.saw, None, CENTER)
         self.assertEqual(self.client.get(url).json()["items"], [])  # has one
@@ -206,8 +213,10 @@ class MapViewTests(Building, TestCase):
         self.assertFalse(self.client.post(url, {"rows": json.dumps(rows[:1] * 2)}).json()["ok"])  # twice the same
         self.assertEqual(self.client.post(url, {"rows": json.dumps(rows)}).json(), {"ok": True, "placed": 3})
         shapes = [LocationShape.objects.get(location=location) for location in shelves]
-        self.assertEqual({(shape.kind, shape.width_cm, shape.depth_cm, shape.rotation) for shape in shapes},
-                         {("rectangle", 100, 50, 30.0)})
+        self.assertEqual({(shape.kind, shape.size_cm(), shape.rotation) for shape in shapes},
+                         {("rectangle", (100, 50), 30.0)})
+        self.assertEqual({(shelf.width_cm, shelf.depth_cm) for shelf in Location.objects.filter(pk__in=[s.pk for s in shelves])},
+                         {(100, 50)})  # the size they were placed in
         self.assertAlmostEqual(geo.local(shapes[0].geometry.centroid).distance(geo.local(shapes[1].geometry.centroid)),
                                1, places=2)
         self.assertEqual(ChangeLog.objects.filter(location__in=shelves, action=ChangeLog.Action.CHANGED).count(), 3)

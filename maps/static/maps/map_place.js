@@ -181,6 +181,9 @@
             });
             self.widthInput.value = self.size ? Math.round(self.size[0] * 100) : '';
             self.depthInput.value = self.size ? Math.round(self.size[1] * 100) : '';
+            // A location with dimensions has that size (views.place_context: size_fixed); changed on its page.
+            self.widthInput.disabled = self.depthInput.disabled = Boolean(own.size_fixed);
+            self.root.querySelector('[data-place-size-fixed]').hidden = !own.size_fixed;
             // The type's usual size as a hint (admin: the location type's map settings).
             self.widthInput.placeholder = own.type_size ? Math.round(own.type_size[0] * 100) : '';
             self.depthInput.placeholder = own.type_size ? Math.round(own.type_size[1] * 100) : '';
@@ -220,7 +223,8 @@
         });
     };
 
-    // Done editing: the handles and corners go.
+    // Done editing (saved or cancelled): the handles and corners go, and so do the shape, size and turn above and
+    // below the map (redraw shows them while editing).
     Placer.prototype.stop = function () {
         this.editing = false;
         if (this.map) {
@@ -228,6 +232,7 @@
             this.shapes.clear(this.s);
         }
         this.s = null;
+        this.shapeBox.hidden = this.rotationBox.hidden = true;
     };
 
     Placer.prototype.checkKind = function () {

@@ -254,6 +254,7 @@ class DetailLocationView(DetailView):
         if not context["edit_denied"]:
             context.setdefault("overview_form", forms.LocationOverviewForm(instance=self.object))
             context.setdefault("description_form", forms.LocationDescriptionForm(instance=self.object))
+            context.setdefault("dimensions_form", forms.LocationDimensionsForm(instance=self.object))
         if not context["purpose_denied"]:
             context.setdefault("purpose_form", forms.LocationPurposeForm(instance=self.object))
         if self.request.user.has_perm("inventory.change_location"):

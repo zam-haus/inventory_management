@@ -275,6 +275,33 @@ class LocationOverviewTests(TestCase):
         self.assertNotContains(detail, self.url)
         self.assertNotContains(detail, self.purpose_url)
 
+    def test_dimensions_are_saved_each_optional_and_shown(self):
+        url = reverse("location_dimensions_update", args=[self.location.pk])
+        page = self.client.get(self.location.get_absolute_url())
+        self.assertContains(page, url)
+        self.assertContains(page, "No dimensions yet.")
+        response = self.client.post(url, {"width_cm": "120", "depth_cm": "80", "height_cm": ""})
+        self.assertRedirects(response, self.location.get_absolute_url())
+        self.location.refresh_from_db()
+        self.assertEqual((self.location.width_cm, self.location.depth_cm, self.location.height_cm), (120, 80, None))
+        event = self.events().last()
+        self.assertEqual([(c["field"], c["after"]) for c in event.changes], [("width_cm", "120"), ("depth_cm", "80")])
+        self.assertContains(self.client.get(self.location.get_absolute_url()), "W 120 × D 80 cm")
+        response = self.client.post(url, {"width_cm": "-5"}, HTTP_ACCEPT="application/json")
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("width_cm", response.json()["errors"])
+        self.client.logout()
+        page = self.client.get(self.location.get_absolute_url())
+        self.assertContains(page, "W 120 × D 80 cm")  # shown to everyone, changed by those allowed
+        self.assertNotContains(page, url)
+        self.assertEqual(self.client.post(url, {"width_cm": "1"}).status_code, 302)  # to the login
+        self.location.refresh_from_db()
+        self.assertEqual(self.location.width_cm, 120)
+
+    def test_without_dimensions_guests_see_no_entry(self):
+        self.client.logout()
+        self.assertNotContains(self.client.get(self.location.get_absolute_url()), "location-summary-dimensions")
+
     def test_detail_shows_thumbnail_and_links_full_photo(self):
         content = BytesIO()
         Image.new("RGB", (2400, 1200), "blue").save(content, format="JPEG")

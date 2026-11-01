@@ -1,0 +1,30 @@
+{% load i18n %}{# Width, depth and height, shown in the summary box; location_field_editor.js makes this a dialog. #}
+<section id="location-dimensions-editor" class="location-overview-editor location-dimensions-editor" data-field-editor tabindex="-1" aria-labelledby="location-dimensions-editor-title" data-open="{{ dimensions_editor_open|yesno:'true,false' }}">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form action="{% url 'location_dimensions_update' object.pk %}" method="post">
+                {% csrf_token %}
+                <div class="modal-header">
+                    <h2 class="modal-title fs-5" id="location-dimensions-editor-title">{% trans "Edit dimensions" %}</h2>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" data-field-editor-enhanced hidden aria-label="{% trans 'Cancel' %}"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row g-2">
+                        {% for field in dimensions_form %}
+                        <div class="col-sm-4">
+                            <label for="{{ field.id_for_label }}" class="form-label">{{ field.label }}</label>
+                            {{ field }}
+                        </div>
+                        {% endfor %}
+                    </div>
+                    <p class="form-text">{% if object.parent_location and object.type == object.parent_location.type.sublocation_type %}{% blocktrans with location=object.parent_location.title %}Each one optional, outer dimensions in cm. Without width and depth of its own it has those of {{ location }}.{% endblocktrans %}{% else %}{% trans "Each one optional, outer dimensions in cm." %}{% endif %}</p>
+                    <div class="text-danger" data-field-editor-errors>{% for field in dimensions_form %}{{ field.errors }}{% endfor %}</div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" data-field-editor-enhanced hidden>{% trans "Cancel" %}</button>
+                    <button type="submit" class="btn btn-warning">{% trans "Save dimensions" %}</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</section>

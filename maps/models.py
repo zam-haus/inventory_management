@@ -37,6 +37,10 @@ class Shape(models.Model):
         """(width, depth) given for all of its kind (location type, item), else None."""
         return None
 
+    def size_fixed(self):
+        """Whether its size is that of what it stands for, so not changed on the map."""
+        return False
+
     def size_cm(self):
         """(width, depth) of it, or None if unknown."""
         usual = self.usual_size_cm() or (None, None)
@@ -48,10 +52,6 @@ class LocationShape(Shape):
     """Where a location is on the map: a point, a rectangle of its size, or an area (building parts)."""
     location = models.OneToOneField("inventory.Location", on_delete=models.CASCADE, related_name="map_shape",
                                     verbose_name=_("location"))
-    width_cm = models.PositiveIntegerField(_("width (cm)"), null=True, blank=True,
-                                           help_text=_("Empty: the default of the location type."))
-    depth_cm = models.PositiveIntegerField(_("depth (cm)"), null=True, blank=True,
-                                           help_text=_("Empty: the default of the location type."))
     parts_stacked = models.BooleanField(
         _("parts stacked"), default=False,
         help_text=_("The parts of this room or area lie on top of each other, counted from the bottom "
@@ -69,6 +69,17 @@ class LocationShape(Shape):
     def usual_size_cm(self):
         size = getattr(self.location.type, "map_settings", None)
         return (size.default_width_cm, size.default_depth_cm) if size else None
+
+    # The size of a location is its own (Location.footprint_cm), else the usual one of its type.
+    def size_fixed(self):
+        return self.location.footprint_cm is not None
+
+    def size_cm(self):
+        footprint = self.location.footprint_cm
+        if footprint:
+            return footprint
+        usual = self.usual_size_cm() or (None, None)
+        return usual if usual[0] and usual[1] else None
 
 
 HEX_COLOR = RegexValidator(r"^#[0-9a-fA-F]{6}$", _("A colour as #rrggbb."))

@@ -7,7 +7,7 @@ from django.shortcuts import get_object_or_404, redirect
 from django.utils.translation import gettext_lazy as _
 from django.views import View
 
-from .forms import LocationDescriptionForm, LocationOverviewForm, LocationPurposeForm
+from .forms import LocationDescriptionForm, LocationDimensionsForm, LocationOverviewForm, LocationPurposeForm
 from .models import Location
 from .permissions import location_edit_denied, location_purpose_denied
 from .views import DetailLocationView
@@ -61,6 +61,13 @@ class LocationDescriptionUpdateView(LocationEditView):
     fields = ["physical_description"]
     success_message = _("Physical description saved.")
     context_name = "description"
+
+
+class LocationDimensionsUpdateView(LocationEditView):
+    form_class = LocationDimensionsForm
+    fields = ["width_cm", "depth_cm", "height_cm"]
+    success_message = _("Dimensions saved.")
+    context_name = "dimensions"
 
 
 class LocationPurposeUpdateView(LocationEditView):

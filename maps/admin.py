@@ -41,12 +41,12 @@ class FloorPlanAdmin(admin.ModelAdmin):
 
 @admin.register(LocationShape)
 class LocationShapeAdmin(admin.ModelAdmin):
-    list_display = ("location", "kind", "parts_stacked", "width_cm", "depth_cm")
+    list_display = ("location", "kind", "parts_stacked")
     list_filter = ("kind", "parts_stacked")
     search_fields = ("location__unique_identifier", "location__name")
     autocomplete_fields = ("location",)
     readonly_fields = ("geometry",)
-    fields = ("location", "kind", "geometry", "rotation", "width_cm", "depth_cm", "parts_stacked")
+    fields = ("location", "kind", "geometry", "rotation", "parts_stacked")
 
 
 # The map settings of a location type, grouped; a rectangle's default size on its line.

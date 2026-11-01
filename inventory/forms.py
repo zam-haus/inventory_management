@@ -91,6 +91,18 @@ class LocationDescriptionForm(ModelForm):
         widgets = {"physical_description": Textarea(attrs={"class": "form-control", "rows": 4, "data-modal-focus": ""})}
 
 
+class LocationDimensionsForm(ModelForm):
+    """Width, depth and height of a location, each optional (LocationDimensionsUpdateView)."""
+    class Meta:
+        model = Location
+        fields = ["width_cm", "depth_cm", "height_cm"]
+        widgets = {
+            "width_cm": NumberInput(attrs={"class": "form-control", "min": 1, "data-modal-focus": ""}),
+            "depth_cm": NumberInput(attrs={"class": "form-control", "min": 1}),
+            "height_cm": NumberInput(attrs={"class": "form-control", "min": 1}),
+        }
+
+
 class UniqueItemNotesForm(ModelForm):
     """The notes of a unique item, edited in a dialog on its page (UniqueItemNotesUpdateView)."""
     class Meta:
