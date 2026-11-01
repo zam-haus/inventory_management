@@ -13,6 +13,8 @@ from .models import ChangeLog
 QUICK_ITEM_PERMISSIONS = ("inventory.add_item", "inventory.add_itemlocation")
 # Every new unique item gets a label ID right away.
 UNIQUE_ITEM_CREATE_PERMISSIONS = ("inventory.add_uniqueitem", "inventory.claim_labelid")
+# A bulk item becomes a serialized item: its stock goes, a unique item comes (unique_item_views.serialize).
+ITEM_CONVERSION_PERMISSIONS = ("inventory.change_item", "inventory.change_stock", *UNIQUE_ITEM_CREATE_PERMISSIONS)
 
 
 def model_permission(model, action):
@@ -36,6 +38,24 @@ def location_edit_denied(user, location):
     if location.type.admin_only:
         return _("Locations of type “%(type)s” can only be changed in the admin.") % {"type": location.type}
     return None
+
+
+def item_conversion_unavailable(item):
+    """Why the item cannot become a serialized item with one unique item, or None: only one piece at one location
+    can (not an estimate or a quick-item)."""
+    if item.is_serialized:
+        return _("It is a serialized item already.")
+    entries = list(item.itemlocation_set.all())
+    if len(entries) != 1 or entries[0].amount != 1 or entries[0].location.is_deleted:
+        return _("Only an item with exactly one piece at exactly one location can become a serialized item.")
+    return None
+
+
+def item_conversion_denied(user, item):
+    """Why `user` may not turn the item into a serialized item, or None."""
+    if not user.has_perms(ITEM_CONVERSION_PERMISSIONS):
+        return _("You do not have permission to turn items into serialized items.")
+    return item_conversion_unavailable(item)
 
 
 def location_purpose_denied(user, location):

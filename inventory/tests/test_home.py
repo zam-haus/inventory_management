@@ -46,19 +46,19 @@ class HomePageTests(TestCase):
         self.assertIn("<span>Standorte</span>", menu)
         self.assertIn('class="dropdown-item action-menu-item app-menu-admin" href="/admin/"', menu)
         self.assertIn('<h6 class="dropdown-header app-menu-narrow">ada</h6>', menu)
-        self.assertIn("<span>Logout</span></button>", menu)
+        self.assertIn("<span>Abmelden</span></button>", menu)
         # Wider screens: Logout behind the username, right of Admin.
         user = navbar[navbar.index('<div class="dropdown d-none d-sm-block">'):]
         self.assertIn('data-bs-toggle="dropdown" aria-expanded="false">ada</button>', user)
-        self.assertIn('<button class="dropdown-item" type="submit">Logout</button>', user)
+        self.assertIn('<button class="dropdown-item" type="submit">Abmelden</button>', user)
 
     def test_navbar_for_guests(self):
         content = self.client.get(reverse("index"), headers={"host": "inv.zam.haus"}).content.decode()
         navbar = content[content.index("<nav"):content.index("</nav>")]
-        self.assertIn(">Login</a>", navbar)
+        self.assertIn(">Anmelden</a>", navbar)
         self.assertIn("<span>Sachen</span>", navbar)
         self.assertNotIn("Admin", navbar)
-        self.assertNotIn("Logout", navbar)
+        self.assertNotIn("Abmelden", navbar)
 
     def test_navbar_scanner_on_every_page(self):
         for url in (reverse("index"), reverse("index_items"), reverse("index_locations")):

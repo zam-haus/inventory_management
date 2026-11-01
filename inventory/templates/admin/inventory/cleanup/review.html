@@ -195,7 +195,7 @@
                 {% blocktranslate with number=page.number count=page.paginator.num_pages %}Page {{ number }} of {{ count }}{% endblocktranslate %}
                 {% if page.has_previous %}<button type="submit" class="button" name="goto" value="{{ page.previous_page_number }}">{% translate "Previous page" %}</button>{% endif %}
                 {% if page.has_next %}<button type="submit" class="button" name="goto" value="{{ page.next_page_number }}">{% translate "Next page" %}</button>{% endif %}
-                <button type="submit" class="button" name="goto" value="all">{% translate "All on one page" %}</button>
+                <button type="submit" class="button" name="goto" value="all">{% translate "Show all on one page" %}</button>
             </div>
         {% endif %}
 

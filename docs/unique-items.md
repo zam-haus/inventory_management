@@ -14,6 +14,13 @@ In code the kind is `Item.Kind.SERIALIZED` (`"serialized"`, `Item.is_serialized`
 migration `inventory.0051` the kind was called `"unique"`, which shared its
 name (and its German label *Einzelobjekte*) with the objects.
 
+* **From a bulk item:** a bulk item with exactly one piece at exactly one location (not an estimate, not a
+  quick-item) can become a serialized item: "Convert into a unique item" on its page (`serialize_item`,
+  `unique_item_views.serialize`; needs `change_item`, `change_stock`, `add_uniqueitem` and `claim_labelid`, else
+  the button is disabled and says why). The stock entry goes (change log: reason "Other", note "Became a unique
+  item"), the item is no longer for sale, and one unique item comes at that location, with the item's purchase
+  date, price and source, its photos and files, and a label ID chosen as for a new unique item. A label ID the item
+  itself has (from printing a price label) stays with the item. There is no way back.
 * **Creating:** a new serialized item is created together with its
   first unique item (location and label ID), just as a bulk item needs its first
   stock entry; the first unique item's page then shows the label to print.

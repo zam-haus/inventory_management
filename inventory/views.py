@@ -28,7 +28,7 @@ from . import codes, forms, link_preview, location_display, models, search, tree
 from .location_lookup import resolve_location_reference
 from .permissions import (
     QUICK_ITEM_PERMISSIONS, UNIQUE_ITEM_CREATE_PERMISSIONS, ItemEditorPermissionMixin, location_deletion_denied,
-    location_edit_denied, location_purpose_denied,
+    item_conversion_denied, location_edit_denied, location_purpose_denied,
 )
 from .models.unique_item import inherit_responsible_teams
 from .stock_change_views import mark_last_stock
@@ -497,6 +497,8 @@ class DetailItemView(DetailView):
             context["unique_entries"] = search.render.listed("unique", context["unique_items"], item_photos=False)
             return context
         context["entries"] = list(self.object.itemlocation_set.all())
+        if self.request.user.is_authenticated:
+            context["serialize_denied"] = item_conversion_denied(self.request.user, self.object)
         if self.request.user.has_perm("inventory.change_stock"):
             mark_last_stock(context["entries"])
             context["stock_change_form"] = forms.StockChangeForm()

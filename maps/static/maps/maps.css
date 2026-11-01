@@ -202,13 +202,13 @@ dl > div.map-place-cell {  /* wins over the grey boxes' rules for their fields *
     flex: 1 1 18rem;
     min-width: 0;
 }
-dt.map-place-dt {  /* the button right after the word, as the description's pencil */
+dt.map-place-dt {  /* the button right after the word, as the pencils of the grey box (location_detail.css) */
     display: flex;
     flex-wrap: wrap;
     align-items: center;
     justify-content: flex-start;
     gap: .5rem;
-    min-height: 0;
+    min-height: 1.75rem;
 }
 .map-place-edit-button {
     padding: .1rem .4rem;

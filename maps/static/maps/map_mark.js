@@ -49,7 +49,8 @@
     };
 
     // "Here" or the text given instead: a button over the marking; a click makes it a field, Enter or a click
-    // elsewhere keeps the text, Escape leaves it as it was. Its clicks stay away from the map (no new marking).
+    // elsewhere keeps the text, Escape leaves it as it was. Its clicks stay away from the map (no new marking). A new
+    // marking starts as the field with "Here" selected, so typing replaces it.
     var MAX_TEXT = 60;
     var hereButton = L.DomUtil.create('button', 'map-mark-here-text');
     hereButton.type = 'button';
@@ -75,14 +76,15 @@
         hereField.size = Math.max(hereField.value.length, 4);
     }
 
-    hereButton.addEventListener('click', function () {
+    function startRenaming() {
         renaming = true;
         hereField.value = text || strings.here;
         fitField();
         marked.layer.setTooltipContent(hereField);
-        hereField.focus();
+        hereField.focus({preventScroll: true});
         hereField.select();
-    });
+    }
+    hereButton.addEventListener('click', startRenaming);
     function stopRenaming(keep) {
         if (!renaming) {
             return;
@@ -228,15 +230,14 @@
     }
     button(strings.remove, 'btn-outline-danger', remove, 'remove');
 
-    // The new marking (a pin or a polygon) in place of the one before; `given`: its text from an address.
+    // The new marking (a pin or a polygon) in place of the one before, with "Here" again; `given`: its text from an
+    // address.
     function show(kind, layer, given) {
         if (marked) {
             map.removeLayer(marked.layer);
             marked.layer.unbindTooltip().unbindPopup();
         }
-        if (given !== undefined) {
-            text = given || null;
-        }
+        text = given || null;
         marked = {kind: kind, layer: layer, level: currentLevel()};
         layer.bindTooltip(hereButton, kind === 'point' ?
             {permanent: true, direction: 'top', className: 'map-mark-here'} :
@@ -318,6 +319,7 @@
             setArmed(null);
             markArea(done);
             openPopup();
+            startRenaming();
             return;
         }
         if (count && near(at, corners[count - 1])) {
@@ -374,6 +376,7 @@
             setArmed(null);
             markPoint(event.latlng);
             openPopup();
+            startRenaming();
         } else if (armed === 'area') {
             addCorner(event.latlng);
         }

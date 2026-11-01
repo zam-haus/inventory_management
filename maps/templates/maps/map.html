@@ -48,7 +48,7 @@
             <button type="button" class="btn btn-sm btn-light" aria-pressed="false" data-measure-tool="circle">{% include "maps/icons/measure_radius.svg" %} <span class="action-label">{% trans "Radius" %}</span></button>
         </span>
         {% if not edit_denied %}<span class="map-edit-toggle-group">
-            <button type="button" class="btn btn-sm btn-light" aria-pressed="false" data-map-edit-toggle data-done="{% trans 'Done' %}">{% icon "pencil" %} <span class="action-label">{% trans "Edit" %}</span></button>
+            <button type="button" class="btn btn-sm btn-light" aria-pressed="false" data-map-edit-toggle data-done="{% trans 'Stop editing' %}">{% icon "pencil" %} <span class="action-label">{% trans "Edit" %}</span></button>
             {# Undo and redo in the edit mode, as the browser's back and forward (map_edit.js). #}
             <button type="button" class="btn btn-sm btn-light" data-map-edit-undo hidden disabled title="{% trans 'Undo' %}" aria-label="{% trans 'Undo' %}">{% icon "arrow-counterclockwise" %}</button>
             <button type="button" class="btn btn-sm btn-light" data-map-edit-redo hidden disabled title="{% trans 'Redo' %}" aria-label="{% trans 'Redo' %}">{% icon "arrow-clockwise" %}</button>
@@ -56,14 +56,14 @@
         {# Below "Done": with nothing selected, a new position (what for first, then its shape in the bar); while there #}
         {# is a change to save, saving it (map_edit.js). #}
         <span class="map-edit-new" data-edit-new hidden>
-            <button type="button" class="btn btn-sm btn-light" data-new>{% add_icon "pin-map" %} <span class="action-label">{% trans "New position" %}</span></button>
+            <button type="button" class="btn btn-sm btn-light" data-new>{% add_icon "pin-map" %} <span class="action-label">{% trans "Add a position" %}</span></button>
         </span>
         <span class="map-edit-pending" data-map-edit-pending hidden>
             <button type="button" class="btn btn-sm btn-primary" data-edit-save>{% icon "floppy" %} <span>{% trans "Save" %}</span></button>
             <button type="button" class="btn btn-sm btn-light" data-edit-discard>{% trans "Discard" %}</button>
         </span>
         {% elif user.is_authenticated %}{% icon "pencil" as edit_icon %}{% disabled_action edit_icon label=_("Edit") name=_("Edit the map") reason=edit_denied classes="btn btn-sm btn-light" %}{% endif %}
-        {% if can_manage_plans %}<a class="btn btn-sm btn-light" href="{% url 'maps:plans' %}">{% include "maps/icons/map_edit.svg" %} <span class="action-label">{% trans "Floor plans" %}</span></a>{% endif %}
+        {% if can_manage_plans %}<a class="btn btn-sm btn-light" href="{% url 'maps:plans' %}">{% include "maps/icons/map_edit.svg" %} <span class="action-label">{% trans "Manage floor plans" %}</span></a>{% endif %}
     </span>
     {# Out to the edges of the window (maps.css); map.js sizes it down to the bottom. #}
     <div class="map-canvas map-page-canvas" data-map-page data-url="{% url 'maps:level_data' number %}"
@@ -80,7 +80,7 @@
         <span class="text-muted" data-measure-hint aria-live="polite"></span>
         <span class="map-edit-actions">
             <button type="button" class="btn btn-sm btn-outline-danger" data-measure-clear>{% trans "Remove all" %}</button>
-            <button type="button" class="btn btn-sm btn-secondary" data-measure-close>{% trans "Done" %}</button>
+            <button type="button" class="btn btn-sm btn-secondary" data-measure-close>{% trans "Stop measuring" %}</button>
         </span>
     </div>
     {% if not edit_denied %}

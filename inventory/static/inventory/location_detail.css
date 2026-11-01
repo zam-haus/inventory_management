@@ -22,11 +22,6 @@
 /* The purpose belongs to the name but stays lighter; the pencil edits it (location_purpose_editor.html). */
 .location-title-purpose { font-weight: 400; }
 .location-edit-purpose { margin-left: .35rem; vertical-align: .2em; padding: .1rem .4rem; line-height: 1.2; }
-/* Edits the physical description (location_description_editor.html); compact like the purpose pencil. */
-.location-edit-description { margin-right: auto; padding: .1rem .4rem; line-height: 1.2; }
-.location-description-heading { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem 1rem; min-height: 40px; margin-bottom: .4rem; }
-.location-description-heading { justify-content: space-between; }
-.location-description-heading .location-eyebrow { margin: 0; }
 .location-physical-description { margin: 0; }
 .location-eyebrow { color: var(--location-muted); font-size: .8rem; font-weight: 600; letter-spacing: .04em; margin: 0 0 .4rem; }
 .location-help { cursor: help; }
@@ -44,9 +39,12 @@
 .location-summary-fields { display: flex; flex-wrap: wrap; gap: 1rem 2.5rem; margin: 0; }
 .location-summary-fields > div { min-width: 0; flex: 0 1 auto; }
 .location-summary-fields > .location-summary-description { flex: 1 1 18rem; }
-.location-summary-fields dt { font-weight: 400; margin-bottom: .35rem; }
+/* Every heading of the box on one line of the same height, with or without its pencil (description, dimensions:
+   compact like the purpose's), so the headings side by side line up. */
+.location-summary-fields dt { display: flex; align-items: center; gap: .5rem; min-height: 1.75rem; font-weight: 400; margin-bottom: .35rem; }
+.location-summary-fields dt .location-eyebrow { margin: 0; }
+.location-summary-fields dt .btn { padding: .1rem .4rem; line-height: 1.2; }
 .location-summary-fields dd { margin: 0; }
-.location-summary-description .location-description-heading { margin-bottom: .35rem; min-height: 0; justify-content: flex-start; }
 .location-team { display: inline-flex; align-items: center; gap: .35rem; margin-right: .75rem; }
 /* Free of fire load: a red mark at its left, like the levels-and-axes overview's. */
 .location-summary-fire { padding-left: .6rem; box-shadow: inset 3px 0 0 #b42318; }

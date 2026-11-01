@@ -7,21 +7,21 @@
 // location's or unique item's page (map_shape_edit.js).
 // Above the selection, on the map, a box says what it belongs to (changeable: take_from), with "Save" while there is a
 // change, and an X: asked first, the position is removed at once and the shape stays for another location; a shape
-// that belongs to nothing goes. A chosen corner gets an X, too. Below "Done": "Save" and "Discard" while there is a
+// that belongs to nothing goes. A chosen corner gets an X, too. Below "Stop editing": "Save" and "Discard" while there is a
 // change, the "New" buttons while nothing is selected. Saving goes to the same views as the placing dialog
 // (LocationShapeView, ItemPositionView); then the level is drawn anew, the saved one still selected.
-// "New position": first what it is for, a location or unique item of this level without a position (views.unplaced),
+// "Add a position": first what it is for, a location or unique item of this level without a position (views.unplaced),
 // in the box in the middle of the map; then the bar offers the shapes it can have, the usual one chosen, and it is
 // drawn: a point by a click, an area by its corners, a rectangle by a corner and then its width and depth (Enter) or
 // the opposite corner (clicked, or dragged from one to the other). A location with dimensions (Location.footprint_cm)
 // has that size: a click places its middle, and it is not sized on the map; else a rectangle's corners size it, and
 // saving gives the location that size. "Row": storage units of one size side by side, turned and moved as one; the
 // next ones without a position of the chosen one's type follow in the order of their codes; saved together
-// (views.LocationShapeRowView). Leaving the page or the edit mode ("Done", Esc) with a change not saved asks first; Esc
+// (views.LocationShapeRowView). Leaving the page or the edit mode ("Stop editing", Esc) with a change not saved asks first; Esc
 // while drawing a new one drops it instead. A popup open when the edit mode starts selects its building part,
 // storage unit or unique item; so does the pencil in such a popup. Enter or Ctrl+S (⌘S) saves; Delete or Backspace
 // does what the box's X does (a chosen corner of an area goes first). Each step on the
-// selected position can be undone and redone (the arrows beside "Done", the browser's back and forward, Ctrl+Z).
+// selected position can be undone and redone (the arrows beside "Stop editing", the browser's back and forward, Ctrl+Z).
 (function () {
     'use strict';
 
@@ -816,7 +816,7 @@
         }
     });
 
-    // Esc: a new one not saved yet is dropped; else the edit mode ends, as with "Done".
+    // Esc: a new one not saved yet is dropped; else the edit mode ends, as with "Stop editing".
     document.addEventListener('keydown', function (event) {
         if (event.key === 'Escape' && editing && !event.target.closest('.modal') && !document.querySelector('.modal.show')) {
             if (selected && selected.isNew) {
@@ -972,7 +972,7 @@
         }
     }
 
-    // Leaving the selection ("Done", Esc, a click beside it) with a change not saved: save it, discard it, or go on
+    // Leaving the selection ("Stop editing", Esc, a click beside it) with a change not saved: save it, discard it, or go on
     // editing; a shape that belongs to nothing yet: assign it (then save) or discard it. `then`: what follows saving
     // or discarding.
     var unsavedDialog = document.querySelector('[data-edit-unsaved]'), afterDialog = null;
@@ -1040,7 +1040,7 @@
         return Boolean(selected && (selected.isNew ? selected.center || selected.area : steps.unsaved()));
     }
 
-    // "Save" and "Discard" below "Done", and "Save" in the box, while there is a change that can be saved: a new
+    // "Save" and "Discard" below "Stop editing", and "Save" in the box, while there is a change that can be saved: a new
     // shape once its location is chosen.
     function showPending() {
         pending.hidden = boxSave.hidden = !(editing && unsaved() && (!selected.isNew || chosen));

@@ -1,0 +1,28 @@
+{% extends 'base.html' %}
+{% load i18n static crispy_forms_tags %}
+{# A bulk item with one piece at one location becomes a serialized item (unique_item_views.SerializeItemView). #}
+
+{% block title %}{% trans "Make it a serialized item" %}: {{ object }}{% endblock %}
+
+{% block content %}
+<p>{% blocktrans with location=location.title_with_code %}The one piece at {{ location }} becomes a unique item of its own, with a label; the item describes it, as a serialized item.{% endblocktrans %}</p>
+<ul>
+    <li>{% blocktrans with location=location.title_with_code %}The stock entry at {{ location }} goes; the unique item is there instead.{% endblocktrans %}</li>
+    {% if object.for_sale or object.sale_price is not None %}<li><strong>{% trans "It is no longer for sale: serialized items are not sold. Its sale price goes." %}</strong></li>{% endif %}
+    {% if object.last_purchase_date or object.last_purchase_price is not None or object.procurement_source %}<li>{% trans "Its purchase date, price and source become those of the unique item." %}</li>{% endif %}
+    {% if general_images or general_files %}<li>{% trans "Its photos and files belong to the unique item then." %}</li>{% endif %}
+    <li>{% trans "This cannot be undone here." %}</li>
+</ul>
+<form method="post" class="mb-3">
+    {% csrf_token %}
+    {{ form|crispy }}
+    <button type="submit" class="btn btn-warning">{% trans "Make it a serialized item" %}</button>
+    <a class="btn btn-secondary" href="{{ object.get_absolute_url }}">{% trans "Cancel" %}</a>
+</form>
+{% endblock %}
+
+{% block bootstrap5_extra_script %}
+    {{ block.super }}
+    {{ form.media.js }}
+    <script src="{% static 'inventory/unique_item_form.js' %}"></script>
+{% endblock %}

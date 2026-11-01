@@ -1639,8 +1639,12 @@ msgid "Print price tags of the bulk items here"
 msgstr "Preisschilder der Mengenartikel hier drucken"
 
 #: templates/label_printing/print_button.html:1
-msgid "Price tags"
-msgstr "Preisschilder"
+msgid "Print price tags"
+msgstr "Preisschilder drucken"
+
+#: templates/label_printing/print_button.html
+msgid "Print label"
+msgstr "Etikett drucken"
 
 #: templates/label_printing/print_dialog.html:10
 #: templates/label_printing/print_dialog.html:16
@@ -1680,7 +1684,7 @@ msgstr "Weitere Etiketten"
 
 #: templates/label_printing/print_fields.html:52
 msgid "Use this label for all"
-msgstr "Dieses Etikett für alle"
+msgstr "Dieses Etikett für alle verwenden"
 
 #: templates/label_printing/print_fields.html:65
 msgid "Location on the label"

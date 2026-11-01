@@ -21,8 +21,11 @@ from django.views import View
 from django.views.generic import DetailView
 
 from . import forms, link_preview
-from .models import Category, Item, Location, UniqueItem
-from .permissions import UNIQUE_ITEM_CREATE_PERMISSIONS, ItemEditorPermissionMixin
+from .change_log import change_context
+from .models import Category, ChangeLog, Item, ItemFile, ItemImage, Location, UniqueItem
+from .permissions import (
+    ITEM_CONVERSION_PERMISSIONS, UNIQUE_ITEM_CREATE_PERMISSIONS, ItemEditorPermissionMixin, item_conversion_unavailable,
+)
 from .label_ids import services
 from .widgets import NEW_ITEM_PREFIX
 from .label_ids.lookup import active_id, annotate_label_code
@@ -249,6 +252,68 @@ class DisposeUniqueItemView(PermissionRequiredMixin, View):
             unique_item.dispose(form.cleaned_data["reason"], form.cleaned_data["note"], actor=request.user)
         messages.success(request, _("%(unique_item)s was removed from the inventory.") % {"unique_item": unique_item})
         return redirect(location if location is not None else unique_item)
+
+
+def serialize(item, *, actor, label_code=None):
+    """Turns a bulk item with one piece at one location (permissions.item_conversion_unavailable) into a serialized
+    item with one unique item there: the stock entry goes, the item is no longer for sale, the unique item gets the
+    item's purchase details, its photos and files, and a label ID (`label_code`: a pre-printed one, else a new one).
+    Each step is in the change log. Returns the unique item; raises services.LabelIdError."""
+    entry = item.itemlocation_set.select_for_update().select_related("location").get()
+    with change_context(decrease_reason=ChangeLog.Reason.OTHER, note=_("Became a unique item")):
+        entry.delete()
+    item.kind, item.for_sale, item.sale_price = Item.Kind.SERIALIZED, None, None
+    item.save()
+    unique_item = UniqueItem(item=item, location=entry.location, purchase_date=item.last_purchase_date,
+                             purchase_price=item.last_purchase_price, procurement_source=item.procurement_source)
+    unique_item.save(actor=actor)
+    for model in (ItemImage, ItemFile):
+        model.objects.filter(item=item, unique_item__isnull=True).update(unique_item=unique_item)
+    if label_code:
+        services.claim(label_code, unique_item, actor)
+    else:
+        services.generate_and_claim(unique_item, actor)
+    return unique_item
+
+
+class SerializeItemView(PermissionRequiredMixin, View):
+    """"Make it a serialized item" on a bulk item's page: what happens, the label ID as for a new unique item."""
+    permission_required = ITEM_CONVERSION_PERMISSIONS
+    template_name = "inventory/item_serialize.html"
+
+    def get_item(self, pk, lock=False):
+        queryset = Item.active.all()
+        if lock:
+            queryset = queryset.select_for_update()
+        item = get_object_or_404(queryset, pk=pk)
+        if item_conversion_unavailable(item):
+            raise PermissionDenied(item_conversion_unavailable(item))
+        return item
+
+    def render_form(self, request, item, form, status=200):
+        entry = item.itemlocation_set.select_related("location").get()
+        return render(request, self.template_name, {
+            "object": item, "form": form, "location": entry.location,
+            "general_images": len(item.general_images),
+            "general_files": item.itemfile_set.filter(unique_item__isnull=True).count(),
+        }, status=status)
+
+    def get(self, request, pk):
+        return self.render_form(request, self.get_item(pk), forms.LabelIdChoiceForm())
+
+    def post(self, request, pk):
+        form = forms.LabelIdChoiceForm(request.POST)
+        try:
+            with transaction.atomic():
+                item = self.get_item(pk, lock=True)
+                if not form.is_valid():
+                    return self.render_form(request, item, form, status=400)
+                unique_item = serialize(item, actor=request.user, label_code=form.cleaned_data.get("label_code"))
+        except services.LabelIdError as error:
+            messages.error(request, str(error))
+            return redirect("serialize_item", pk=pk)
+        messages.success(request, _("%(item)s is a serialized item now; this is its unique item.") % {"item": item})
+        return redirect(unique_item)
 
 
 class SerializedItemAutocomplete(autocomplete.Select2QuerySetView):

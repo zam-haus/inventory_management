@@ -960,7 +960,7 @@ msgid "Details"
 msgstr "Details"
 
 msgid "Undo"
-msgstr "Rückgängig"
+msgstr "Rückgängig machen"
 
 msgid "Add a quick-item…"
 msgstr "Schnelleintrag hinzufügen …"
@@ -5162,3 +5162,86 @@ msgstr "Jedes Maß optional, Außenmaße in cm."
 #: templates/inventory/location_dimensions_editor.html
 msgid "Save dimensions"
 msgstr "Maße speichern"
+
+#: permissions.py
+msgid "It is a serialized item already."
+msgstr "Es ist schon ein Einzelartikel."
+
+#: permissions.py
+msgid "Only an item with exactly one piece at exactly one location can become a serialized item."
+msgstr "Nur eine Sache mit genau einem Stück an genau einem Standort kann zum Einzelartikel werden."
+
+#: permissions.py
+msgid "You do not have permission to turn items into serialized items."
+msgstr "Du hast keine Berechtigung, Sachen in Einzelartikel umzuwandeln."
+
+#: unique_item_views.py
+msgid "Became a unique item"
+msgstr "Wurde zum Einzelobjekt"
+
+#: unique_item_views.py
+#, python-format
+msgid "%(item)s is a serialized item now; this is its unique item."
+msgstr "%(item)s ist jetzt ein Einzelartikel; das hier ist sein Einzelobjekt."
+
+#: templates/inventory/item_detail.html templates/inventory/item_serialize.html
+msgid "Make it a serialized item"
+msgstr "In Einzelartikel umwandeln"
+
+#: templates/inventory/item_detail.html
+msgid "Convert into a unique item"
+msgstr "In Einzelobjekt umwandeln"
+
+#: templates/inventory/item_serialize.html
+#, python-format
+msgid "The one piece at %(location)s becomes a unique item of its own, with a label; the item describes it, as a serialized item."
+msgstr "Das eine Stück in %(location)s wird ein eigenes Einzelobjekt mit Etikett; die Sache beschreibt es dann als Einzelartikel."
+
+#: templates/inventory/item_serialize.html
+#, python-format
+msgid "The stock entry at %(location)s goes; the unique item is there instead."
+msgstr "Der Bestandseintrag in %(location)s entfällt; dort ist stattdessen das Einzelobjekt."
+
+#: templates/inventory/item_serialize.html
+msgid "It is no longer for sale: serialized items are not sold. Its sale price goes."
+msgstr "Sie ist dann nicht mehr verkäuflich, denn Einzelartikel werden nicht verkauft. Der Verkaufspreis entfällt."
+
+#: templates/inventory/item_serialize.html
+msgid "Its purchase date, price and source become those of the unique item."
+msgstr "Kaufdatum, Kaufpreis und Bezugsquelle werden die des Einzelobjekts."
+
+#: templates/inventory/item_serialize.html
+msgid "Its photos and files belong to the unique item then."
+msgstr "Ihre Fotos und Dateien gehören dann dem Einzelobjekt."
+
+#: templates/inventory/item_serialize.html
+msgid "This cannot be undone here."
+msgstr "Das lässt sich hier nicht rückgängig machen."
+
+#: templates/inventory/location_tree.html
+msgid "Show levels and axes"
+msgstr "Ebenen und Achsen anzeigen"
+
+#: templates/inventory/location_quick_item_row.html
+msgid "Show details"
+msgstr "Details anzeigen"
+
+#: templates/inventory/location_photo_button.html
+msgid "Add overview photo"
+msgstr "Übersichtsfoto hinzufügen"
+
+#: templates/admin/inventory/cleanup/bulk.html
+msgid "Decide later"
+msgstr "Später entscheiden"
+
+#: templates/registration/login.html templates/base.html templates/inventory/errors/page.html
+msgid "Login"
+msgstr "Anmelden"
+
+#: templates/base.html
+msgid "Logout"
+msgstr "Abmelden"
+
+#: templates/admin/inventory/cleanup/review.html
+msgid "Show all on one page"
+msgstr "Alle auf einer Seite anzeigen"

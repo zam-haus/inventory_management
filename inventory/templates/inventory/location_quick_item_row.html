@@ -25,7 +25,7 @@
             {% else %}
                 {% icon "camera" as camera_icon %}{% disabled_action camera_icon name=_("Add a photo") classes="btn btn-warning location-quick-photo-button" %}
             {% endif %}
-            <a class="btn btn-info location-quick-details{% if not entry %} disabled{% endif %}" data-quick-details{% if entry %} href="{{ entry.item.get_absolute_url }}" aria-label="{% blocktrans with name=entry.item.name %}Details for “{{ name }}”{% endblocktrans %}"{% else %} aria-disabled="true"{% endif %} title="{% trans 'Details' %}">{% icon "chevron-right" %}<span class="location-quick-action-label location-quick-details-label" aria-hidden="true">{% trans "Details" %}</span></a>
+            <a class="btn btn-info location-quick-details{% if not entry %} disabled{% endif %}" data-quick-details{% if entry %} href="{{ entry.item.get_absolute_url }}" aria-label="{% blocktrans with name=entry.item.name %}Details for “{{ name }}”{% endblocktrans %}"{% else %} aria-disabled="true"{% endif %} title="{% trans 'Show details' %}">{% icon "chevron-right" %}<span class="location-quick-action-label location-quick-details-label" aria-hidden="true">{% trans "Show details" %}</span></a>
             <form class="location-quick-delete-form" method="post"{% if entry %} action="{% url 'quick_item_delete' entry.pk %}"{% endif %}>
                 {% if entry %}{% csrf_token %}{% endif %}
                 <button type="submit" class="btn btn-danger location-quick-delete" data-quick-delete{% if entry %} aria-label="{% blocktrans with name=entry.item.name %}Delete “{{ name }}”{% endblocktrans %}"{% endif %} title="{% trans 'Delete' %}">{% icon "x-lg" %}<span class="location-quick-action-label" aria-hidden="true">{% trans "Delete" %}</span></button>

@@ -118,30 +118,30 @@ pane: z-index 660, the labels' 650, popups 700).
 Above the selected position, on the map, a box names what it belongs to: a click on it searches another location of
 this level without a position, which then gets the position (`take_from`: the old one's goes in the same step; unique
 items only show theirs). Its X asks, then removes the position at once (saved); the shape stays, to give it to
-another location, and is saved only once one is chosen ("Done" then offers to assign it or to discard it). On a shape
+another location, and is saved only once one is chosen ("Stop editing" then offers to assign it or to discard it). On a shape
 that belongs to nothing (new, or after that) the X drops it. A click on the map beside the selection lets it go (with a
-change, asked as for "Done"). A tapped corner (pink ring) gets an X above it, not while it is dragged; tapping it again, Delete or a right
+change, asked as for "Stop editing"). A tapped corner (pink ring) gets an X above it, not while it is dragged; tapping it again, Delete or a right
 click remove it, too; at least three stay. While there is a change that can be saved, "Save" and "Discard" show
-indented below "Done" and "Save" in the box, too (`map_edit.js`); saved, it stays selected. With nothing selected, the
-**New position** button is there instead.
+indented below "Stop editing" and "Save" in the box, too (`map_edit.js`); saved, it stays selected. With nothing selected, the
+**Add a position** button is there instead.
 
 Each step on the selected position (a drag, a removed corner, a size, number or turn entered, another location) can be
 undone and redone (not the X's removal, which is saved at once):
-with the arrows beside "Done", Ctrl+Z / Ctrl+Y (⌘Z / ⇧⌘Z), or the browser's back and forward, since each step is an
+with the arrows beside "Stop editing", Ctrl+Z / Ctrl+Y (⌘Z / ⇧⌘Z), or the browser's back and forward, since each step is an
 entry of the browser's history (`map_shape_edit.js`; `map.js` keeps that state when it writes the view into the
 address). Changing the shapes (handles, corners and their X, dragging an area, snapping), the steps and the keys are
 shared with the grey box of a location's or unique item's page (`map_shape_edit.js`), so both behave alike.
 The steps belong to the selection: once it is saved, discarded or another one is selected, back and forward pass
 over its entries.
 
-Leaving the page with a change not saved asks first (in the edit mode, another level is another page, too); "Done"
-then offers to save it, discard it or keep editing. Esc drops a new position not saved yet, else it is "Done". A
+Leaving the page with a change not saved asks first (in the edit mode, another level is another page, too); "Stop editing"
+then offers to save it, discard it or keep editing. Esc drops a new position not saved yet, else it is "Stop editing". A
 popup open when the edit mode starts selects what it was opened for, and so does the pencil in the popups (for map
 editors: small, below the popup's close button); what is selected when it ends shows its popup. Enter (not on a button or link) or Ctrl+S / ⌘S saves.
 Delete or Backspace (not in a field) removes a chosen corner of an area; with none chosen, it does what the box's X
 does: asked first, the position is removed, and a new shape not saved yet is dropped.
 
-**New position** (below "Done" while nothing is selected) asks first what it is for: the box in the middle of the map
+**Add a position** (below "Stop editing" while nothing is selected) asks first what it is for: the box in the middle of the map
 offers the locations of this level that are placeable but have no position yet and the unique items of this level
 without one (their location as the chip); its search field has the focus at once, to type. Then the bar names it and
 offers the shapes it can have (`views.unplaced`: `kinds`; a row for locations whose type has rectangles), the usual
@@ -172,7 +172,7 @@ the free place nearest its middle that lies wholly inside its outline (better of
 nowhere stays in the middle if that is free, else it is hidden until one zooms in.
 
 The map page is the map alone, below the navbar (which marks the section of each page: items, locations, map): the
-levels at the left below the zoom buttons, below them "Mark", "Measure", "Edit" and "Floor plans" (a map with a
+levels at the left below the zoom buttons, below them "Mark", "Measure", "Edit" and "Manage floor plans" (a map with a
 pencil), one below the other. On small screens these show their icons only, the text while one is pressed or its
 menu open (`maps.css`). The bars of the edit mode and of measuring are at the bottom left.
 
@@ -196,12 +196,12 @@ outline, so it shows on photos, plans and other areas; the **label's first line*
 ### Measuring
 
 *Measure* (at the left, for everyone; `map_measure.js`) shows what it measures below it, indented as the shapes below
-*Done* in the edit mode, with a distance chosen at first. It measures a **distance** along a line (click its points,
+*Stop editing* in the edit mode, with a distance chosen at first. It measures a **distance** along a line (click its points,
 the last one again to finish), an **area** with its perimeter (click its corners, the first one again to finish)
 and a **radius** around a point, with the circle's area (click the centre, then a point on the circle). Clicks go
 through what is drawn, so no popup opens; the points can be dragged afterwards. Lengths and areas are metres on the
 ground, computed on the WGS84 ellipsoid as the server's (on a plane around the points: at a site's size exact to
-well under a millimetre). Nothing is saved: *Done* removes the measurements. The edit mode ends measuring.
+well under a millimetre). Nothing is saved: *Stop measuring* removes the measurements. The edit mode ends measuring.
 
 Metres and turns mean the same in the browser and on the server: `map.js` (`metresPerDegree`) converts degrees with
 the ellipsoid, and the server (`geo.rectangle`) turns rectangles from true north and sizes them in metres on the
@@ -239,7 +239,8 @@ To send a link to a spot or an area, "Mark" (for everyone) offers "Place" and "A
 (it can be dragged), or clicks set the corners of a polygon (a click on the first or last corner again finishes it,
 Escape gives it up). One marking at a time; a new one replaces it. It belongs to its level: switching to another level hides it
 (and leaves it out of the address) until its level is shown again; an area being drawn is given up. A click on "Here" changes that text (`&t=<text>`;
-empty: "Here" again). Its popup names the area it is in (`maps:area_at`) and offers the link to copy or share (on
+empty: "Here" again); a new marking starts with its "Here" selected in the field, so typing replaces it (Enter keeps
+the text, Escape leaves "Here"). Moving the pin keeps the text, a new marking starts with "Here" again. Its popup names the area it is in (`maps:area_at`) and offers the link to copy or share (on
 touch screens only sharing: the system's share sheet copies too). `?m=<lat>,<lng>#z=<zoom>` opens the level centred
 on the pin, `?a=<lat>,<lng>;…` with the whole area in view (at most at `z`), the popup closed; with a marking, any
 address shows it, whatever rectangle (`b`) it has. The page's own address keeps the marking too (`map_mark.js`). A

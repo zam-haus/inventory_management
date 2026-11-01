@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-01 20:03+0100\n"
+"POT-Creation-Date: 2026-11-01 21:52+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -717,19 +717,21 @@ msgstr "Die Position ist kein gültiges %(kinds)s."
 msgid "The position is outside the earth's coordinates."
 msgstr "Die Position liegt außerhalb der Erdkoordinaten."
 
-#: positions.py:112
+#: positions.py:113
 #, python-format
 msgid ""
 "“%(location)s” is %(width)s × %(depth)s cm: change its dimensions on its "
 "page."
-msgstr "„%(location)s“ ist %(width)s × %(depth)s cm groß: die Maße auf seiner Seite ändern."
+msgstr ""
+"„%(location)s“ ist %(width)s × %(depth)s cm groß: die Maße auf seiner Seite "
+"ändern."
 
-#: positions.py:163
+#: positions.py:164
 #, python-format
 msgid "Locations of type “%(type)s” are not placed as %(kind)s."
 msgstr "Standorte vom Typ „%(type)s“ werden nicht als %(kind)s platziert."
 
-#: positions.py:230 positions.py:232
+#: positions.py:231 positions.py:233
 msgid "Width and depth are numbers of centimetres."
 msgstr "Breite und Tiefe sind Zentimeterangaben."
 
@@ -926,9 +928,9 @@ msgstr "Fläche"
 msgid "Radius"
 msgstr "Radius"
 
-#: templates/maps/map.html:51 templates/maps/map.html:83
-msgid "Done"
-msgstr "Fertig"
+#: templates/maps/map.html:51
+msgid "Stop editing"
+msgstr "Bearbeitung beenden"
 
 #: templates/maps/map.html:51 templates/maps/map.html:65
 msgid "Edit"
@@ -936,15 +938,15 @@ msgstr "Bearbeiten"
 
 #: templates/maps/map.html:53 templates/maps/place_inline.html:25
 msgid "Undo"
-msgstr "Rückgängig"
+msgstr "Rückgängig machen"
 
 #: templates/maps/map.html:54 templates/maps/place_inline.html:26
 msgid "Redo"
 msgstr "Wiederholen"
 
 #: templates/maps/map.html:59
-msgid "New position"
-msgstr "Neue Position"
+msgid "Add a position"
+msgstr "Position anlegen"
 
 #: templates/maps/map.html:62 templates/maps/map.html:153
 #: templates/maps/map.html:194 templates/maps/place_inline.html:46
@@ -960,9 +962,9 @@ msgstr "Verwerfen"
 msgid "Edit the map"
 msgstr "Karte bearbeiten"
 
-#: templates/maps/map.html:66 templates/maps/plans.html:4
-msgid "Floor plans"
-msgstr "Grundrisse"
+#: templates/maps/map.html:66
+msgid "Manage floor plans"
+msgstr "Grundrisse verwalten"
 
 #: templates/maps/map.html:70
 msgid "No floor plan or position on this level yet."
@@ -1005,6 +1007,10 @@ msgstr "Radius"
 msgid "Remove all"
 msgstr "Alle entfernen"
 
+#: templates/maps/map.html:83
+msgid "Stop measuring"
+msgstr "Messen beenden"
+
 #: templates/maps/map.html:91
 msgid "Choose what the new position is for."
 msgstr "Wähle, wofür die neue Position ist."
@@ -1017,11 +1023,15 @@ msgstr "Dorthin klicken, wo es ist."
 msgid ""
 "Click a corner; then enter width and depth (Enter), or click the opposite "
 "corner."
-msgstr "Eine Ecke anklicken; dann Breite und Tiefe eingeben (Enter) oder die gegenüberliegende Ecke anklicken."
+msgstr ""
+"Eine Ecke anklicken; dann Breite und Tiefe eingeben (Enter) oder die "
+"gegenüberliegende Ecke anklicken."
 
 #: templates/maps/map.html:94
 msgid "Click a corner, then where it lies (or Enter); or enter another size."
-msgstr "Eine Ecke anklicken, dann die Richtung, in der es liegt (oder Enter); oder eine andere Größe eingeben."
+msgstr ""
+"Eine Ecke anklicken, dann die Richtung, in der es liegt (oder Enter); oder "
+"eine andere Größe eingeben."
 
 #: templates/maps/map.html:95
 msgid "Click where its middle is."
@@ -1031,19 +1041,24 @@ msgstr "Dorthin klicken, wo seine Mitte ist."
 msgid ""
 "Click the corners of the area one after the other (the first again to "
 "finish)."
-msgstr "Die Ecken der Fläche nacheinander anklicken (zum Abschließen wieder die erste)."
+msgstr ""
+"Die Ecken der Fläche nacheinander anklicken (zum Abschließen wieder die "
+"erste)."
 
 #: templates/maps/map.html:97
 msgid ""
 "Click where the middle of the row is; the next locations of its type without "
 "a position follow in the order of their codes."
-msgstr "Die Mitte der Reihe anklicken; die nächsten Standorte seines Typs ohne Position folgen in der Reihenfolge ihrer Codes."
+msgstr ""
+"Die Mitte der Reihe anklicken; die nächsten Standorte seines Typs ohne "
+"Position folgen in der Reihenfolge ihrer Codes."
 
 #: templates/maps/map.html:98
 #, python-brace-format
 msgid ""
 "{width} × {depth} cm, the dimensions of the location (changed on its page)"
-msgstr "{width} × {depth} cm, die Maße des Standorts (auf seiner Seite änderbar)"
+msgstr ""
+"{width} × {depth} cm, die Maße des Standorts (auf seiner Seite änderbar)"
 
 #: templates/maps/map.html:99
 msgid "Drag to change the size"
@@ -1083,7 +1098,9 @@ msgstr ""
 msgid ""
 "Drag the middle handle to move it, one of the outer ones to turn it and a "
 "corner to size it; then save."
-msgstr "Mit dem mittleren Griff verschieben, mit einem der äußeren drehen, an einer Ecke die Größe ändern; dann speichern."
+msgstr ""
+"Mit dem mittleren Griff verschieben, mit einem der äußeren drehen, an einer "
+"Ecke die Größe ändern; dann speichern."
 
 #: templates/maps/map.html:106
 msgid ""
@@ -1219,7 +1236,7 @@ msgstr "Position ändern"
 msgid "Place on the map"
 msgstr "Auf der Karte platzieren"
 
-#: templates/maps/place_inline.html:9
+#: templates/maps/place_inline.html:9 templates/maps/slots/location_info.html:1
 msgid "Show on the map"
 msgstr "Auf Karte anzeigen"
 
@@ -1562,6 +1579,10 @@ msgstr ""
 "Zeichnung auf der neuen Seite woanders, die Punkte korrigieren und den Plan "
 "neu ausrichten."
 
+#: templates/maps/plans.html:4
+msgid "Floor plans"
+msgstr "Grundrisse"
+
 #: templates/maps/plans.html:7
 msgid "Back to the map"
 msgstr "Zurück zur Karte"
@@ -1604,11 +1625,6 @@ msgstr ""
 "maps.md). Eine Ebene kann mehrere Pläne haben; der neue wird danach "
 "zugeschnitten und ausgerichtet."
 
-#: templates/maps/slots/location_info.html:1
-#: templates/maps/slots/result_entry.html:2
-msgid "On the map"
-msgstr "Auf der Karte"
-
 #: templates/maps/slots/location_info_body.html:4
 #, python-format
 msgid "Map: where %(location)s is"
@@ -1628,6 +1644,10 @@ msgstr "Neuen Platz auf der Karte markieren (optional)"
 #: templates/maps/slots/navbar_menu.html:1
 msgid "Map"
 msgstr "Karte"
+
+#: templates/maps/slots/result_entry.html:2
+msgid "On the map"
+msgstr "Auf der Karte"
 
 #: templatetags/maps_tags.py:41
 msgid "No background"
@@ -1723,6 +1743,12 @@ msgstr "Neue Quelldatei."
 #: views.py:596
 msgid "Saved."
 msgstr "Gespeichert."
+
+#~ msgid "Done"
+#~ msgstr "Fertig"
+
+#~ msgid "New position"
+#~ msgstr "Neue Position"
 
 #~ msgid "Empty: the default of the location type."
 #~ msgstr "Leer: die übliche Größe des Standorttyps."

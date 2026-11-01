@@ -3,7 +3,7 @@
 // last point again finishes a line (a double click does that), a click on the first point an area, the second click
 // a circle; Escape gives up the one being drawn. Afterwards the points can be dragged. Nothing is saved: closing the
 // bar removes the measurements. Not together with the edit mode (map_edit.js), whose clicks select and draw. What is
-// measured is chosen below "Measure" (as the shapes below "Done" in the edit mode), a distance at first.
+// measured is chosen below "Measure" (as the shapes below "Stop editing" in the edit mode), a distance at first.
 (function () {
     'use strict';
 

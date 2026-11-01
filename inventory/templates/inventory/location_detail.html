@@ -27,7 +27,7 @@
                     <span class="title-kind" aria-hidden="true">{% icon object|icon_name %}</span>
                     <span class="location-title-name">{{ object.title }}{% if object.subtitle %} <span class="loc-name">{{ object.subtitle }}</span>{% endif %}
                         {# Right after the last word, so it wraps with the text; only for whoever may change it. #}
-                        {% if not purpose_denied %}<a href="#location-purpose-editor" class="btn btn-sm btn-warning location-edit-purpose" data-field-editor-open="location-purpose-editor" data-bs-toggle="tooltip" title="{% trans 'Edit purpose' %}">{% icon "pencil" %} <span class="action-label">{% trans "Purpose" %}</span></a>{% endif %}</span>
+                        {% if not purpose_denied %}<a href="#location-purpose-editor" class="btn btn-sm btn-warning location-edit-purpose" data-field-editor-open="location-purpose-editor" data-bs-toggle="tooltip" title="{% trans 'Edit purpose' %}">{% icon "pencil" %} <span class="action-label">{% trans "Edit purpose" %}</span></a>{% endif %}</span>
                 </h1>
                 {# The code in the line below the title. #}
                 <p class="location-title-code-row"><span class="loc-code location-title-code">{{ object.unique_identifier }} <button type="button" class="location-help location-help-icon" data-bs-toggle="tooltip" aria-label="{% trans 'Unique identifier for this storage location, used on labels and to find the location in the inventory.' %}" title="{% trans 'Unique identifier for this storage location, used on labels and to find the location in the inventory.' %}">{% icon "info-circle" %}</button></span> {% help_link "codes" %}</p>
@@ -84,8 +84,8 @@
             <button type="button" class="location-details-button location-help-icon" data-bs-toggle="modal" data-bs-target="#location-metadata" aria-controls="location-metadata" aria-haspopup="dialog" aria-label="{% trans 'Location details' %}" title="{% trans 'Location details' %}">{% icon "info-circle" %}</button>
             <dl class="location-summary-fields">
                 <div class="location-summary-description">
-                    <dt class="location-description-heading"><span class="location-eyebrow">{% trans "Description" %}</span>
-                        {% if not edit_denied %}<a href="#location-description-editor" class="btn btn-sm btn-warning location-edit-description" data-field-editor-open="location-description-editor" data-bs-toggle="tooltip" title="{% trans 'Edit description' %}">{% icon "pencil" %} <span class="action-label">{% trans "Description" %}</span></a>{% endif %}</dt>
+                    <dt><span class="location-eyebrow">{% trans "Description" %}</span>
+                        {% if not edit_denied %}<a href="#location-description-editor" class="btn btn-sm btn-warning location-edit-description" data-field-editor-open="location-description-editor" data-bs-toggle="tooltip" title="{% trans 'Edit description' %}" aria-label="{% trans 'Edit description' %}">{% icon "pencil" %}</a>{% endif %}</dt>
                     <dd>{% if object.description %}<p class="location-physical-description">{{ object.description|linebreaksbr }}</p>{% else %}<p class="location-physical-description location-muted">{% trans "No description yet." %}</p>{% endif %}</dd>
                 </div>
                 {# Who looks after it: its teams, else those of the location above it (explained in the location details). #}
@@ -99,7 +99,7 @@
                 {% with dimensions=object.dimensions_text footprint=object.footprint_source %}{% if dimensions or not edit_denied %}
                 <div class="location-summary-dimensions">
                     <dt><span class="location-eyebrow">{% trans "Dimensions" %}</span>
-                        {% if not edit_denied %}<a href="#location-dimensions-editor" class="btn btn-sm btn-warning location-edit-dimensions" data-field-editor-open="location-dimensions-editor" data-bs-toggle="tooltip" title="{% trans 'Edit dimensions' %}">{% icon "pencil" %} <span class="action-label">{% trans "Dimensions" %}</span></a>{% endif %}</dt>
+                        {% if not edit_denied %}<a href="#location-dimensions-editor" class="btn btn-sm btn-warning location-edit-dimensions" data-field-editor-open="location-dimensions-editor" data-bs-toggle="tooltip" title="{% trans 'Edit dimensions' %}" aria-label="{% trans 'Edit dimensions' %}">{% icon "pencil" %}</a>{% endif %}</dt>
                     <dd>{% if dimensions %}{{ dimensions }}{% if footprint and footprint.pk != object.pk %} <span class="location-muted">{% blocktrans with location=footprint.title %}width and depth from {{ location }}{% endblocktrans %}</span>{% endif %}
                         {% else %}<span class="location-muted">{% trans "No dimensions yet." %}</span>{% endif %}</dd>
                 </div>

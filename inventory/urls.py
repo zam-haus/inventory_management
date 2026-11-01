@@ -60,6 +60,7 @@ urlpatterns = [
     path("item/", views.ItemTreeView.as_view(), name="index_items"),
     path("item/<int:pk>", views.DetailItemView.as_view(), name="view_item"),
     path("item/<int:pk>/update", views.UpdateItemView.as_view(), name="update_item"),
+    path("item/<int:pk>/serialize", unique_item_views.SerializeItemView.as_view(), name="serialize_item"),
     path("item/file/<int:pk>", views.ItemDocumentView.as_view(), name="item_file"),
     path("item/<int:pk>/photos/add", attachment_views.QuickPhotoView.as_view(), name="quick_item_photo"),
     path("item/<int:pk>/files/add", attachment_views.QuickFileView.as_view(), name="quick_item_file"),

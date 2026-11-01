@@ -29,6 +29,11 @@
                 {% icon "pencil" as edit_icon %}{% disabled_action edit_icon label=_("Edit") name=_("Edit item") classes="btn btn-warning" %}
                 {% endif %}
                 {% if not object.is_serialized %}{% label_print_button object "item" %}{% endif %}
+                {# One piece at one location: it can become a serialized item (unique_item_views.SerializeItemView). #}
+                {% if not object.is_serialized and user.is_authenticated %}{% icon "box-star" as serialize_icon %}
+                {% if serialize_denied %}{% disabled_action serialize_icon label=_("Convert into a unique item") name=_("Make it a serialized item") reason=serialize_denied classes="btn btn-warning" %}
+                {% else %}<a class="btn btn-warning" href="{% url 'serialize_item' object.pk %}" title="{% trans 'Make it a serialized item' %}" aria-label="{% trans 'Make it a serialized item' %}">{{ serialize_icon }} <span class="action-label">{% trans "Convert into a unique item" %}</span></a>{% endif %}
+                {% endif %}
             </div>
         </div>
     </header>

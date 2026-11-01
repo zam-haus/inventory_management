@@ -16,7 +16,9 @@ from django.urls import reverse
 
 from accounts.models import Team
 from ..actor import acting_as
-from ..models import Category, ChangeLog, Item, ItemLocation, LabelId, Location, LocationType, UniqueItem, UsageLevel
+from ..models import (
+    Category, ChangeLog, Item, ItemFile, ItemLocation, LabelId, Location, LocationType, UniqueItem, UsageLevel,
+)
 from ..label_ids import services
 from ..label_ids.views import label_preview_url
 from ..label_ids.testing import SETTINGS, InventoryFixture, make_id, local_group
@@ -897,3 +899,81 @@ class GermanCreatePageTests(UniqueItemFixture, TestCase):
         self.assertContains(response, "Ein Mengenartikel wird pro Standort gezählt, etwa Schrauben oder Filament.")
         self.assertContains(response, "Ein Einzelartikel wird in Einzelobjekten erfasst")
         self.assertNotContains(response, "A bulk item is counted per location")
+
+
+@override_settings(**SETTINGS)
+class SerializeItemTests(UniqueItemFixture, TestCase):
+    """A bulk item with one piece at one location becomes a serialized item with one unique item."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.create_unique_items()
+        grant(cls.member, "change_item", "change_stock", "add_uniqueitem", "claim_labelid")
+        Item.objects.filter(pk=cls.item.pk).update(
+            for_sale=True, sale_price=Decimal("5"), last_purchase_date="2025-03-01",
+            last_purchase_price=Decimal("120.00"), procurement_source="Hornbach")
+        cls.entry = ItemLocation.objects.create(item=cls.item, location=cls.shelf, amount=1)
+
+    def setUp(self):
+        media = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, media, ignore_errors=True)
+        settings = override_settings(MEDIA_ROOT=media)
+        settings.enable()
+        self.addCleanup(settings.disable)
+        self.url = reverse("serialize_item", args=[self.item.pk])
+
+    def test_the_piece_becomes_a_unique_item_with_the_items_details(self):
+        manual = ItemFile.objects.create(item=self.item, file=SimpleUploadedFile("manual.pdf", b"%PDF"),
+                                         description="Manual")
+        self.client.force_login(self.member)
+        self.assertContains(self.client.get(self.item.get_absolute_url()), self.url)
+        page = self.client.get(self.url)
+        self.assertContains(page, "It is no longer for sale")
+        self.assertContains(page, "Its photos and files belong to the unique item then.")
+        response = self.client.post(self.url, {"label_choice": "generate"})
+        unique_item = UniqueItem.objects.get(item=self.item)
+        self.assertRedirects(response, unique_item.get_absolute_url())
+        item = Item.objects.get(pk=self.item.pk)
+        self.assertEqual((item.kind, item.for_sale, item.sale_price), (Item.Kind.SERIALIZED, None, None))
+        self.assertEqual((unique_item.location, unique_item.purchase_date.isoformat(), unique_item.purchase_price,
+                          unique_item.procurement_source), (self.shelf, "2025-03-01", Decimal("120.00"), "Hornbach"))
+        self.assertFalse(ItemLocation.objects.filter(item=item).exists())
+        self.assertEqual(ItemFile.objects.get(pk=manual.pk).unique_item, unique_item)
+        self.assertEqual(LabelId.objects.get(unique_item=unique_item).status, LabelId.Status.ASSIGNED)
+        removed = ChangeLog.objects.filter(subject_type="itemlocation", item=item).latest("pk")
+        self.assertEqual((removed.reason, removed.note, removed.actor), ("other", "Became a unique item", self.member))
+        changed = ChangeLog.objects.filter(subject_type="item", subject_id=item.pk, action="changed").latest("pk")
+        self.assertEqual({change["field"] for change in changed.changes}, {"kind", "for_sale", "sale_price"})
+        self.assertEqual(unique_item.change_log.get(action="created").actor, self.member)
+
+    def test_with_a_pre_printed_label(self):
+        lid = make_id("H3P9T")
+        self.client.force_login(self.member)
+        response = self.client.post(self.url, {"label_choice": "reserved", "label_code": lid.display})
+        unique_item = UniqueItem.objects.get(item=self.item)
+        self.assertRedirects(response, unique_item.get_absolute_url())
+        self.assertEqual(LabelId.objects.get(pk=lid.pk).unique_item, unique_item)
+        response = self.client.post(self.url, {"label_choice": "reserved", "label_code": ""})
+        self.assertEqual(response.status_code, 403)  # a serialized item now
+
+    def test_only_one_piece_at_one_location(self):
+        self.client.force_login(self.member)
+        for amount in (Decimal("2"), Decimal("-1"), None):  # two, an estimate ("a few"), a quick-item
+            ItemLocation.objects.filter(pk=self.entry.pk).update(amount=amount)
+            page = self.client.get(self.item.get_absolute_url())
+            self.assertContains(page, "Only an item with exactly one piece at exactly one location")
+            self.assertEqual(self.client.post(self.url, {"label_choice": "generate"}).status_code, 403)
+        ItemLocation.objects.filter(pk=self.entry.pk).update(amount=1)
+        ItemLocation.objects.create(item=self.item, location=self.location, amount=0)
+        self.assertEqual(self.client.get(self.url).status_code, 403)  # a second place, even empty
+        self.assertEqual(Item.objects.get(pk=self.item.pk).kind, Item.Kind.BULK)
+
+    def test_only_with_the_permissions(self):
+        self.client.force_login(get_user_model().objects.create_user(username="visitor"))
+        page = self.client.get(self.item.get_absolute_url())
+        self.assertContains(page, "You do not have permission to turn items into serialized items.")
+        self.assertNotContains(page, f'href="{self.url}"')
+        self.assertEqual(self.client.post(self.url, {"label_choice": "generate"}).status_code, 403)
+        self.client.logout()
+        self.assertNotContains(self.client.get(self.item.get_absolute_url()), "Make it a serialized item")
+        self.assertEqual(Item.objects.get(pk=self.item.pk).kind, Item.Kind.BULK)
