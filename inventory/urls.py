@@ -3,6 +3,7 @@ import re
 from django.conf import settings
 from django.conf.urls.static import static
 from django.core.exceptions import PermissionDenied
+from django.core.files.storage import default_storage
 from django.urls import include, path, re_path
 from django.views.static import serve
 from django.views.generic.base import TemplateView
@@ -88,9 +89,10 @@ urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
 
 def media(request, path):
     """Media files in development as nginx serves them (nginx.conf): attached documents only through the
-    app, which checks internal ones."""
+    app, which checks internal ones. Missing ones come from MEDIA_REMOTE_URL (remote_media.py)."""
     if path.startswith("documents/"):
         raise PermissionDenied
+    default_storage.exists(path)
     return serve(request, path, document_root=settings.MEDIA_ROOT)
 
 

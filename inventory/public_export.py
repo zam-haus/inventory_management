@@ -13,9 +13,7 @@ contact details replaced.
 """
 import io
 import json
-import os
 import re
-import shutil
 import tarfile
 import time
 from pathlib import Path
@@ -269,28 +267,13 @@ def migration_problem(latest):
     return None
 
 
-def link_or_copy(source, target):
-    target.parent.mkdir(parents=True, exist_ok=True)
-    try:
-        os.link(source, target)
-    except OSError:
-        shutil.copy2(source, target)
-
-
-def write_export(target, rows, media_root=None):
-    """Write data.json, export-info.json and, with media_root, media/ to a directory or, for a
-    target ending in .tar, to a tar archive. Returns the names of missing media files."""
+def write_export(target, rows):
+    """Write data.json and export-info.json to a directory or, for a target ending in .tar, to a tar
+    archive. Photos and documents are not part of it (development systems load them, remote_media.py)."""
     target = Path(target)
-    media, missing = [], []
-    if media_root is not None:
-        for name in media_names(rows):
-            source = Path(media_root) / name
-            (media if source.is_file() else missing).append((name, source))
     info = {
         "format": FORMAT_VERSION,
         "created_at": timezone.now(),
-        "media_included": media_root is not None,
-        "media_files": len(media),
         "rows": {label: sum(1 for row in rows if row["model"] == label) for label in EXPORTED_MODELS},
         "excluded": EXCLUDED_MODELS,
         "migrations": latest_migrations(),
@@ -306,12 +289,7 @@ def write_export(target, rows, media_root=None):
                 member = tarfile.TarInfo(name)
                 member.size, member.mtime, member.mode = len(data), int(time.time()), 0o644
                 tar.addfile(member, io.BytesIO(data))
-            for name, source in media:
-                tar.add(source, arcname=f"media/{name}", recursive=False)
     else:
         target.mkdir(parents=True)
         for name, text in documents.items():
             (target / name).write_text(text)
-        for name, source in media:
-            link_or_copy(source, target / "media" / name)
-    return [name for name, _source in missing]

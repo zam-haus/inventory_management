@@ -1,10 +1,8 @@
 import json
-import shutil
 import tarfile
 import tempfile
 from pathlib import Path
 
-from django.conf import settings
 from django.core.management import call_command
 from django.core.management.base import BaseCommand, CommandError
 
@@ -13,8 +11,7 @@ from inventory.models import Item, Location
 
 
 class Command(BaseCommand):
-    help = ("Load an export of export_public_data (archive or directory) into an empty, migrated "
-            "database and its photos and documents into MEDIA_ROOT.")
+    help = "Load an export of export_public_data (archive or directory) into an empty, migrated database."
 
     def add_arguments(self, parser):
         parser.add_argument("source")
@@ -42,26 +39,6 @@ class Command(BaseCommand):
                 raise CommandError(problem)
             call_command("loaddata", directory / "data.json", ignorenonexistent=True,
                          verbosity=options["verbosity"])
-        media = self.copy_media(source, Path(settings.MEDIA_ROOT))
-        self.stdout.write(f"Copied {media} photos and documents to {settings.MEDIA_ROOT}.")
+        self.stdout.write("Photos and documents are not part of the export: with MEDIA_REMOTE_URL, pages load them "
+                          "when shown, or all at once with: ./manage.py download_public_media")
         self.stdout.write("User accounts are not part of the export; create one with: ./manage.py createsuperuser")
-
-    def copy_media(self, source, media_root):
-        """Copy media/ of the export into media_root, keeping files that exist already."""
-        count = 0
-        if source.is_dir():
-            for path in (source / "media").rglob("*"):
-                target = media_root / path.relative_to(source / "media")
-                if path.is_file() and not target.exists():
-                    target.parent.mkdir(parents=True, exist_ok=True)
-                    shutil.copy2(path, target)
-                    count += 1
-            return count
-        with tarfile.open(source) as tar:
-            for member in tar:
-                if member.isfile() and member.name.startswith("media/"):
-                    member = member.replace(name=member.name.removeprefix("media/"))
-                    if not (media_root / member.name).exists():
-                        tar.extract(member, media_root, filter="data")
-                        count += 1
-        return count

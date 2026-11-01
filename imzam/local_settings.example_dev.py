@@ -28,6 +28,10 @@ DATABASES = {
     }
 }
 
+# Photos, public documents and thumbnails missing in data/media/ are loaded from the production installation
+# when a page needs them, and kept (docs/data-export.md). Remove to work offline.
+MEDIA_REMOTE_URL = "https://inventar.zam.haus/"
+
 OIDC_RP_CLIENT_ID = ''
 OIDC_RP_CLIENT_SECRET = ''
 

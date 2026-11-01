@@ -43,6 +43,9 @@ Implemented with Django. The full documentation is in [docs/](docs/README.md).
    LABEL_ID_BASE_URL = 'http://i.localhost:8000/'
    LABEL_ID_INVENTORY_BASE = 'http://localhost:8000'
 
+   # Photos and documents missing in data/media/ are loaded from production when needed
+   MEDIA_REMOTE_URL = "https://inventar.zam.haus/"
+
    BASE_DIR = Path(__file__).resolve().parent.parent
    DATABASES = {
        "default": {
@@ -57,7 +60,8 @@ Implemented with Django. The full documentation is in [docs/](docs/README.md).
 5. Create a superuser account: `python manage.py createsuperuser`
 6. Load the basic dataset: `python manage.py loaddata initial_inventory`, or instead a copy
    of the real inventory without personal data: `python manage.py import_public_data <export>`
-   (see [Data export](docs/data-export.md))
+   (see [Data export](docs/data-export.md)). Its photos and documents are loaded from production
+   when pages need them, or all at once with `python manage.py download_public_media`.
 7. Start the local server: `python manage.py runserver`
 8. Log in with the **Login** button (Django's own login while `OIDC_ENABLED = False`).
 

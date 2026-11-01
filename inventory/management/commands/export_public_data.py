@@ -1,4 +1,3 @@
-from django.conf import settings
 from django.core.management.base import BaseCommand, CommandError
 
 from inventory import public_export
@@ -11,21 +10,17 @@ class Command(BaseCommand):
 
     def add_arguments(self, parser):
         parser.add_argument("target")
-        parser.add_argument("--no-media", action="store_true",
-                            help="Leave out photos and documents (data only, a few MB).")
 
-    def handle(self, *args, target, no_media, **options):
+    def handle(self, *args, target, **options):
         try:
             rows = public_export.export_rows()
         except public_export.UnreviewedData as e:
             raise CommandError("Export stopped, inventory/public_export.py needs a review:\n  "
                                + "\n  ".join(e.args[0]))
         try:
-            missing = public_export.write_export(target, rows, None if no_media else settings.MEDIA_ROOT)
+            public_export.write_export(target, rows)
         except FileExistsError:
             raise CommandError(f"{target} exists already.")
-        for name in missing:
-            self.stderr.write(f"media file missing, not exported: {name}")
         found = public_export.possible_personal_data(rows)
         for model, pk, field, match in found:
             self.stderr.write(self.style.WARNING(f"check {model} {pk} {field}: contains {match!r}"))

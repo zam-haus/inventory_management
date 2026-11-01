@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 # Export the inventory without personal data for development databases (see docs/data-export.md).
 #
-#   ops/export.sh [--no-media]
+#   ops/export.sh
 #
-# Writes exports/inventory-export-<date>.tar; --no-media leaves out photos and documents.
+# Writes exports/inventory-export-<date>.tar, data only (development systems load photos from here).
 source "$(dirname "$0")/lib.sh"
 
 mkdir -p exports

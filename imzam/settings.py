@@ -30,12 +30,16 @@ STATIC_URL = "static/"
 # Media files (e.g., uploads by users)
 MEDIA_ROOT = os.path.join(BASE_DIR, "data", "media")
 MEDIA_URL = "media/"
+# Development: an installation (e.g. https://inventar.zam.haus) whose photos, public documents and thumbnails are
+# loaded when missing here, with DEBUG on (inventory/remote_media.py, docs/data-export.md). Empty: off.
+MEDIA_REMOTE_URL = with_scheme(os.getenv("MEDIA_REMOTE_URL", ""))
 # Text detection model for OCR on photos (inventory/text_recognition.py); part of the Docker image. Without it,
 # Tesseract reads whole photos, with more garbage.
 OCR_TEXT_DETECTION_MODEL = os.getenv("OCR_TEXT_DETECTION_MODEL", "/opt/ocr/text_detection_ppocrv3.onnx")
-# Static URLs carry ?v=<content hash>, so browsers load changed files at once (inventory/static_versions.py).
 STORAGES = {
-    "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+    # Part of every thumbnail's file name: changing it renames all thumbnails (inventory/remote_media.py).
+    "default": {"BACKEND": "inventory.remote_media.MediaStorage"},
+    # Static URLs carry ?v=<content hash>, so browsers load changed files at once (inventory/static_versions.py).
     "staticfiles": {"BACKEND": "inventory.static_versions.VersionedStaticFilesStorage"},
 }
 
@@ -377,6 +381,8 @@ CHANGE_LOG_SHOWN = int(os.getenv("CHANGE_LOG_SHOWN", "5"))
 CHANGE_LOG_ACTOR_GROUP = os.getenv("CHANGE_LOG_ACTOR_GROUP", "Aktive")
 
 
+# sorl-thumbnail's store, content with thumbnails whose source is not here (inventory/remote_media.py).
+THUMBNAIL_KVSTORE = "inventory.remote_media.ThumbnailKVStore"
 # Per process. Django's default keeps 300 entries, fewer than the thumbnails of one large location page
 # (sorl-thumbnail's key-value store): they pushed each other out and were read from the database every time.
 CACHES = {"default": {"BACKEND": "django.core.cache.backends.locmem.LocMemCache",

@@ -6,18 +6,18 @@ can be handed to developers and may also be published.
 ## Export (production)
 
 ```sh
-ops/export.sh              # exports/inventory-export-<date>.tar, with photos and documents
-ops/export.sh --no-media   # data only, a few MB
+ops/export.sh              # exports/inventory-export-<date>.tar, a few MB
 ```
 
-Without containers: `./manage.py export_public_data TARGET [--no-media]`; a `TARGET` ending
-in `.tar` becomes an archive, any other a new directory.
+Without containers: `./manage.py export_public_data TARGET`; a `TARGET` ending in `.tar` becomes an
+archive, any other a new directory.
 
 The export contains:
 
 * `data.json`: the data as a Django fixture
 * `export-info.json`: date, rows per model, the excluded models, the code version (migrations)
-* `media/`: the photos and documents the data refers to (no thumbnails, no internal documents)
+
+Photos and documents are not part of it; development systems load them from production (below).
 
 ## Import (development)
 
@@ -30,9 +30,34 @@ In an empty database (with SQLite: delete `db.sqlite3`):
 ```
 
 The import refuses a database that already holds an inventory, and an export made with
-newer code (update your checkout and migrate first). Photos and documents go to
-`MEDIA_ROOT` (`data/media/`); files already there are kept. Without `media/` the pages work,
-but images are missing.
+newer code (update your checkout and migrate first).
+
+## Photos and documents
+
+With `MEDIA_REMOTE_URL` set (as in `imzam/local_settings.example_dev.py`, e.g.
+`https://inventar.zam.haus/`) and `DEBUG` on, a file missing in `MEDIA_ROOT` (`data/media/`) is loaded
+from that installation when a page needs it, and kept there. Files that are here come first.
+
+* Thumbnails come from the installation as well. Where it has none in that size yet, the
+  original is loaded and the thumbnail made here; otherwise originals are only loaded when
+  opened (e.g. in the photo viewer).
+* Only what the installation shows to visitors who are not logged in comes through:
+  photos and public documents. Floor plans and internal documents stay missing.
+* A file the installation does not have is asked for again after 10 minutes.
+
+To work offline, load all photos and public documents of the imported data at once (rerun
+it to continue; files that are here are kept):
+
+```sh
+./manage.py download_public_media
+```
+
+Without `MEDIA_REMOTE_URL`, the pages work, but images are missing.
+
+The code is in [`inventory/remote_media.py`](../inventory/remote_media.py): the media storage
+(`MediaStorage`) loads missing files whenever something opens them or checks whether they exist.
+Its class is part of every thumbnail's file name (sorl-thumbnail hashes the storage of the
+source); renaming or moving it renames all thumbnails, which are then made anew.
 
 ## What is left out or replaced
 
@@ -48,7 +73,7 @@ that is not personal, such as the change log without who acted, or location type
 | Notes in the change log and on label IDs | emptied |
 | Owners and internal values in the change log, names of internal documents there | left out, `[redacted]` |
 | Purchase prices (internal) | cleared |
-| Internal documents | left out, with their files |
+| Internal documents | left out |
 | Label scans, admin log, sessions, thumbnail cache | left out |
 | Cleanup imports (uploaded proposals, who uploaded and applied them) | left out |
 | Printers, label media, print agents, print jobs | left out (network addresses, tokens, who printed what) |
@@ -68,8 +93,8 @@ follows the same rules: it never finds a field the export replaces or a row it l
 * Free texts (descriptions, notes, text recognized in photos) can still name people in ways
   the check does not find. Everything kept is public on the website already, so
   the export does not reveal more than the website, only in bulk.
-* Photos keep their metadata (EXIF), as on the website. That metadata can include camera
-  models and GPS coordinates.
+* Photos are not part of the export, but development systems load them from the website. They
+  keep their metadata (EXIF) there, which can include camera models and GPS coordinates.
 
 ## New models and fields
 

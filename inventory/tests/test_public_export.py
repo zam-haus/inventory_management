@@ -126,8 +126,6 @@ class PublicExportTests(ExportFixture, TestCase):
         files = [row["fields"]["description"] for row in self.rows(self.out / "export")
                  if row["model"] == "inventory.itemfile"]
         self.assertEqual(files, ["Manual"])
-        exported = [p.name for p in (self.out / "export" / "media").rglob("*") if p.is_file()]
-        self.assertEqual(exported, ["manual.pdf"])
 
     def test_names_in_kept_texts_are_reported(self):
         self.item.description = "Donated by Robin Private"
@@ -139,17 +137,10 @@ class PublicExportTests(ExportFixture, TestCase):
         self.assertIn("2 kept texts contain", stdout)
 
     def test_archive(self):
+        """Without photos and documents: development systems load them (remote_media.py)."""
         self.export(str(self.out / "export.tar"))
         with tarfile.open(self.out / "export.tar") as tar:
-            names = tar.getnames()
-        self.assertIn("data.json", names)
-        self.assertIn("export-info.json", names)
-        manual = ItemFile.objects.get(internal=False)
-        self.assertEqual([n for n in names if n.startswith("media/")], [f"media/{manual.file.name}"])
-
-    def test_without_media(self):
-        self.export(str(self.out / "export"), "--no-media")
-        self.assertFalse((self.out / "export" / "media").exists())
+            self.assertEqual(sorted(tar.getnames()), ["data.json", "export-info.json"])
 
     def test_existing_target(self):
         (self.out / "export").mkdir()
@@ -163,14 +154,12 @@ class PublicImportTests(ExportFixture, TransactionTestCase):
         self.create_export_data()
         self.export(str(self.out / "export.tar"))
         call_command("flush", interactive=False, verbosity=0)
-        shutil.rmtree(self.media)
         call_command("import_public_data", str(self.out / "export.tar"), stdout=StringIO(), verbosity=0)
         self.assertEqual(Location.objects.get().name, "Workshop")
         owned = UniqueItem.objects.get(owner_first_name=public_export.REDACTED)
         self.assertTrue(owned.has_owner)
         self.assertFalse(get_user_model().objects.exists())
-        manual = ItemFile.objects.get()
-        self.assertEqual(manual.file.read(), b"%PDF-1.4 manual")
+        self.assertEqual(ItemFile.objects.get().description, "Manual")
 
     def test_refuses_a_filled_database(self):
         self.create_export_data()
@@ -180,7 +169,7 @@ class PublicImportTests(ExportFixture, TransactionTestCase):
 
     def test_refuses_an_export_of_newer_code(self):
         self.create_export_data()
-        self.export(str(self.out / "export"), "--no-media")
+        self.export(str(self.out / "export"))
         info_path = self.out / "export" / "export-info.json"
         info = json.loads(info_path.read_text())
         info["migrations"].append("inventory.9999_future")
