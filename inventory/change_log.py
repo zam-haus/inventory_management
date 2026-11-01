@@ -130,7 +130,7 @@ TRACKED = {
                     "responsible_user", "owner_user", "owner_first_name", "owner_contact", "purchase_date",
                     "purchase_price", "procurement_source", "disposed_at", "disposal_reason", "disposal_note"),
                    {"responsible_user", "owner_user", "owner_contact", "purchase_price"}),
-    "location": (("type", "name", "short_name", "purpose", "physical_description", "overview_photo",
+    "location": (("type", "name", "short_name", "purpose", "description", "overview_photo",
                   "parent_location", "axis", "fire_load_free", "outdoor", "width_cm", "depth_cm", "height_cm",
                   "is_deleted", "is_reserved"), set()),
     "itemlocation": (("item", "location", "amount"), set()),

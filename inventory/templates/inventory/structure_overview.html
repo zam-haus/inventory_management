@@ -77,7 +77,7 @@
                                     {% for level in cell.mains %}
                                         <div class="structure-main">
                                             <a href="{{ level.get_absolute_url }}"><span>{% if level.purpose %}<strong>{{ level.purpose }}</strong>{% else %}{{ level.name }}{% endif %}</span> {% location_code level.short_name %}</a>
-                                            {% if level.physical_description %}<span class="location-muted">{{ level.physical_description }}</span>{% endif %}
+                                            {% if level.description %}<span class="location-muted">{{ level.description }}</span>{% endif %}
                                             {% include "inventory/team_badges.html" with teams=level.responsible_teams.all %}
                                         </div>
                                     {% endfor %}
@@ -91,13 +91,13 @@
                                                     </div>
                                                     {% if location.fire_load_free %}<div class="structure-fire-mark">{% trans "Free of fire load" %}</div>{% endif %}
                                                     {% if location.purpose %}<div class="location-muted">{% trans "Name:" %} {{ location.name }}</div>{% endif %}
-                                                    {% if location.physical_description %}<div class="location-muted">{{ location.physical_description }}</div>{% endif %}
+                                                    {% if location.description %}<div class="location-muted">{{ location.description }}</div>{% endif %}
                                                     {% if node.parts %}
                                                         <ul class="structure-parts">
                                                             {% for part in node.parts %}
                                                                 <li>
                                                                     <a href="{{ part.location.get_absolute_url }}">{{ part.location.title }} {% if part.coded %}{% location_code part.code %}{% else %}{% location_code "."|add:part.code %}{% endif %}</a>
-                                                                    {% if part.location.physical_description %}<span class="location-muted">· {{ part.location.physical_description }}</span>{% endif %}
+                                                                    {% if part.location.description %}<span class="location-muted">· {{ part.location.description }}</span>{% endif %}
                                                                     {% if part.location.fire_load_free %}<span class="structure-fire-mark">{% trans "Free of fire load" %}</span>{% endif %}
                                                                     {% include "inventory/team_badges.html" with teams=part.location.responsible_teams.all %}
                                                                 </li>

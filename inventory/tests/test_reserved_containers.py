@@ -133,10 +133,10 @@ class ReservedContainerTests(TestCase):
 
     def test_activating(self):
         self.client.force_login(self.member)
-        response = self.activate(purpose="Karpfenprojekt", physical_description="blaue Eurobox", overview_photo=photo())
+        response = self.activate(purpose="Karpfenprojekt", description="blaue Eurobox", overview_photo=photo())
         self.assertRedirects(response, self.box.get_absolute_url(), fetch_redirect_response=False)
         box = Location.active.get(pk=self.box.pk)
-        self.assertEqual((box.parent_location, box.purpose, box.physical_description), (self.hall, "Karpfenprojekt",
+        self.assertEqual((box.parent_location, box.purpose, box.description), (self.hall, "Karpfenprojekt",
                                                                                          "blaue Eurobox"))
         self.assertTrue(box.overview_photo)
         activated = ChangeLog.objects.get(action=ChangeLog.Action.ACTIVATED)

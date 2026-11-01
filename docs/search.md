@@ -62,7 +62,7 @@ the magnifier goes to the page's field. To browse instead, *Items* and *Location
 
 | Entry | Searched |
 |---|---|
-| Location | name, purpose, code (short name, unique and locatable identifier, whole), physical description |
+| Location | name, purpose, code (short name, unique and locatable identifier, whole), description |
 | Item | name, description, category (with the categories above it), barcodes, its photos (description, recognized text), its documents (description) |
 | Unique item | the item's name and category (with the categories above it), its own name, notes, its own photos and documents |
 | Category | its name, its keywords (synonyms, so they rank like the name; the matching ones are named: "Found in keywords: Spax") and the first line of its description (the next lines say what belongs elsewhere, "Nicht hier: …", and are not searched) |

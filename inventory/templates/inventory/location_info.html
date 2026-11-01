@@ -12,7 +12,7 @@
     {% if object.overview_photo %}
         {% thumbnail object.overview_photo "640x480" as im %}<img class="location-info-photo" src="{{ im.url }}" alt="{% trans 'Overview photo' %}">{% endthumbnail %}
     {% endif %}
-    {% if object.physical_description %}<p class="location-info-description">{{ object.physical_description|linebreaksbr }}</p>{% endif %}
+    {% if object.description %}<p class="location-info-description">{{ object.description|linebreaksbr }}</p>{% endif %}
     {% slot "location_info.body" %}
 </div>
 <div class="modal-footer">

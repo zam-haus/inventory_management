@@ -270,7 +270,7 @@ nicht: Jeder Typ zählt hausweit aufsteigend weiter, nach der höchsten vergeben
 nächste steht bei der Auswahl dabei, z. B. „Kiste · K0525“). Frühere Kennungen zählen als vergeben.
 
 Beim Anlegen von Regalen, Schränken, Kisten, Kartons und Paletten wird neben dem Zweck auch die
-**physische Beschreibung** abgefragt (Farbe, Material, Größe, Zahl der Böden …). Später lässt sie
+**Beschreibung** abgefragt (wie er aussieht: Farbe, Material, Größe, Zahl der Böden …). Später lässt sie
 sich wie der Zweck auf der Standortseite ändern (Knopf **Beschreibung**); bei Gebäudeteilen ändern
 beides nur Admins.
 

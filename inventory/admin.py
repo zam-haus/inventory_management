@@ -500,7 +500,7 @@ class LocationAdmin(ClaimOnAddMixin, SoftDeleteAdminMixin, admin.ModelAdmin):
     list_display = ("unique_identifier", "name", "descriptive_identifier", "is_reserved", "deleted_status")
     ordering = ("locatable_identifier",)
     readonly_fields = ("label_image_tag",)
-    search_fields = ("unique_identifier", "name", "descriptive_identifier", "purpose", "physical_description",
+    search_fields = ("unique_identifier", "name", "descriptive_identifier", "purpose", "description",
                      "former_codes__code")
     list_filter = (DeletedObjectFilter, "is_reserved", "type__structure", "axis", "fire_load_free", "outdoor",
                    "responsible_teams")

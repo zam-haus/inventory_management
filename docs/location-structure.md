@@ -79,7 +79,7 @@ are in [Standortregeln](standortregeln.md) (German).
   numbers are taken. Scanning the label (also with the navbar scanner), entering the code in the
   resolver lookup (`/id/?q=`) or the location search, or opening its page leads to **Activate container**
   (`ContainerActivateView`, `/location/<pk>/activate/`): who may add locations says where it is now
-  (required) and may add the purpose, physical description and overview photo; guests are asked to log
+  (required) and may add the purpose, description and overview photo; guests are asked to log
   in. A location field that scans or looks up a reserved code says it is not activated yet and links
   the activation (new tab). The change log records **Activated**, also on the page of the location it
   went into. The admin's location list filters by *reserved*; deleting a reservation keeps its code
@@ -94,7 +94,7 @@ are in [Standortregeln](standortregeln.md) (German).
   purpose and description. The location
   page shows a button named after the types (“Karton / Kiste / Palette”) and a **+** at the containers'
   panel, which then shows while empty for logged-in users. Creating them and numbered locations also
-  asks for the purpose and the physical description. The physical description of everything but the
+  asks for the purpose and the description. The description of everything but the
   building structure can be changed later on the location page like the purpose
   (`LocationDescriptionUpdateView`, `location_field_editor.js`).
 * **Breadcrumbs** of location pages (the location and its sub-pages: move, dissolve, adding

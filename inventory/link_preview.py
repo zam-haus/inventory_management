@@ -85,7 +85,7 @@ def for_unique_item(unique_item, own_images, images):
 
 def for_location(location):
     path = " › ".join(ancestor.title for ancestor in location.ancestors)
-    description = ". ".join(part for part in (path, plain(location.physical_description)) if part)
+    description = ". ".join(part for part in (path, plain(location.description)) if part)
     image = Image.thumbnail(location.overview_photo, location.title) if location.overview_photo else None
     return Preview(location.title_with_code, Truncator(description).chars(DESCRIPTION_LENGTH), image,
                    location.get_absolute_url())

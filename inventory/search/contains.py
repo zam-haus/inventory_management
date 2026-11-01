@@ -94,7 +94,7 @@ LOCATION_SOURCES = [
     Source("code", Location, "locatable_identifier", lambda w: code_start("locatable_identifier", w)),
     # A code it had before still finds it (renamed or moved).
     Source("code", LocationFormerCode, "code", lambda w: related(LocationFormerCode, "location", code__iexact=w)),
-    Source("description", Location, "physical_description", lambda w: Q(physical_description__icontains=w)),
+    Source("description", Location, "description", lambda w: Q(description__icontains=w)),
     Source("label", LabelId, "code", lambda w: label("location", w)),
 ]
 

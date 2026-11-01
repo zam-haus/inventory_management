@@ -9,7 +9,7 @@ from django.db.models import Q
 from ..public_export import export_filter, publishable
 
 WANTED = {
-    "inventory.location": ("name", "short_name", "purpose", "physical_description",
+    "inventory.location": ("name", "short_name", "purpose", "description",
                            "unique_identifier", "locatable_identifier", "descriptive_identifier"),
     "inventory.item": ("name", "description"),
     "inventory.category": ("full_name", "name", "keywords", "description"),

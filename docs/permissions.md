@@ -51,7 +51,7 @@ Location types marked **admin only** (`LocationType.admin_only`, used for the bu
 structure, see [Building structure](location-structure.md)) go further: their locations are
 created, changed and deleted only in the admin, which requires staff status, their purpose
 included. On the inventory pages the overview photo's button stays visible but locked, saying why
-(`inventory.permissions.location_edit_denied`); the pencils for purpose and physical description are
+(`inventory.permissions.location_edit_denied`); the pencils for purpose and description are
 left out whenever they cannot be changed, for this reason or for lack of permission. Their endpoints
 answer 403. Such a type
 can be neither moveable nor deletable outside the admin. What these locations contain (shelves,
@@ -65,7 +65,7 @@ the number range that applies there are offered. The first one of a type in an a
 numbers for it, so `add_location` also lets members reserve numbers that way; changing ranges
 otherwise is for admins. See [Building structure](location-structure.md).
 
-Of a location's own details, the inventory pages change the purpose, the physical description and the
+Of a location's own details, the inventory pages change the purpose, the description and the
 overview photo (`change_location`, each in its own dialog), except for admin-only types (the building
 structure); changes of all three are recorded in the [change log](change-log.md), which the local
 group sees without who made them (`view_changelog`). Name and short name are

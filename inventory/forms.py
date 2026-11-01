@@ -84,11 +84,11 @@ class LocationPurposeForm(ModelForm):
 
 
 class LocationDescriptionForm(ModelForm):
-    """The physical description of a location that is not part of the building (LocationDescriptionUpdateView)."""
+    """The description of a location that is not part of the building (LocationDescriptionUpdateView)."""
     class Meta:
         model = Location
-        fields = ["physical_description"]
-        widgets = {"physical_description": Textarea(attrs={"class": "form-control", "rows": 4, "data-modal-focus": ""})}
+        fields = ["description"]
+        widgets = {"description": Textarea(attrs={"class": "form-control", "rows": 4, "data-modal-focus": ""})}
 
 
 class LocationDimensionsForm(ModelForm):
@@ -930,10 +930,10 @@ class ContainerActivationForm(ModelForm):
 
     class Meta:
         model = Location
-        fields = ["parent_location", "purpose", "physical_description", "overview_photo"]
+        fields = ["parent_location", "purpose", "description", "overview_photo"]
         widgets = {
             "purpose": TextInput(attrs={"maxlength": 50}),
-            "physical_description": Textarea(attrs={"rows": 3}),
+            "description": Textarea(attrs={"rows": 3}),
             "overview_photo": FileInput(attrs={"accept": "image/*", "capture": "environment"}),
         }
 

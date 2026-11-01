@@ -79,14 +79,14 @@
                 {% endif %}
             </div>
         </div>
-        {# A grey box like the item page's: physical description, responsible teams, fire load; (i) opens the location details. #}
+        {# A grey box like the item page's: description, responsible teams, fire load; (i) opens the location details. #}
         <div class="location-summary location-header-description">
             <button type="button" class="location-details-button location-help-icon" data-bs-toggle="modal" data-bs-target="#location-metadata" aria-controls="location-metadata" aria-haspopup="dialog" aria-label="{% trans 'Location details' %}" title="{% trans 'Location details' %}">{% icon "info-circle" %}</button>
             <dl class="location-summary-fields">
                 <div class="location-summary-description">
-                    <dt class="location-description-heading"><span class="location-eyebrow">{% trans "Physical description" %}</span>
-                        {% if not edit_denied %}<a href="#location-description-editor" class="btn btn-sm btn-warning location-edit-description" data-field-editor-open="location-description-editor" data-bs-toggle="tooltip" title="{% trans 'Edit physical description' %}">{% icon "pencil" %} <span class="action-label">{% trans "Description" %}</span></a>{% endif %}</dt>
-                    <dd>{% if object.physical_description %}<p class="location-physical-description">{{ object.physical_description|linebreaksbr }}</p>{% else %}<p class="location-physical-description location-muted">{% trans "No physical description yet." %}</p>{% endif %}</dd>
+                    <dt class="location-description-heading"><span class="location-eyebrow">{% trans "Description" %}</span>
+                        {% if not edit_denied %}<a href="#location-description-editor" class="btn btn-sm btn-warning location-edit-description" data-field-editor-open="location-description-editor" data-bs-toggle="tooltip" title="{% trans 'Edit description' %}">{% icon "pencil" %} <span class="action-label">{% trans "Description" %}</span></a>{% endif %}</dt>
+                    <dd>{% if object.description %}<p class="location-physical-description">{{ object.description|linebreaksbr }}</p>{% else %}<p class="location-physical-description location-muted">{% trans "No description yet." %}</p>{% endif %}</dd>
                 </div>
                 {# Who looks after it: its teams, else those of the location above it (explained in the location details). #}
                 <div>

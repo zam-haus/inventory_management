@@ -251,7 +251,7 @@ class LocationInfoTests(TestCase):
         shelf = LocationType.objects.create(name="Shelf", moveable=True, category=LocationType.Category.STORAGE_UNIT)
         cls.workshop = Location.objects.create(type=room, name="Workshop", short_name="WS")
         cls.rack = Location.objects.create(type=shelf, name="Rack", short_name="R1", parent_location=cls.workshop,
-                                           purpose="Screws", physical_description="Left of the door")
+                                           purpose="Screws", description="Left of the door")
 
     def test_a_location_in_brief(self):
         content = self.client.get(reverse("location_info", args=[self.rack.pk])).content.decode()

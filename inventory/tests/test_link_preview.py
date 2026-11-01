@@ -55,7 +55,7 @@ class LinkPreviewTests(MetaTags, InventoryFixture, TestCase):
         cls.item.description = "For **wood** & metal, with [two batteries](https://example.org).\n\n" + "More. " * 60
         cls.item.save()
         cls.shelf = Location.objects.create(name="Shelf", short_name="S", type=cls.kind, parent_location=cls.location,
-                                            physical_description="Steel, *five* boards")
+                                            description="Steel, *five* boards")
 
     def test_item_with_a_photo(self):
         ItemImage.objects.create(item=self.item, image=photo("receipt-2026-private.png"))

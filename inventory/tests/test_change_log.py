@@ -139,7 +139,7 @@ class ChangeLogTests(TestCase):
         self.client.force_login(get_user_model().objects.create_superuser(username="admin"))
         response = self.client.post(reverse("admin:inventory_location_change", args=[self.workshop.pk]), {
             "id": self.workshop.pk, "name": "Workshop", "short_name": "WS", "type": self.room.pk,
-            "purpose": "Wood tools", "physical_description": "", "responsible_teams": [team.pk],
+            "purpose": "Wood tools", "description": "", "responsible_teams": [team.pk],
             **{f"{prefix}-{key}": "0" for prefix in ("children", "number_ranges", "former_codes", "change_log")
                for key in ("TOTAL_FORMS", "INITIAL_FORMS")},
             "_save": "Save",

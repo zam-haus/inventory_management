@@ -41,8 +41,8 @@ class NumberedLocationForm(forms.Form):
     )
     sublocations = forms.IntegerField(required=False, min_value=0, initial=0)
     purpose = forms.CharField(label=_("Purpose"), max_length=50, required=False)
-    physical_description = forms.CharField(
-        label=_("Physical description"), required=False, widget=forms.Textarea(attrs={"rows": 3}),
+    description = forms.CharField(
+        label=_("Description"), required=False, widget=forms.Textarea(attrs={"rows": 3}),
         help_text=_("What it looks like and how it is built, e.g. colour, material, size or number of shelves."))
 
     def __init__(self, *args, parent, kind, **kwargs):
@@ -155,7 +155,7 @@ class NumberedLocationCreateView(PermissionRequiredMixin, FormView):
                                   if reservation.first <= n <= reservation.last)
                 name, short = kind.numbered_names(number)
                 location = Location(type=kind, name=name, short_name=short, parent_location=self.parent,
-                                    purpose=data["purpose"], physical_description=data["physical_description"])
+                                    purpose=data["purpose"], description=data["description"])
                 location.full_clean(exclude=COMPUTED + ["overview_photo"])
                 location.save(actor=self.request.user)
                 parts = self.create_sublocations(location, data.get("sublocations") or 0)
@@ -200,7 +200,7 @@ class ContainerCreateForm(forms.Form):
         help_text=_("Several get the next free numbers, from the one shown on; each gets the purpose and "
                     "description below."))
     purpose = NumberedLocationForm.base_fields["purpose"]
-    physical_description = NumberedLocationForm.base_fields["physical_description"]
+    description = NumberedLocationForm.base_fields["description"]
 
     def __init__(self, *args, parent, **kwargs):
         super().__init__(*args, **kwargs)
@@ -257,17 +257,17 @@ class ContainerCreateView(PermissionRequiredMixin, FormView):
 
     def create_container(self, kind, data):
         return create_numbered_container(kind, parent=self.parent, purpose=data["purpose"],
-                                         physical_description=data["physical_description"], actor=self.request.user)
+                                         description=data["description"], actor=self.request.user)
 
 
-def create_numbered_container(kind, *, parent=None, reserved=False, purpose="", physical_description="", actor=None):
+def create_numbered_container(kind, *, parent=None, reserved=False, purpose="", description="", actor=None):
     """The next container of `kind`, with the next free number; reserved ones (no parent) wait for activation."""
     for _attempt in range(3):
         try:
             with transaction.atomic():
                 _number, name, short = kind.next_free_number()
                 location = Location(type=kind, name=name, short_name=short, parent_location=parent,
-                                    is_reserved=reserved, purpose=purpose, physical_description=physical_description)
+                                    is_reserved=reserved, purpose=purpose, description=description)
                 location.full_clean(exclude=COMPUTED + ["overview_photo"])
                 location.save(actor=actor)
             return location

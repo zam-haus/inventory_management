@@ -28,7 +28,7 @@ CONTENT_MOVE_PERMISSIONS = (
 
 def location_edit_denied(user, location):
     """
-    Why `user` may not change the details of `location` (purpose, physical description, overview photo) on the
+    Why `user` may not change the details of `location` (purpose, description, overview photo) on the
     inventory pages, or None. Locations of admin-only types (the building structure) are changed in the admin only.
     """
     if not user.has_perm("inventory.change_location"):

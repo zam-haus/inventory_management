@@ -41,10 +41,10 @@
                             </dd>
                         </dl>
                     {% endif %}{% endwith %}
-                    {% if object.physical_description %}
+                    {% if object.description %}
                         <dl class="location-metadata-field">
-                            <dt>{% trans "Physical description" %}</dt>
-                            <dd>{{ object.physical_description|linebreaksbr }}</dd>
+                            <dt>{% trans "Description" %}</dt>
+                            <dd>{{ object.description|linebreaksbr }}</dd>
                         </dl>
                     {% endif %}
                 </div>
@@ -62,7 +62,7 @@
                         </div>
                         <div>
                             <dt>{% trans "Changing" %}</dt>
-                            <dd>{% if object.type.admin_only %}{% trans "Locations of this type are created, changed and deleted only in the admin." %}{% else %}{% trans "Purpose, physical description and overview photo can be changed here." %}{% endif %}</dd>
+                            <dd>{% if object.type.admin_only %}{% trans "Locations of this type are created, changed and deleted only in the admin." %}{% else %}{% trans "Purpose, description and overview photo can be changed here." %}{% endif %}</dd>
                         </div>
                         <div>
                             <dt>{% trans "Deleting" %}</dt>

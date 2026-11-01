@@ -1,4 +1,4 @@
-// The editors for one field on a page (a location's purpose and physical description, a unique item's notes): each
+// The editors for one field on a page (a location's purpose and description, a unique item's notes): each
 // [data-field-editor] section becomes a dialog, opened by [data-field-editor-open="<its id>"]. It submits
 // normally; on errors the page comes back with that dialog open (data-open).
 (() => {

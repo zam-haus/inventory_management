@@ -58,8 +58,8 @@ class LocationOverviewUpdateView(LocationEditView):
 class LocationDescriptionUpdateView(LocationEditView):
     # Like the overview photo, locked for the building structure (location_edit_denied).
     form_class = LocationDescriptionForm
-    fields = ["physical_description"]
-    success_message = _("Physical description saved.")
+    fields = ["description"]
+    success_message = _("Description saved.")
     context_name = "description"
 
 

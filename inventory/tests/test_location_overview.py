@@ -41,7 +41,7 @@ class LocationOverviewTests(TestCase):
         cls.location = Location.objects.create(
             type=kind, name="Workshop", short_name="WORK",
             purpose="Tools",
-            physical_description="Wooden shelves beside the west entrance",
+            description="Wooden shelves beside the west entrance",
         )
         cls.user = get_user_model().objects.create_user(username="overview-editor")
         cls.group = Group.objects.create(name="Overview editors")
@@ -140,7 +140,7 @@ class LocationOverviewTests(TestCase):
         previous_photo = self.location.overview_photo.name
         response = self.post_purpose("Updated", data={
             "name": "Forged name", "short_name": "FORGED", "is_deleted": "on", "remove_photo": "on",
-            "physical_description": "Must not overwrite physical characteristics",
+            "description": "Must not overwrite physical characteristics",
         }, HTTP_ACCEPT="application/json")
         self.assertEqual(response.status_code, 200)
         self.assertTrue(response.json()["ok"])
@@ -150,7 +150,7 @@ class LocationOverviewTests(TestCase):
         self.assertEqual(self.location.name, "Workshop")
         self.assertEqual(self.location.short_name, "WORK")
         self.assertFalse(self.location.is_deleted)
-        self.assertEqual(self.location.physical_description, "Wooden shelves beside the west entrance")
+        self.assertEqual(self.location.description, "Wooden shelves beside the west entrance")
         # The photo editor in turn leaves the purpose alone.
         self.client.post(self.url, self.data(purpose="Forged purpose", overview_photo=self.photo(color="red")))
         self.location.refresh_from_db()
@@ -195,7 +195,7 @@ class LocationOverviewTests(TestCase):
         self.assertEqual(form["purpose"].value(), pending_purpose)
         self.assertIn("purpose", form.errors)
         self.assertEqual(response.context["object"].purpose, "Tools")
-        self.assertContains(response, self.location.physical_description, status_code=400)
+        self.assertContains(response, self.location.description, status_code=400)
         self.assertContains(response, pending_purpose, status_code=400)
         self.assertContains(response, 'data-open="true"', status_code=400)
         self.location.refresh_from_db()
@@ -270,7 +270,7 @@ class LocationOverviewTests(TestCase):
         self.client.logout()
         detail = self.client.get(self.location.get_absolute_url())
         self.assertContains(detail, "Visible to everyone")
-        self.assertContains(detail, self.location.physical_description)
+        self.assertContains(detail, self.location.description)
         self.assertNotContains(detail, "change-log-heading")
         self.assertNotContains(detail, self.url)
         self.assertNotContains(detail, self.purpose_url)
@@ -393,7 +393,7 @@ class LocationOverviewTests(TestCase):
         self.assertNotIn("loc-code", text)
         page = response.content.decode()
         self.assertLess(page.index("</h1>"), page.index('class="loc-code location-title-code"'))
-        # the actions beside the title (data-action-row), the physical description in a grey box below
+        # the actions beside the title (data-action-row), the description in a grey box below
         self.assertLess(page.index('class="loc-code location-title-code"'), page.index("data-action-group"))
         self.assertLess(page.index("data-action-group"), page.index("location-summary"))
         panel = next(
@@ -476,7 +476,7 @@ class LocationOverviewTests(TestCase):
         # Printed labels and the stored path keep the plain name.
         self.assertNotIn("Carp project", child.descriptive_identifier)
 
-    def test_public_metadata_modal_opens_beside_the_physical_description(self):
+    def test_public_metadata_modal_opens_beside_the_description(self):
         self.client.logout()
         label_url = "https://example.com/location-label.png"
         with patch.object(Location, "label_preview_url", new=lambda location: label_url):
@@ -485,10 +485,10 @@ class LocationOverviewTests(TestCase):
         metadata = next(element for element in elements if dict(element.attributes).get("id") == "location-metadata")
         self.assertIn("modal", dict(metadata.attributes).get("class", "").split())
         self.assertEqual(dict(metadata.attributes).get("aria-hidden"), "true")
-        self.assertIn(self.location.physical_description, str(metadata))
+        self.assertIn(self.location.description, str(metadata))
         self.assertNotIn(label_url, str(metadata))  # no label preview in the details
         description = next(element for element in elements if "location-header-description" in dict(element.attributes).get("class", "").split())
-        self.assertIn(self.location.physical_description, str(description))
+        self.assertIn(self.location.description, str(description))
         trigger = next(element for element in html_elements(description) if dict(element.attributes).get("data-bs-target") == "#location-metadata")
         self.assertEqual(trigger.name, "button")
         self.assertEqual(dict(trigger.attributes).get("data-bs-toggle"), "modal")
@@ -586,7 +586,7 @@ class LocationOverviewTests(TestCase):
         response = self.client.post(reverse("admin:inventory_location_change", args=[self.location.pk]), {
             "id": self.location.pk, "name": self.location.name, "short_name": self.location.short_name,
             "type": self.location.type_id, "purpose": "Admin overview",
-            "physical_description": self.location.physical_description,
+            "description": self.location.description,
             "children-TOTAL_FORMS": "1", "children-INITIAL_FORMS": "1",
             "children-MIN_NUM_FORMS": "0", "children-MAX_NUM_FORMS": "1000",
             "number_ranges-TOTAL_FORMS": "0", "number_ranges-INITIAL_FORMS": "0",
@@ -617,14 +617,14 @@ class LocationOverviewTests(TestCase):
         self.assertEqual(self.client.post(self.url, self.data(remove_photo="on")).status_code, 404)
         self.assertFalse(self.events().exists())
 
-    def test_location_search_and_autocompletes_match_purpose_and_physical_description(self):
+    def test_location_search_and_autocompletes_match_purpose_and_description(self):
         Location.objects.filter(pk=self.location.pk).update(purpose="Electric tools")
         Location.objects.create(
             type=self.location.type, name="Unrelated", short_name="OTHER", purpose="No match",
         )
         deleted = Location.objects.create(
             type=self.location.type, name="Deleted", short_name="DELETED",
-            purpose="Electric tools", physical_description="West wall", is_deleted=True,
+            purpose="Electric tools", description="West wall", is_deleted=True,
         )
         self.client.logout()
         for query in ("eLeCtRiC", "wEsT"):
@@ -657,14 +657,45 @@ class LocationOverviewMigrationTests(TransactionTestCase):
                 description="A blue steel cabinet, 2 m high",
             )
             saved_pk = saved.pk
+            after = [("inventory", "0052_location_dimensions")]  # 0053 names it description again
             executor = MigrationExecutor(connection)
-            executor.migrate(latest)
-            apps = executor.loader.project_state(latest).apps
+            executor.migrate(after)
+            apps = executor.loader.project_state(after).apps
             location = apps.get_model("inventory", "Location").objects.get(pk=saved_pk)
             self.assertEqual(location.physical_description, "A blue steel cabinet, 2 m high")
             self.assertFalse(hasattr(location, "description"))
             self.assertEqual(location.purpose, "")
             self.assertFalse(location.overview_photo)
             self.assertFalse(apps.get_model("inventory", "ChangeLog").objects.exists())
+        finally:
+            MigrationExecutor(connection).migrate(latest)
+
+    def test_the_physical_description_is_the_description_also_in_the_change_log(self):
+        before, after = [("inventory", "0052_location_dimensions")], [("inventory", "0053_location_description")]
+        executor = MigrationExecutor(connection)
+        latest = executor.loader.graph.leaf_nodes()
+        try:
+            executor.migrate(before)
+            apps = executor.loader.project_state(before).apps
+            kind = apps.get_model("inventory", "LocationType").objects.create(name="Shelf", unique=True)
+            shelf = apps.get_model("inventory", "Location").objects.create(
+                type=kind, name="Shelf", short_name="S1", unique_identifier="S1", locatable_identifier="S1",
+                descriptive_identifier="Shelf", physical_description="Steel, 5 boards")
+            changes = [{"field": "physical_description", "before": "", "after": "Steel", "internal": False},
+                       {"field": "purpose", "before": "", "after": "Tools", "internal": False}]
+            entry = apps.get_model("inventory", "ChangeLog").objects.create(
+                action="changed", subject_type="location", subject_id=shelf.pk, changes=changes)
+            executor = MigrationExecutor(connection)
+            executor.migrate(after)
+            apps = executor.loader.project_state(after).apps
+            self.assertEqual(apps.get_model("inventory", "Location").objects.get(pk=shelf.pk).description,
+                             "Steel, 5 boards")
+            self.assertEqual([change["field"] for change in
+                              apps.get_model("inventory", "ChangeLog").objects.get(pk=entry.pk).changes],
+                             ["description", "purpose"])
+            executor = MigrationExecutor(connection)
+            executor.migrate(before)
+            apps = executor.loader.project_state(before).apps
+            self.assertEqual(apps.get_model("inventory", "ChangeLog").objects.get(pk=entry.pk).changes, changes)
         finally:
             MigrationExecutor(connection).migrate(latest)

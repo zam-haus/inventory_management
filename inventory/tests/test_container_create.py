@@ -62,11 +62,11 @@ class ContainerCreateTests(TestCase):
             self.assertIn(choice, page)
         self.assertNotIn('name="wish"', page)  # no number to choose
         response = self.client.post(self.url(self.hall), {
-            "type": self.box_type.pk, "purpose": "Karpfenprojekt", "physical_description": "blaue Eurobox 60×40",
+            "type": self.box_type.pk, "purpose": "Karpfenprojekt", "description": "blaue Eurobox 60×40",
         })
         box = Location.objects.get(short_name="K0525")
         self.assertRedirects(response, box.get_absolute_url(), fetch_redirect_response=False)
-        self.assertEqual((box.name, box.parent_location, box.purpose, box.physical_description),
+        self.assertEqual((box.name, box.parent_location, box.purpose, box.description),
                          ("Kiste 525", self.hall, "Karpfenprojekt", "blaue Eurobox 60×40"))
         self.assertTrue(ChangeLog.objects.filter(location=box, other_location=self.hall, action="created", actor=self.member).exists())
         self.client.post(self.url(self.hall), {"type": self.box_type.pk})
@@ -140,10 +140,10 @@ class ContainerCreateTests(TestCase):
         self.assertIn('id="location-children-container"', page)
         self.assertIn(f'href="{self.url(pallet)}"', page)
 
-    def test_shelves_get_a_physical_description_too(self):
+    def test_shelves_get_a_description_too(self):
         self.client.force_login(self.member)
         url = reverse("numbered_location_create", args=[self.hall.pk])
-        self.assertContains(self.client.get(url, {"type": self.shelf_type.pk}), 'name="physical_description"')
+        self.assertContains(self.client.get(url, {"type": self.shelf_type.pk}), 'name="description"')
         self.client.post(url, {"type": self.shelf_type.pk, "mode": "reserved", "reserved": "300",
-                               "physical_description": "Schwerlastregal, 5 Böden"})
-        self.assertEqual(Location.objects.get(short_name="R300").physical_description, "Schwerlastregal, 5 Böden")
+                               "description": "Schwerlastregal, 5 Böden"})
+        self.assertEqual(Location.objects.get(short_name="R300").description, "Schwerlastregal, 5 Böden")

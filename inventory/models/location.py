@@ -613,7 +613,7 @@ class Location(SoftDeleteModel, ComputedFieldsModel):
         ],
     )
 
-    physical_description = models.TextField(_("physical description"), blank=True)
+    description = models.TextField(_("description"), blank=True)
     # What the location is for, shown first with the name small after it (title, subtitle; docs/locations.md).
     purpose = models.CharField(
         _("purpose"), max_length=50, blank=True,

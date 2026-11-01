@@ -121,7 +121,7 @@ def filter_locations(qs, query):
     if not query:
         return qs
     matches = (Q(name__icontains=query) | Q(unique_identifier__icontains=query) |
-               Q(purpose__icontains=query) | Q(physical_description__icontains=query) |
+               Q(purpose__icontains=query) | Q(description__icontains=query) |
                Q(former_codes__code__icontains=query))
     if (referenced := location_from_reference(query.strip())) is not None:
         matches |= Q(pk=referenced.pk)
@@ -751,7 +751,7 @@ class UpdateItemView(ItemEditorPermissionMixin, ItemKindMixin, extra_views.Updat
 def matching_locations(query):
     """Locations matching every word of a query in a code, name, path, purpose, description or former code
     (the printable inventory's ?q=)."""
-    fields = ("unique_identifier", "name", "descriptive_identifier", "purpose", "physical_description",
+    fields = ("unique_identifier", "name", "descriptive_identifier", "purpose", "description",
               "former_codes__code")
     locations = models.Location.active.all()
     for word in query.split():

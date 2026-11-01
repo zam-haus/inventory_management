@@ -10,7 +10,7 @@ preview: the chat fetches the page without a login and reads its OpenGraph tags 
 |---|---|---|---|
 | Item | its name | its description as plain text (200 characters), else its category | its first photo |
 | Unique item | item, own name, label ID | the item's description; "Disposed." before it if disposed | its own first photo, else the item's |
-| Location | purpose or name · code | the path above it, its physical description | its overview photo |
+| Location | purpose or name · code | the path above it, its description | its overview photo |
 | Category | its name | the first line of its description, else its path | – |
 | Map with a target | the marking's text, the location or the unique item | the room it is in, the level; an area's size | the map around it |
 | Map | – (the page's title, "Map, level …") | – | the whole level |

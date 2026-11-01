@@ -1,11 +1,12 @@
 # Location purpose and overview photo
 
 Each location can have a **purpose** (one line, up to 50 characters) and one
-overview photo. The purpose says what the location is for. Physical descriptions are kept separately.
+overview photo. The purpose says what the location is for. Its description (what it looks like; `Location.description`, called physical description up to migration
+inventory 0053) is kept separately.
 The purpose is included in location searches.
 
 **Dimensions:** width, depth and height in cm, each optional (`Location.width_cm`, `depth_cm`, `height_cm`), in the
-grey box of its page and edited there (*Dimensions*, as the physical description). A compartment or drawer (a part
+grey box of its page and edited there (*Dimensions*, as the description). A compartment or drawer (a part
 of the shelf's or cabinet's `sublocation_type`) without width and depth of its own has those of its shelf or
 cabinet, not its height (`Location.footprint_cm`, `footprint_source`). On the map a location's rectangle has that
 size ([maps](maps.md)).
@@ -56,12 +57,12 @@ Each dialog saves only its own field.
 The photo appears in the first panel, **At this location …**, above the item list.
 Item and sub-location lists stay expanded. The heading shows the title and the code below it, the
 actions to the right (those that do not fit go into the actions menu, see [icons](icons.md)). Below
-it a grey box, like the item page's, holds the physical description, the responsible teams (its
+it a grey box, like the item page's, holds the description, the responsible teams (its
 own, else those of the location above it) and, where it applies, **Free of fire load** (marked red,
 with the location it comes from); its (i) at the top right opens **Location details**: the location
 path, where the responsible teams come from (own, taken over from the location it is in,
 `Location.responsible_teams_source`, or none; rooms, areas and levels with their own code never take
-them over), the type, former codes, physical description, and the type's rules for moving, sub-locations, and unique identifiers. Its columns stack
+them over), the type, former codes, description, and the type's rules for moving, sub-locations, and unique identifiers. Its columns stack
 on small screens.
 
 Editing requires `inventory.change_location`; purpose and photo are public.
