@@ -69,7 +69,8 @@ coordinates.
   rectangles; a type's map settings can allow others (the placing dialog then offers a choice, "New" on the map only
   lists locations whose type allows the drawn shape). **Storage units** (shelves, cabinets) as points or rectangles:
   the dialog asks for width and depth in cm (filled in with the usual size of their type); the middle handle moves
-  it, the outer one turns it.
+  it, the outer one turns it. Without a size, the rectangle is drawn by two opposite corners (a click on each, or
+  dragging from one to the other; its sides follow the turn set, at first the plan's walls), which fills in the size.
 - **Snapping:** while placing, a corner of the rectangle (or the point) snaps to a corner of the rooms, areas and
   storage units around it within 12 pixels, else onto their edges; turning snaps parallel or at right angles to the
   edges nearby and to the plan's walls, within 4°. Drawing an area snaps its corners to the corners and edges of the
@@ -79,8 +80,13 @@ coordinates.
   *Map*: placeable on the map; as point, as rectangle, as area; usual width and depth), or for all at once under *Maps → Map settings of location types*. For now
   containers (pallets, boxes) are not placed, nor the parts of storage units (compartments and drawers), which are
   where their storage unit is. A type without settings follows that rule: levels, rooms, areas and storage units, but
-  no type that is another type's sublocation type. Unique items get points of their own only with
-  `MAPS_PLACE_UNIQUE_ITEMS` (`imzam/settings.py`).
+  no type that is another type's sublocation type.
+- **Unique items** can have positions of their own whenever maps are on: a point, a rectangle or an area, each of
+  them, as storage units and rooms are placed. Their item may give the usual shape and the size of a rectangle (admin:
+  the item's page, section *Map (unique items)*); the placing dialog starts with them, and each unique item may differ. Unique items that are points have a layer of their own in the layer selection,
+  "Unique items (points)", off at first, also in the edit mode: many points hide the rest. One a link names (`?p=item:…`,
+  "On the map", "Show on the map") is shown all the same, and so are the link previews (`preview.shown`). Rectangles and
+  areas of unique items are always shown.
 - Something without a position of its own is shown by the nearest location above it that has one ("is in HBB.2;
   its own position is not known"). "Position" and "On the map" appear only where there is something to show (or,
   for "Position", for whoever may place it).
@@ -88,7 +94,7 @@ coordinates.
 ### Edit mode of the map
 
 Map editors (all staff, and whoever has `maps.edit_map`) switch the map page (`/map/`) to **Edit**: a click selects
-a building part, storage unit (or unique item, if they are placed). Handles are rings (white, blue, white; turning:
+a building part, storage unit or unique item. Handles are rings (white, blue, white; turning:
 pink) under a crosshair cursor, so the exact spot stays visible. Areas: drag the corners (a new one from the small
 handle between two), the area as a whole by its inside; rectangles and rows: the middle handle moves, any of the four
 outer ones turns (one on each side, at least 28 px outside the edge, as one may lie under something); points: the
@@ -116,11 +122,13 @@ then offers to save it, discard it or keep editing. Esc drops a new position not
 popup open when the edit mode starts selects what it was opened for, and so does the pencil in the popups (for map
 editors: small, below the popup's close button); what is selected when it ends shows its popup. Enter (not on a button or link) or Ctrl+S / ⌘S saves.
 
-**New** (point, rectangle, area, row; below "Done" while nothing is selected) makes a position on the map first: a click for a point or rectangle, the corners for
-an area (the cursor a crosshair). Then the box above it offers the locations of this level that are placeable but have
-no position yet (building
-parts for an area, storage units for a point or rectangle); choosing one and saving gives it the position. A
-rectangle takes the usual size of the chosen location's type, unless a size was entered.
+**New** (point, rectangle, area, row; below "Done" while nothing is selected) makes a position on the map first: a
+click for a point, two opposite corners for a rectangle (a click on each, or dragging from one to the other; its sides
+follow the turn set, at first the plan's walls), the corners for an area (the cursor a crosshair). Then the box above it
+offers the locations of this level that are placeable but have no position yet (building parts for an area, storage
+units for a point or rectangle) and the unique items of this level without one (every
+shape; their location as the chip); its search field has the focus at once, to type. Choosing one and saving gives it
+the position; a rectangle keeps the size it was drawn with.
 
 **Row** places several storage units of one size side by side, e.g. a run of shelves: a click sets the middle of
 the row; the number, width × depth and the turn apply to all of them, and the row moves, turns and snaps as one.
@@ -165,7 +173,8 @@ outline, so it shows on photos, plans and other areas; the **label's first line*
 
 ### Measuring
 
-*Measure* (at the left, for everyone; `map_measure.js`) measures a **distance** along a line (click its points,
+*Measure* (at the left, for everyone; `map_measure.js`) shows what it measures below it, indented as the shapes below
+*Done* in the edit mode, with a distance chosen at first. It measures a **distance** along a line (click its points,
 the last one again to finish), an **area** with its perimeter (click its corners, the first one again to finish)
 and a **radius** around a point, with the circle's area (click the centre, then a point on the circle). Clicks go
 through what is drawn, so no popup opens; the points can be dragged afterwards. Lengths and areas are metres on the
@@ -208,7 +217,8 @@ link of an earlier version pasted into the open page's address applies at once (
 
 ### When things move
 
-- **Placed on the map again:** what is on or in it moves along, turned with it (the boxes on a pallet).
+- **Placed on the map again:** what is on or in it moves along, turned with it (the boxes on a pallet; unique items
+  with their rectangles and areas too).
 - **Moved to another location** (any move: dialogs, "Move here", the admin): its position, and those of what is on
   or in it, are cleared, unless the move dialog's "Mark the new place on the map" gave a new one. Then the new place
   is set and the things on it move along.
@@ -295,7 +305,7 @@ way bypass the change log.
 |---|---|
 | See the map and plans | nothing (public, as location pages) |
 | Place storage units (and other types placed on the map) | `inventory.change_location` |
-| Place unique items (if turned on) | `inventory.change_uniqueitem` |
+| Place unique items | `inventory.change_uniqueitem` |
 | Draw levels, rooms and areas | `maps.change_building_shape` |
 | Edit mode of the map: edit and move everything placed | `maps.edit_map`, or being staff |
 | Floor plans: upload, crop, place, download source files (`/map/plans/`) | `maps.manage_floorplans` (for now only superusers) |

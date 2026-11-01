@@ -39,7 +39,7 @@ from inventory.models import Location, UniqueItem
 from . import geo, levels
 from .models import FloorPlan, LocationShape, UniqueItemPosition
 
-RENDER_VERSION = 1  # raise when the drawing changes: kept pictures are made anew
+RENDER_VERSION = 2  # raise when the drawing changes: kept pictures are made anew
 WIDTH, HEIGHT = 1200, 630
 SCALE = 2  # drawn at twice the size, then reduced: smooth edges (ImageDraw draws without)
 MAX_TEXT = 60  # as map_mark.js
@@ -52,13 +52,14 @@ FOLDER = "map_previews"
 KEEP = timedelta(days=90)
 SWEEP_EVERY = timedelta(days=1)
 
-# As map.js: STYLES, HIGHLIGHT, the white casing under areas, the marking's colour (map_mark.js).
+# As map.js: STYLES, ITEM_POINT, HIGHLIGHT, the white casing under areas, the marking's colour (map_mark.js).
 STYLES = {
     "space": {"color": "#1f2937", "weight": 2, "fillColor": "#9ca3af", "fillOpacity": 0.12},
     "storage_unit": {"color": "#b35c00", "weight": 1.5, "fillColor": "#fd7e14", "fillOpacity": 0.45},
     "container": {"color": "#0b5ed7", "weight": 1.5, "fillColor": "#6ea8fe", "fillOpacity": 0.45},
-    "item": {"color": "#a11d2b", "weight": 2, "fillColor": "#dc3545", "fillOpacity": 0.9},
+    "item": {"color": "#0f766e", "weight": 1.5, "fillColor": "#2dd4bf", "fillOpacity": 0.35},
 }
+ITEM_POINT = {"color": "#ffffff", "weight": 1.5, "opacity": 1, "fillColor": "#0f766e", "fillOpacity": 0.95, "radius": 5}
 HIGHLIGHT = {"color": "#d63384", "weight": 4, "fillOpacity": 0.35}
 MARK = "#d6336c"
 LABEL = "#495057"
@@ -269,7 +270,8 @@ def _style(feature):
     out."""
     category = feature["properties"].get("category")
     category = category if category in STYLES else "container"
-    return category, {**STYLES[category], **(feature["properties"].get("style") or {})}
+    base = ITEM_POINT if category == "item" and feature["properties"].get("kind") == "point" else STYLES[category]
+    return category, {**base, **(feature["properties"].get("style") or {})}
 
 
 @functools.lru_cache(maxsize=8)
@@ -456,8 +458,19 @@ def _digest(payload, target_):
     return hashlib.sha256(data.encode()).hexdigest()[:20]
 
 
+def shown(payload, target_):
+    """The level as the map shows it at first: without the unique items that are points (their layer is off, map.js),
+    but the target."""
+    target_id = target_.feature and target_.feature["properties"]["id"]
+    features = [feature for feature in payload["features"]["features"]
+                if not (feature["properties"].get("category") == "item" and feature["properties"].get("kind") == "point")
+                or feature["properties"]["id"] == target_id]
+    return {**payload, "features": {**payload["features"], "features": features}}
+
+
 def picture(number, payload, target_):
     """The PNG bytes for target_ on a level: a kept one, else drawn (and kept, unless a mark); None if empty."""
+    payload = shown(payload, target_)
     key = target_.key()
     if key is None:
         return render(payload, target_)
@@ -496,7 +509,7 @@ def sweep(now=None):
     present = {
         "loc": set(LocationShape.objects.filter(location_id__in=wanted["loc"], geometry__isnull=False,
                                                 location__is_deleted=False).values_list("location_id", flat=True)),
-        "item": set(UniqueItemPosition.objects.filter(unique_item_id__in=wanted["item"],
+        "item": set(UniqueItemPosition.objects.filter(unique_item_id__in=wanted["item"], geometry__isnull=False,
                                                       unique_item__disposed_at__isnull=True)
                     .values_list("unique_item_id", flat=True)),
     }

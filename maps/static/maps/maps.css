@@ -50,9 +50,10 @@
     gap: .35rem;
 }
 /* Indented below "Done" (map_edit.js): "Save" and "Discard" while there is a change, "New" while nothing is
-   selected. */
+   selected; below "Measure" (map_measure.js) what is measured. */
 .map-edit-pending,
-.map-edit-new {
+.map-edit-new,
+.map-measure-tools {
     display: flex;
     gap: .35rem;
     margin-left: 1rem;

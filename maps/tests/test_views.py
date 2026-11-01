@@ -17,7 +17,7 @@ from inventory.models import ChangeLog, Location, LocationType
 from PIL import Image
 
 from .. import geo, positions, render
-from ..models import BackgroundLayer, FloorPlan, LocationShape, LocationTypeMap, SurveyedPoint
+from ..models import BackgroundLayer, FloorPlan, ItemMap, LocationShape, LocationTypeMap, SurveyedPoint
 from .test_geo import CENTER, local_point
 from .test_positions import Building
 
@@ -63,18 +63,19 @@ class MapViewTests(Building, TestCase):
                                          {"pixel": [400, 0], "lonlat": list(local_point(8, 0).coords)}])
         self.assertTrue(plan.is_placed)
         positions.set_location_shape(self.pallet, None, local_point(1, -1))
-        positions.set_item_position(self.saw, local_point(1, -1.2))
+        positions.set_item_position(self.saw, None, local_point(1, -1.2))
         data = self.client.get(reverse("maps:level_data", args=[-1])).json()
         self.assertEqual([p["id"] for p in data["plans"]], [plan.pk])
         features = {f["properties"]["id"]: f["properties"] for f in data["features"]["features"]}
         self.assertEqual(features[f"loc:{self.pallet.pk}"]["stack"], [self.hbb.pk, self.upper.pk])
         self.assertEqual(features[f"loc:{self.pallet.pk}"]["kind"], "rectangle")
-        self.assertIn(f"item:{self.saw.pk}", features)
+        self.assertEqual(features[f"item:{self.saw.pk}"]["kind"], "point")  # map.js: in the layer of points
         self.assertEqual([part["short"] for part in data["stacks"][0]["parts"]], [".1", ".2"])
         page = self.client.get(reverse("maps:level", args=[-1]))
         self.assertContains(page, "data-map-page")
         self.assertContains(page, ">-1</a>")
         self.assertContains(page, "data-map-measure-toggle")  # measuring, also for guests
+        self.assertContains(page, 'data-measure-tool="line"', count=1)  # below "Measure", as the edit mode's shapes
         config = json.loads(page.content.decode().split('<script id="map-config" type="application/json">')[1]
                             .split("</script>")[0])
         self.assertEqual([layer["default"] for layer in config["layers"] if layer.get("default")], [True])
@@ -171,6 +172,18 @@ class MapViewTests(Building, TestCase):
         LocationTypeMap.objects.filter(type=self.pallet_type).update(placeable=True)
         rows = self.client.get(url).json()["locations"]
         self.assertEqual([(row["code"], row["size"]) for row in rows], [("P1", [1.2, 0.8])])
+
+    def test_new_positions_go_to_unique_items_without_one(self):
+        url = reverse("maps:unplaced", args=[-1])
+        self.client.force_login(self.staff)
+        ItemMap.objects.create(item=self.saw.item, default_kind="rectangle", default_width_cm=200, default_depth_cm=80)
+        for kind in ("point", "rectangle", "area"):  # every shape
+            items = self.client.get(url, {"kind": kind}).json()["items"]
+            self.assertEqual(items, [{"pk": self.saw.pk, "item": True, "code": self.box.unique_identifier,
+                                      "title": str(self.saw), "type": None, "size": [2, 0.8]}])
+        self.assertEqual(self.client.get(reverse("maps:unplaced", args=[0])).json()["items"], [])  # another level
+        positions.set_item_position(self.saw, None, CENTER)
+        self.assertEqual(self.client.get(url).json()["items"], [])  # has one
 
     def test_a_row_of_shelves_is_placed_together(self):
         shelf = LocationType.objects.create(name="Regal", unique=True, moveable=True, category="storage_unit")
@@ -337,12 +350,16 @@ class MapViewTests(Building, TestCase):
         self.assertNotIn("?focus=", page)
         self.assertEqual(self.client.get(reverse("maps:map") + "?focus=x").context["number"], -1)  # ignored
 
-    def test_containers_and_unique_items_are_not_placed_for_now(self):
+    def test_containers_are_not_placed_for_now_unique_items_are(self):
         self.client.force_login(self.member)
         response = self.client.post(reverse("maps:location_shape", args=[self.pallet.pk]), {"map_geometry": CENTER.json})
         self.assertEqual(response.status_code, 403)
-        response = self.client.post(reverse("maps:item_position", args=[self.saw.pk]), {"map_point": CENTER.json})
-        self.assertEqual(response.status_code, 403)
+        url = reverse("maps:item_position", args=[self.saw.pk])
+        self.assertEqual(self.client.post(url, {"map_geometry": CENTER.json}).status_code, 200)  # with maps, always
+        self.client.force_login(get_user_model().objects.create_user(username="reader"))  # needs change_uniqueitem
+        self.assertEqual(self.client.post(url, {"map_geometry": ""}).status_code, 403)
+        self.client.force_login(self.member)
+        positions.set_item_position(self.saw, None, None)
         page = self.client.get(self.pallet.get_absolute_url()).content.decode()
         self.assertNotIn("map-place-modal", page)  # nothing to show, nothing to place: no "Position"
         self.assertNotIn("/map/-1/?p=", page)
@@ -353,7 +370,6 @@ class MapViewTests(Building, TestCase):
         self.assertIn("map-place-modal", page)  # to look at
         self.assertNotIn("data-place-edit", page)  # but not to place
 
-    @override_settings(MAPS_PLACE_UNIQUE_ITEMS=True)
     def test_the_position_button_opens_the_map_editing_is_explicit(self):
         positions.set_location_shape(self.hbb, LocationShape.Kind.AREA, geo.rectangle(local_point(5, 0), 5, 5))
         guest = self.client.get(self.store.get_absolute_url()).content.decode()
@@ -394,16 +410,37 @@ class MapViewTests(Building, TestCase):
                                                       "lat": local_point(20, 1).y}).json()
         self.assertEqual(at["area"]["url"], self.store.get_absolute_url())
 
-    @override_settings(MAPS_PLACE_UNIQUE_ITEMS=True)
     def test_unique_item_positions(self):
         self.client.force_login(self.member)
         url = reverse("maps:item_position", args=[self.saw.pk])
-        self.assertTrue(self.client.post(url, {"map_point": CENTER.json}).json()["ok"])
+        ItemMap.objects.create(item=self.saw.item, default_kind="rectangle", default_width_cm=200, default_depth_cm=80)
+        context = self.client.get(reverse("maps:place_context"), {"item": self.saw.pk}).json()
+        # Every shape; without a position the item's usual one and size.
+        self.assertEqual((context["own"]["kinds"], context["own"]["kind"], context["own"]["size"]),
+                         (["point", "rectangle", "area"], "rectangle", [2, 0.8]))
+        self.assertEqual((context["own"]["id"], context["own"]["type_size"]), (f"item:{self.saw.pk}", [2, 0.8]))
+        self.assertTrue(self.client.post(url, {"map_geometry": CENTER.json}).json()["ok"])
         context = self.client.get(reverse("maps:place_context"), {"item": self.saw.pk}).json()
         self.assertEqual(context["level"], -1)
-        self.assertEqual(context["own"]["geometry"]["type"], "Point")
-        self.assertTrue(self.client.post(url, {"map_point": ""}).json()["ok"])
-        self.assertIsNone(positions.item_point(self.saw))
+        self.assertEqual((context["own"]["kind"], context["own"]["geometry"]["type"]), ("rectangle", "Polygon"))
+        answer = self.client.post(url, {"map_geometry": geo.rectangle(local_point(5, 0), 3, 2).json,
+                                        "map_kind": "area"}).json()
+        self.assertTrue(answer["ok"])
+        self.assertIn("area of 6.0 m²", answer["description"])  # 5.998 m², rounded
+        data = self.client.get(reverse("maps:level_data", args=[-1])).json()
+        feature = {f["properties"]["id"]: f for f in data["features"]["features"]}[f"item:{self.saw.pk}"]
+        self.assertEqual((feature["properties"]["kind"], feature["geometry"]["type"]), ("area", "Polygon"))
+        self.assertTrue(self.client.post(url, {"map_geometry": ""}).json()["ok"])
+        self.assertIsNone(positions.item_shape(self.saw))
+
+    def test_the_item_gives_the_usual_shape_in_the_admin(self):
+        from inventory.models import Item
+        self.client.force_login(get_user_model().objects.create_superuser(username="admin"))
+        page = self.client.get(reverse("admin:inventory_item_change", args=[self.saw.item.pk]))
+        self.assertContains(page, "map_settings-TOTAL_FORMS")
+        bulk = Item.objects.create(name="Screws", measurement_unit=self.saw.item.measurement_unit)
+        page = self.client.get(reverse("admin:inventory_item_change", args=[bulk.pk]))
+        self.assertNotContains(page, "map_settings-TOTAL_FORMS")  # only items with unique items
 
     def test_plan_images_are_public_sources_for_staff_only(self):
         plan = self.plan(SVG, filename="plan.svg")

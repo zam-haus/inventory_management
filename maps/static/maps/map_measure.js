@@ -2,7 +2,8 @@
 // a radius around a point. Clicks set the points; they go through what is drawn, so no popup opens. A click on the
 // last point again finishes a line (a double click does that), a click on the first point an area, the second click
 // a circle; Escape gives up the one being drawn. Afterwards the points can be dragged. Nothing is saved: closing the
-// bar removes the measurements. Not together with the edit mode (map_edit.js), whose clicks select and draw.
+// bar removes the measurements. Not together with the edit mode (map_edit.js), whose clicks select and draw. What is
+// measured is chosen below "Measure" (as the shapes below "Done" in the edit mode), a distance at first.
 (function () {
     'use strict';
 
@@ -13,7 +14,8 @@
         return;
     }
     var map = page.map, strings = bar.dataset, hint = bar.querySelector('[data-measure-hint]');
-    var toolButtons = bar.querySelectorAll('[data-measure-tool]');
+    // Below "Measure", among the map's actions (map.html).
+    var tools = document.querySelector('[data-measure-tools]'), toolButtons = tools.querySelectorAll('[data-measure-tool]');
     var STYLE = {color: '#6f42c1', weight: 3, fillColor: '#6f42c1', fillOpacity: 0.12, dashArray: null,
         interactive: false, pane: 'map-measure'};
     var FINISH_PIXELS = 8;  // a click this close to the last (or, for an area, the first) point finishes
@@ -239,11 +241,11 @@
             clearAll();
             setTool(null);
         }
-        bar.hidden = !on;
+        bar.hidden = tools.hidden = !on;
         toggleButton.setAttribute('aria-pressed', String(on));
         if (on) {
             map.closePopup();
-            setTool(null);
+            setTool('line');  // a distance at first; another tool is one click away
         }
     }
 

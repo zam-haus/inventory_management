@@ -17,20 +17,37 @@ from django.utils.text import get_valid_filename
 from django.utils.translation import gettext_lazy as _, pgettext_lazy
 
 
-class LocationShape(models.Model):
-    """Where a location is on the map: a point, a rectangle of its size, or an area (building parts)."""
+class Shape(models.Model):
+    """Where something is on the map: a point, a rectangle of its size, or an area."""
 
     class Kind(models.TextChoices):
         POINT = "point", _("Point")
         RECTANGLE = "rectangle", _("Rectangle")
         AREA = "area", _("Area")
 
-    location = models.OneToOneField("inventory.Location", on_delete=models.CASCADE, related_name="map_shape",
-                                    verbose_name=_("location"))
     kind = models.CharField(_("kind"), max_length=10, choices=Kind.choices, default=Kind.POINT)
     # Point for a point; Polygon for a rectangle (its corners, from centre, size and rotation) or an area.
     geometry = models.GeometryField(_("position"), srid=4326, null=True, blank=True)
     rotation = models.FloatField(_("rotation"), default=0, help_text=_("Degrees clockwise; rectangles only."))
+
+    class Meta:
+        abstract = True
+
+    def usual_size_cm(self):
+        """(width, depth) given for all of its kind (location type, item), else None."""
+        return None
+
+    def size_cm(self):
+        """(width, depth) of it, or None if unknown."""
+        usual = self.usual_size_cm() or (None, None)
+        width, depth = self.width_cm or usual[0], self.depth_cm or usual[1]
+        return (width, depth) if width and depth else None
+
+
+class LocationShape(Shape):
+    """Where a location is on the map: a point, a rectangle of its size, or an area (building parts)."""
+    location = models.OneToOneField("inventory.Location", on_delete=models.CASCADE, related_name="map_shape",
+                                    verbose_name=_("location"))
     width_cm = models.PositiveIntegerField(_("width (cm)"), null=True, blank=True,
                                            help_text=_("Empty: the default of the location type."))
     depth_cm = models.PositiveIntegerField(_("depth (cm)"), null=True, blank=True,
@@ -49,12 +66,9 @@ class LocationShape(models.Model):
     def __str__(self):
         return str(self.location)
 
-    def size_cm(self):
-        """(width, depth) of the location, or None if unknown."""
+    def usual_size_cm(self):
         size = getattr(self.location.type, "map_settings", None)
-        width = self.width_cm or (size.default_width_cm if size else None)
-        depth = self.depth_cm or (size.default_depth_cm if size else None)
-        return (width, depth) if width and depth else None
+        return (size.default_width_cm, size.default_depth_cm) if size else None
 
 
 HEX_COLOR = RegexValidator(r"^#[0-9a-fA-F]{6}$", _("A colour as #rrggbb."))
@@ -183,11 +197,34 @@ class LocationTypeMap(models.Model):
         return {key: value for key, value in style.items() if value}
 
 
-class UniqueItemPosition(models.Model):
-    """Where exactly a unique item is, in addition to its location."""
+class ItemMap(models.Model):
+    """How the unique items of an item are usually placed on the map: the shape the placing dialog starts with, and
+    the size of a rectangle (a workbench: 200 × 80 cm). Each unique item can be placed differently."""
+    item = models.OneToOneField("inventory.Item", on_delete=models.CASCADE, related_name="map_settings",
+                                verbose_name=_("item"))
+    default_kind = models.CharField(_("usual shape"), max_length=10, choices=Shape.Kind.choices,
+                                    default=Shape.Kind.POINT)
+    default_width_cm = models.PositiveIntegerField(_("default width (cm)"), null=True, blank=True,
+                                                   help_text=_("Of a rectangle, offered when placing one."))
+    default_depth_cm = models.PositiveIntegerField(_("default depth (cm)"), null=True, blank=True)
+
+    class Meta:
+        verbose_name = _("map settings of an item")
+        verbose_name_plural = _("map settings of items")
+
+    def __str__(self):
+        return str(self.item)
+
+
+class UniqueItemPosition(Shape):
+    """Where exactly a unique item is, in addition to its location: a point, a rectangle or an area. Points are not
+    shown on the map at first (its layer "Unique items (points)"), only when a link names one."""
     unique_item = models.OneToOneField("inventory.UniqueItem", on_delete=models.CASCADE, related_name="map_position",
                                        verbose_name=_("unique item"))
-    point = models.PointField(_("position"), srid=4326)
+    width_cm = models.PositiveIntegerField(_("width (cm)"), null=True, blank=True,
+                                           help_text=_("Empty: the default of the item."))
+    depth_cm = models.PositiveIntegerField(_("depth (cm)"), null=True, blank=True,
+                                           help_text=_("Empty: the default of the item."))
 
     class Meta:
         verbose_name = _("unique item position")
@@ -195,6 +232,10 @@ class UniqueItemPosition(models.Model):
 
     def __str__(self):
         return str(self.unique_item)
+
+    def usual_size_cm(self):
+        size = getattr(self.unique_item.item, "map_settings", None)
+        return (size.default_width_cm, size.default_depth_cm) if size else None
 
 
 def floor_plan_source_path(instance, filename):

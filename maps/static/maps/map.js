@@ -8,9 +8,15 @@
         space: {color: '#1f2937', weight: 2, fillColor: '#9ca3af', fillOpacity: 0.12},
         storage_unit: {color: '#b35c00', weight: 1.5, fillColor: '#fd7e14', fillOpacity: 0.45},
         container: {color: '#0b5ed7', weight: 1.5, fillColor: '#6ea8fe', fillOpacity: 0.45},
-        item: {color: '#a11d2b', weight: 2, fillColor: '#dc3545', fillOpacity: 0.9}
+        // Unique items in petrol, a colour of their own that does not shout: rectangles and polygons lightly filled,
+        // as storage units; points solid with a white rim, visible on aerial photos too (ITEM_POINT).
+        item: {color: '#0f766e', weight: 1.5, fillColor: '#2dd4bf', fillOpacity: 0.35}
     };
+    var ITEM_POINT = {color: '#ffffff', weight: 1.5, opacity: 1, fillColor: '#0f766e', fillOpacity: 0.95, radius: 5};
     var HIGHLIGHT = {color: '#d63384', weight: 4, fillOpacity: 0.35};
+    // Unique items that are points have a layer of their own, off at first (draw: showPoints): many of them hide the
+    // rest. One a link names is shown all the same (reveal).
+    var POINTS = 'item_point';
 
     // Touchpads send wheel events too: a pinch with ctrlKey, a two-finger swipe without. Leaflet zooms with all of
     // them, collecting the steps and animating each zoom, so a pinch lags behind the fingers and a swipe zooms
@@ -212,11 +218,12 @@
         return group;
     }
 
-    // Draws a level's data; returns {plans, layers: {category: L.LayerGroup}, byId, stacks, bounds}.
+    // Draws a level's data; returns {plans, layers: {category: L.LayerGroup}, byId, stacks, bounds}. The unique items
+    // that are points only with `showPoints` (their layer, POINTS).
     function draw(map, data, options) {
         options = options || {};
         // Each plan is a layer of its own: shown at first, or switched on in the layer selection.
-        var result = {plans: [], layers: {}, byId: {}, stacks: data.stacks || [], bounds: null};
+        var result = {plans: [], layers: {}, byId: {}, stacks: data.stacks || [], bounds: null, revealed: {}};
         var bounds = L.latLngBounds([]);
         (data.plans || []).forEach(function (plan) {
             var overlay = planLayer(map, plan);
@@ -226,14 +233,16 @@
             }
             bounds.extend(overlay.getBounds());
         });
-        Object.keys(STYLES).forEach(function (name) { result.layers[name] = L.layerGroup(); });
+        Object.keys(STYLES).concat([POINTS]).forEach(function (name) { result.layers[name] = L.layerGroup(); });
         (data.features.features || []).forEach(function (feature) {
             if (options.skip && options.skip(feature)) {
                 return;
             }
             var name = category(feature);
+            var group = name === 'item' && feature.properties.kind === 'point' ? POINTS : name;
             // The type's look (admin: map settings) over the usual one of its category.
-            var style = Object.assign({className: 'map-feature'}, STYLES[name], feature.properties.style || {});
+            var style = Object.assign({className: 'map-feature'}, group === POINTS ? ITEM_POINT : STYLES[name],
+                feature.properties.style || {});
             // A white halo under an area's outline: visible on aerial photos, plans and other areas. Made first, as a
             // group draws its layers in the order they were made.
             var casing = feature.properties.kind !== 'area' ? null : L.geoJSON(feature, {interactive: false,
@@ -251,7 +260,7 @@
             layer.feature = feature;
             if (casing) {
                 layer.casing = casing;
-                result.layers[name].addLayer(casing);
+                result.layers[group].addLayer(casing);
             }
             if (options.interactive !== false) {
                 // Made once: laying it out again (the photo's load) asks for the content anew, and a new photo
@@ -264,14 +273,19 @@
                 layer._label = {text: text, options: {permanent: true, direction: 'center',
                     className: 'map-label map-label-' + name}};
             }
-            result.layers[name].addLayer(layer);
+            result.layers[group].addLayer(layer);
+            layer._group = group;
             result.byId[feature.properties.id] = layer;
             layer._extent = layer.getBounds ? layer.getBounds() : L.latLngBounds([layer.getLatLng()]);
             bounds.extend(layer._extent);
         });
         result.stacked = {};
         result.stacks.forEach(function (stack) { result.stacked[stack.group] = true; });
-        Object.keys(result.layers).forEach(function (name) { result.layers[name].addTo(map); });
+        Object.keys(result.layers).forEach(function (name) {
+            if (name !== POINTS || options.showPoints) {
+                result.layers[name].addTo(map);
+            }
+        });
         result.map = map;
         filterStacks(result, {});
         var relabel = function () { filterStacks(result, result.choice || {}); };
@@ -495,8 +509,22 @@
         return control;
     }
 
-    function highlight(drawn, id) {
+    // Shows a unique item that is a point while their layer is off: it goes to the layer of unique items.
+    function reveal(drawn, id) {
         var layer = drawn.byId[id];
+        if (!layer || layer._group !== POINTS || drawn.map.hasLayer(drawn.layers[POINTS])) {
+            return layer || null;
+        }
+        drawn.layers[POINTS].removeLayer(layer);
+        drawn.layers.item.addLayer(layer);
+        drawn.layers.item.addTo(drawn.map);
+        layer._group = 'item';
+        drawn.revealed[id] = true;
+        return layer;
+    }
+
+    function highlight(drawn, id) {
+        var layer = reveal(drawn, id);
         if (!layer) {
             return null;
         }
@@ -548,6 +576,85 @@
         return [[-1, 1], [1, 1], [1, -1], [-1, -1]].map(function (corner) {
             return offset(center, corner[0] * size[0] / 2, corner[1] * size[1] / 2, rotation);
         });
+    }
+
+    // The rectangle with the opposite corners `a` and `b`, its sides turned clockwise by `rotation`: {center, size}
+    // (width along the turned east-west, depth across, in metres).
+    function fromCorners(a, b, rotation) {
+        var m = metresPerDegree((a.lat + b.lat) / 2), r = rotation * Math.PI / 180;
+        var east = (b.lng - a.lng) * m[0], north = (b.lat - a.lat) * m[1];
+        // back from offset(): the diagonal in the rectangle's own directions
+        var along = east * Math.cos(r) - north * Math.sin(r), across = east * Math.sin(r) + north * Math.cos(r);
+        return {center: L.latLng((a.lat + b.lat) / 2, (a.lng + b.lng) / 2), size: [Math.abs(along), Math.abs(across)]};
+    }
+
+    // Drawing a rectangle by two opposite corners: a click on each, or pressing on one and letting go on the other
+    // (the map does not pan meanwhile). While `options.active()`: the corners go through `options.snap(latlng, event)`,
+    // the sides follow `options.rotation()`, the rectangle follows the pointer after the first corner; done({center,
+    // size}) once both are there. reset() drops a first corner; clickTaken(): the map's click that follows was one of
+    // the corners (other click handlers leave it alone).
+    var DRAG_PIXELS = 6;  // a press that moves less is a click
+
+    function cornerDrawing(map, options) {
+        var first = null, pressed = null, preview = null, dragging = null, taken = false;
+        function reset() {
+            first = pressed = null;
+            if (preview) {
+                map.removeLayer(preview);
+                preview = null;
+            }
+        }
+        function show(latlng) {
+            var drawn = fromCorners(first, latlng, options.rotation());
+            var corners = rectangle(drawn.center, drawn.size, options.rotation());
+            if (preview) {
+                preview.setLatLngs(corners);
+            } else {
+                preview = L.polygon(corners, Object.assign({interactive: false, dashArray: '6 4'}, options.style))
+                    .addTo(map);
+            }
+        }
+        function finish(latlng) {
+            var drawn = fromCorners(first, latlng, options.rotation());
+            reset();
+            if (drawn.size[0] >= 0.01 && drawn.size[1] >= 0.01) {  // not on one line: at least a centimetre
+                options.done(drawn);
+            }
+        }
+        map.on('mousedown', function (event) {
+            taken = false;
+            if (!options.active() || event.originalEvent.button) {
+                return;
+            }
+            dragging = map.dragging.enabled();
+            map.dragging.disable();  // pressing and dragging draws (Leaflet's own drag starts after this)
+            pressed = {point: event.containerPoint, first: !first};
+            if (!first) {
+                first = options.snap(event.latlng, event.originalEvent);
+            }
+        });
+        map.on('mousemove', function (event) {
+            if (first && options.active()) {
+                show(options.snap(event.latlng, event.originalEvent));
+            }
+        });
+        map.on('mouseup', function (event) {
+            if (dragging) {
+                map.dragging.enable();
+            }
+            dragging = null;
+            if (!pressed || !options.active()) {
+                pressed = null;
+                return;
+            }
+            var moved = pressed.point.distanceTo(event.containerPoint) > DRAG_PIXELS, firstPress = pressed.first;
+            pressed = null;
+            taken = true;
+            if (moved || !firstPress) {  // dragged from the first corner, or a click on the second
+                finish(options.snap(event.latlng, event.originalEvent));
+            }
+        });
+        return {reset: reset, clickTaken: function () { return taken; }};
     }
 
     // How far a plan is turned clockwise (its top edge against east-west), so rectangles follow its walls.
@@ -639,9 +746,12 @@
         return (Math.atan2((at.lng - center.lng) * m[0], (at.lat - center.lat) * m[1]) * 180 / Math.PI + 360) % 360;
     }
 
-    window.ZamMap = {create: create, draw: draw, planLayer: planLayer, load: load, highlight: highlight, stackControl: stackControl,
-        filterStacks: filterStacks, layerControl: layerControl, STYLES: STYLES,
-        geometry: {metresPerDegree: metresPerDegree, distance: distance, offset: offset, rectangle: rectangle, planRotation: planRotation,
+    window.ZamMap = {create: create, draw: draw, planLayer: planLayer, load: load, highlight: highlight, reveal: reveal,
+        stackControl: stackControl,
+        filterStacks: filterStacks, layerControl: layerControl, STYLES: STYLES, ITEM_POINT: ITEM_POINT,
+        cornerDrawing: cornerDrawing,
+        geometry: {metresPerDegree: metresPerDegree, distance: distance, offset: offset, rectangle: rectangle,
+            fromCorners: fromCorners, planRotation: planRotation,
             snapTargets: snapTargets, snapCenter: snapCenter, snapRotation: snapRotation, bearing: bearing}};
 
     // The map page (maps/map.html).
@@ -716,8 +826,11 @@
             if (url !== element.dataset.url) {
                 return;  // another level was chosen meanwhile
             }
-            var old = [];
+            var old = [], showPoints = false, revealed = {};
             if (page.drawn) {  // what was drawn before, and its switches; plans that were switched on stay so
+                // as do the unique items that are points, and those shown of them (in the edit mode: the one saved)
+                showPoints = map.hasLayer(page.drawn.layers[POINTS]);
+                revealed = page.drawn.revealed;
                 page.drawn.off();
                 var shown = {};
                 page.drawn.plans.forEach(function (plan) {
@@ -732,8 +845,11 @@
                 Object.keys(page.drawn.layers).forEach(function (name) { map.removeLayer(page.drawn.layers[name]); });
                 page.controls.forEach(function (control) { control.remove(); });
             }
-            var drawn = draw(map, data, {interactive: true});
+            var drawn = draw(map, data, {interactive: true, showPoints: showPoints});
             page.drawn = drawn;
+            if (!level) {
+                Object.keys(revealed).forEach(function (id) { reveal(drawn, id); });
+            }
             retire(old, drawn.plans);
             var overlays = {};
             drawn.plans.forEach(function (plan) { overlays[names.plan.replace('{name}', plan.planName)] = plan; });
@@ -909,7 +1025,7 @@
             }
         }
         if (target.popup && page.drawn && page.drawn.byId[target.popup]) {
-            page.drawn.byId[target.popup].openPopup();
+            reveal(page.drawn, target.popup).openPopup();
         }
     }
 

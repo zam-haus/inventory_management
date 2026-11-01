@@ -104,9 +104,13 @@ def _location_feature(shape, tree):
 
 
 def _item_feature(position, tree):
+    """A unique item; the map shows points only when they are asked for (map.js: the layer of points is off)."""
     item = position.unique_item
-    return {"type": "Feature", "geometry": json.loads(position.point.json), "properties": {
-        "id": f"item:{item.pk}", "pk": item.pk, "category": "item", "kind": "point", "title": str(item),
+    size = position.size_cm()
+    geometry = position.geojson if hasattr(position, "geojson") else position.geometry.json
+    return {"type": "Feature", "geometry": json.loads(geometry), "properties": {
+        "id": f"item:{item.pk}", "pk": item.pk, "category": "item", "kind": position.kind,
+        "rotation": position.rotation, "size": [size[0] / 100, size[1] / 100] if size else None, "title": str(item),
         "code": item.location.unique_identifier, "url": item.get_absolute_url(),
         "stack": tree.stack(item.location_id), "depth": tree.depth(item.location_id) + 1,
     }}
@@ -119,14 +123,15 @@ def level_payload(number, tree=None):
     placed = LocationShape.objects.filter(geometry__isnull=False, location__is_deleted=False,
                                           location__is_reserved=False)
     tree.load(placed.values("location_id"))
-    items = UniqueItemPosition.objects.filter(unique_item__disposed_at__isnull=True)
+    items = UniqueItemPosition.objects.filter(unique_item__disposed_at__isnull=True, geometry__isnull=False)
     tree.load(items.values("unique_item__location_id"))
     shaped_on_level = tree.on_level(list(placed.values_list("location_id", flat=True)), number)  # loaded: no query
     plans_ = FloorPlan.objects.filter(active=True, corners__isnull=False, level=number).order_by("name", "pk")
     # GeoJSON from the database (to the millimetre), not through GEOS and OGR shape by shape.
     shapes = placed.filter(location_id__in=shaped_on_level).select_related("location__type__map_settings") \
         .annotate(geojson=AsGeoJSON("geometry", precision=8))
-    items = [position for position in items.select_related("unique_item__item", "unique_item__location")
+    items = [position for position in items.select_related("unique_item__item__map_settings", "unique_item__location")
+             .annotate(geojson=AsGeoJSON("geometry", precision=8))
              if tree.level_number(position.unique_item.location_id) == number]
     stacks = []
     for group in sorted(set(tree.on_level(tree.stacked, number)), key=tree.code):
@@ -170,7 +175,8 @@ def map_view(request, number=None):
 
 def layer_names():
     return {"plan": _("Plan: {name}"), "space": _("Building parts"), "storage_unit": _("Storage units"),
-            "container": _("Containers"), "item": _("Unique items"), "all": _("all")}
+            "container": _("Containers"), "item": _("Unique items"), "item_point": _("Unique items (points)"),
+            "all": _("all")}
 
 
 class _SaveView(View):
@@ -251,24 +257,41 @@ class LocationShapeRowView(_SaveView):
 
 
 class ItemPositionView(_SaveView):
+    """Places a unique item (point, rectangle or area: the fields of LocationShapeView), or removes its position."""
+
     def post(self, request, pk):
         with transaction.atomic():
-            item = get_object_or_404(UniqueItem.active.select_for_update(of=("self",)), pk=pk)
+            item = get_object_or_404(UniqueItem.active.select_for_update(of=("self",)).select_related(
+                "item__map_settings"), pk=pk)
             if reason := item_position_denied(request.user, item):
                 return self.answer(reason, status=403)
             try:
-                positions.set_item_position(item, request.POST.get("map_point") or None)
+                placement = positions.placement_from(request.POST) or {"kind": None, "geometry": None,
+                                                                       "rotation": 0.0, "size": None}
+                position = positions.set_item_position(item, placement["kind"], placement["geometry"],
+                                                       placement["rotation"], size=placement["size"])
             except positions.PlacementError as error:
+                transaction.set_rollback(True)
                 return self.answer(error)
-        return self.answer(description=positions.describe_point(positions.item_point(item)))
+        return self.answer(description=positions.describe(position))
 
 
 def type_size(kind):
-    """[width, depth] in m of a location type's usual size (admin: its map settings), or None."""
+    """[width, depth] in m of a location type's or item's usual size (admin: its map settings), or None."""
     settings_ = getattr(kind, "map_settings", None)
     if settings_ is None or not (settings_.default_width_cm and settings_.default_depth_cm):
         return None
     return [settings_.default_width_cm / 100, settings_.default_depth_cm / 100]
+
+
+def _own(shape, kinds, usual_kind=None):
+    """A shape as the placing dialog takes it (map_place.js): kind (without a position: the usual one), geometry,
+    rotation, size in m, the kinds offered."""
+    size = shape.size_cm()
+    has_geometry = shape.geometry is not None
+    return {"kind": shape.kind if has_geometry else usual_kind,
+            "geometry": json.loads(shape.geometry.json) if has_geometry else None, "rotation": shape.rotation,
+            "size": [size[0] / 100, size[1] / 100] if size else None, "kinds": kinds}
 
 
 @require_GET
@@ -278,23 +301,19 @@ def place_context(request):
     tree = levels.Tree()
     data = {}
     if request.GET.get("item", "").isdigit():
-        item = get_object_or_404(UniqueItem.active.select_related("location"), pk=request.GET["item"])
-        point = positions.item_point(item)
-        data["own"] = {"kind": "point", "geometry": json.loads(point.json) if point else None, "rotation": 0,
-                       "size": None, "kinds": ["point"]}
+        item = get_object_or_404(UniqueItem.active.select_related("location", "item__map_settings"),
+                                 pk=request.GET["item"])
+        # Every shape; the item gives the usual one and its size.
+        position = UniqueItemPosition.objects.filter(unique_item=item).first() or UniqueItemPosition(unique_item=item)
+        settings_ = getattr(item.item, "map_settings", None)
+        data["own"] = {**_own(position, list(UniqueItemPosition.Kind.values), settings_ and settings_.default_kind),
+                       "id": f"item:{item.pk}", "type_size": type_size(item.item)}
         around = item.location
     elif request.GET.get("location", "").isdigit():
         location = get_object_or_404(Location.active.select_related("type__map_settings"), pk=request.GET["location"])
         shape = LocationShape.objects.filter(location=location).select_related("location__type__map_settings").first()
-        size = (shape or LocationShape(location=location)).size_cm()
-        has_geometry = shape is not None and shape.geometry is not None
-        data["own"] = {"kind": shape.kind if has_geometry else None,
-                       "geometry": json.loads(shape.geometry.json) if has_geometry else None,
-                       "rotation": shape.rotation if shape else 0,
-                       "size": [size[0] / 100, size[1] / 100] if size else None,
-                       "id": f"loc:{location.pk}", "kinds": allowed_kinds(location.type),
-                       "type_size": type_size(location.type),
-                       }
+        data["own"] = {**_own(shape or LocationShape(location=location), allowed_kinds(location.type)),
+                       "id": f"loc:{location.pk}", "type_size": type_size(location.type)}
         around = location.parent_location or location
     else:
         raise Http404
@@ -315,7 +334,8 @@ def place_context(request):
 @require_GET
 def unplaced(request, number):
     """For the edit mode (map editors): the locations on a level that can be placed but have no position yet, to link
-    a new shape to (?kind=point, rectangle or area: those whose type allows it)."""
+    a new shape to (?kind=point, rectangle or area: those whose type allows it); and the unique items in them without
+    a position of their own (every shape)."""
     if edit_map_denied(request.user):
         raise PermissionDenied
     kind = request.GET.get("kind", "point")
@@ -330,7 +350,15 @@ def unplaced(request, number):
             "type__map_settings", "parent_location__type").order_by("unique_identifier"):
         rows.append({"pk": location.pk, "code": location.unique_identifier, "title": location.title,
                      "type": location.type_id, "size": type_size(location.type)})
-    return JsonResponse({"locations": rows})
+    items = []
+    unplaced_items = UniqueItem.active.filter(location__isnull=False).exclude(map_position__geometry__isnull=False)
+    on_level = set(tree.on_level(unplaced_items.values_list("location_id", flat=True), number))
+    # Where they are as the chip, as in the box above the map's selection.
+    for item in unplaced_items.filter(location__in=on_level).select_related(
+            "item__map_settings", "location").order_by("location__unique_identifier", "item__name", "pk"):
+        items.append({"pk": item.pk, "item": True, "code": item.location.unique_identifier, "title": str(item),
+                      "type": None, "size": type_size(item.item)})
+    return JsonResponse({"locations": rows, "items": items})
 
 
 @require_GET

@@ -81,6 +81,23 @@ class PreviewTests(Building, TestCase):
         self.assertGreater(sum(1 for pixel in image.getdata() if pixel[0] > 180 and pixel[1] < 120), 500)
         self.assertGreater(sum(1 for pixel in image.getdata() if pixel[1] > pixel[0] + 60), 100000)
 
+    def test_unique_items_that_are_points_only_when_named(self):
+        positions.set_item_position(self.saw, None, local_point(31, -20))
+        positions.set_item_position(self.unique_rectangle(), "area", geo.rectangle(local_point(20, -20), 2, 1))
+        payload = level_payload(-1)
+        ids = lambda target: [f["properties"]["id"] for f in preview.shown(payload, target)["features"]["features"]]
+        self.assertNotIn(f"item:{self.saw.pk}", ids(preview.Target()))  # as on the map: their layer is off
+        self.assertIn(f"item:{self.bench.pk}", ids(preview.Target()))  # more than a point: shown
+        self.assertIn(f"item:{self.saw.pk}", ids(preview.target({"p": f"item:{self.saw.pk}"}, payload)))
+        self.picture(f"/map/level/-1/preview.png?p=item:{self.saw.pk}")
+
+    def unique_rectangle(self):
+        from inventory.models import Item, UniqueItem
+        item = Item.objects.create(name="Workbench", kind=Item.Kind.UNIQUE,
+                                   measurement_unit=self.saw.item.measurement_unit)
+        self.bench = UniqueItem.objects.create(item=item, location=self.pallet)
+        return self.bench
+
     def test_a_marked_point_names_the_room(self):
         point = local_point(10, -10)
         tags = self.tags(f"/map/-1/?m={point.y},{point.x}&t=Meet%20here")

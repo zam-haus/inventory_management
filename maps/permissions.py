@@ -1,5 +1,4 @@
 """What is placed on the map, and who may place it."""
-from django.conf import settings
 from django.utils.translation import gettext as _
 
 
@@ -27,10 +26,6 @@ def placeable(location):
     """Whether locations of this type are placed on the map (admin: the location type's map settings)."""
     settings_ = getattr(location.type, "map_settings", None)
     return settings_.placeable if settings_ is not None else default_placed(location.type)
-
-
-def items_placeable():
-    return settings.MAPS_PLACE_UNIQUE_ITEMS
 
 
 def map_editor(user):
@@ -63,8 +58,6 @@ def shape_denied(user, location):
 
 
 def item_position_denied(user, unique_item):
-    if not items_placeable():
-        return _("Unique items are not placed on the map.")
     if unique_item.location_id is not None and map_editor(user):
         return None
     if not user.has_perm("inventory.change_uniqueitem"):

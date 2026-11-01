@@ -1,9 +1,10 @@
 // Placing a location or unique item on the map (maps/views.py place_context, LocationShapeView, ItemPositionView).
-// A click sets where it is. A storage unit is a point or a rectangle of the width and depth entered here: the
-// middle handle drags it, the outer one turns it; the slider turns it too. Dragging snaps its corners to the corners
+// A click sets where it is. A storage unit (or unique item) is a point or a rectangle of the width and depth entered here: the
+// middle handle drags it, the outer one turns it; the slider turns it too. Without a size, a rectangle is drawn by two
+// opposite corners (a click on each, or dragging from one to the other), along the turn set (at first the plan's walls). Dragging snaps its corners to the corners
 // and edges of the rooms, areas and storage units around it, turning to their edges and the plan's walls (Alt while
 // dragging: no snapping).
-// Levels, rooms and areas get an area drawn with Leaflet-Geoman. Two uses:
+// Levels, rooms and areas (and unique items, if chosen) get an area drawn with Leaflet-Geoman. Two uses:
 //   [data-map-place]  the dialog on the page of a location or unique item: saves at once;
 //   [data-map-pick]   a step in the move dialogs: fills hidden fields that go with the move (signals.moved).
 (function () {
@@ -53,6 +54,7 @@
             radio.addEventListener('change', function () {
                 var wasArea = self.kind === 'area';
                 self.kind = radio.value;
+                self.corners.reset();
                 if (wasArea !== (self.kind === 'area')) {  // an area and a point are different drawings
                     self.dropArea();
                     self.center = null;
@@ -66,6 +68,7 @@
             input.addEventListener('input', function () {
                 var width = Number(self.widthInput.value), depth = Number(self.depthInput.value);
                 self.size = width > 0 && depth > 0 ? [width / 100, depth / 100] : null;
+                self.corners.reset();
                 self.redraw();
                 self.sayWhatToDo();
             });
@@ -112,7 +115,7 @@
             return;
         }
         if (this.kind === 'rectangle' && !this.size) {
-            this.say(strings.enterSize);
+            this.say(strings.drawRectangle);
         } else {
             this.say(this.isRectangle() ? strings.clickRectangle : strings.clickPoint);
         }
@@ -126,7 +129,18 @@
             this.map = ZamMap.create(this.canvas);
             ZamMap.layerControl(this.map);
             this.map.on('click', function (event) { self.click(event.latlng); });
+            this.corners = ZamMap.cornerDrawing(this.map, {
+                active: function () { return self.drawsCorners(); },
+                rotation: function () { return self.rotation; },
+                snap: function (latlng, event) {
+                    return event && event.altKey ? latlng : geometry.snapCenter(self.map,
+                        geometry.snapTargets(self.map, self.drawn), latlng, function (at) { return [at]; });
+                },
+                style: {color: '#d63384', weight: 3, fillOpacity: 0.15},
+                done: function (drawn) { self.drawnCorners(drawn); }
+            });
         }
+        this.corners.reset();
         if (this.map.pm) {
             this.map.pm.disableDraw();
         }
@@ -197,8 +211,25 @@
         });
     };
 
+    // A rectangle without a size yet is drawn by its corners (cornerDrawing).
+    Placer.prototype.drawsCorners = function () {
+        return this.editing && Boolean(this.context && this.context.data_url) && this.kind === 'rectangle' && !this.size;
+    };
+
+    Placer.prototype.drawnCorners = function (drawn) {
+        this.center = drawn.center;
+        this.size = drawn.size.map(function (metres) { return Math.max(1, Math.round(metres * 100)) / 100; });
+        this.widthInput.value = Math.round(this.size[0] * 100);
+        this.depthInput.value = Math.round(this.size[1] * 100);
+        this.changed = true;
+        this.redraw();
+        this.lookUpArea();
+        this.sayWhatToDo();
+    };
+
     Placer.prototype.click = function (latlng) {
-        if (!this.editing || !this.context || !this.context.data_url || this.kind === 'area') {
+        if (!this.editing || !this.context || !this.context.data_url || this.kind === 'area' ||
+                this.drawsCorners() || this.corners.clickTaken()) {
             return;
         }
         this.center = this.snappedCenter(latlng);
@@ -240,14 +271,15 @@
         this.shapeBox.hidden = !this.editing || !(choice || this.kind === 'rectangle');
         this.kindGroup.hidden = !choice;
         this.sizeBox.hidden = this.kind !== 'rectangle';
-        this.rotationBox.hidden = !this.editing || !rectangular;
+        this.rotationBox.hidden = !this.editing || this.kind !== 'rectangle';  // also to turn one before drawing it
         this.rotationInput.value = Math.round(this.rotation);
         this.rotationOutput.textContent = Math.round(this.rotation) + '°';
         if (!this.center || !this.map) {
             this.changedFields();
             return;
         }
-        var style = Object.assign({}, ZamMap.STYLES[rectangular ? 'storage_unit' : 'item'], {color: '#d63384', weight: 3});
+        var style = Object.assign({}, rectangular ? ZamMap.STYLES.storage_unit : ZamMap.ITEM_POINT,
+            {color: '#d63384', weight: 3});
         this.shape = rectangular ? L.polygon(rectangle(this.center, this.size, this.rotation), style)
             : L.circleMarker(this.center, Object.assign({radius: 8}, style));
         this.shape.addTo(this.map);
@@ -394,7 +426,8 @@
         return '';
     };
 
-    // The fields saved with a location's position (LocationShapeView, positions.placement_from).
+    // The fields saved with a location's or unique item's position (LocationShapeView, ItemPositionView,
+    // positions.placement_from).
     Placer.prototype.fields = function (geometry) {
         var own = this.own();
         var fields = {map_geometry: geometry, map_rotation: this.rotation,
@@ -445,7 +478,7 @@
         }
 
         function fields(geometry) {
-            return strings.field === 'map_point' ? {map_point: geometry} : placer.fields(geometry);
+            return placer.fields(geometry);
         }
 
         function finish(response) {
@@ -500,10 +533,6 @@
 
         placer.changedFields = function () {
             var geometry = placer.geometry();
-            if (strings.field === 'map_point') {
-                form.querySelector('[name=map_point]').value = geometry;
-                return;
-            }
             var fields = placer.fields(geometry);
             ['map_geometry', 'map_kind', 'map_rotation', 'map_width_cm', 'map_depth_cm'].forEach(function (name) {
                 form.querySelector('[name=' + name + ']').value = geometry && name in fields ? fields[name] : '';

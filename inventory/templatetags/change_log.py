@@ -25,9 +25,11 @@ VALUE_LENGTH = 80
 def field_label(subject_type, name):
     """The field's current label, else the one it had (FORMER_FIELDS) or an app gave it (APP_FIELDS), else its name."""
     try:
-        return str(apps.get_model("inventory", subject_type)._meta.get_field(name).verbose_name)
+        # A reverse relation of that name has none (maps: a unique item's "map_position" is also its position's).
+        label = getattr(apps.get_model("inventory", subject_type)._meta.get_field(name), "verbose_name", None)
     except (LookupError, FieldDoesNotExist):
-        return str(FORMER_FIELDS.get((subject_type, name)) or APP_FIELDS.get((subject_type, name)) or name)
+        label = None
+    return str(label or FORMER_FIELDS.get((subject_type, name)) or APP_FIELDS.get((subject_type, name)) or name)
 
 
 def short(text):

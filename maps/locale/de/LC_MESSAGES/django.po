@@ -68,7 +68,7 @@ msgstr "Rechteck"
 
 #: models.py:26 templates/maps/map.html:51 templates/maps/place_tools.html:9
 msgid "Area"
-msgstr "Fläche"
+msgstr "Polygon"
 
 #: models.py:29
 msgid "location"
@@ -161,7 +161,7 @@ msgstr "In der üblichen Größe oder einer eigenen."
 
 #: models.py:95
 msgid "as area"
-msgstr "als Fläche"
+msgstr "als Polygon"
 
 #: models.py:95
 msgid "An outline drawn on the map, e.g. rooms."
@@ -271,7 +271,7 @@ msgstr "Kartenangaben der Standorttypen"
 
 #: models.py:136
 msgid "A placeable type needs at least one shape: point, rectangle or area."
-msgstr "Ein platzierbarer Typ braucht mindestens eine Form: Punkt, Rechteck oder Fläche."
+msgstr "Ein platzierbarer Typ braucht mindestens eine Form: Punkt, Rechteck oder Polygon."
 
 #: models.py:139
 msgid "The style options are a JSON object: {\"option\": value}."
@@ -592,7 +592,7 @@ msgstr "Die Passpunkte legen den Plan nicht fest: %(error)s"
 #: positions.py:32
 #, python-format
 msgid "area of %(area)s m²"
-msgstr "Fläche von %(area)s m²"
+msgstr "Polygon mit %(area)s m²"
 
 #: positions.py:37
 #, python-format
@@ -713,22 +713,25 @@ msgid "The map could not be loaded."
 msgstr "Die Karte ließ sich nicht laden."
 
 #: templates/maps/map.html:37
-msgid "Click where it is, then choose the location."
-msgstr "Dorthin klicken, wo es ist; dann den Standort wählen."
+msgid "Click where it is, then choose what it belongs to."
+msgstr "Dorthin klicken, wo es ist; dann wählen, wozu es gehört."
+
+msgid "Click two opposite corners, or drag from one to the other; then choose what it belongs to."
+msgstr "Zwei gegenüberliegende Ecken anklicken oder von einer zur anderen ziehen; dann wählen, wozu es gehört."
 
 #: templates/maps/map.html:38
 msgid ""
 "Click the corners of the area one after the other (the first again to "
-"finish), then choose the location."
-msgstr "Die Ecken der Fläche nacheinander anklicken (zum Abschließen wieder die erste), dann den Standort wählen."
+"finish), then choose what it belongs to."
+msgstr "Die Ecken des Polygons nacheinander anklicken (zum Abschließen wieder die erste), dann wählen, wozu es gehört."
 
 #: templates/maps/map.html:39
-msgid "Every location of this kind on this level has a position already."
-msgstr "Alle Standorte dieser Art auf dieser Ebene haben schon eine Position."
+msgid "Everything of this kind on this level has a position already."
+msgstr "Alles dieser Art auf dieser Ebene hat schon eine Position."
 
 #: templates/maps/map.html:40
-msgid "Choose the location first."
-msgstr "Erst den Standort wählen."
+msgid "Choose what it belongs to first."
+msgstr "Erst wählen, wozu es gehört."
 
 #: templates/maps/map.html:41
 msgid "Click a building part or storage unit to change its position."
@@ -783,7 +786,7 @@ msgid "New rectangle"
 msgstr "Neues Rechteck"
 
 msgid "New area"
-msgstr "Neue Fläche"
+msgstr "Neues Polygon"
 
 msgid "New row"
 msgstr "Neue Reihe"
@@ -892,6 +895,9 @@ msgstr "Dorthin klicken, wo seine Mitte ist. Mit dem mittleren Griff verschieben
 msgid "Enter its width and depth in centimetres."
 msgstr "Breite und Tiefe in Zentimetern eingeben."
 
+msgid "Click two opposite corners, or drag from one to the other; or enter its width and depth."
+msgstr "Zwei gegenüberliegende Ecken anklicken oder von einer zur anderen ziehen – oder Breite und Tiefe eingeben."
+
 #: templates/maps/place_strings.html:1
 msgid "Drag to move"
 msgstr "Ziehen zum Verschieben"
@@ -904,7 +910,7 @@ msgstr "Ziehen zum Drehen"
 msgid ""
 "Click the corners of the area one after the other; click the first corner "
 "again to finish."
-msgstr "Die Ecken der Fläche nacheinander anklicken; zum Abschließen wieder die erste Ecke anklicken."
+msgstr "Die Ecken des Polygons nacheinander anklicken; zum Abschließen wieder die erste Ecke anklicken."
 
 #: templates/maps/place_strings.html:1
 msgid "Drag the corners to correct the area."
@@ -1550,3 +1556,31 @@ msgstr "%(where)s, auf der Karte von Ebene %(level)s"
 #, python-format
 msgid "On the map of level %(level)s"
 msgstr "Auf der Karte von Ebene %(level)s"
+
+#: maps/admin.py
+msgid "map (unique items)"
+msgstr "Karte (Einzelobjekte)"
+
+#: maps/models.py
+msgid "item"
+msgstr "Sache"
+
+#: maps/models.py
+msgid "usual shape"
+msgstr "übliche Form"
+
+#: maps/models.py
+msgid "map settings of an item"
+msgstr "Kartenangaben einer Sache"
+
+#: maps/models.py
+msgid "map settings of items"
+msgstr "Kartenangaben der Sachen"
+
+#: maps/models.py
+msgid "Empty: the default of the item."
+msgstr "Leer: die übliche Größe der Sache."
+
+#: maps/views.py
+msgid "Unique items (points)"
+msgstr "Einzelobjekte (Punkte)"

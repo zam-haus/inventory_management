@@ -7,7 +7,7 @@ from inventory.models import ChangeLog, Item, Location, LocationType, Measuremen
 
 from .. import geo, positions
 from ..levels import Tree, effective_shape
-from ..models import LocationShape, LocationTypeMap, UniqueItemPosition
+from ..models import ItemMap, LocationShape, LocationTypeMap, UniqueItemPosition
 from .test_geo import CENTER, local_point
 
 
@@ -107,7 +107,7 @@ class TypeLookTests(Building, TestCase):
 
 
 # The mechanics with a pallet and a unique item; installations choose what is placed (admin: location types).
-@override_settings(LANGUAGE_CODE="en", MAPS_PLACE_UNIQUE_ITEMS=True)
+@override_settings(LANGUAGE_CODE="en")
 class PositionTests(Building, TestCase):
     @classmethod
     def setUpTestData(cls):
@@ -121,7 +121,7 @@ class PositionTests(Building, TestCase):
     def place_all(self):
         positions.set_location_shape(self.pallet, None, CENTER)
         positions.set_location_shape(self.box, None, local_point(0.3, 0))
-        positions.set_item_position(self.saw, local_point(0.3, 0.1))
+        positions.set_item_position(self.saw, None, local_point(0.3, 0.1))
 
     def shape(self, location):
         return LocationShape.objects.filter(location=location).first()
@@ -137,7 +137,7 @@ class PositionTests(Building, TestCase):
     def test_what_is_on_it_moves_along(self):
         self.place_all()
         positions.set_location_shape(self.pallet, None, local_point(10, 0), 90)
-        box, saw = self.shape(self.box).geometry, UniqueItemPosition.objects.get().point
+        box, saw = self.shape(self.box).geometry, UniqueItemPosition.objects.get().geometry
         here = geo.local(local_point(10, 0))
         self.assertAlmostEqual(geo.local(box).x - here.x, 0, places=3)
         self.assertAlmostEqual(geo.local(box).y - here.y, -0.3, places=3)  # east turned to south
@@ -171,10 +171,41 @@ class PositionTests(Building, TestCase):
         self.place_all()
         self.client.force_login(self.member)
         self.client.post(reverse("move_unique_item", args=[self.saw.pk]),
-                         {"location": self.store.pk, "map_point": local_point(21, 0).json})
-        self.assertLess(geo.distance_m(UniqueItemPosition.objects.get().point, local_point(21, 0)), 0.001)
+                         {"location": self.store.pk, "map_geometry": local_point(21, 0).json})
+        self.assertLess(geo.distance_m(UniqueItemPosition.objects.get().geometry, local_point(21, 0)), 0.001)
         self.client.post(reverse("move_unique_item", args=[self.saw.pk]), {"location": self.box.pk})
         self.assertFalse(UniqueItemPosition.objects.exists())
+
+    def test_unique_items_take_every_shape_with_their_items_usual_size(self):
+        ItemMap.objects.create(item=self.saw.item, default_kind="rectangle", default_width_cm=200, default_depth_cm=80)
+        position = positions.set_item_position(self.saw, "rectangle", CENTER, 90)
+        self.assertEqual((position.kind, position.rotation, position.width_cm), ("rectangle", 90, None))
+        self.assertAlmostEqual(geo.area_m2(position.geometry), 1.6, places=3)  # the item's 200 × 80 cm
+        position = positions.set_item_position(self.saw, "rectangle", CENTER, 0, size=(100, 50))
+        self.assertEqual(position.size_cm(), (100, 50))  # its own
+        position = positions.set_item_position(self.saw, "rectangle", CENTER, 0, size=(200, 80))
+        self.assertEqual(position.width_cm, None)  # the usual size is not kept as its own
+        area = geo.rectangle(local_point(0.5, 0), 2, 1)
+        position = positions.set_item_position(self.saw, "area", area)
+        self.assertEqual(position.kind, "area")
+        entry = ChangeLog.objects.filter(unique_item=self.saw, action=ChangeLog.Action.CHANGED).latest("pk")
+        self.assertIn("area of 2.0 m²", entry.changes[0]["after"])  # 1.998 m², rounded
+        self.assertIsNone(positions.set_item_position(self.saw, None, None))
+        self.assertFalse(UniqueItemPosition.objects.exists())
+
+    def test_the_unique_items_page_shows_the_change_of_its_position(self):
+        positions.set_item_position(self.saw, None, CENTER)
+        self.member.user_permissions.add(Permission.objects.get(codename="view_changelog"))
+        self.client.force_login(self.member)
+        response = self.client.get(self.saw.get_absolute_url())  # its position's relation has the field's name
+        self.assertContains(response, "Position on the map")
+
+    def test_the_area_of_a_unique_item_moves_along(self):
+        self.place_all()
+        positions.set_item_position(self.saw, "area", geo.rectangle(local_point(0.3, 0), 0.4, 0.2))
+        positions.set_location_shape(self.pallet, None, local_point(10, 0))
+        moved = geo.anchor(UniqueItemPosition.objects.get().geometry)
+        self.assertLess(geo.distance_m(moved, local_point(10.3, 0)), 0.001)
 
     def test_building_parts_keep_their_area_when_restructured(self):
         area = geo.rectangle(local_point(20, 0), 5, 5)

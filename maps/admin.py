@@ -2,9 +2,9 @@ from django.contrib import admin, messages
 from django.utils.translation import gettext_lazy as _, pgettext_lazy
 
 from . import plans
-from inventory.admin import LocationTypeAdmin
+from inventory.admin import ItemAdmin, LocationTypeAdmin
 
-from .models import (BackgroundLayer, FloorPlan, LocationShape, LocationTypeMap, SurveyedPoint,
+from .models import (BackgroundLayer, FloorPlan, ItemMap, LocationShape, LocationTypeMap, SurveyedPoint,
                      UniqueItemPosition)
 
 
@@ -80,11 +80,40 @@ class LocationTypeMapAdmin(admin.ModelAdmin):
     fieldsets = ((None, {"fields": ("type",)}), *LOCATION_TYPE_MAP_FIELDSETS)
 
 
+class ItemMapInline(admin.StackedInline):
+    """On the item's admin page: how its unique items are usually placed on the map (each can differ)."""
+    model = ItemMap
+    can_delete = False
+    verbose_name_plural = _("map (unique items)")
+    fields = ("default_kind", ("default_width_cm", "default_depth_cm"))
+
+    # Only on the page of an item that has unique items (not when adding one: its kind is not chosen yet).
+    def _shown(self, obj):
+        return obj is not None and obj.kind == obj.Kind.UNIQUE
+
+    def has_view_permission(self, request, obj=None):
+        return self._shown(obj) and super().has_view_permission(request, obj)
+
+    def has_add_permission(self, request, obj=None):
+        return self._shown(obj) and super().has_add_permission(request, obj)
+
+    def has_change_permission(self, request, obj=None):
+        return self._shown(obj) and super().has_change_permission(request, obj)
+
+    def has_delete_permission(self, request, obj=None):
+        return self._shown(obj) and super().has_delete_permission(request, obj)
+
+
+ItemAdmin.inlines = [*ItemAdmin.inlines, ItemMapInline]
+
+
 @admin.register(UniqueItemPosition)
 class UniqueItemPositionAdmin(admin.ModelAdmin):
-    list_display = ("unique_item", "point")
+    list_display = ("unique_item", "kind", "width_cm", "depth_cm")
+    list_filter = ("kind",)
     autocomplete_fields = ("unique_item",)
-    readonly_fields = ("point",)
+    readonly_fields = ("geometry",)
+    fields = ("unique_item", "kind", "geometry", "rotation", "width_cm", "depth_cm")
 
     def has_add_permission(self, request):
         return False  # placed on the map

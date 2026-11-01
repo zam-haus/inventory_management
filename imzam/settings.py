@@ -394,9 +394,6 @@ MAPS_ENABLED = parse_bool(os.getenv("MAPS_ENABLED", "false"))
 # Metric coordinate system for sizes, rotations and aligning plans; positions are stored in WGS84.
 # EPSG:25832 is ETRS89 / UTM zone 32N (Germany west of 12° E).
 MAPS_LOCAL_SRID = int(os.getenv("MAPS_LOCAL_SRID", "25832"))
-# Whether unique items get points of their own on the map (for now not). Which location types are placed is set in
-# the admin (Location types → Map).
-MAPS_PLACE_UNIQUE_ITEMS = parse_bool(os.getenv("MAPS_PLACE_UNIQUE_ITEMS", "false"))
 # Where the map starts when a level has nothing on it yet: [latitude, longitude, zoom].
 MAPS_START = json.loads(os.getenv("MAPS_START", "[49.5975, 11.0040, 17]"))
 # Where GeoDjango finds the libraries, if not on the default library path (e.g. MacPorts: /opt/local/lib/…).

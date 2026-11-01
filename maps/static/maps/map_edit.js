@@ -9,8 +9,9 @@
 // that belongs to nothing goes. A chosen corner gets an X, too. Below "Done": "Save" and "Discard" while there is a
 // change, the "New" buttons while nothing is selected. Saving goes to the same views as the placing dialog
 // (LocationShapeView, ItemPositionView); then the level is drawn anew, the saved one still selected.
-// "New": a point, rectangle or area drawn on the map, then linked to a location of this level without a position
-// (views.unplaced). "Row": storage units of one size side by side, turned and moved as one; the first location is
+// "New": a point, rectangle or area drawn on the map, then linked to a location or unique item of this level without a
+// position (views.unplaced); a rectangle by two opposite corners (clicked, or dragged from one to the other), its size
+// then counts as entered. "Row": storage units of one size side by side, turned and moved as one; the first location is
 // chosen, the next ones without a position of the same type follow in the order of their codes; saved together
 // (views.LocationShapeRowView). Leaving the page or the edit mode ("Done", Esc) with a change not saved asks first; Esc
 // while drawing a new one drops it instead. A popup open when the edit mode starts selects its building part,
@@ -41,7 +42,9 @@
     var countBox = bar.querySelector('[data-edit-count]'), countInput = countBox.querySelector('input');
     var reverseButton = countBox.querySelector('[data-edit-reverse]');
     var ROW_MAX = 50;
-    var candidates = [];  // {pk, code, title, size} of the locations offered for a new position, or to change to
+    // {pk, code, title, size} of the locations offered for a new position, or to change to; unique items (item: true,
+    // their location's code) only for a new one
+    var candidates = [];
     var chosen = null, active = -1, hits = [];
 
     // The location chosen in the search field: a hit picked from the list; else null.
@@ -172,12 +175,13 @@
         showAssignment();
     }
 
-    // The locations of this level without a position whose type allows it (views.unplaced), for a new one or another.
-    function loadCandidates(kind) {
+    // The locations of this level without a position whose type allows it (views.unplaced), for a new one or another;
+    // `withItems`: the unique items without one, too (a shape of a location goes to another location only).
+    function loadCandidates(kind, withItems) {
         candidates = [];
         return ZamMap.load(strings.unplacedUrl + '?kind=' + kind).then(function (answer) {
-            candidates = answer.locations;
-            return answer.locations;
+            candidates = answer.locations.concat(withItems ? answer.items || [] : []);
+            return candidates;
         });
     }
 
@@ -225,11 +229,10 @@
     function unassign() {
         var s = selected, p = s.feature.properties, body = new FormData();
         body.append('csrfmiddlewaretoken', bar.querySelector('[name=csrfmiddlewaretoken]').value);
+        body.append('map_geometry', '');
         if (p.category === 'item') {
-            body.append('map_point', '');
             return send(strings.itemUrl.replace('/0/', '/' + p.pk + '/'), body);
         }
-        body.append('map_geometry', '');
         return request(strings.shapeUrl.replace('/0/', '/' + p.pk + '/'), body).then(function () {
             if (selected !== s) {
                 return null;
@@ -241,7 +244,7 @@
             locationSelect.value = '';
             assignBox.classList.add('is-searching');
             hint.textContent = strings.choose;
-            loadCandidates(s.kind);
+            loadCandidates(s.kind, true);
             endSteps();
             beginSteps();
             showAssignment();
@@ -355,6 +358,9 @@
             return;
         }
         hideLabel(false);
+        if (cornerTool) {  // made further down
+            cornerTool.reset();
+        }
         if (selected.layer) {
             selected.layer.setStyle(selected.style);  // back as it was drawn
         }
@@ -744,7 +750,7 @@
     }
 
     rotationInput.addEventListener('input', function () {
-        if (selected && selected.size) {
+        if (selected && (selected.size || selected.awaitingCorners)) {  // a new rectangle turns before it is drawn
             selected.rotation = Number(rotationInput.value);
             if (selected.shape) {  // a new one turns before it is placed, too
                 follow();
@@ -753,17 +759,37 @@
         }
     });
 
+    // A new rectangle: by two opposite corners, along the turn set (at first the plan's walls).
+    var cornerTool = ZamMap.cornerDrawing(map, {
+        active: function () { return Boolean(editing && selected && selected.awaitingCorners); },
+        rotation: function () { return selected.rotation || 0; },
+        snap: function (latlng, event) {
+            return event && event.altKey ? latlng :
+                geometry.snapCenter(map, targets(), latlng, function (at) { return [at]; });
+        },
+        style: HIGHLIGHT,
+        done: function (drawn) {
+            selected.awaitingCorners = false;
+            selected.center = drawn.center;
+            selected.size = drawn.size.map(function (metres) { return Math.max(1, Math.round(metres * 100)) / 100; });
+            selected.sizeChanged = true;  // drawn: not the usual size of what is chosen
+            placed();
+        }
+    });
+
     // A new position: drawn first, then linked to a location of this level that has none yet.
     function startNew(kind) {
         clearSelection();
         var row = kind === 'row';
-        selected = {kind: kind, isNew: true, rotation: walls() || 0, size: kind === 'point' || kind === 'area' ? null : [1, 0.5],
+        selected = {kind: kind, isNew: true, rotation: walls() || 0, size: row ? [1, 0.5] : null,
             count: row ? 3 : 0, reversed: false};
         page.element.classList.add('map-drawing');  // clicks go through what is drawn, to the map
         newButtons.hidden = true;
-        loadCandidates(row ? 'rectangle' : kind).then(function (locations) {
+        loadCandidates(row ? 'rectangle' : kind, !row).then(function (locations) {
             if (!locations.length) {
                 hint.textContent = strings.noneLeft;
+            } else if (document.activeElement === locationSelect) {
+                showResults();  // placed before they were there
             }
         });
         if (kind === 'area') {
@@ -782,8 +808,14 @@
                 showAssignment();
                 placeBoxes();
                 beginSteps();
+                searchOwner();
             });
             hint.textContent = strings.newArea;
+        } else if (kind === 'rectangle') {
+            selected.awaitingCorners = true;
+            hint.textContent = strings.newRectangle;
+            showSize();
+            rotationBox.hidden = false;
         } else {
             selected.awaitingClick = true;
             hint.textContent = row ? strings.newRow : strings.newPoint;
@@ -819,7 +851,8 @@
 
     // A click beside the selection (not on what is selected or on another thing, which selects that) lets it go.
     map.on('click', function () {
-        if (editing && selected && !selected.awaitingClick && (!selected.isNew || selected.center || selected.area)) {
+        if (editing && selected && !selected.awaitingClick && !selected.awaitingCorners && !cornerTool.clickTaken() &&
+                (!selected.isNew || selected.center || selected.area)) {
             ask(clearSelection);
         }
     });
@@ -832,6 +865,11 @@
         selected.center = geometry.snapCenter(map, targets(), event.latlng, function (center) {
             return corners(selected, center);
         });
+        placed();
+    });
+
+    // A new one has its place: handles, the box above it, the steps.
+    function placed() {
         showSize();
         drawHandles();
         hint.textContent = selected.size ? strings.rectangle : strings.point;
@@ -839,7 +877,15 @@
         showAssignment();
         placeBoxes();
         beginSteps();
-    });
+        searchOwner();
+    }
+
+    // A new one placed: the search for what it belongs to has the focus, to type at once.
+    function searchOwner() {
+        if (selected && selected.isNew && !chosen) {
+            locationSelect.focus({preventScroll: true});
+        }
+    }
 
     // A row: all its storage units at once.
     function postRow() {
@@ -867,28 +913,27 @@
             hint.textContent = chosenLocation() ? strings.newPoint : strings.choose;
             return Promise.resolve();
         }
-        var p = selected.isNew ? {pk: chosenLocation().pk, category: ''} : selected.feature.properties;
+        var p = selected.isNew ? {pk: chosenLocation().pk, category: chosenLocation().item ? 'item' : ''} :
+            selected.feature.properties;
         var pk = !selected.isNew && chosen ? chosen.pk : p.pk;
         var body = new FormData(), url;
         body.append('csrfmiddlewaretoken', bar.querySelector('[name=csrfmiddlewaretoken]').value);
-        if (p.category === 'item') {
+        if (p.category === 'item') {  // unique items keep their position (only shown in the box)
             url = strings.itemUrl.replace('/0/', '/' + p.pk + '/');
-            body.append('map_point', JSON.stringify(
-                {type: 'Point', coordinates: [selected.center.lng, selected.center.lat]}));
         } else {
             url = strings.shapeUrl.replace('/0/', '/' + pk + '/');
             if (pk !== p.pk) {
                 body.append('take_from', p.pk);
             }
-            var geojson = selected.area ? selected.area.toGeoJSON().geometry :
-                {type: 'Point', coordinates: [selected.center.lng, selected.center.lat]};
-            body.append('map_geometry', JSON.stringify(geojson));
-            body.append('map_kind', selected.area ? 'area' : selected.size ? 'rectangle' : 'point');
-            body.append('map_rotation', selected.rotation || 0);
-            if (selected.size) {
-                body.append('map_width_cm', Math.round(selected.size[0] * 100));
-                body.append('map_depth_cm', Math.round(selected.size[1] * 100));
-            }
+        }
+        var geojson = selected.area ? selected.area.toGeoJSON().geometry :
+            {type: 'Point', coordinates: [selected.center.lng, selected.center.lat]};
+        body.append('map_geometry', JSON.stringify(geojson));
+        body.append('map_kind', selected.area ? 'area' : selected.size ? 'rectangle' : 'point');
+        body.append('map_rotation', selected.rotation || 0);
+        if (selected.size) {
+            body.append('map_width_cm', Math.round(selected.size[0] * 100));
+            body.append('map_depth_cm', Math.round(selected.size[1] * 100));
         }
         return send(url, body);
     }
@@ -915,7 +960,7 @@
                 return page.reload();
             })
             .then(function () {
-                var layer = editing && id && page.drawn.byId[id];
+                var layer = editing && id && ZamMap.reveal(page.drawn, id);  // also a point of a unique item
                 if (layer && map.hasLayer(layer)) {
                     select(layer);
                 }
@@ -1161,7 +1206,7 @@
             return null;
         }
         if (chosen) {
-            return 'loc:' + chosen.pk;
+            return (chosen.item ? 'item:' : 'loc:') + chosen.pk;
         }
         return selected.feature ? selected.feature.properties.id : null;
     }

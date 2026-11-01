@@ -15,7 +15,7 @@ from inventory.models import ChangeLog
 
 from . import geo, permissions
 from .levels import Tree
-from .models import LocationShape, UniqueItemPosition
+from .models import LocationShape, Shape, UniqueItemPosition
 
 FIELD = "map_position"
 
@@ -29,21 +29,16 @@ def describe(shape):
     if shape is None or shape.geometry is None:
         return ""
     if shape.kind == LocationShape.Kind.AREA:
-        return _("area of %(area)s m²") % {"area": formats.number_format(geo.area_m2(shape.geometry), 1)}
+        # Rounded: number_format cuts the digits off (5.998 would be 5.9).
+        return _("area of %(area)s m²") % {"area": formats.number_format(round(geo.area_m2(shape.geometry), 1), 1)}
     lon, lat = geo.anchor(shape.geometry).coords
     where = f"{lat:.6f}, {lon:.6f}"
     if shape.kind == LocationShape.Kind.RECTANGLE:
         size = shape.size_cm()
         return _("rectangle %(width)s × %(depth)s cm, turned %(rotation)s°, at %(where)s") % {
             "width": size[0] if size else "?", "depth": size[1] if size else "?",
-            "rotation": formats.number_format(shape.rotation % 360, 0), "where": where}
+            "rotation": formats.number_format(round(shape.rotation) % 360, 0), "where": where}
     return _("point at %(where)s") % {"where": where}
-
-
-def describe_point(point):
-    if point is None:
-        return ""
-    return _("point at %(where)s") % {"where": f"{point.y:.6f}, {point.x:.6f}"}
 
 
 def _log(subject, before, after, *, entry=None, **links):
@@ -79,42 +74,58 @@ def parse_geometry(value, kinds=("Point", "Polygon")):
     return geometry
 
 
-def shaped(location, kind, geometry, rotation=0.0, shape=None):
-    """(kind, geometry, rotation) to store: a rectangle is given by its centre and becomes the polygon of the
-    location's size; without a known size it stays a point."""
+def shaped(shape, kind, geometry, rotation=0.0):
+    """(kind, geometry, rotation) to store for a location's or unique item's shape: a rectangle is given by its centre
+    and becomes the polygon of its size; without a known size it stays a point."""
     if geometry is None:  # removed: the kind stays what it was (the column needs one)
-        return kind or (shape.kind if shape else None) or LocationShape.Kind.POINT, None, 0.0
-    if kind == LocationShape.Kind.AREA:
+        return kind or shape.kind or Shape.Kind.POINT, None, 0.0
+    if kind == Shape.Kind.AREA:
         return kind, parse_geometry(geometry, ("Polygon",)), 0.0
     point = parse_geometry(geometry, ("Point", "Polygon"))
     if point.geom_type == "Polygon":
         point = geo.anchor(point)
-    shape = shape or LocationShape(location=location)
     size = shape.size_cm()
-    if kind == LocationShape.Kind.RECTANGLE or (kind is None and size):
+    if kind == Shape.Kind.RECTANGLE or (kind is None and size):
         if size:
-            return LocationShape.Kind.RECTANGLE, geo.rectangle(point, size[0] / 100, size[1] / 100, rotation), \
+            return Shape.Kind.RECTANGLE, geo.rectangle(point, size[0] / 100, size[1] / 100, rotation), \
                 float(rotation) % 360
-    return LocationShape.Kind.POINT, point, 0.0
+    return Shape.Kind.POINT, point, 0.0
+
+
+def _own_size(shape, size):
+    """Keeps (width, depth) in cm as the shape's own, e.g. from the dialog; the usual size (of the location type or
+    item) is not kept as its own: a changed usual size then applies here, too."""
+    if size:
+        shape.width_cm, shape.depth_cm = (None, None) if tuple(size) == shape.usual_size_cm() else size
+
+
+def _moved(shape, start, end, turn):
+    """Carries the shape along (see _carry); False if it stays (areas of locations: building parts)."""
+    if shape.geometry is None:
+        return False
+    shape.geometry = geo.moved(shape.geometry, start, end, turn)
+    shape.rotation = (shape.rotation + turn) % 360 if shape.kind == Shape.Kind.RECTANGLE else 0.0
+    shape.save(update_fields=["geometry", "rotation"])
+    return True
 
 
 def _carry(location_pks, item_location_pks, start, end, turn):
-    """Moves the positions of the given locations and of the unique items at the given locations along."""
+    """Moves the positions of the given locations and of the unique items at the given locations along (their areas
+    too: a machine's outline on a moved pallet)."""
     for shape in LocationShape.objects.select_for_update().filter(location__in=location_pks,
                                                                   geometry__isnull=False):
         if shape.kind == LocationShape.Kind.AREA:
             continue
         before = describe(shape)
-        shape.geometry = geo.moved(shape.geometry, start, end, turn)
-        shape.rotation = (shape.rotation + turn) % 360 if shape.kind == LocationShape.Kind.RECTANGLE else 0.0
-        shape.save(update_fields=["geometry", "rotation"])
+        _moved(shape, start, end, turn)
         _log(shape.location, before, describe(shape), location=shape.location)
-    for position in UniqueItemPosition.objects.select_for_update().select_related("unique_item").filter(
-            unique_item__location__in=item_location_pks):
-        before = describe_point(position.point)
-        position.point = geo.moved(position.point, start, end, turn)
-        position.save(update_fields=["point"])
-        _log(position.unique_item, before, describe_point(position.point), **_item_links(position.unique_item))
+    # Only its own rows locked: the item's map settings are an outer join (PostgreSQL refuses to lock those).
+    for position in UniqueItemPosition.objects.select_for_update(of=("self",)).select_related(
+            "unique_item__item__map_settings", "unique_item__location").filter(
+            unique_item__location__in=item_location_pks, geometry__isnull=False):
+        before = describe(position)
+        _moved(position, start, end, turn)
+        _log(position.unique_item, before, describe(position), **_item_links(position.unique_item))
 
 
 @transaction.atomic
@@ -133,12 +144,8 @@ def set_location_shape(location, kind, geometry, rotation=0.0, *, size=None, ent
             raise PlacementError(_("Locations of type “%(type)s” are not placed as %(kind)s.") % {
                 "type": location.type, "kind": LocationShape.Kind(kind).label})
     shape, _created = LocationShape.objects.select_for_update().get_or_create(location=location)
-    if size:
-        # The type's usual size is not kept as its own: a changed size of the type then applies here, too.
-        settings_ = getattr(location.type, "map_settings", None)
-        usual = (settings_.default_width_cm, settings_.default_depth_cm) if settings_ else None
-        shape.width_cm, shape.depth_cm = (None, None) if tuple(size) == usual else size
-    kind, geometry, rotation = shaped(location, kind, geometry, rotation, shape)
+    _own_size(shape, size)
+    kind, geometry, rotation = shaped(shape, kind, geometry, rotation)
     before, old = describe(shape), shape.geometry
     old_rotation = shape.rotation
     shape.kind, shape.geometry, shape.rotation = kind, geometry, rotation
@@ -165,27 +172,30 @@ def clear_moved(location, *, entry=None):
         own = shape.location_id == location.pk
         _log(location if own else shape.location, before, "", entry=entry if own else None,
              location=location if own else shape.location)
-    for position in UniqueItemPosition.objects.select_related("unique_item").filter(unique_item__location__in=pks):
-        _log(position.unique_item, describe_point(position.point), "", **_item_links(position.unique_item))
+    for position in UniqueItemPosition.objects.select_related("unique_item__item__map_settings",
+                                                              "unique_item__location").filter(
+            unique_item__location__in=pks):
+        _log(position.unique_item, describe(position), "", **_item_links(position.unique_item))
         position.delete()
 
 
 @transaction.atomic
-def set_item_position(unique_item, point):
-    """Places the unique item at a point (None: removes its own position; it then shows its location's)."""
+def set_item_position(unique_item, kind, geometry, rotation=0.0, *, size=None):
+    """Places the unique item as a point, rectangle or area, whatever its item usually is (geometry None: removes its
+    own position; it then shows its location's). `size` (width, depth) in cm is its own, e.g. from the dialog."""
     position = UniqueItemPosition.objects.select_for_update().filter(unique_item=unique_item).first()
-    before = describe_point(position.point if position else None)
-    if point is None:
+    before = describe(position)
+    if geometry is None:
         if position:
             position.delete()
-    else:
-        point = parse_geometry(point, ("Point",))
-        if position:
-            position.point = point
-            position.save(update_fields=["point"])
-        else:
-            UniqueItemPosition.objects.create(unique_item=unique_item, point=point)
-    _log(unique_item, before, describe_point(point), **_item_links(unique_item))
+        _log(unique_item, before, "", **_item_links(unique_item))
+        return None
+    position = position or UniqueItemPosition(unique_item=unique_item)
+    _own_size(position, size)
+    position.kind, position.geometry, position.rotation = shaped(position, kind, geometry, rotation)
+    position.save()
+    _log(unique_item, before, describe(position), **_item_links(unique_item))
+    return position
 
 
 def size_from(context, prefix="map_"):
@@ -218,9 +228,10 @@ def placement_from(context, prefix="map_"):
     return {"kind": kind, "geometry": value, "rotation": rotation, "size": size_from(context, prefix)}
 
 
-def item_point(unique_item):
-    position = UniqueItemPosition.objects.filter(unique_item=unique_item).first()
-    return position.point if position else None
+def item_shape(unique_item):
+    """The unique item's own position, or None."""
+    return UniqueItemPosition.objects.filter(unique_item=unique_item, geometry__isnull=False).select_related(
+        "unique_item__item__map_settings").first()
 
 
 def location_moved(sender, instance, old_parent, context, **kwargs):
@@ -240,13 +251,17 @@ def location_moved(sender, instance, old_parent, context, **kwargs):
 
 
 def unique_item_moved(sender, instance, old_parent, context, **kwargs):
-    value = (context.get("map_point") or "").strip()
-    point = None
-    if value and instance.location_id is not None and permissions.items_placeable():
+    try:
+        placement = placement_from(context)
+    except PlacementError:
+        placement = None
+    if placement is not None and instance.location_id is not None:
         try:
-            point = parse_geometry(value, ("Point",))
+            set_item_position(instance, placement["kind"], placement["geometry"], placement["rotation"],
+                              size=placement["size"])
+            return
         except PlacementError:
-            point = None
-    if point is not None or item_point(instance) is not None:
-        set_item_position(instance, point)
+            pass  # moved all the same; the position is cleared like without one
+    if item_shape(instance) is not None:
+        set_item_position(instance, None, None)
 

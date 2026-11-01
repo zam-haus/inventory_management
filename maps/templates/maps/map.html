@@ -41,6 +41,12 @@
         </span>
         <template data-mark-icons><span data-icon="share">{% icon "box-arrow-up" %}</span><span data-icon="remove">{% icon "x-lg" %}</span></template>
         <button type="button" class="btn btn-sm btn-light" aria-pressed="false" data-map-measure-toggle>{% include "maps/icons/tape_measure.svg" %} <span class="action-label">{% trans "Measure" %}</span></button>
+        {# Below "Measure" while measuring, as the shapes below "Done" (map_measure.js): what is measured, a distance at first. #}
+        <span class="map-measure-tools" role="group" aria-label="{% trans 'Measure' %}" data-measure-tools hidden>
+            <button type="button" class="btn btn-sm btn-light" aria-pressed="false" data-measure-tool="line">{% include "maps/icons/measure_distance.svg" %} <span class="action-label">{% trans "Distance" %}</span></button>
+            <button type="button" class="btn btn-sm btn-light" aria-pressed="false" data-measure-tool="area">{% icon "pentagon" %} <span class="action-label">{% trans "Area" context "measure" %}</span></button>
+            <button type="button" class="btn btn-sm btn-light" aria-pressed="false" data-measure-tool="circle">{% include "maps/icons/measure_radius.svg" %} <span class="action-label">{% trans "Radius" %}</span></button>
+        </span>
         {% if not edit_denied %}<span class="map-edit-toggle-group">
             <button type="button" class="btn btn-sm btn-warning" data-map-edit-toggle data-done="{% trans 'Done' %}">{% icon "pencil" %} <span class="action-label">{% trans "Edit" %}</span></button>
             {# Undo and redo in the edit mode, as the browser's back and forward (map_edit.js). #}
@@ -73,11 +79,6 @@
          data-circle="{% trans 'Click the centre, then a point on the circle.' %}"
          data-drag="{% trans 'Drag the points to correct them.' %}"
          data-perimeter="{% trans 'perimeter' %}" data-radius="{% trans 'radius' %}">
-        <span class="btn-group btn-group-sm" role="group" aria-label="{% trans 'Measure' %}">
-            <button type="button" class="btn btn-outline-secondary" aria-pressed="false" data-measure-tool="line">{% trans "Distance" %}</button>
-            <button type="button" class="btn btn-outline-secondary" aria-pressed="false" data-measure-tool="area">{% trans "Area" context "measure" %}</button>
-            <button type="button" class="btn btn-outline-secondary" aria-pressed="false" data-measure-tool="circle">{% trans "Radius" %}</button>
-        </span>
         <span class="text-muted" data-measure-hint aria-live="polite"></span>
         <span class="map-edit-actions">
             <button type="button" class="btn btn-sm btn-outline-danger" data-measure-clear>{% trans "Remove all" %}</button>
@@ -89,13 +90,14 @@
     <div class="map-edit-bar" data-map-edit hidden
          data-shape-url="{% url 'maps:location_shape' 0 %}" data-item-url="{% url 'maps:item_position' 0 %}"
          data-unplaced-url="{% url 'maps:unplaced' number %}" data-row-url="{% url 'maps:location_shape_row' %}"
-         data-new-point="{% trans 'Click where it is, then choose the location.' %}"
-         data-new-area="{% trans 'Click the corners of the area one after the other (the first again to finish), then choose the location.' %}"
+         data-new-point="{% trans 'Click where it is, then choose what it belongs to.' %}"
+         data-new-rectangle="{% trans 'Click two opposite corners, or drag from one to the other; then choose what it belongs to.' %}"
+         data-new-area="{% trans 'Click the corners of the area one after the other (the first again to finish), then choose what it belongs to.' %}"
          data-new-row="{% trans 'Click where the middle of the row is, then choose the first location; the next ones of its type without a position follow in the order of their codes.' %}"
          data-row="{% trans 'Drag the middle handle to move the row and one of the outer ones to turn it; then save.' %}"
          data-row-short="{% trans 'Only {count} locations of this type without a position follow; choose another first one or fewer.' %}"
-         data-none-left="{% trans 'Every location of this kind on this level has a position already.' %}"
-         data-choose="{% trans 'Choose the location first.' %}"
+         data-none-left="{% trans 'Everything of this kind on this level has a position already.' %}"
+         data-choose="{% trans 'Choose what it belongs to first.' %}"
          data-pick="{% trans 'Click a building part or storage unit to change its position.' %}"
          data-rectangle="{% trans 'Drag the middle handle to move it and one of the outer ones to turn it; then save.' %}"
          data-point="{% trans 'Drag the handle; then save.' %}"

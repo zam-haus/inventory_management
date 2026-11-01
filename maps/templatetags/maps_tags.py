@@ -26,9 +26,9 @@ def map_item_denied(context, unique_item):
 
 @register.filter
 def map_placeable(obj):
-    """Whether this location (by its type's map settings) or unique item is placed on the map at all."""
+    """Whether this location (by its type's map settings) or unique item (always) is placed on the map at all."""
     if isinstance(obj, UniqueItem):
-        return permissions.items_placeable()
+        return True
     return permissions.placeable(obj)
 
 
@@ -47,7 +47,8 @@ class _Index:
     def __init__(self):
         self.tree = Tree()
         self.shaped = set(LocationShape.objects.filter(geometry__isnull=False).values_list("location_id", flat=True))
-        self.items = set(UniqueItemPosition.objects.values_list("unique_item_id", flat=True))
+        self.items = set(UniqueItemPosition.objects.filter(geometry__isnull=False)
+                         .values_list("unique_item_id", flat=True))
         self.plan_levels = set(FloorPlan.objects.filter(active=True, corners__isnull=False)
                                .values_list("level", flat=True))
 
@@ -139,13 +140,15 @@ def map_dialog(context, obj):
     user = context["request"].user
     if isinstance(obj, UniqueItem):
         denied = permissions.item_position_denied(user, obj)
-        placeable = permissions.items_placeable()
+        placeable = True
     else:
         denied = permissions.shape_denied(user, obj)
         placeable = permissions.placeable(obj)
     focus_url = map_focus_url(context, obj)
     editable = placeable and not denied
-    kinds = ["point"] if isinstance(obj, UniqueItem) else permissions.allowed_kinds(obj.type)
+    # Unique items: every shape (their item only gives the usual one).
+    kinds = list(UniqueItemPosition.Kind.values) if isinstance(obj, UniqueItem) else \
+        permissions.allowed_kinds(obj.type)
     return {"show": bool(focus_url or editable), "focus_url": focus_url, "editable": editable, "kinds": kinds,
             "area": "area" in kinds,
             "edit_denied": denied if placeable and denied and user.is_authenticated else ""}
