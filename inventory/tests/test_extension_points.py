@@ -42,7 +42,7 @@ class MovedSignalTests(TestCase):
         cls.store = Location.objects.create(type=room, name="Lager", short_name="LAG")
         cls.pallet = Location.objects.create(type=pallet, name="Palette 1", short_name="P1", parent_location=cls.hall)
         unit = MeasurementUnit.objects.create(name="Piece", short="pc")
-        cls.item = Item.objects.create(name="Saw", kind=Item.Kind.UNIQUE, measurement_unit=unit)
+        cls.item = Item.objects.create(name="Saw", kind=Item.Kind.SERIALIZED, measurement_unit=unit)
         cls.saw = UniqueItem.objects.create(item=cls.item, location=cls.hall)
         cls.member = get_user_model().objects.create_user(username="member")
         cls.member.user_permissions.add(*Permission.objects.filter(

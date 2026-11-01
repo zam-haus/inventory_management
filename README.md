@@ -6,9 +6,9 @@ items: photograph and count what is on a shelf first, annotate later.
 
 * **Locations** form a tree (rooms, shelves, boxes), each with a printed QR
   label, an overview photo and a purpose shown with the name.
-* **Items** are either bulk items, counted per location, or unique items:
-  single objects such as machines or tools with their own label, owner and
-  history.
+* **Items** are either bulk items, counted per location, or serialized items,
+  tracked as unique items: single objects such as machines or tools with their
+  own label, owner and history.
 * **Label IDs** are short, permanent IDs on labels (`K7R-4XD`) whose QR codes lead
   to the item, location or unique item they are attached to. Users see them as
   *ZAMid*; another organization sets its own name with `LABEL_ID_NAME`.

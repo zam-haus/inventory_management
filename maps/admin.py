@@ -89,7 +89,7 @@ class ItemMapInline(admin.StackedInline):
 
     # Only on the page of an item that has unique items (not when adding one: its kind is not chosen yet).
     def _shown(self, obj):
-        return obj is not None and obj.kind == obj.Kind.UNIQUE
+        return obj is not None and obj.kind == obj.Kind.SERIALIZED
 
     def has_view_permission(self, request, obj=None):
         return self._shown(obj) and super().has_view_permission(request, obj)

@@ -15,8 +15,8 @@ Bootstrap Icons site into that folder; unknown names raise an error (see
 
 Six icons are our own, drawn in the style of Bootstrap Icons and kept in the same folder: `box-star`
 (Bootstrap's `box` with a star on its side: one single, individually tracked object, next to the
-`boxes` of counted items), `box-star-stack` (a smaller `box-star` with a plain box behind it: an item tracked
-as unique items, several of them; the back box is drawn as lines that stop short of the front one, so the icon
+`boxes` of counted items), `box-star-stack` (a smaller `box-star` with a plain box behind it: a serialized item,
+several unique items; the back box is drawn as lines that stop short of the front one, so the icon
 needs no mask and no `id`), `eurobox-open` (a Euro container with its lid open, on a 64 grid, its
 lines thickened to match the others at 16 px), `plus-badge` (a disc with a plus cut out: the badge on the icon of
 what an "add" button adds, `{% add_icon %}`), `tag-id` (a tag lying flat, its hole on the left, "ID" on it: a label
@@ -54,7 +54,7 @@ when they are first used:
 | Levels-and-axes overview of the building | `grid-3x3` | done |
 | Search | `search` | done |
 | Item (counted, *Sache*) | `boxes` | done |
-| Item tracked as unique items (*Sache mit Einzelobjekten*) | `box-star-stack` (own) | done |
+| Serialized item (*Einzelartikel*) | `box-star-stack` (own) | done |
 | Unique item (*Einzelobjekt*) | `box-star` (own) | done |
 | Category (item tree, search results) | `folder` | done |
 | Location: building part (level, room, area) and others | `geo-alt` | done |
@@ -78,7 +78,7 @@ when they are first used:
 | Label ID, QR code | `qr-code` | reserved |
 | History | `clock-history` | reserved |
 
-The kind icons (item, item tracked as unique items, unique item, category, the three location kinds) also stand before the title of a location,
+The kind icons (item, serialized item, unique item, category, the three location kinds) also stand before the title of a location,
 item or unique item page, before the names in the search results and trees, and before *Items* (`boxes`) and
 *Locations* (`geo-alt`) in the navbar; up to 767px wide the navbar shows those two (and *Map*, *Help*) as icons
 only, with their names as tooltips; on narrow screens their names are also in its menu (`three-dots-vertical`).

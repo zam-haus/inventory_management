@@ -1,4 +1,4 @@
-// New items: bulk or tracked as unique items. Both parts are on the page;
+// New items: bulk or serialized (tracked as unique items). Both parts are on the page;
 // switching shows the chosen one and keeps everything entered.
 (() => {
     const choices = [...document.querySelectorAll('input[name="kind"][data-kind-switch]')];

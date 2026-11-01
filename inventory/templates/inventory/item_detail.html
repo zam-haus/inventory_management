@@ -18,8 +18,8 @@
         {% include "inventory/category_breadcrumb.html" with category=object.category %}
         <div class="item-heading" data-action-row>
             <div class="item-heading-text">
-                <p class="item-eyebrow">{% if object.tracks_unique_items %}{% trans "Item with unique items" %}{% else %}{% trans "Bulk item" %}{% endif %}</p>
-                <h1><span class="title-kind" aria-hidden="true">{% if object.tracks_unique_items %}{% icon "box-star-stack" %}{% else %}{% icon "boxes" %}{% endif %}</span>{{ object }}</h1>
+                <p class="item-eyebrow">{% if object.is_serialized %}{% trans "Serialized item" %}{% else %}{% trans "Bulk item" %}{% endif %}</p>
+                <h1><span class="title-kind" aria-hidden="true">{% if object.is_serialized %}{% icon "box-star-stack" %}{% else %}{% icon "boxes" %}{% endif %}</span>{{ object }}</h1>
             </div>
             <div class="item-actions" data-action-group>
                 {% include 'inventory/stock_take_panel.html' %}
@@ -28,7 +28,7 @@
                 {% else %}
                 {% icon "pencil" as edit_icon %}{% disabled_action edit_icon label=_("Edit") name=_("Edit item") classes="btn btn-warning" %}
                 {% endif %}
-                {% if not object.tracks_unique_items %}{% label_print_button object "item" %}{% endif %}
+                {% if not object.is_serialized %}{% label_print_button object "item" %}{% endif %}
             </div>
         </div>
     </header>
@@ -39,7 +39,7 @@
     {% if take_choices and stock_change_form %}{{ take_choices|json_script:"item-stock-choices" }}{% endif %}
     <div class="item-detail">
         <dl class="item-overview">
-            {% if object.tracks_unique_items %}
+            {% if object.is_serialized %}
             {% if object.usage_level %}
             <div>
                 <dt>{% trans "Usage level" %}</dt>
@@ -136,7 +136,7 @@
                 {% include 'inventory/files_panel.html' with show_add=True can_add=perms.inventory.add_itemfile add_fallback=edit_url %}
             </div>
 
-            {% if object.tracks_unique_items %}
+            {% if object.is_serialized %}
             <section class="item-panel" aria-labelledby="item-unique-items-heading">
                 <div class="item-panel-heading">
                     <div class="item-panel-title-row">
@@ -170,7 +170,7 @@
     {% if perms.inventory.add_itemimage %}{% url 'quick_item_photo' object.pk as photo_url %}{% endif %}
     {% if perms.inventory.add_itemfile %}{% url 'quick_item_file' object.pk as file_url %}{% endif %}
     {% include 'inventory/quick_add_modals.html' with level=_("It belongs to the item in general.") %}
-    {% if not object.tracks_unique_items %}{% label_print_dialog object "item" %}{% endif %}
+    {% if not object.is_serialized %}{% label_print_dialog object "item" %}{% endif %}
 {% endblock %}
 
 {% block bootstrap5_extra_script %}

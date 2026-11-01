@@ -48,7 +48,7 @@ class SearchTests(MediaMixin, TestCase):
                                         last_purchase_price=Decimal("12.34"))
         ItemLocation.objects.create(item=cls.drill, location=cls.metal, amount=10)
         ItemBarcode.objects.create(item=cls.drill, data="4006381333931")
-        cls.cordless = Item.objects.create(name="Akkuschrauber", kind=Item.Kind.UNIQUE, measurement_unit=unit)
+        cls.cordless = Item.objects.create(name="Akkuschrauber", kind=Item.Kind.SERIALIZED, measurement_unit=unit)
         owner = get_user_model().objects.create_user(
             "xylokonto", email="xylo@example.org", first_name="Xylokonto", last_name="Xylokonto")
         cls.unique = UniqueItem.objects.create(
@@ -332,7 +332,7 @@ class SearchTests(MediaMixin, TestCase):
         icons = {entry.title: entry.icon for entry in search.render.entries(search.search("werkbank").hits)}
         self.assertEqual(icons, {"Werkbankregal": "bookshelf", "Werkbankkiste": "eurobox-open"})
         icons = {(entry.kind, entry.title): entry.icon for entry in search.render.entries(search.search("akku").hits)}
-        # An item tracked as unique items: several of them.
+        # A serialized item: several unique items.
         self.assertEqual(icons, {("item", "Akkuschrauber"): "box-star-stack", ("unique", "Akkuschrauber"): "box-star"})
         self.assertEqual(search.render.entries(search.search("bohrer").hits)[0].icon, "boxes")
         self.assertEqual(search.render.entries(search.search("holzwerkstatt").hits)[0].icon, "geo-alt")
@@ -406,7 +406,7 @@ class CategorySearchTests(TestCase):
         self.assertEqual([(tally.icon, tally.number, tally.text) for tally in entry.counts], [("boxes", 2, "2 items")])
         # As in the item tree: counted items and unique items, those below it, too.
         drill = Item.objects.create(name="Akkuschrauber", measurement_unit_id=1, category=self.metric,
-                                    kind=Item.Kind.UNIQUE)
+                                    kind=Item.Kind.SERIALIZED)
         UniqueItem.objects.create(item=drill, location=Location.objects.get(short_name="HL"))
         UniqueItem.objects.create(item=drill, disposed_at=timezone.now())
         befestigung = search.render.listed("category", [self.fixing])[0]

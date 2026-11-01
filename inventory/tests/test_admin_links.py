@@ -20,7 +20,7 @@ class AdminLinkTests(TestCase):
         shelf_type = LocationType.objects.create(name="Regal", unique=True, category="storage_unit")
         cls.shelf = Location.objects.create(type=shelf_type, name="Regal 1", short_name="R1", parent_location=cls.room)
         unit = MeasurementUnit.objects.create(name="Piece", short="pc")
-        cls.item = Item.objects.create(name="Drill", kind=Item.Kind.UNIQUE, measurement_unit=unit)
+        cls.item = Item.objects.create(name="Drill", kind=Item.Kind.SERIALIZED, measurement_unit=unit)
         cls.unique_item = UniqueItem.objects.create(item=cls.item, location=cls.room)
         cls.admin = get_user_model().objects.create_superuser(username="admin")
         cls.helper = get_user_model().objects.create_user(username="helper", is_staff=True)

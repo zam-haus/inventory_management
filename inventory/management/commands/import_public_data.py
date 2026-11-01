@@ -39,6 +39,8 @@ class Command(BaseCommand):
                 raise CommandError(problem)
             call_command("loaddata", directory / "data.json", ignorenonexistent=True,
                          verbosity=options["verbosity"])
+        # Exports from before migration inventory 0051 name the kind of serialized items "unique".
+        Item._base_manager.filter(kind="unique").update(kind=Item.Kind.SERIALIZED)
         self.stdout.write("Photos and documents are not part of the export: with MEDIA_REMOTE_URL, pages load them "
                           "when shown, or all at once with: ./manage.py download_public_media")
         self.stdout.write("User accounts are not part of the export; create one with: ./manage.py createsuperuser")

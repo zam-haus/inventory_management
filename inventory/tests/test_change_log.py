@@ -151,7 +151,7 @@ class ChangeLogTests(TestCase):
                          [("purpose", "Wood tools"), ("responsible_teams", "Woodworking")])
 
     def test_unique_items_and_label_ids(self):
-        drill = Item.objects.create(name="Saw", kind=Item.Kind.UNIQUE)
+        drill = Item.objects.create(name="Saw", kind=Item.Kind.SERIALIZED)
         saw = UniqueItem.objects.create(item=drill, location=self.workshop)
         lid = label_ids.claim(make_id("K7R4X").code, saw, self.member)
         label_ids.retire(lid.code, self.member)

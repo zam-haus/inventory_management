@@ -38,7 +38,7 @@ class Building:
         cls.box = Location.objects.create(type=box, name="Kiste 1", short_name="K1", parent_location=cls.pallet)
         unit = MeasurementUnit.objects.create(name="Piece", short="pc")
         cls.saw = UniqueItem.objects.create(
-            item=Item.objects.create(name="Saw", kind=Item.Kind.UNIQUE, measurement_unit=unit), location=cls.box)
+            item=Item.objects.create(name="Saw", kind=Item.Kind.SERIALIZED, measurement_unit=unit), location=cls.box)
         LocationShape.objects.create(location=cls.hbb, parts_stacked=True)
 
 
@@ -322,7 +322,7 @@ class ResultMapLinkTests(Building, TestCase):
     def add(self, n):
         box = Location.objects.create(type=self.box_type, name=f"Kiste {n + 10}", short_name=f"K{n + 10}",
                                       parent_location=self.store)
-        UniqueItem.objects.create(item=Item.objects.create(name=f"Hobel {n}", kind=Item.Kind.UNIQUE,
+        UniqueItem.objects.create(item=Item.objects.create(name=f"Hobel {n}", kind=Item.Kind.SERIALIZED,
                                                            measurement_unit_id=self.saw.item.measurement_unit_id),
                                   location=box)
 

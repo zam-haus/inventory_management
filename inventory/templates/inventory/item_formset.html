@@ -52,7 +52,7 @@
 <script type="text/javascript" src="{% static 'inventory/media_gallery.js' %}"></script>
 <script type="text/javascript" src="{% static 'inventory/unique_item_form.js' %}"></script>
 <script type="text/javascript" src="{% static 'inventory/item_barcode_scanner.js' %}"></script>
-{% if kind != 'unique' or not form.instance.pk %}<script type="text/javascript" src="{% static 'inventory/show_measurement_unit_after_amount.js' %}"></script>{% endif %}
+{% if kind != 'serialized' or not form.instance.pk %}<script type="text/javascript" src="{% static 'inventory/show_measurement_unit_after_amount.js' %}"></script>{% endif %}
 {% if not form.instance.pk %}<script type="text/javascript" src="{% static 'inventory/item_kind_switch.js' %}"></script>{% endif %}
 <style type="text/css">
     .item-location-group div.mb-3

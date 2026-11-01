@@ -1839,8 +1839,8 @@ msgstr "Ein Mengenartikel wird pro Standort gezählt, etwa Schrauben oder Filame
 
 #: forms.py:342
 #, python-brace-format
-msgid "Unique items are objects tracked one by one, each with its own {name}, such as fire extinguishers or machines. This item describes them; enter the first one below and add more later."
-msgstr "Einzelobjekte sind Gegenstände, die einzeln erfasst werden, jeder mit eigener {name}, etwa Feuerlöscher oder Maschinen. Diese Sache beschreibt sie; erfasse unten das erste und füge weitere später hinzu."
+msgid "A serialized item is tracked as unique items: objects one by one, each with its own {name}, such as fire extinguishers or machines. This item describes them; enter the first one below and add more later."
+msgstr "Ein Einzelartikel wird in Einzelobjekten erfasst: Stück für Stück, jedes mit eigener {name}, etwa Feuerlöscher oder Maschinen. Der Einzelartikel beschreibt sie; erfasse unten das erste Einzelobjekt und füge weitere später hinzu."
 
 #: forms.py:387
 msgid "Belongs to"
@@ -1884,8 +1884,8 @@ msgid "You do not have permission to create items."
 msgstr "Du darfst keine Sachen anlegen."
 
 #: forms.py:989 label_ids/forms.py:47
-msgid "Search for an item with unique items…"
-msgstr "Sache mit Einzelobjekten suchen…"
+msgid "Search for a serialized item…"
+msgstr "Einzelartikel suchen…"
 
 #: forms.py:1010
 msgid "As set for the item"
@@ -1956,7 +1956,11 @@ msgstr "Rot: Nutzung nur nach erfolgter Einweisung"
 msgid "bulk item"
 msgstr "Mengenartikel"
 
-#: models/item.py:43 models/unique_item.py:86
+#: models/item.py:46
+msgid "serialized item"
+msgstr "Einzelartikel"
+
+#: models/unique_item.py:86
 msgid "unique items"
 msgstr "Einzelobjekte"
 
@@ -2121,8 +2125,8 @@ msgid "stock entries"
 msgstr "Bestandseinträge"
 
 #: models/stock.py:101
-msgid "This item is tracked as unique items; add unique items instead of stock."
-msgstr "Diese Sache wird in Einzelobjekten erfasst; füge statt Bestand Einzelobjekte hinzu."
+msgid "This is a serialized item; add unique items instead of stock."
+msgstr "Dies ist ein Einzelartikel; füge statt Bestand Einzelobjekte hinzu."
 
 #: models/unique_item.py:29
 msgid "Sold"
@@ -2312,8 +2316,8 @@ msgid "Are you sure you want to delete this item?"
 msgstr "Möchtest du diese Sache wirklich löschen?"
 
 #: templates/inventory/item_detail.html:23
-msgid "Item with unique items"
-msgstr "Sache mit Einzelobjekten"
+msgid "Serialized item"
+msgstr "Einzelartikel"
 
 #: templates/inventory/item_detail.html:23
 msgid "Bulk item"
@@ -5093,8 +5097,8 @@ msgid "Only for a new item: what it says for all of its unique items. An existin
 msgstr "Nur für eine neue Sache: was für alle ihre Einzelobjekte gilt. Eine bestehende Sache behält ihre Angaben; die lassen sich an der Sache ändern."
 
 #: templates/inventory/unique_item_item_step.html forms.py
-msgid "An item with unique items; for a new one, type its name and choose “Create new item …”."
-msgstr "Eine Sache mit Einzelobjekten; für eine neue ihren Namen eingeben und „Neue Sache … anlegen“ wählen."
+msgid "A serialized item; for a new one, type its name and choose “Create new item …”."
+msgstr "Ein Einzelartikel; für einen neuen seinen Namen eingeben und „Neue Sache … anlegen“ wählen."
 
 #: widgets.py
 msgid "Scan label"

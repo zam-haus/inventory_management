@@ -30,7 +30,7 @@ class TreeTests(TestCase):
         hand = Category.objects.create(name="Hand tools", parent_category=tools)
         Category.objects.create(name="Empty")
         cls.pliers = Item.objects.create(name="Pliers", category=hand, measurement_unit=unit)
-        cls.drill = Item.objects.create(name="drill", category=tools, kind=Item.Kind.UNIQUE, measurement_unit=unit)
+        cls.drill = Item.objects.create(name="drill", category=tools, kind=Item.Kind.SERIALIZED, measurement_unit=unit)
         cls.loose = Item.objects.create(name="Loose thing", measurement_unit=unit)
         old = Item.objects.create(name="Old", category=hand, measurement_unit=unit)
         ItemLocation.objects.create(item=cls.pliers, location=cls.rack, amount=3)

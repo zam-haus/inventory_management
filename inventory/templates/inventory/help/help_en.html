@@ -6,10 +6,10 @@
 <header class="help-intro">
     <p class="help-eyebrow">Help · Inventory</p>
     <h1>Items, locations, unique items</h1>
-    <p class="help-lede">The inventory knows three things: <strong>items</strong> (what there is), <strong>locations</strong> (where something is) and <strong>unique items</strong> (this one device with its own label). This page shows how they fit together.</p>
+    <p class="help-lede">The inventory knows three things: <strong>items</strong> (what there is), <strong>locations</strong> (where something is) and <strong>unique items</strong> (this one device with its own label). An item is either a bulk item, counted per location, or a serialized item, which describes its unique items. This page shows how they fit together.</p>
     <nav class="help-toc" aria-label="Contents">
         <a href="#ueberblick">Overview</a>
-        <a href="#sachen">Bulk or unique</a>
+        <a href="#sachen">Bulk or serialized</a>
         <a href="#zamid">{{ label_id_name }}</a>
         <a href="#baum">Locations in the tree</a>
         <a href="#typen">Location types</a>
@@ -36,8 +36,8 @@
             </div>
         </div>
         <div class="help-lane help-is-unique">
-            <span class="help-lane-title">With unique items</span>
-            <p class="help-lane-lede">There can be several of one item, say the sewing machine model A38. We still want to tell them apart, because when one breaks, it matters which one it was. So every <strong>unique item</strong> has its own {{ label_id_name }} and exactly one location.</p>
+            <span class="help-lane-title">As a serialized item</span>
+            <p class="help-lane-lede">There can be several of one serialized item, say the sewing machine model A38. We still want to tell them apart, because when one breaks, it matters which one it was. So every <strong>unique item</strong> has its own {{ label_id_name }} and exactly one location.</p>
             <div class="help-node">{% icon "box-star-stack" %} <span>Sewing machine A38</span></div>
             <div class="help-link-line">Unique items</div>
             <div class="help-entries">
@@ -62,23 +62,23 @@
 
 <section id="sachen" aria-labelledby="h-sachen">
     <header>
-        <h2 id="h-sachen">Bulk or unique</h2>
+        <h2 id="h-sachen">Bulk or serialized</h2>
         <p>The two ways compared. An item is always only one of them.</p>
     </header>
     <div class="table-responsive help-table-wrap">
         <table class="table help-compare">
-            <thead><tr><th scope="col"></th><th scope="col">{% icon "boxes" %} Bulk item</th><th scope="col">{% icon "box-star-stack" %} Unique items</th></tr></thead>
+            <thead><tr><th scope="col"></th><th scope="col">{% icon "boxes" %} Bulk item</th><th scope="col">{% icon "box-star-stack" %} Serialized item</th></tr></thead>
             <tbody>
                 <tr><th scope="row">For</th><td>Consumables and small parts: paint, brushes, thread, tape, tea lights, screws</td><td>Devices: sewing machine, kettle, vacuum cleaner, drill, fire extinguisher. In short: anything with a power cord and anything special or expensive</td></tr>
                 <tr><th scope="row">At the location</th><td>a stock entry with an amount, e.g. “12 pcs.”</td><td>the unique item itself</td></tr>
                 <tr><th scope="row">How many places</th><td>any number, one amount each</td><td>exactly one per unique item</td></tr>
-                <tr><th scope="row">Label</th><td>none per piece; the label is on the location</td><td>its own {{ label_id_name }}, e.g. <span class="help-zamid">K7R-4XD</span> (<a href="#zamid">more</a>)</td></tr>
+                <tr><th scope="row">Label</th><td>none per piece; the label is on the location</td><td>none for the serialized item; each unique item gets its own {{ label_id_name }}, e.g. <span class="help-zamid">K7R-4XD</span> (<a href="#zamid">more</a>)</td></tr>
                 <tr><th scope="row">Sale</th><td>possible, with a price per unit, e.g. white acrylic paint 500 ml for €4.50 / pc.</td><td>no, unique items are not sold</td></tr>
                 <tr><th scope="row">Own details</th><td>only the amount</td><td>name (“Paula”), notes, purchase and warranty, people in charge</td></tr>
             </tbody>
         </table>
     </div>
-    <p class="help-aside">What all unique items of an item share (description, photos, files, required briefing) is kept once with the item. The kind can only be changed while the item has neither stock nor unique items.</p>
+    <p class="help-aside">What all unique items of a serialized item share (description, photos, files, required briefing) is kept once with the serialized item. The kind can only be changed while the item has neither stock nor unique items.</p>
 </section>
 
 <section id="zamid" aria-labelledby="h-zamid">

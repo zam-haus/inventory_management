@@ -414,7 +414,7 @@ msgstr ""
 
 #: design/variables.py:37
 msgid "the item, with all its fields and properties, e.g.:"
-msgstr "der Artikel, mit all seinen Feldern und Eigenschaften, z. B.:"
+msgstr "die Sache, mit all ihren Feldern und Eigenschaften, z. B.:"
 
 #: design/variables.py:39
 msgid "its price for items for sale, e.g. 0,15; else empty"
@@ -1662,8 +1662,8 @@ msgstr "Etiketten"
 #, python-format
 msgid "Only the item with a sale price (%(count)s)"
 msgid_plural "Only items with a sale price (%(count)s)"
-msgstr[0] "Nur der Artikel mit Verkaufspreis (%(count)s)"
-msgstr[1] "Nur Artikel mit Verkaufspreis (%(count)s)"
+msgstr[0] "Nur die Sache mit Verkaufspreis (%(count)s)"
+msgstr[1] "Nur Sachen mit Verkaufspreis (%(count)s)"
 
 #: templates/label_printing/print_fields.html:34
 #, python-format

@@ -6,10 +6,10 @@
 <header class="help-intro">
     <p class="help-eyebrow">Hilfe · Inventar</p>
     <h1>Sachen, Standorte, Einzelobjekte</h1>
-    <p class="help-lede">Im Inventar gibt es drei Dinge: <strong>Sachen</strong> (was es gibt), <strong>Standorte</strong> (wo etwas ist) und <strong>Einzelobjekte</strong> (dieses eine Gerät mit eigenem Label). Diese Seite zeigt, wie sie zusammenhängen.</p>
+    <p class="help-lede">Im Inventar gibt es drei Dinge: <strong>Sachen</strong> (was es gibt), <strong>Standorte</strong> (wo etwas ist) und <strong>Einzelobjekte</strong> (dieses eine Gerät mit eigenem Label). Eine Sache ist entweder ein Mengenartikel, gezählt je Standort, oder ein Einzelartikel, der seine Einzelobjekte beschreibt. Diese Seite zeigt, wie das zusammenhängt.</p>
     <nav class="help-toc" aria-label="Inhalt">
         <a href="#ueberblick">Überblick</a>
-        <a href="#sachen">Menge oder Einzelobjekt</a>
+        <a href="#sachen">Mengen- oder Einzelartikel</a>
         <a href="#zamid">{{ label_id_name }}</a>
         <a href="#baum">Standorte im Baum</a>
         <a href="#typen">Standorttypen</a>
@@ -20,7 +20,7 @@
 
 <section id="ueberblick" aria-labelledby="h-ueberblick">
     <header><h2 id="h-ueberblick">Auf einen Blick</h2></header>
-    <p class="help-overview-lede">{% icon "boxes" %}<span>Eine <strong>Sache</strong> ist eine allgemeine Beschreibung eines Gegenstands mit Name, Fotos und Beschreibungstext, zum Beispiel „Acrylfarbe Weiß“, „Teelichter“ oder „Nähmaschine“. Jede Sache wird auf eine von zwei Arten geführt:</span></p>
+    <p class="help-overview-lede">{% icon "boxes" %}<span>Eine <strong>Sache</strong> beschreibt allgemein, was es gibt, mit Name, Fotos und Beschreibungstext, zum Beispiel „Acrylfarbe Weiß“, „Teelichter“ oder „Nähmaschine“. Jede Sache wird auf eine von zwei Arten geführt:</span></p>
 
     <div class="help-lanes" role="group" aria-label="Wie Sachen an Standorte kommen">
         <div class="help-lane help-is-bulk">
@@ -36,8 +36,8 @@
             </div>
         </div>
         <div class="help-lane help-is-unique">
-            <span class="help-lane-title">Mit Einzelobjekten</span>
-            <p class="help-lane-lede">Von einer Sache, etwa dem Nähmaschinen-Modell A38, kann es mehrere geben. Wir wollen sie trotzdem auseinanderhalten, denn wenn eine kaputtgeht, zählt, welche es war. Jedes <strong>Einzelobjekt</strong> hat darum eine eigene {{ label_id_name }} und genau einen Standort.</p>
+            <span class="help-lane-title">Als Einzelartikel</span>
+            <p class="help-lane-lede">Von einem Einzelartikel, etwa dem Nähmaschinen-Modell A38, kann es mehrere geben. Wir wollen sie trotzdem auseinanderhalten, denn wenn eine kaputtgeht, zählt, welche es war. Jedes <strong>Einzelobjekt</strong> hat darum eine eigene {{ label_id_name }} und genau einen Standort.</p>
             <div class="help-node">{% icon "box-star-stack" %} <span>Nähmaschine A38</span></div>
             <div class="help-link-line">Einzelobjekte</div>
             <div class="help-entries">
@@ -62,23 +62,23 @@
 
 <section id="sachen" aria-labelledby="h-sachen">
     <header>
-        <h2 id="h-sachen">Menge oder Einzelobjekt</h2>
+        <h2 id="h-sachen">Mengen- oder Einzelartikel</h2>
         <p>Die beiden Arten im Vergleich. Eine Sache ist immer nur eins von beiden.</p>
     </header>
     <div class="table-responsive help-table-wrap">
         <table class="table help-compare">
-            <thead><tr><th scope="col"></th><th scope="col">{% icon "boxes" %} Mengenartikel</th><th scope="col">{% icon "box-star-stack" %} Einzelobjekte</th></tr></thead>
+            <thead><tr><th scope="col"></th><th scope="col">{% icon "boxes" %} Mengenartikel</th><th scope="col">{% icon "box-star-stack" %} Einzelartikel</th></tr></thead>
             <tbody>
                 <tr><th scope="row">Für</th><td>Verbrauchsmaterial und Kleinteile: Farbe, Pinsel, Nähgarn, Klebeband, Teelichter, Schrauben</td><td>Geräte: Nähmaschine, Wasserkocher, Staubsauger, Bohrmaschine, Feuerlöscher. Kurz: alles mit Stromkabel und alles Besondere oder Teure</td></tr>
                 <tr><th scope="row">Am Standort</th><td>ein Bestandseintrag mit Menge, z. B. „12 Stk.“</td><td>das Einzelobjekt selbst</td></tr>
                 <tr><th scope="row">Wie viele Orte</th><td>beliebig viele, je eine Menge</td><td>jedes Einzelobjekt genau einen</td></tr>
-                <tr><th scope="row">Label</th><td>keins pro Stück; das Label hängt am Standort</td><td>eigene {{ label_id_name }}, z. B. <span class="help-zamid">K7R-4XD</span> (<a href="#zamid">mehr dazu</a>)</td></tr>
+                <tr><th scope="row">Label</th><td>keins pro Stück; das Label hängt am Standort</td><td>keins für den Einzelartikel; jedes Einzelobjekt bekommt eine eigene {{ label_id_name }}, z. B. <span class="help-zamid">K7R-4XD</span> (<a href="#zamid">mehr dazu</a>)</td></tr>
                 <tr><th scope="row">Verkauf</th><td>möglich, mit Preis pro Einheit, z. B. Acrylfarbe Weiß 500 ml für 4,50 € / Stk.</td><td>nein, Einzelobjekte werden nicht verkauft</td></tr>
                 <tr><th scope="row">Eigene Angaben</th><td>nur die Menge</td><td>Name („Paula“), Notizen, Kauf und Garantie, Zuständige</td></tr>
             </tbody>
         </table>
     </div>
-    <p class="help-aside">Was alle Einzelobjekte einer Sache gemeinsam haben (Beschreibung, Fotos, Dateien, Einweisungspflicht), steht einmal bei der Sache. Die Art lässt sich nur ändern, solange die Sache weder Bestand noch Einzelobjekte hat.</p>
+    <p class="help-aside">Was alle Einzelobjekte eines Einzelartikels gemeinsam haben (Beschreibung, Fotos, Dateien, Einweisungspflicht), steht einmal beim Einzelartikel. Die Art lässt sich nur ändern, solange die Sache weder Bestand noch Einzelobjekte hat.</p>
 </section>
 
 <section id="zamid" aria-labelledby="h-zamid">

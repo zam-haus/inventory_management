@@ -7,7 +7,7 @@ from django.test import TestCase, TransactionTestCase
 from django.urls import reverse
 
 from .. import search
-from ..forms import BulkItemForm, NewItemForm, UniqueKindItemForm
+from ..forms import BulkItemForm, NewItemForm, SerializedItemForm
 from ..label_ids.forms import NewItemForm as ClaimNewItemForm
 from ..models import Category, Item, MeasurementUnit
 
@@ -95,7 +95,7 @@ class CategoryFormTests(TestCase):
         self.assertIn("data-category-naming hidden>", str(BulkItemForm(instance=Item(category=other))["category"]))
 
     def test_the_category_comes_before_the_name(self):
-        for form in (BulkItemForm(), UniqueKindItemForm(), NewItemForm()):
+        for form in (BulkItemForm(), SerializedItemForm(), NewItemForm()):
             with self.subTest(form=type(form).__name__):
                 fields = list(form.fields)
                 self.assertLess(fields.index("category"), fields.index("name"))

@@ -1,6 +1,6 @@
 # Concepts
 
-* Items are either bulk items, counted per location, or tracked as unique items,
+* Items are either bulk items, counted per location, or serialized items, tracked as unique items:
   single objects with their own label ID (see [Unique items](unique-items.md))
 * Bulk items can be at multiple locations
 * Item images are the main source of truth during data collection

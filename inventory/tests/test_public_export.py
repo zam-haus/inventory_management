@@ -25,7 +25,7 @@ class ExportFixture(InventoryFixture):
         # Invented people only.
         self.owner = User.objects.create_user(username="robinprivate", first_name="Robin", last_name="Private",
                                               email="robin@example.org")
-        self.unique_type = Item.objects.create(name="Fire extinguisher", kind=Item.Kind.UNIQUE,
+        self.unique_type = Item.objects.create(name="Fire extinguisher", kind=Item.Kind.SERIALIZED,
                                                measurement_unit=self.unit)
         with acting_as(self.owner):  # logged as who made the changes
             self.unique_item = UniqueItem.objects.create(
@@ -160,6 +160,15 @@ class PublicImportTests(ExportFixture, TransactionTestCase):
         self.assertTrue(owned.has_owner)
         self.assertFalse(get_user_model().objects.exists())
         self.assertEqual(ItemFile.objects.get().description, "Manual")
+
+    def test_export_from_before_the_kind_was_renamed(self):
+        self.create_export_data()
+        self.export(str(self.out / "export"))
+        data_path = self.out / "export" / "data.json"
+        data_path.write_text(data_path.read_text().replace('"kind": "serialized"', '"kind": "unique"'))
+        call_command("flush", interactive=False, verbosity=0)
+        call_command("import_public_data", str(self.out / "export"), stdout=StringIO(), verbosity=0)
+        self.assertEqual(Item.objects.get(name="Fire extinguisher").kind, Item.Kind.SERIALIZED)
 
     def test_refuses_a_filled_database(self):
         self.create_export_data()

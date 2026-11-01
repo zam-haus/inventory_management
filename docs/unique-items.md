@@ -1,14 +1,20 @@
 # Unique items
 
 Terms: an **item** (*Sache*) is either a **bulk item** (*Mengenartikel*),
-counted per location, or it is tracked as **unique items** (*Einzelobjekte*):
-single physical objects such as fire extinguishers, machines, IT hardware,
-anything with a power cord, or special and expensive tools. The item holds what
-its unique items share (description, photos, files, default usage level); each
-unique item has exactly one location and its own [label ID](label-ids.md). An item never has both
-stock entries and unique items; its kind can only change while it has neither.
+counted per location, or a **serialized item** (*Einzelartikel*), tracked as
+**unique items** (*Einzelobjekte*): single physical objects such as fire
+extinguishers, machines, IT hardware, anything with a power cord, or special and
+expensive tools. The serialized item holds what its unique items share
+(description, photos, files, default usage level); each unique item has exactly
+one location and its own [label ID](label-ids.md). An item never has both stock
+entries and unique items; its kind can only change while it has neither.
 
-* **Creating:** a new item tracked as unique items is created together with its
+In code the kind is `Item.Kind.SERIALIZED` (`"serialized"`, `Item.is_serialized`);
+`UniqueItem` and everything named `unique_item` is the single object. Before
+migration `inventory.0051` the kind was called `"unique"`, which shared its
+name (and its German label *Einzelobjekte*) with the objects.
+
+* **Creating:** a new serialized item is created together with its
   first unique item (location and label ID), just as a bulk item needs its first
   stock entry; the first unique item's page then shows the label to print.
   A unique item always gets its label ID when it is created, either
@@ -79,9 +85,9 @@ stock entries and unique items; its kind can only change while it has neither.
   first, so the hand-over is recorded.
 * `manage.py label_id_check --missing` lists unique items whose ID was retired and
   that need a replacement label.
-* **Item search:** for items tracked as unique items, the locations column lists
+* **Item search:** for serialized items, the locations column lists
   each unique item's name, label ID and location; searching for a unique item's name, or for a
   location name or identifier, also finds them.
 * **URLs:** `/item/unique/<pk>` (with `/update`, `/notes` and `/dispose`),
   `/item/unique/create/item` (step 1) and `/item/unique/create?item=<pk>&location=<pk>` (step 2); new items take `?kind=bulk` or
-  `?kind=unique` on `/item/create`.
+  `?kind=serialized` on `/item/create` (the former `?kind=unique` still works).

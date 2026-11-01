@@ -17,7 +17,7 @@ class HelpPageTests(InventoryFixture, TestCase):
     @classmethod
     def setUpTestData(cls):
         cls.create_inventory()
-        cls.extinguisher = Item.objects.create(name="Fire extinguisher", kind=Item.Kind.UNIQUE,
+        cls.extinguisher = Item.objects.create(name="Fire extinguisher", kind=Item.Kind.SERIALIZED,
                                                measurement_unit=cls.unit)
         cls.unique_item = UniqueItem.objects.create(item=cls.extinguisher, location=cls.location)
         cls.lid = services.claim(make_id("K7R4X").code, cls.unique_item, None)

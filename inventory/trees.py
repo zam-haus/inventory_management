@@ -17,7 +17,7 @@ from . import icons
 from .label_ids.lookup import annotate_label_code
 from .location_display import CATEGORY_ICONS, icon_name, label_html
 from .models import Category, Item, ItemLocation, Location, LocationType, UniqueItem
-from .search.render import KINDS, SUB_LOCATIONS, UNIQUE_KIND_ICON, count_text
+from .search.render import KINDS, SUB_LOCATIONS, SERIALIZED_ICON, count_text
 from .structure_overview import code_order
 
 OPEN = mark_safe(" open")
@@ -197,16 +197,16 @@ def item_nodes():
 
 def leaf_counts(items):
     """(counted items, unique items) among `items`."""
-    bulk = sum(item.kind != Item.Kind.UNIQUE for item in items)
+    bulk = sum(item.kind != Item.Kind.SERIALIZED for item in items)
     return bulk, sum(len(item.units) for item in items)
 
 
 def item_row(item):
-    """An item; one tracked as unique items is a branch with them (closed), each named as everywhere."""
-    if item.kind != Item.Kind.UNIQUE:
+    """An item; a serialized one is a branch with its unique items (closed), each named as everywhere."""
+    if item.kind != Item.Kind.SERIALIZED:
         return leaf(None, format_html('<span class="tree-row">{}<a href="{}">{}</a></span>',
                                       use_icon(KINDS["item"][0]), item.get_absolute_url(), item))
-    row = format_html('<span class="tree-row">{}<a href="{}">{}</a>{}</span>', use_icon(UNIQUE_KIND_ICON),
+    row = format_html('<span class="tree-row">{}<a href="{}">{}</a>{}</span>', use_icon(SERIALIZED_ICON),
                       item.get_absolute_url(), item, pills(*item_pills(Node(unique=len(item.units)))))
     if not item.units:
         return leaf(None, row)
@@ -242,4 +242,4 @@ def item_tree():
         html = format_html("{}{}", html, branch(
             "cat-none", category_row(none, _("Without category")),
             format_html_join("", "{}", ((item_row(item),) for item in uncategorized)), False))
-    return sprite({KINDS["category"][0], KINDS["item"][0], KINDS["unique"][0], UNIQUE_KIND_ICON}), html
+    return sprite({KINDS["category"][0], KINDS["item"][0], KINDS["unique"][0], SERIALIZED_ICON}), html

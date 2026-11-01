@@ -95,7 +95,7 @@ def new_item_draft(request, token):
     data = request.session.get(NEW_ITEMS_SESSION_KEY, {}).get(token or "")
     if not data:
         return None
-    return Item(kind=Item.Kind.UNIQUE, name=data["name"], description=data["description"],
+    return Item(kind=Item.Kind.SERIALIZED, name=data["name"], description=data["description"],
                 usage_level=data["usage_level"], category=Category.objects.filter(pk=data["category"]).first())
 
 
@@ -142,7 +142,7 @@ class CreateUniqueItemView(UniqueItemEditorMixin, extra_views.CreateWithInlinesV
         if not hasattr(self, "_chosen_item"):
             item = None
             if self.request.GET.get("item", "").isdigit():
-                item = Item.active.filter(kind=Item.Kind.UNIQUE, pk=self.request.GET["item"]).first()
+                item = Item.active.filter(kind=Item.Kind.SERIALIZED, pk=self.request.GET["item"]).first()
             elif self.request.GET.get("new"):
                 item = new_item_draft(self.request, self.request.GET["new"])
             self._chosen_item = item
@@ -251,9 +251,9 @@ class DisposeUniqueItemView(PermissionRequiredMixin, View):
         return redirect(location if location is not None else unique_item)
 
 
-class UniqueKindItemAutocomplete(autocomplete.Select2QuerySetView):
+class SerializedItemAutocomplete(autocomplete.Select2QuerySetView):
     """
-    Items tracked as unique items. The last option stands for a new item of the
+    Serialized items. The last option stands for a new item of the
     typed name; it is only created when the unique item is saved (needs inventory.add_item).
     """
 
@@ -261,7 +261,7 @@ class UniqueKindItemAutocomplete(autocomplete.Select2QuerySetView):
     http_method_names = ["get"]
 
     def get_queryset(self):
-        qs = Item.active.filter(kind=Item.Kind.UNIQUE)
+        qs = Item.active.filter(kind=Item.Kind.SERIALIZED)
         if self.q:
             qs = qs.filter(Q(name__icontains=self.q) | Q(description__icontains=self.q))
         return qs.order_by("name")

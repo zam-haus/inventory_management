@@ -91,8 +91,8 @@ class ItemLocation(models.Model):
 
     def clean(self):
         super().clean()
-        if self.item_id and self.item.tracks_unique_items:
-            raise ValidationError({"item": _("This item is tracked as unique items; add unique items instead of stock.")})
+        if self.item_id and self.item.is_serialized:
+            raise ValidationError({"item": _("This is a serialized item; add unique items instead of stock.")})
 
     @property
     def sale_value(self):

@@ -101,13 +101,13 @@ class SubjectsTests(InventoryData, TestCase):
         Item.objects.filter(pk=self.item.pk).update(for_sale=False, sale_price=None)
         self.item.refresh_from_db()
         self.assertEqual(self.first("item", ItemAt(self.item, self.part)), on_tape)
-        drill = Item.objects.create(name="Bohrmaschine", kind=Item.Kind.UNIQUE, measurement_unit=self.unit)
+        drill = Item.objects.create(name="Bohrmaschine", kind=Item.Kind.SERIALIZED, measurement_unit=self.unit)
         self.assertIsNone(self.first("item", ItemAt(drill, None)))
         self.assertEqual(dialog.unavailable_reason("item", dialog.options("item", drill)),
                          "No label template is meant for this.")
 
     def test_unique_items_with_an_owner_get_the_owner_on_the_label(self):
-        drill = UniqueItem.objects.create(item=Item.objects.create(name="Bohrmaschine", kind=Item.Kind.UNIQUE),
+        drill = UniqueItem.objects.create(item=Item.objects.create(name="Bohrmaschine", kind=Item.Kind.SERIALIZED),
                                           location=self.part)
         self.assertEqual(self.first("uniqueitem", drill).subject_type, "labelid")  # ZAMid, by its label ID
         drill.owner_first_name = "Robin"
@@ -133,7 +133,7 @@ class SubjectsTests(InventoryData, TestCase):
         self.assertEqual((job.subject_type, job.snapshot[0]["owner"], job.label_code), ("uniqueitem", "Robin", lid.code))
 
     def test_a_label_id_of_a_unique_item_marked_printed(self):
-        drill = UniqueItem.objects.create(item=Item.objects.create(name="Bohrmaschine", kind=Item.Kind.UNIQUE),
+        drill = UniqueItem.objects.create(item=Item.objects.create(name="Bohrmaschine", kind=Item.Kind.SERIALIZED),
                                           location=self.part, owner_first_name="Robin")
         lid = label_ids.generate_and_claim(drill, None)
         owned = next(outcome for outcome in outcomes.outcomes("uniqueitem")

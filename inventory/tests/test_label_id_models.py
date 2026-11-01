@@ -134,7 +134,7 @@ class ImmutabilityTests(InventoryFixture, TestCase):
             lid.save()
 
     def test_no_relinking_to_unique_items(self):
-        unique_item = UniqueItem.objects.create(item=Item.objects.create(name="Saw", kind=Item.Kind.UNIQUE, measurement_unit=self.unit),
+        unique_item = UniqueItem.objects.create(item=Item.objects.create(name="Saw", kind=Item.Kind.SERIALIZED, measurement_unit=self.unit),
                                      location=self.location)
         self.raw("UPDATE inventory_labelid SET item_id = NULL, unique_item_id = %s WHERE code = %s", [unique_item.pk, self.lid.code])
         assigned = services.claim(make_id("ABCDE").code, unique_item, None)
@@ -216,7 +216,7 @@ class TargetDeletionTests(InventoryFixture, TestCase):
         self.assertTrue(old.note.startswith("label damaged\n"))
 
     def test_hard_delete_of_unique_item(self):
-        unique_item = UniqueItem.objects.create(item=Item.objects.create(name="Saw", kind=Item.Kind.UNIQUE, measurement_unit=self.unit),
+        unique_item = UniqueItem.objects.create(item=Item.objects.create(name="Saw", kind=Item.Kind.SERIALIZED, measurement_unit=self.unit),
                                      location=self.location)
         lid = services.claim(make_id("ABCDE").code, unique_item, None)
         unique_item.delete()

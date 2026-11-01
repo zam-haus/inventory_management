@@ -27,8 +27,8 @@ the magnifier goes to the page's field. To browse instead, *Items* and *Location
   also HW.R3. The location with exactly that code comes first. A single symbol matches a code only whole.
 * **One list:** locations, categories, items and unique items mixed, those whose name (or purpose, or code,
   or label ID, or a category's keyword) matches first; at the same rank locations first, then categories, then
-  items and unique items; locations by code. Each shows the icon of its kind before its name (an item tracked as
-  unique items `box-star-stack`, a category `folder`, [icons](icons.md)). A category shows the categories above it,
+  items and unique items; locations by code. Each shows the icon of its kind before its name (a serialized
+  item `box-star-stack`, a category `folder`, [icons](icons.md)). A category shows the categories above it,
   what belongs there (the first line of its description) and, as in the item tree, its counted and unique items,
   those below it included; it leads to its page, where the search goes on within it ([trees](trees.md)). An item shows where it is stored with its stock or its unique items (named as
   everywhere: item, own name, label ID), a unique item its label ID after its name and its location, a location

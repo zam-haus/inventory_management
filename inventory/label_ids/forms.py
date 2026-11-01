@@ -43,15 +43,15 @@ class NewUniqueItemForm(NewItemAlongsideMixin, forms.ModelForm):
         fields = ["item", "location"]
         field_classes = {"item": ItemOrNewField}
         widgets = {
-            "item": ItemOrNewSelect(url="unique_kind_item_autocomplete",
-                                    attrs={"data-placeholder": _("Search for an item with unique items…"), "data-allow-clear": 1}),
+            "item": ItemOrNewSelect(url="serialized_item_autocomplete",
+                                    attrs={"data-placeholder": _("Search for a serialized item…"), "data-allow-clear": 1}),
             "location": LocationSelect(url="location-autocomplete",
                                        attrs={"data-placeholder": _("Search for a location…"), "data-allow-clear": 1}),
         }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields["item"].queryset = Item.active.filter(kind=Item.Kind.UNIQUE)
+        self.fields["item"].queryset = Item.active.filter(kind=Item.Kind.SERIALIZED)
         self.fields["location"].queryset = Location.active.all()
         self.fields["location"].required = True
 

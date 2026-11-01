@@ -1,7 +1,8 @@
 """Items and what describes them: categories, units, photos, files and barcodes.
 
-An item is either a bulk item, counted per location in ItemLocation, or it is
-tracked as unique items: single physical objects (unique_item.py). Never both."""
+An item is either a bulk item, counted per location in ItemLocation, or a
+serialized item, tracked as unique items: single physical objects with their own
+label ID (unique_item.py). Never both."""
 from datetime import datetime
 from pathlib import Path
 from uuid import uuid4
@@ -42,7 +43,7 @@ USAGE_LEVEL_ICONS = {UsageLevel.GREEN: "check-lg", UsageLevel.YELLOW: "exclamati
 class Item(SoftDeleteModel):
     class Kind(models.TextChoices):
         BULK = "bulk", _("bulk item")
-        UNIQUE = "unique", _("unique items")
+        SERIALIZED = "serialized", _("serialized item")
 
     class Meta:
         verbose_name = _("item")
@@ -65,7 +66,7 @@ class Item(SoftDeleteModel):
             ),
         ]
 
-    kind = models.CharField(_("kind"), max_length=8, choices=Kind.choices, default=Kind.BULK)
+    kind = models.CharField(_("kind"), max_length=16, choices=Kind.choices, default=Kind.BULK)
     name = models.CharField(_("item name"), max_length=512, blank=True, null=True)
     description = models.TextField(_("description"), blank=True)
     category = models.ForeignKey(
@@ -114,15 +115,15 @@ class Item(SoftDeleteModel):
                 if image.unique_item_id is not None and image.unique_item.disposed_at is None]
 
     @property
-    def tracks_unique_items(self):
-        return self.kind == self.Kind.UNIQUE
+    def is_serialized(self):
+        return self.kind == self.Kind.SERIALIZED
 
     def clean(self):
         super().clean()
         errors = {}
-        if self.tracks_unique_items and self.for_sale:
+        if self.is_serialized and self.for_sale:
             errors["for_sale"] = _("Only bulk items can be for sale.")
-        if self.tracks_unique_items and self.sale_price is not None:
+        if self.is_serialized and self.sale_price is not None:
             errors["sale_price"] = _("Only bulk items have a sale price.")
         elif self.sale_price is not None and self.for_sale is False:
             errors["sale_price"] = _("Items that are not for sale have no sale price.")
@@ -137,7 +138,7 @@ class Item(SoftDeleteModel):
 
     def save(self, *args, **kwargs):
         # A price makes an undecided bulk item one for sale, wherever it is entered.
-        if self.sale_price is not None and self.for_sale is None and not self.tracks_unique_items:
+        if self.sale_price is not None and self.for_sale is None and not self.is_serialized:
             self.for_sale = True
         super().save(*args, **kwargs)
 

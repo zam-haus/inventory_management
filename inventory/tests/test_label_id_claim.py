@@ -125,7 +125,7 @@ class UniqueItemClaimTests(InventoryFixture, TestCase):
         cls.create_inventory()
         cls.member = get_user_model().objects.create_user(username="member")
         cls.member.groups.add(local_group())  # add_uniqueitem by inventory/migrations/0024
-        cls.extinguisher = Item.objects.create(name="Fire extinguisher", kind=Item.Kind.UNIQUE, measurement_unit=cls.unit)
+        cls.extinguisher = Item.objects.create(name="Fire extinguisher", kind=Item.Kind.SERIALIZED, measurement_unit=cls.unit)
         cls.lid = make_id("K7R4X")
         cls.url = reverse("label_id_claim", args=[cls.lid.code])
 
@@ -150,7 +150,7 @@ class UniqueItemClaimTests(InventoryFixture, TestCase):
         cutter = Item.objects.get(name="Laser cutter")
         unique_item = cutter.unique_items.get()
         self.assertRedirects(response, reverse("update_unique_item", args=[unique_item.pk]), fetch_redirect_response=False)
-        self.assertEqual((cutter.kind, LabelId.objects.get(pk=self.lid.pk).unique_item), (Item.Kind.UNIQUE, unique_item))
+        self.assertEqual((cutter.kind, LabelId.objects.get(pk=self.lid.pk).unique_item), (Item.Kind.SERIALIZED, unique_item))
 
     def test_stock_items_are_not_unique_item_types(self):
         self.client.force_login(self.member)

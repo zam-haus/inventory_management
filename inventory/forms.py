@@ -176,8 +176,8 @@ def hide_internal_fields(form, user, names):
 
 
 def clean_sale_fields(cleaned):
-    # A price makes an undecided item one for sale; items with unique items are never sold.
-    if cleaned.get("kind") == Item.Kind.UNIQUE:
+    # A price makes an undecided item one for sale; serialized items are never sold.
+    if cleaned.get("kind") == Item.Kind.SERIALIZED:
         cleaned["for_sale"], cleaned["sale_price"] = None, None
     elif cleaned.get("sale_price") is not None and cleaned.get("for_sale") is None:
         cleaned["for_sale"] = True
@@ -185,7 +185,7 @@ def clean_sale_fields(cleaned):
 
 
 class BaseItemForm(ModelForm):
-    """Fields and barcodes shared by bulk items and items tracked as unique items."""
+    """Fields and barcodes shared by bulk items and serialized items."""
 
     INTERNAL_FIELDS = ("last_purchase_price",)
     # The kind of item this form edits; set by the subclasses.
@@ -343,10 +343,10 @@ class BulkItemForm(BaseItemForm):
         ]
 
 
-class UniqueKindItemForm(BaseItemForm):
-    """An item tracked as unique items describes them; the single objects are added as unique items."""
+class SerializedItemForm(BaseItemForm):
+    """A serialized item describes them; the single objects are added as unique items."""
 
-    item_kind = Item.Kind.UNIQUE
+    item_kind = Item.Kind.SERIALIZED
 
     class Meta(BaseItemForm.Meta):
         fields = [
@@ -366,12 +366,12 @@ class UniqueKindItemForm(BaseItemForm):
         ]
 
 
-ITEM_FORMS = {Item.Kind.BULK: BulkItemForm, Item.Kind.UNIQUE: UniqueKindItemForm}
+ITEM_FORMS = {Item.Kind.BULK: BulkItemForm, Item.Kind.SERIALIZED: SerializedItemForm}
 
 
 class NewItemForm(BaseItemForm):
     """
-    A new item, bulk or tracked as unique items. Both kinds' fields are on the
+    A new item, bulk or serialized. Both kinds' fields are on the
     page and the chosen kind shows its part (item_kind_switch.js), so switching
     keeps everything entered; only the chosen kind's fields are used.
     """
@@ -399,10 +399,11 @@ class NewItemForm(BaseItemForm):
         return [
             layout.Div(bootstrap.InlineRadios("kind"), css_class="item-kind-switch"),
             layout.HTML(format_html(
-                '<p class="text-muted" data-for-kind="bulk">{} {}</p><p class="text-muted" data-for-kind="unique">{} {}</p>',
+                '<p class="text-muted" data-for-kind="bulk">{} {}</p><p class="text-muted" data-for-kind="serialized">{} {}</p>',
                 _("A bulk item is counted per location, such as screws or filament."), help_link("sachen"),
-                _("Unique items are objects tracked one by one, each with its own {name}, such as fire extinguishers "
-                  "or machines. This item describes them; enter the first one below and add more later.").format(
+                _("A serialized item is tracked as unique items: objects one by one, each with its own {name}, such as "
+                  "fire extinguishers or machines. This item describes them; enter the first one below and add more "
+                  "later.").format(
                     name=label_id_naming.name()), help_link("sachen"),
             )),
             "category",
@@ -413,7 +414,7 @@ class NewItemForm(BaseItemForm):
                 layout.Div("for_sale", css_class="col"),
                 layout.Div(bootstrap.AppendedText("sale_price", "€"), css_class="col"),
                 css_class="row", data_for_kind="bulk"),
-            layout.Div("usage_level", data_for_kind="unique"),
+            layout.Div("usage_level", data_for_kind="serialized"),
             bootstrap.FieldWithButtons("barcode_data"),
             self.procurement_layout(),
         ]
@@ -421,7 +422,7 @@ class NewItemForm(BaseItemForm):
     def clean(self):
         cleaned = super().clean()
         if cleaned.get("kind") == Item.Kind.BULK:
-            cleaned["usage_level"] = ""  # only for items tracked as unique items
+            cleaned["usage_level"] = ""  # only for serialized items
         return cleaned
 
 
@@ -538,10 +539,10 @@ def unique_item_choice_label(unique_item):
 def offer_unique_items(formset, item):
     """
     On the item form, a row can be assigned to one of the item's unique items.
-    Returns whether the choice is offered (items tracked as unique items that have some).
+    Returns whether the choice is offered (serialized items that have some).
     """
     unique_items = []
-    if item is not None and item.pk and item.tracks_unique_items:
+    if item is not None and item.pk and item.is_serialized:
         unique_items = list(annotate_label_code(item.unique_items.select_related("location")))
     for form in formset.forms:
         if not unique_items:
@@ -1044,7 +1045,7 @@ class StockChangeForm(Form):
 
 class ItemOrNewField(ModelChoiceField):
     """
-    An item tracked as unique items, or "new:<name>" (offered last by the item
+    A serialized item, or "new:<name>" (offered last by the item
     search) for a new one that is created only together with the unique item.
     """
 
@@ -1054,7 +1055,7 @@ class ItemOrNewField(ModelChoiceField):
             max_length = Item._meta.get_field("name").max_length
             if not name or len(name) > max_length:
                 raise ValidationError(_("Item names need 1 to %(max)d characters.") % {"max": max_length})
-            return Item(name=name, kind=Item.Kind.UNIQUE)
+            return Item(name=name, kind=Item.Kind.SERIALIZED)
         return super().to_python(value)
 
     def prepare_value(self, value):
@@ -1112,8 +1113,8 @@ class UniqueItemForm(NewItemAlongsideMixin, ModelForm):
         ]
         field_classes = {"item": ItemOrNewField}
         widgets = {
-            "item": ItemOrNewSelect(url="unique_kind_item_autocomplete",
-                                    attrs={"data-placeholder": _("Search for an item with unique items…")}),
+            "item": ItemOrNewSelect(url="serialized_item_autocomplete",
+                                    attrs={"data-placeholder": _("Search for a serialized item…")}),
             "location": LocationSelect(url="location-autocomplete",
                                            attrs={"data-placeholder": _("Search for a location…")}),
             "responsible_user": AutocompleteSelect(url="user_autocomplete", attrs={"data-allow-clear": 1}),
@@ -1130,7 +1131,7 @@ class UniqueItemForm(NewItemAlongsideMixin, ModelForm):
     def __init__(self, *args, user=None, **kwargs):
         super().__init__(*args, **kwargs)
         self.user = user
-        self.fields["item"].queryset = Item.active.filter(kind=Item.Kind.UNIQUE)
+        self.fields["item"].queryset = Item.active.filter(kind=Item.Kind.SERIALIZED)
         self.fields["location"].queryset = Location.active.all()
         self.fields["location"].required = True
         if self.instance.pk:
@@ -1285,10 +1286,10 @@ class UniqueItemItemForm(Form):
     together with its first unique item in step 2."""
 
     item = ItemOrNewField(
-        label=_("Item"), queryset=Item.active.filter(kind=Item.Kind.UNIQUE),
-        widget=ItemOrNewSelect(url="unique_kind_item_autocomplete",
-                               attrs={"data-placeholder": _("Search for an item with unique items…")}),
-        help_text=_("An item with unique items; for a new one, type its name and choose “Create new item …”."),
+        label=_("Item"), queryset=Item.active.filter(kind=Item.Kind.SERIALIZED),
+        widget=ItemOrNewSelect(url="serialized_item_autocomplete",
+                               attrs={"data-placeholder": _("Search for a serialized item…")}),
+        help_text=_("A serialized item; for a new one, type its name and choose “Create new item …”."),
     )
     category = ModelChoiceField(label=_("Category"), queryset=Category.objects.all(), required=False,
                                 widget=CategorySelect)
@@ -1331,7 +1332,7 @@ class UniqueItemItemForm(Form):
 
 
 class FirstUniqueItemForm(LabelIdChoiceForm, ModelForm):
-    """Creating an item tracked as unique items includes its first unique item, like stock for a bulk item."""
+    """Creating a serialized item includes its first unique item, like stock for a bulk item."""
 
     class Meta:
         model = UniqueItem

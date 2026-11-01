@@ -1,6 +1,6 @@
 from django.test import SimpleTestCase
 
-from ..forms import BulkItemForm, NewItemForm, UniqueItemForm, UniqueKindItemForm
+from ..forms import BulkItemForm, NewItemForm, UniqueItemForm, SerializedItemForm
 from ..widgets import AutocompleteSelect, LocationSelect, MarkdownEditor
 
 
@@ -8,7 +8,7 @@ class MarkdownEditorTests(SimpleTestCase):
     """Markdown fields are edited with the WYSIWYG editor (docs/markdown.md); without image uploads for now."""
 
     def test_markdown_fields_use_the_editor(self):
-        for form, name in ((BulkItemForm, "description"), (UniqueKindItemForm, "description"),
+        for form, name in ((BulkItemForm, "description"), (SerializedItemForm, "description"),
                            (NewItemForm, "description"), (UniqueItemForm, "notes")):
             with self.subTest(form=form.__name__):
                 self.assertIsInstance(form.base_fields[name].widget, MarkdownEditor)

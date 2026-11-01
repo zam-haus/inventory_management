@@ -486,7 +486,7 @@ class DetailItemView(DetailView):
         context["link_preview"] = link_preview.for_item(self.object)
         # The item page shows what applies to the item in general.
         context["files"] = self.object.itemfile_set.filter(unique_item__isnull=True)
-        if self.object.tracks_unique_items:
+        if self.object.is_serialized:
             context["unique_items"] = list(annotate_label_code(
                 self.object.unique_items(manager="active").select_related("location", "responsible_team__group")
             ).order_by("location__locatable_identifier", "pk"))
@@ -603,12 +603,12 @@ def category_json(request, pk):
     })
 
 class ItemKindMixin:
-    """Bulk items and items tracked as unique items have their own form and inlines."""
+    """Bulk items and serialized items have their own form and inlines."""
 
     INLINES = {
         # Photos and files together, then where the item is.
         models.Item.Kind.BULK: [forms.ItemImageInline, forms.ItemFileInline, forms.ItemLocationInline],
-        models.Item.Kind.UNIQUE: [forms.ItemImageInline, forms.ItemFileInline],
+        models.Item.Kind.SERIALIZED: [forms.ItemImageInline, forms.ItemFileInline],
     }
 
     def get_kind(self):
@@ -636,20 +636,22 @@ class CreateItemView(ItemEditorPermissionMixin, ItemKindMixin, extra_views.Creat
     # the page so switching the kind keeps what was entered; only the chosen one is saved.
     KIND_INLINES = {
         models.Item.Kind.BULK: forms.ItemLocationInline,
-        models.Item.Kind.UNIQUE: forms.FirstUniqueItemInline,
+        models.Item.Kind.SERIALIZED: forms.FirstUniqueItemInline,
     }
     INLINES = dict.fromkeys(models.Item.Kind.values, [forms.ItemImageInline, forms.ItemFileInline, *KIND_INLINES.values()])
 
     def get_kind(self):
         # The choice in the form, else the one the page was opened with.
         kind = self.request.POST.get("kind") or self.request.GET.get("kind")
+        if kind == "unique":  # links from before the kind was renamed
+            kind = models.Item.Kind.SERIALIZED
         return kind if kind in models.Item.Kind.values else models.Item.Kind.BULK
 
     def allow_unique(self):
         return self.request.user.has_perms(UNIQUE_ITEM_CREATE_PERMISSIONS)
 
     def get_permission_required(self):
-        if self.request.method == "POST" and self.get_kind() == models.Item.Kind.UNIQUE:
+        if self.request.method == "POST" and self.get_kind() == models.Item.Kind.SERIALIZED:
             return (self.permission_required, *UNIQUE_ITEM_CREATE_PERMISSIONS)
         return (self.permission_required,)
 
@@ -679,7 +681,7 @@ class CreateItemView(ItemEditorPermissionMixin, ItemKindMixin, extra_views.Creat
         if form_validated:
             self.object = form.save(commit=False)
         inlines = self.construct_inlines()
-        other = self.KIND_INLINES[models.Item.Kind.UNIQUE if self.get_kind() == models.Item.Kind.BULK else models.Item.Kind.BULK]
+        other = self.KIND_INLINES[models.Item.Kind.SERIALIZED if self.get_kind() == models.Item.Kind.BULK else models.Item.Kind.BULK]
         chosen = [formset for formset in inlines if formset.model is not other.model]
         if form_validated and all_valid(chosen):
             return self.forms_valid(form, chosen)
@@ -699,10 +701,10 @@ class CreateItemView(ItemEditorPermissionMixin, ItemKindMixin, extra_views.Creat
                     else:
                         services.generate_and_claim(unique_form.instance, self.request.user)
         # extra_views chose the redirect before the inlines were saved.
-        return redirect(self.get_success_url()) if self.object.tracks_unique_items else response
+        return redirect(self.get_success_url()) if self.object.is_serialized else response
 
     def get_success_url(self):
-        if self.object.tracks_unique_items:
+        if self.object.is_serialized:
             # The first unique item's page shows the label to print.
             first = self.object.unique_items.order_by("pk").first()
             return first.get_absolute_url() if first else self.object.get_absolute_url()

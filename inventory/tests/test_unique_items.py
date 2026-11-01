@@ -42,7 +42,7 @@ class UniqueItemFixture(InventoryFixture):
                                              email="robin@example.org")
         cls.team = Team.objects.create(group=Group.objects.create(name="Woodworking"))
         cls.shelf = Location.objects.create(name="Shelf", short_name="S", type=cls.kind, parent_location=cls.location)
-        cls.extinguisher = Item.objects.create(name="Fire extinguisher", kind=Item.Kind.UNIQUE,
+        cls.extinguisher = Item.objects.create(name="Fire extinguisher", kind=Item.Kind.SERIALIZED,
                                                usage_level=UsageLevel.GREEN, measurement_unit=cls.unit)
         cls.unique_item = UniqueItem.objects.create(item=cls.extinguisher, location=cls.location)
         cls.lid = services.claim(make_id("K7R4X").code, cls.unique_item, None)
@@ -55,12 +55,12 @@ class UniqueItemModelTests(UniqueItemFixture, TestCase):
         cls.create_unique_items()
 
     def test_unique_item_types_cannot_be_sold(self):
-        item = Item(name="Saw", kind=Item.Kind.UNIQUE, for_sale=True, sale_price=Decimal("5"), measurement_unit=self.unit)
+        item = Item(name="Saw", kind=Item.Kind.SERIALIZED, for_sale=True, sale_price=Decimal("5"), measurement_unit=self.unit)
         with self.assertRaises(ValidationError) as raised:
             item.full_clean()
         self.assertEqual(set(raised.exception.message_dict), {"for_sale", "sale_price"})
         with self.assertRaises(IntegrityError), transaction.atomic():
-            Item.objects.create(name="Saw", kind=Item.Kind.UNIQUE, sale_price=Decimal("5"), measurement_unit=self.unit)
+            Item.objects.create(name="Saw", kind=Item.Kind.SERIALIZED, sale_price=Decimal("5"), measurement_unit=self.unit)
 
     def test_a_price_means_for_sale(self):
         item = Item.objects.create(name="Screws", sale_price=Decimal("0.10"), measurement_unit=self.unit)
@@ -83,7 +83,7 @@ class UniqueItemModelTests(UniqueItemFixture, TestCase):
         with self.assertRaises(ValidationError) as raised:
             self.extinguisher.full_clean()
         self.assertIn("kind", raised.exception.message_dict)
-        self.other_item.kind = Item.Kind.UNIQUE
+        self.other_item.kind = Item.Kind.SERIALIZED
         self.other_item.full_clean()
 
     def test_located_unless_disposed(self):
@@ -420,7 +420,7 @@ class UniqueItemViewTests(UniqueItemFixture, TestCase):
         self.assertEqual(len(response.context["unique_items"]), 1)
 
     def test_item_search_offers_a_new_item_last(self):
-        url = reverse("unique_kind_item_autocomplete")
+        url = reverse("serialized_item_autocomplete")
         self.client.force_login(self.member)
         results = self.client.get(url, {"q": "Ladder"}).json()["results"]
         self.assertEqual(results[-1], {"id": "new:Ladder", "text": "Create new item “Ladder”"})
@@ -464,14 +464,14 @@ class UniqueItemViewTests(UniqueItemFixture, TestCase):
         unique_item = ladder.unique_items.get()
         self.assertRedirects(response, unique_item.get_absolute_url(), fetch_redirect_response=False)
         self.assertEqual((ladder.kind, ladder.category, ladder.description, ladder.usage_level),
-                         (Item.Kind.UNIQUE, category, "Check the **feet**.", "red"))
+                         (Item.Kind.SERIALIZED, category, "Check the **feet**.", "red"))
         self.assertEqual(self.client.session.get("unique_item_new_items"), {})
 
     def test_the_label_id_can_be_scanned(self):
         # Beside the field: a QR scan button (label_scan.js), in step 2 and when an item comes with its first one.
         self.client.force_login(self.member)
         grant(self.member, "add_item", "add_itemlocation")
-        for url in (f'{reverse("create_unique_item")}?item={self.extinguisher.pk}', f'{reverse("create_item")}?kind=unique'):
+        for url in (f'{reverse("create_unique_item")}?item={self.extinguisher.pk}', f'{reverse("create_item")}?kind=serialized'):
             with self.subTest(url=url):
                 page = self.client.get(url).content.decode()
                 self.assertIn("data-label-scan", page)
@@ -492,7 +492,7 @@ class UniqueItemViewTests(UniqueItemFixture, TestCase):
         ladder = Item.objects.get(name="Ladder 3 m")
         unique_item = ladder.unique_items.get()
         self.assertRedirects(response, unique_item.get_absolute_url(), fetch_redirect_response=False)
-        self.assertEqual((ladder.kind, unique_item.location), (Item.Kind.UNIQUE, self.location))
+        self.assertEqual((ladder.kind, unique_item.location), (Item.Kind.SERIALIZED, self.location))
         self.assertTrue(LabelId.objects.filter(unique_item=unique_item, status=LabelId.Status.ASSIGNED).exists())
 
     def test_new_item_is_only_created_with_the_unique_item(self):
@@ -535,7 +535,7 @@ class UniqueItemViewTests(UniqueItemFixture, TestCase):
         response = self.client.get(reverse("index_items"), {"q": "k7r-4xd"}, follow=True)
         self.assertEqual(response.redirect_chain[-1][0], self.unique_item.get_absolute_url())
 
-    def new_item_data(self, kind="unique", **first):
+    def new_item_data(self, kind="serialized", **first):
         data = {"kind": kind, "name": "Circular saw", "description": "", "usage_level": "red", "barcode_data": "",
                 "measurement_unit": self.unit.pk,
                 "itemlocation_set-TOTAL_FORMS": "1", "itemlocation_set-INITIAL_FORMS": "0",
@@ -548,9 +548,11 @@ class UniqueItemViewTests(UniqueItemFixture, TestCase):
 
     def test_new_item_comes_with_its_first_unique_item(self):
         self.client.force_login(self.member)
-        url = reverse("create_item") + f"?kind=unique&location_id={self.shelf.pk}"
+        url = reverse("create_item") + f"?kind=serialized&location_id={self.shelf.pk}"
         response = self.client.get(url)
-        self.assertRegex(response.content.decode(), r'name="kind" value="unique"[^>]*checked')
+        self.assertRegex(response.content.decode(), r'name="kind" value="serialized"[^>]*checked')
+        old_link = self.client.get(reverse("create_item") + "?kind=unique")  # from before the kind was renamed
+        self.assertRegex(old_link.content.decode(), r'name="kind" value="serialized"[^>]*checked')
         inlines = response.context["inlines"]
         self.assertEqual([inline.prefix for inline in inlines],
                          ["itemimage_set", "itemfile_set", "itemlocation_set", "first_unique_item"])
@@ -559,7 +561,7 @@ class UniqueItemViewTests(UniqueItemFixture, TestCase):
         response = self.client.post(url, self.new_item_data(location=self.shelf.pk))
         self.assertEqual(response.status_code, 302, response.context and ([i.errors for i in response.context["inlines"]], [i.non_form_errors() for i in response.context["inlines"]], response.context["form"].errors))
         saw = Item.objects.get(name="Circular saw")
-        self.assertEqual((saw.kind, saw.usage_level, saw.itemlocation_set.count()), (Item.Kind.UNIQUE, "red", 0))
+        self.assertEqual((saw.kind, saw.usage_level, saw.itemlocation_set.count()), (Item.Kind.SERIALIZED, "red", 0))
         first = saw.unique_items.get()
         self.assertRedirects(response, first.get_absolute_url(), fetch_redirect_response=False)
         self.assertEqual((first.location, LabelId.objects.get(unique_item=first).status), (self.shelf, LabelId.Status.ASSIGNED))
@@ -567,7 +569,7 @@ class UniqueItemViewTests(UniqueItemFixture, TestCase):
 
     def test_new_item_needs_a_location_and_a_valid_label(self):
         self.client.force_login(self.member)
-        url = reverse("create_item") + "?kind=unique"
+        url = reverse("create_item") + "?kind=serialized"
         response = self.client.post(url, self.new_item_data(location=""))
         self.assertEqual(response.status_code, 200)
         self.assertIn("location", response.context["inlines"][3].forms[0].errors)
@@ -582,9 +584,9 @@ class UniqueItemViewTests(UniqueItemFixture, TestCase):
         user = get_user_model().objects.create_user(username="adder")
         grant(user, "add_item")
         self.client.force_login(user)
-        response = self.client.get(reverse("create_item") + "?kind=unique")
+        response = self.client.get(reverse("create_item") + "?kind=serialized")
         self.assertEqual([value for value, _label in response.context["form"].fields["kind"].choices], ["bulk"])
-        self.assertEqual(self.client.post(reverse("create_item"), self.new_item_data(kind="unique")).status_code, 403)
+        self.assertEqual(self.client.post(reverse("create_item"), self.new_item_data(kind="serialized")).status_code, 403)
         self.assertFalse(Item.objects.filter(name="Circular saw").exists())
 
     def test_switching_the_kind_keeps_and_ignores_the_other_part(self):
@@ -600,12 +602,12 @@ class UniqueItemViewTests(UniqueItemFixture, TestCase):
         self.assertEqual((saw.kind, saw.usage_level, saw.unique_items.count(), saw.itemlocation_set.get().amount),
                          (Item.Kind.BULK, "", 0, 5))
         # Chosen as unique items: the stock entry is ignored; an error shows both parts with their values.
-        response = self.client.post(url, {**data, "kind": "unique", "name": "Ladder"})
+        response = self.client.post(url, {**data, "kind": "serialized", "name": "Ladder"})
         self.assertEqual(response.status_code, 200)
         inlines = {inline.prefix: inline for inline in response.context["inlines"]}
         self.assertIn("location", inlines["first_unique_item"].forms[0].errors)
         self.assertEqual(inlines["itemlocation_set"].forms[0]["amount"].value(), "5")
-        self.assertContains(response, 'data-for-kind="unique"')
+        self.assertContains(response, 'data-for-kind="serialized"')
         self.assertFalse(Item.objects.filter(name="Ladder").exists())
 
     def test_kind_cannot_change_with_unique_items(self):
@@ -710,6 +712,40 @@ class ForSaleMigrationTests(TransactionTestCase):
             Item = executor.loader.project_state(after).apps.get_model("inventory", "Item")
             self.assertEqual(dict(Item.objects.values_list("pk", "for_sale")), {priced.pk: True, unpriced.pk: None})
             self.assertEqual(set(Item.objects.values_list("kind", flat=True)), {"bulk"})
+        finally:
+            executor = MigrationExecutor(connection)
+            executor.migrate(executor.loader.graph.leaf_nodes())
+
+
+class SerializedKindMigrationTests(TransactionTestCase):
+    def test_unique_kind_becomes_serialized_and_back(self):
+        before = [("inventory", "0050_location_path_index")]
+        after = [("inventory", "0051_serialized_kind")]
+        executor = MigrationExecutor(connection)
+        executor.migrate(before)
+        try:
+            apps = executor.loader.project_state(before).apps
+            Item = apps.get_model("inventory", "Item")
+            unit = apps.get_model("inventory", "MeasurementUnit").objects.create(name="Piece", short="pc")
+            saw = Item.objects.create(name="Saw", kind="unique", measurement_unit=unit)
+            screws = Item.objects.create(name="Screws", kind="bulk", measurement_unit=unit)
+            changes = [{"field": "kind", "before": "Mengenartikel", "after": "Einzelobjekte", "internal": False},
+                       {"field": "name", "before": "unique items", "after": "Saw", "internal": False}]
+            entry = apps.get_model("inventory", "ChangeLog").objects.create(
+                action="changed", subject_type="item", subject_id=saw.pk, changes=changes)
+            executor = MigrationExecutor(connection)
+            executor.migrate(after)
+            apps = executor.loader.project_state(after).apps
+            self.assertEqual(dict(apps.get_model("inventory", "Item").objects.values_list("pk", "kind")),
+                             {saw.pk: "serialized", screws.pk: "bulk"})
+            relabeled = apps.get_model("inventory", "ChangeLog").objects.get(pk=entry.pk).changes
+            self.assertEqual([(c["before"], c["after"]) for c in relabeled],
+                             [("Mengenartikel", "Einzelartikel"), ("unique items", "Saw")])  # only the kind
+            executor = MigrationExecutor(connection)
+            executor.migrate(before)
+            apps = executor.loader.project_state(before).apps
+            self.assertEqual(apps.get_model("inventory", "Item").objects.get(pk=saw.pk).kind, "unique")
+            self.assertEqual(apps.get_model("inventory", "ChangeLog").objects.get(pk=entry.pk).changes, changes)
         finally:
             executor = MigrationExecutor(connection)
             executor.migrate(executor.loader.graph.leaf_nodes())
@@ -859,5 +895,5 @@ class GermanCreatePageTests(UniqueItemFixture, TestCase):
         self.client.force_login(self.member)
         response = self.client.get(reverse("create_item"), HTTP_ACCEPT_LANGUAGE="de")
         self.assertContains(response, "Ein Mengenartikel wird pro Standort gezählt, etwa Schrauben oder Filament.")
-        self.assertContains(response, "Einzelobjekte sind Gegenstände, die einzeln erfasst werden")
+        self.assertContains(response, "Ein Einzelartikel wird in Einzelobjekten erfasst")
         self.assertNotContains(response, "A bulk item is counted per location")

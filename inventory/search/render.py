@@ -31,9 +31,9 @@ KINDS = {
     "item": ("boxes", _("Item")),
     "unique": ("box-star", _("Unique item")),
 }
-UNIQUE_KIND_ICON = "box-star-stack"  # an item tracked as unique items: several of them (docs/icons.md)
+SERIALIZED_ICON = "box-star-stack"  # a serialized item: several unique items (docs/icons.md)
 # What the rows show as icons, drawn once per page (templatetags/search_tags.py: result_icon_sprite).
-ICONS = {*(icon for icon, _label in KINDS.values()), UNIQUE_KIND_ICON, *CATEGORY_ICONS.values()}
+ICONS = {*(icon for icon, _label in KINDS.values()), SERIALIZED_ICON, *CATEGORY_ICONS.values()}
 # Sub-locations in the counts, by icon_name: building parts and others, storage units, containers.
 SUB_LOCATIONS = (
     ("geo-alt", lambda n: ngettext("%(count)s sub-location", "%(count)s sub-locations", n) % {"count": n}),
@@ -100,8 +100,8 @@ class Entry:
     def icon(self):
         if self.kind == "location":
             return icon_name(self.obj)
-        if self.kind == "item" and self.obj.kind == Item.Kind.UNIQUE:
-            return UNIQUE_KIND_ICON
+        if self.kind == "item" and self.obj.kind == Item.Kind.SERIALIZED:
+            return SERIALIZED_ICON
         return KINDS[self.kind][0]
 
     @property
@@ -227,7 +227,7 @@ def prepare(kind, objects, here=None, item_photos=True):
                 unique_item.label_code = codes.get(unique_item.pk)
     elif kind == "category":
         # As in the item tree: counted items and unique items, those below it included, added up per category.
-        bulk = dict(Item.active.filter(category__isnull=False).exclude(kind=Item.Kind.UNIQUE).values("category")
+        bulk = dict(Item.active.filter(category__isnull=False).exclude(kind=Item.Kind.SERIALIZED).values("category")
                     .annotate(n=Count("pk")).values_list("category", "n"))
         unique = dict(UniqueItem.active.filter(item__is_deleted=False, item__category__isnull=False)
                       .values("item__category").annotate(n=Count("pk")).values_list("item__category", "n"))

@@ -1,6 +1,6 @@
 """
-Unique items: single physical objects of an item tracked as unique items (an
-Item with kind "unique"), such as one particular fire extinguisher. Each one is
+Unique items: single physical objects of a serialized item (an Item with kind
+"serialized"), such as one particular fire extinguisher. Each one is
 at exactly one location and identified by its label ID. Unique items are never
 deleted: they leave the inventory by being disposed; the change log keeps their
 history.
@@ -38,7 +38,7 @@ class UniqueItem(models.Model):
 
     item = models.ForeignKey(
         "Item", on_delete=models.PROTECT, related_name="unique_items", verbose_name=_("item"),
-        limit_choices_to={"kind": "unique"},
+        limit_choices_to={"kind": "serialized"},
     )
     # Optional, to tell unique items of one item apart; shown between the item and the label ID (__str__).
     name = models.CharField(
@@ -186,7 +186,7 @@ class UniqueItem(models.Model):
     def clean(self):
         super().clean()
         errors = {}
-        if self.item_id and not self.item.tracks_unique_items:
+        if self.item_id and not self.item.is_serialized:
             errors["item"] = _("Bulk items cannot have unique items.")
         if self.disposed_at is None:
             if self.location_id is None:

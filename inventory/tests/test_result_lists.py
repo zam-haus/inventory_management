@@ -26,7 +26,7 @@ class ResultListTests(MediaMixin, TestCase):
         cls.glue = Item.objects.create(name="Glue", description="Wood glue", measurement_unit_id=1)
         ItemLocation.objects.create(item=cls.glue, location=cls.room, amount=3)
         ItemLocation.objects.create(item=cls.glue, location=cls.other, amount=1)
-        cls.drill = Item.objects.create(name="Drill", kind=Item.Kind.UNIQUE, measurement_unit_id=1)
+        cls.drill = Item.objects.create(name="Drill", kind=Item.Kind.SERIALIZED, measurement_unit_id=1)
         cls.blue = UniqueItem.objects.create(item=cls.drill, name="blue", location=cls.room, notes="Spare battery")
         cls.red = UniqueItem.objects.create(item=cls.drill, name="red", location=cls.other)
         cls.member = get_user_model().objects.create_user("member")

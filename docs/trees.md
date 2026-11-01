@@ -7,7 +7,7 @@ a menu at the right end (`three-dots-vertical`) holds their names, *Admin*, the 
 styles in `actions.css`).
 
 * **Items** (`/item/`): the categories as a tree, each with its subcategories first, then its items by name.
-  An item tracked as unique items (`box-star-stack`) opens to those still in the inventory (`box-star`), by
+  A serialized item (`box-star-stack`) opens to those still in the inventory (`box-star`), by
   name, each named as everywhere (item, own name, label ID, [unique items](unique-items.md)), and counts them.
   Items without a category come last, under *Without category*. A category's counts include its
   subcategories: counted items (`boxes`), then unique items (`box-star`). Its name leads to

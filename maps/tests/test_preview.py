@@ -93,7 +93,7 @@ class PreviewTests(Building, TestCase):
 
     def unique_rectangle(self):
         from inventory.models import Item, UniqueItem
-        item = Item.objects.create(name="Workbench", kind=Item.Kind.UNIQUE,
+        item = Item.objects.create(name="Workbench", kind=Item.Kind.SERIALIZED,
                                    measurement_unit=self.saw.item.measurement_unit)
         self.bench = UniqueItem.objects.create(item=item, location=self.pallet)
         return self.bench

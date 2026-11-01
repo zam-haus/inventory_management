@@ -56,7 +56,7 @@ class LabelIdPrintingTests(SimulatedPrinters, TestCase):
         cls.zebra, cls.labels, cls.brother, cls.tape = create_printers(cls.zebra_server.port, cls.brother_server.port)
         MeasurementUnit.objects.get_or_create(pk=1, defaults={"name": "Stück", "short": "Stk"})
         room = Location.objects.create(name="Lager", short_name="WH", type=LocationType.objects.create(name="Room", unique=True))
-        cls.unique_item = UniqueItem.objects.create(item=Item.objects.create(name="Bohrmaschine", kind="unique"),
+        cls.unique_item = UniqueItem.objects.create(item=Item.objects.create(name="Bohrmaschine", kind="serialized"),
                                                     location=room)
         cls.lid = label_ids.generate_and_claim(cls.unique_item, None)
         cls.user = create_user("printing", "label_printing.print_label", "inventory.view_labelid")

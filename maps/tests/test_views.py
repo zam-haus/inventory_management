@@ -502,7 +502,7 @@ class MapViewTests(Building, TestCase):
         self.assertContains(page, "map_settings-TOTAL_FORMS")
         bulk = Item.objects.create(name="Screws", measurement_unit=self.saw.item.measurement_unit)
         page = self.client.get(reverse("admin:inventory_item_change", args=[bulk.pk]))
-        self.assertNotContains(page, "map_settings-TOTAL_FORMS")  # only items with unique items
+        self.assertNotContains(page, "map_settings-TOTAL_FORMS")  # only serialized items
 
     def test_plan_images_are_public_sources_for_staff_only(self):
         plan = self.plan(SVG, filename="plan.svg")
