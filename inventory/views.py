@@ -30,6 +30,7 @@ from .permissions import (
     QUICK_ITEM_PERMISSIONS, UNIQUE_ITEM_CREATE_PERMISSIONS, ItemEditorPermissionMixin, location_deletion_denied,
     location_edit_denied, location_purpose_denied,
 )
+from .models.unique_item import inherit_responsible_teams
 from .stock_change_views import mark_last_stock
 from .structure_overview import structure_overview
 from .label_ids import services
@@ -486,9 +487,10 @@ class DetailItemView(DetailView):
         # The item page shows what applies to the item in general.
         context["files"] = self.object.itemfile_set.filter(unique_item__isnull=True)
         if self.object.tracks_unique_items:
-            context["unique_items"] = annotate_label_code(
+            context["unique_items"] = list(annotate_label_code(
                 self.object.unique_items(manager="active").select_related("location", "responsible_team__group")
-            ).order_by("location__locatable_identifier", "pk")
+            ).order_by("location__locatable_identifier", "pk"))
+            inherit_responsible_teams(context["unique_items"])
             context["disposed_count"] = self.object.unique_items.filter(disposed_at__isnull=False).count()
             # As result rows (results/entries.html); the item's own photos are on this page already.
             context["unique_entries"] = search.render.listed("unique", context["unique_items"], item_photos=False)

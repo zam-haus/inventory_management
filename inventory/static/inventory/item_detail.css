@@ -25,6 +25,8 @@
 .item-overview dd { margin: 0; }
 .item-unit-price { font-size: 1.15rem; font-weight: 600; font-variant-numeric: tabular-nums; }
 .item-muted { color: var(--item-muted); font-size: .875rem; }
+/* The responsible teams of a unique item (unique_item_detail.html), as on the location page. */
+.item-team { display: inline-flex; align-items: center; gap: .35rem; margin-right: .75rem; }
 .item-layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(18rem, .7fr); gap: 1.5rem; align-items: start; }
 .item-main { display: grid; gap: 1.5rem; min-width: 0; }
 .item-panel { min-width: 0; border: 1px solid var(--item-border); border-radius: .65rem; background: #fff; }

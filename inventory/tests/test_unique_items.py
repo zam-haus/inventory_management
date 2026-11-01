@@ -171,6 +171,27 @@ class UniqueItemViewTests(UniqueItemFixture, TestCase):
         for internal in ("Example", "alex@example.org", "Private", "robin@example.org", "123.45", "99.00"):
             self.assertNotContains(response, internal)
 
+    def test_without_a_team_its_location_s_teams_are_responsible(self):
+        from ..forms import UniqueItemForm
+        metal = Team.objects.create(group=Group.objects.create(name="Metalwork"))
+        self.location.responsible_teams.add(metal)
+        unique = UniqueItem.objects.create(item=self.extinguisher, location=self.location)
+        self.assertEqual((unique.effective_responsible_teams, unique.responsible_teams_source), ([metal], self.location))
+        response = self.client.get(unique.get_absolute_url())
+        self.assertContains(response, "Metalwork")
+        self.assertContains(response, f"from {self.location.title}")
+        # Its own team wins, and nothing is inherited then.
+        self.assertEqual((self.unique_item.effective_responsible_teams, self.unique_item.responsible_teams_source),
+                         ([self.team], None))
+        self.assertNotContains(self.client.get(self.unique_item.get_absolute_url()), f"from {self.location.title}")
+        # The item's list of its unique items, too; the form names what applies without a team.
+        response = self.client.get(self.extinguisher.get_absolute_url())
+        self.assertContains(response, f"Responsible team: Metalwork (from {self.location.title})")
+        self.assertContains(response, "Responsible team: Woodworking<")
+        self.assertEqual(UniqueItemForm(instance=unique).fields["responsible_team"].empty_label,
+                         "As for its location: Metalwork")
+        self.assertEqual(UniqueItemForm().fields["responsible_team"].empty_label, "As for its location")
+
     def test_hidden_internal_details_are_marked(self):
         chip = '<span class="unique-item-internal" title="Only visible with the permission for internal details.">internal</span>'
         content = self.client.get(self.unique_item.get_absolute_url()).content.decode()

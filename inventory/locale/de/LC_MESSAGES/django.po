@@ -4959,3 +4959,12 @@ msgstr "Zurück zum Formular"
 
 msgid "Log in to open this page."
 msgstr "Melde dich an, um diese Seite zu öffnen."
+
+#: forms.py
+#, python-format
+msgid "As for its location: %(teams)s"
+msgstr "Wie am Standort: %(teams)s"
+
+#: forms.py
+msgid "As for its location"
+msgstr "Wie am Standort"

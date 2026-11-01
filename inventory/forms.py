@@ -1110,6 +1110,11 @@ class UniqueItemForm(NewItemAlongsideMixin, ModelForm):
             # A unique item stays the kind of thing it is.
             self.fields["item"].disabled = True
         self.fields["usage_level"].choices = usage_level_choices(_("As set for the item"))
+        # Without a team of its own, the teams of its location are responsible (UniqueItem.effective_responsible_teams).
+        inherited = self.instance.location.effective_responsible_teams if self.instance.location_id else []
+        self.fields["responsible_team"].empty_label = (
+            _("As for its location: %(teams)s") % {"teams": ", ".join(str(team) for team in inherited)}
+            if inherited else _("As for its location"))
         hide_internal_fields(self, user, self.INTERNAL_FIELDS)
         for name in ("responsible_user", "owner_user"):
             if name in self.fields:

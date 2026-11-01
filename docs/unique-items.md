@@ -32,7 +32,9 @@ stock entries and unique items; its kind can only change while it has neither.
   doubt; red (cross) use only after a briefing. Lists show the coloured icon with
   the explanation on hover, detail pages the explanation itself,
   warranty, notes, responsible team and person, owner, purchase date, price and
-  source, files. Without an owner a unique item belongs to the ZAM and no
+  source, files. Without a team of its own the teams of its location are responsible, as a location takes those of
+  the one it is in (`UniqueItem.effective_responsible_teams`): its page and the item's list show them with "from
+  <location>", and the form's empty choice names them ("As for its location: …"). Without an owner a unique item belongs to the ZAM and no
   ownership is shown. The owner is set when the unique item is created; after
   that only admins or users with `inventory.change_uniqueitem_owner` can change
   it (frontend and admin). Teams (**Admin → Accounts → Teams**) are account groups

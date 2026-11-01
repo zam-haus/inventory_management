@@ -75,20 +75,22 @@
                 <dd>{% usage_level object.effective_usage_level long=True %}</dd>
             </div>
             {% endif %}
-            {% if object.responsible_team or object.responsible_user %}
+            {% with teams=object.effective_responsible_teams source=object.responsible_teams_source %}
+            {% if teams or object.responsible_user %}
             <div>
                 <dt>{% trans "Responsible" %}</dt>
                 <dd>
-                    {# The team as on the location page: its code in its colour, then its name. #}
-                    {% if object.responsible_team %}{% include "inventory/team_badge.html" with team=object.responsible_team %} {{ object.responsible_team.group.name }}{% endif %}
+                    {# The teams as on the location page: code in its colour, then name. Without a team of its own, those of its location. #}
+                    {% for team in teams %}<span class="item-team">{% include "inventory/team_badge.html" %} {{ team.group.name }}</span>{% endfor %}
+                    {% if source %}<span class="item-muted">{% blocktrans with location=source.title %}from {{ location }}{% endblocktrans %}</span>{% endif %}
                     {% if object.responsible_user %}
-                        {% if object.responsible_team %}·{% endif %}
+                        {% if teams %}·{% endif %}
                         {% if can_view_internal %}{{ object.responsible_user.get_full_name|default:object.responsible_user.username }}{% if object.responsible_user.email %} (<a href="mailto:{{ object.responsible_user.email }}">{{ object.responsible_user.email }}</a>){% endif %}
                         {% else %}{{ object.responsible_first_name }} {% include 'inventory/internal_chip.html' %}{% endif %}
                     {% endif %}
                 </dd>
             </div>
-            {% endif %}
+            {% endif %}{% endwith %}
             {% if object.has_owner %}
             <div>
                 <dt>{% trans "Owner" %}</dt>

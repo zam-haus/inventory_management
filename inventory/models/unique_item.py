@@ -5,6 +5,7 @@ at exactly one location and identified by its label ID. Unique items are never
 deleted: they leave the inventory by being disposed; the change log keeps their
 history.
 """
+from functools import cached_property
 from pathlib import Path
 from uuid import uuid4
 
@@ -146,6 +147,22 @@ class UniqueItem(models.Model):
     def effective_usage_level(self):
         return self.usage_level or self.item.usage_level
 
+    @cached_property
+    def responsible_teams_source(self):
+        """Where its responsible teams come from without a team of its own: the location whose teams are responsible
+        where it is (Location.responsible_teams_source); None with its own team, or none found."""
+        if self.responsible_team_id or self.location_id is None:
+            return None
+        return self.location.responsible_teams_source
+
+    @cached_property
+    def effective_responsible_teams(self):
+        """Its own team, else those of its location (as a location takes those of the one it is in)."""
+        if self.responsible_team_id:
+            return [self.responsible_team]
+        source = self.responsible_teams_source
+        return list(source.responsible_teams.select_related("group")) if source else []
+
     def get_effective_usage_level_display(self):
         level = self.effective_usage_level
         return UsageLevel(level).label if level else ""
@@ -205,3 +222,18 @@ class UniqueItem(models.Model):
 def get_unique_item_upload_path(instance, filename):
     # Only referenced by migrations: unique item photos and files are now ItemImage and ItemFile rows.
     return f"unique_items/{instance.unique_item.id}/{uuid4().hex}{Path(filename).suffix.lower()}"
+
+
+def inherit_responsible_teams(unique_items):
+    """Works out the teams of many unique items without one of their own (UniqueItem.effective_responsible_teams)
+    once per location instead of once per unique item, e.g. for the list on an item's page."""
+    by_location = {}
+    for unique in unique_items:
+        if unique.responsible_team_id or unique.location_id is None:
+            continue
+        if unique.location_id not in by_location:
+            source = unique.location.responsible_teams_source
+            by_location[unique.location_id] = (
+                source, list(source.responsible_teams.select_related("group")) if source else [])
+        unique.__dict__["responsible_teams_source"], unique.__dict__["effective_responsible_teams"] = \
+            by_location[unique.location_id]
