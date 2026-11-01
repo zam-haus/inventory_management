@@ -195,6 +195,13 @@ class ChangeLogTests(TestCase):
         self.assertIn("Alex E. (alex)", self.panel(self.active, url).content.decode())
         self.assertIn("<ins>75.00</ins>", self.panel(self.insider, url).content.decode())
 
+    def test_notes_are_shown_to_those_who_see_who_acted(self):
+        with change_log.change_context(note="For the soldering course\nRoom B"):
+            ItemLocation.objects.create(item=self.item, location=self.workshop, amount=3)
+        for url in (self.item.get_absolute_url(), self.workshop.get_absolute_url()):
+            self.assertNotContains(self.panel(self.viewer, url), "soldering course")
+            self.assertContains(self.panel(self.active, url), "For the soldering course<br>Room B")
+
     def test_actor_label(self):
         self.assertEqual(actor_label(self.member), "Alex E. (alex)")
         self.assertEqual(actor_label(self.viewer), "viewer")

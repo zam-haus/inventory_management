@@ -74,6 +74,7 @@ def describe(entry, page, user):
              "action": naming.NAME if entry.action == ChangeLog.Action.LABEL_ID else entry.get_action_display()}
     if user.has_perm("inventory.view_changelog_actor"):
         shown["actor"] = actor_label(entry.actor) if entry.actor is not None else entry.actor_name
+        shown["note"] = entry.note  # free text that may name people, so only for those who see who acted
     is_page = page is not None and (entry.subject_type, entry.subject_id) == (page._meta.model_name, page.pk)
     if entry.subject_type == "itemlocation" and isinstance(page, Location):
         shown["subject"] = link(entry.item, entry.subject_label)

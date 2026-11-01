@@ -12,6 +12,7 @@
                 <p class="change-log-what"><strong>{{ shown.action }}</strong>{% if shown.subject %}: {{ shown.subject }}{% endif %}</p>
                 {% if shown.move %}<p class="change-log-move">{{ shown.move.0 }} {% icon "arrow-right" %}<span class="visually-hidden">→</span> {{ shown.move.1 }}</p>{% endif %}
                 {% for line in shown.lines %}<p class="change-log-line">{{ line }}</p>{% endfor %}
+                {% if shown.note %}<p class="change-log-note"><span class="change-log-field">{% trans "Note" %}:</span> {{ shown.note|linebreaksbr }}</p>{% endif %}
                 {% if shown.changes %}
                     <ul class="change-log-changes">
                         {% for change in shown.changes %}

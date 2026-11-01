@@ -60,7 +60,7 @@ outside requests. `change_context()` sets the source and, for stock changes, the
 |---|---|
 | Visitors and users without permission | no changes |
 | Local group (`inventory.view_changelog`) | the changes, without who made them |
-| `CHANGE_LOG_ACTOR_GROUP` (default „Aktive“, `inventory.view_changelog_actor`) | also who: „Vorname N. (benutzername)“ |
+| `CHANGE_LOG_ACTOR_GROUP` (default „Aktive“, `inventory.view_changelog_actor`) | also who: „Vorname N. (benutzername)“, and the notes of stock changes, disposals and cleanup imports (free text that may name people) |
 | `inventory.view_internal_details` | also internal values; others see “changed” with an internal chip |
 | Staff in the admin (**Change log**, and on the pages of items, unique items and locations) | everything, including accounts and notes |
 
