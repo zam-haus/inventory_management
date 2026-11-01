@@ -13,6 +13,7 @@ from django.contrib.gis.db.models.functions import AsGeoJSON
 from django.contrib.gis.geos import Point
 from django.core.exceptions import PermissionDenied
 from django.db import transaction
+from django.db.models import OuterRef, Subquery
 from django.http import FileResponse, Http404, HttpResponse, HttpResponseRedirect, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.templatetags.static import static
@@ -24,7 +25,8 @@ from django.views.decorators.http import require_GET
 from sorl.thumbnail import get_thumbnail
 
 from inventory.favicon import favicon_dir
-from inventory.models import Location, LocationType, UniqueItem
+from inventory.label_ids.core import display as label_display
+from inventory.models import LabelId, Location, LocationType, UniqueItem
 
 from . import geo, levels, plans, positions, preview
 from .render import RenderError, crop_polygon
@@ -103,14 +105,26 @@ def _location_feature(shape, tree):
     }}
 
 
+# Unique items are named on the map from this zoom on (their names would crowd it before).
+ITEM_LABEL_ZOOM = 22.5
+
+
 def _item_feature(position, tree):
-    """A unique item; the map shows points only when they are asked for (map.js: the layer of points is off)."""
+    """A unique item; the map shows points only when they are asked for (map.js: the layer of points is off). Its
+    ZAMid comes annotated (level_payload: label_code)."""
     item = position.unique_item
+    code = getattr(position, "label_code", None)
+    lid = label_display(code) if code else f"#{item.pk}"  # as lists name it (UniqueItem.name_html)
+    title = " ".join(part for part in (str(item.item), item.name) if part)
     size = position.size_cm()
     geometry = position.geojson if hasattr(position, "geojson") else position.geometry.json
     return {"type": "Feature", "geometry": json.loads(geometry), "properties": {
+        # Labelled from close up with its item and own name, its ZAMid in the line below (map.js label: a long name in
+        # two lines).
+        "label": {"title": str(item.item), "subtitle": item.name, "code": lid, "min_zoom": ITEM_LABEL_ZOOM},
+        "lid": lid,
         "id": f"item:{item.pk}", "pk": item.pk, "category": "item", "kind": position.kind,
-        "rotation": position.rotation, "size": [size[0] / 100, size[1] / 100] if size else None, "title": str(item),
+        "rotation": position.rotation, "size": [size[0] / 100, size[1] / 100] if size else None, "title": title,
         "code": item.location.unique_identifier, "url": item.get_absolute_url(),
         "stack": tree.stack(item.location_id), "depth": tree.depth(item.location_id) + 1,
     }}
@@ -130,8 +144,9 @@ def level_payload(number, tree=None):
     # GeoJSON from the database (to the millimetre), not through GEOS and OGR shape by shape.
     shapes = placed.filter(location_id__in=shaped_on_level).select_related("location__type__map_settings") \
         .annotate(geojson=AsGeoJSON("geometry", precision=8))
+    lids = LabelId.objects.assigned().filter(**{LabelId.target_field_for(UniqueItem): OuterRef("unique_item_id")})
     items = [position for position in items.select_related("unique_item__item__map_settings", "unique_item__location")
-             .annotate(geojson=AsGeoJSON("geometry", precision=8))
+             .annotate(geojson=AsGeoJSON("geometry", precision=8), label_code=Subquery(lids.values("code")[:1]))
              if tree.level_number(position.unique_item.location_id) == number]
     stacks = []
     for group in sorted(set(tree.on_level(tree.stacked, number)), key=tree.code):
@@ -297,7 +312,8 @@ def _own(shape, kinds, usual_kind=None):
 @require_GET
 def place_context(request):
     """What the placing dialog needs: the thing placed (?location= or ?item=) with its own position and size, and
-    the level and area around it: its current parent, or the one it is about to be moved to (?target=)."""
+    the level and area around it: its current parent, or the one it is about to be moved to (?target=); or another
+    level to move it to (?level=). ?levels=1 adds the levels to choose from."""
     tree = levels.Tree()
     data = {}
     if request.GET.get("item", "").isdigit():
@@ -319,15 +335,25 @@ def place_context(request):
         raise Http404
     if request.GET.get("target", "").isdigit():
         around = get_object_or_404(Location.active, pk=request.GET["target"])
-    number = tree.level_number(around.pk) if around else None
+    home = tree.level_number(around.pk) if around else None
+    number = home
+    level = request.GET.get("level", "")
+    if level.lstrip("-").isdigit() and int(level) != home:
+        # Another level (to move it there): nothing around it yet, the room or area at the point it gets (area_at);
+        # its position there is still to be set.
+        number, around = int(level), None
+        data["own"]["geometry"] = None
     found = levels.effective_shape(around) if around else None
     data.update({
-        "level": number, "around": around.pk if around else None,
+        "level": number, "home_level": home, "around": around.pk if around else None,
         "around_title": around.title_with_code if around else "",
         "around_id": f"loc:{found[1].pk}" if found else None,
         "data_url": reverse("maps:level_data", args=[number]) if number is not None else None,
         "at_url": reverse("maps:area_at"),
     })
+    if request.GET.get("levels"):
+        # The levels to choose from, top down as on the map page.
+        data["levels"] = [{"number": n, "label": levels.label(n)} for n in sorted(tree.levels(), reverse=True)]
     return JsonResponse(data)
 
 

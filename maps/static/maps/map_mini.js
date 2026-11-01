@@ -44,13 +44,12 @@
             var map = ZamMap.create(element, {zoomControl: true});
             return ZamMap.load(element.dataset.url).then(function (data) {
                 var drawn = ZamMap.draw(map, data);
-                var focused = ZamMap.highlight(drawn, element.dataset.focus);
-                var bounds = focused ? focused.getBounds() : drawn.bounds;
-                if (bounds) {
-                    map.fitBounds(bounds, {maxZoom: 21, padding: [30, 30], animate: false});
+                var focused = ZamMap.focus(drawn, element.dataset.focus);
+                if (!focused && drawn.bounds) {
+                    map.fitBounds(drawn.bounds, {padding: [10, 10], animate: false});
                 }
                 if (focused) {
-                    focused.openPopup();  // its name and chip on the map, as on the large map with ?p=…
+                    ZamMap.openPopupAbove(focused);  // its name and chip on the map, as on the large map with ?p=…
                 }
             });
         }).catch(function () {

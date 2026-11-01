@@ -196,6 +196,146 @@
 .map-place-hint {
     margin: .5rem 0 0;
 }
+/* The position in the grey box of a location's or unique item's page (place_inline.html): a small map beside the
+   other fields; editing, the whole width with a larger map; on phones, the whole screen. */
+dl > div.map-place-cell {  /* wins over the grey boxes' rules for their fields */
+    flex: 1 1 18rem;
+    min-width: 0;
+}
+dt.map-place-dt {  /* the button right after the word, as the description's pencil */
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-start;
+    gap: .5rem;
+    min-height: 0;
+}
+.map-place-edit-button {
+    padding: .1rem .4rem;
+    line-height: 1.2;
+}
+.map-place-cell:not(.is-editing) .map-place-canvas {
+    height: 14rem;
+    margin-top: 0 !important;
+}
+.map-place-cell:not(.is-editing) .leaflet-control-layers {  /* the small map: the background is chosen when editing */
+    display: none;
+}
+.map-place-empty:not(.is-editing) .map-place-canvas,
+.map-place-empty:not(.is-editing) .map-place-hint:empty {
+    display: none;
+}
+.map-place-focus {
+    margin-left: auto;
+}
+.map-place-around {
+    margin: .35rem 0 0;
+    color: var(--bs-secondary-color);
+    font-size: .875rem;
+}
+.map-place-none {
+    margin: 0;
+    color: var(--bs-secondary-color);
+    font-size: .875rem;
+}
+dl > div.map-place-cell.is-editing {
+    flex-basis: 100%;
+}
+/* With a map, the grey box shows it on the left and its other fields above each other on the right. The map spans
+   the rows of the fields (up to six) and the last, flexible one, which takes up what the map is higher. */
+@media (min-width: 768px) {
+    dl:has(> div.map-place-cell:not(.is-editing):not(.map-place-empty)) {
+        display: grid;
+        grid-template-columns: minmax(0, 3fr) minmax(14rem, 2fr);
+        grid-template-rows: repeat(6, auto) 1fr;
+        gap: 0 2.5rem;
+    }
+    dl:has(> div.map-place-cell:not(.is-editing):not(.map-place-empty)) > div {
+        grid-column: 2;
+    }
+    dl:has(> div.map-place-cell:not(.is-editing):not(.map-place-empty)) > div + div {
+        margin-top: 1rem;
+    }
+    dl:has(> div.map-place-cell:not(.is-editing):not(.map-place-empty)) > div.map-place-cell {
+        grid-column: 1;
+        grid-row: 1 / -1;
+        margin-top: 0;
+    }
+}
+.map-place-cell.is-editing .map-place-canvas {
+    height: min(65vh, 36rem);
+}
+.map-place-level select {
+    width: auto;
+}
+.map-place-confirm {
+    margin: .5rem 0 0;
+}
+.map-place-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: .5rem;
+    margin-top: .75rem;
+}
+.map-place-head {
+    display: none;
+}
+.map-place-heading {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: .2rem;
+    margin: 0;
+}
+.map-place-heading .loc-code {
+    font-size: .8rem;
+}
+@media (max-width: 575.98px) {
+    .map-place-cell.is-editing {
+        position: fixed;
+        inset: 0;
+        z-index: 1060;
+        overflow-y: auto;
+        padding: calc(.75rem + env(safe-area-inset-top, 0px)) calc(.75rem + env(safe-area-inset-right, 0px))
+            calc(.75rem + env(safe-area-inset-bottom, 0px)) calc(.75rem + env(safe-area-inset-left, 0px));
+        background: var(--bs-body-bg, #fff);
+    }
+    .map-place-cell.is-editing > dt {
+        display: none;
+    }
+    .map-place-cell.is-editing > dd {
+        display: flex;
+        flex-direction: column;
+        min-height: 100%;
+        margin: 0;
+    }
+    .map-place-cell.is-editing .map-place-head:not([hidden]) {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: .75rem;
+        margin-bottom: .5rem;
+    }
+    .map-place-cell.is-editing .map-place-canvas {
+        flex: 1 1 auto;
+        min-height: 16rem;
+        height: auto;
+    }
+    .map-place-actions {
+        margin-top: auto;
+        padding-top: .75rem;
+    }
+    .map-place-actions .btn {  /* Cancel and Save side by side, removing in the row above */
+        flex: 1 1 0;
+    }
+    .map-place-actions .map-place-remove {
+        flex-basis: 100%;
+    }
+}
+body.map-place-fullscreen {
+    overflow: hidden;
+}
 .map-mini {
     height: 14rem;
     border: 1px solid var(--bs-border-color);
@@ -449,15 +589,6 @@ body:has(.map-page-canvas) > .container {
 }
 .map-edit-hit .loc-code {
     font-size: .75rem;
-}
-.map-place-heading {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: .2rem;
-}
-.map-place-heading .loc-code {
-    font-size: .8rem;
 }
 /* Measuring (map_measure.js): the points and what they measure. */
 .map-measuring.leaflet-container,

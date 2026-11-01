@@ -79,7 +79,8 @@
             <div>
                 <dt>{% trans "Responsible" %}</dt>
                 <dd>
-                    {% if object.responsible_team %}{{ object.responsible_team }}{% endif %}
+                    {# The team as on the location page: its code in its colour, then its name. #}
+                    {% if object.responsible_team %}{% include "inventory/team_badge.html" with team=object.responsible_team %} {{ object.responsible_team.group.name }}{% endif %}
                     {% if object.responsible_user %}
                         {% if object.responsible_team %}·{% endif %}
                         {% if can_view_internal %}{{ object.responsible_user.get_full_name|default:object.responsible_user.username }}{% if object.responsible_user.email %} (<a href="mailto:{{ object.responsible_user.email }}">{{ object.responsible_user.email }}</a>){% endif %}
@@ -103,6 +104,7 @@
                 </dd>
             </div>
             {% endif %}
+            {% if not object.is_disposed %}{% slot "unique_item_detail.overview" %}{% endif %}
         </dl>
 
         <div class="item-layout">

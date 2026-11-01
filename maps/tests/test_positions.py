@@ -188,8 +188,7 @@ class PositionTests(Building, TestCase):
         area = geo.rectangle(local_point(0.5, 0), 2, 1)
         position = positions.set_item_position(self.saw, "area", area)
         self.assertEqual(position.kind, "area")
-        entry = ChangeLog.objects.filter(unique_item=self.saw, action=ChangeLog.Action.CHANGED).latest("pk")
-        self.assertIn("area of 2.0 m²", entry.changes[0]["after"])  # 1.998 m², rounded
+        self.assertIn("area of 2.0 m²", positions.describe(position))  # 1.998 m², rounded
         self.assertIsNone(positions.set_item_position(self.saw, None, None))
         self.assertFalse(UniqueItemPosition.objects.exists())
 
@@ -218,11 +217,16 @@ class PositionTests(Building, TestCase):
         positions.set_location_shape(self.pallet, None, CENTER, 15)
         entry = ChangeLog.objects.filter(location=self.pallet, action=ChangeLog.Action.CHANGED).latest("pk")
         self.assertEqual(entry.changes[0]["field"], "map_position")
-        self.assertIn("120 × 80 cm", entry.changes[0]["after"])
+        # Only that it changed: coordinates, size and area say nothing to people.
+        self.assertEqual((entry.changes[0]["before"], entry.changes[0]["after"]), ("", ""))
         self.member.user_permissions.add(Permission.objects.get(codename="view_changelog"))
         self.client.force_login(self.member)
         response = self.client.get(self.pallet.get_absolute_url())
-        self.assertContains(response, "Position on the map")
+        self.assertRegex(response.content.decode(), r"Position on the map:</span>\s*changed")
+        # Also older entries that still have the values.
+        entry.changes = [{**entry.changes[0], "after": "point at 49.5, 11.0"}]
+        entry.save()
+        self.assertNotContains(self.client.get(self.pallet.get_absolute_url()), "49.5, 11.0")
 
     def test_invalid_positions_are_refused(self):
         with self.assertRaises(positions.PlacementError):
@@ -299,7 +303,7 @@ class StorageUnitTests(Building, TestCase):
         response = self.client.post(reverse("maps:location_shape", args=[self.compartment.pk]),
                                     {"map_geometry": CENTER.json})
         self.assertEqual(response.status_code, 403)
-        self.assertNotIn("map-place-modal", self.client.get(self.compartment.get_absolute_url()).content.decode())
+        self.assertNotIn("data-map-place", self.client.get(self.compartment.get_absolute_url()).content.decode())
         positions.set_location_shape(self.shelf, None, CENTER)
         shape, source, exact = effective_shape(self.compartment)
         self.assertEqual((source, exact), (self.shelf, False))

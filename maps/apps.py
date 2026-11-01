@@ -6,12 +6,10 @@ from django.utils.translation import gettext_lazy as _
 SLOTS = [
     ("navbar.items", "maps/slots/navbar_item.html"),
     ("navbar.menu", "maps/slots/navbar_menu.html"),
-    ("location_detail.actions", "maps/slots/location_actions.html"),
-    ("location_detail.dialogs", "maps/slots/location_dialogs.html"),
+    ("location_detail.summary", "maps/slots/location_summary.html"),
     ("location_detail.scripts", "maps/slots/scripts.html"),
     ("location_move.extra", "maps/slots/location_move.html"),
-    ("unique_item_detail.actions", "maps/slots/unique_item_actions.html"),
-    ("unique_item_detail.dialogs", "maps/slots/unique_item_dialogs.html"),
+    ("unique_item_detail.overview", "maps/slots/unique_item_overview.html"),
     ("unique_item_detail.scripts", "maps/slots/scripts.html"),
     ("unique_item_move.extra", "maps/slots/unique_item_move.html"),
     ("result_entries.start", "maps/slots/result_entries.html"),
@@ -31,7 +29,7 @@ class MapsConfig(AppConfig):
 
     def ready(self):
         from inventory import admin_links, slots
-        from inventory.change_log import APP_FIELDS
+        from inventory.change_log import APP_FIELDS, SUMMARY_FIELDS
         from inventory.public_export import EXCLUDED_MODELS
 
         from . import positions, signals
@@ -60,3 +58,4 @@ class MapsConfig(AppConfig):
         })
         APP_FIELDS[("location", positions.FIELD)] = _("Position on the map")
         APP_FIELDS[("uniqueitem", positions.FIELD)] = _("Position on the map")
+        SUMMARY_FIELDS.update({("location", positions.FIELD), ("uniqueitem", positions.FIELD)})

@@ -277,8 +277,7 @@
         if (marked.kind === 'point') {
             marked.layer.openPopup();
         } else {  // at the top of the area, over its "Here"
-            var bounds = marked.layer.getBounds();
-            marked.layer.openPopup(L.latLng(bounds.getNorth(), bounds.getCenter().lng));
+            ZamMap.openPopupAbove(marked.layer);
         }
     }
 

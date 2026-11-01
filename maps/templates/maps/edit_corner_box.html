@@ -1,0 +1,5 @@
+{% load i18n icons %}{# Above the chosen corner of an area (map_shape_edit.js; also: tapping it again, Delete; a right click removes a corner at once). #}
+<div class="map-edit-box map-edit-corner-box" data-edit-corner-box hidden>
+    <button type="button" class="btn btn-sm btn-outline-danger map-edit-box-button" data-edit-remove-corner
+            title="{% trans 'Remove corner' %}" aria-label="{% trans 'Remove corner' %}">{% icon "x-lg" %}</button>
+</div>

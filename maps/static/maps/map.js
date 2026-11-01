@@ -142,17 +142,22 @@
     }
 
     // The label (maps/views.py _label): purpose or name, the code chip in the line below; null for none.
+    // A unique item's name and its own one in a line, or in two when that would be long.
+    var LABEL_LINE = 24;
+
     function label(feature) {
         var given = feature.properties.label;
         if (!given || !(given.title || given.code)) {
             return null;
         }
         var box = document.createElement('span');
-        if (given.title) {
+        var lines = !given.subtitle ? [given.title] : (given.title + ' ' + given.subtitle).length > LABEL_LINE ?
+            [given.title, given.subtitle] : [given.title + ' ' + given.subtitle];
+        lines.filter(Boolean).forEach(function (text) {
             var title = L.DomUtil.create('span', 'map-label-title', box);
-            title.textContent = given.title;
+            title.textContent = text;
             Object.assign(title.style, given.style || {});  // the type's label size, colour, weight
-        }
+        });
         if (given.code) {
             L.DomUtil.create('span', 'loc-code map-label-code', box).textContent = given.code;
         }
@@ -184,8 +189,10 @@
         var link = L.DomUtil.create('a', 'map-popup-title', box);
         link.href = p.url;
         link.textContent = p.title;
-        if (p.code) {
-            L.DomUtil.create('span', 'loc-code', box).textContent = p.code;
+        // A unique item's own code is its ZAMid (its `code` is its location's).
+        var code = p.category === 'item' ? p.lid : p.code;
+        if (code) {
+            L.DomUtil.create('span', 'loc-code', box).textContent = code;
         }
         return box;
     }
@@ -267,9 +274,14 @@
                 // would load and ask again.
                 var content = null;
                 layer.bindPopup(function () { return content || (content = popup(feature, layer)); });
+                layer.off('click', layer._openPopup, layer);  // above it, if it fits (openPopupAbove)
+                layer.on('click', function (event) {
+                    L.DomEvent.stop(event);
+                    openPopupAbove(layer, event.latlng);
+                });
             }
             var text = label(feature);
-            if (text && name !== 'item') {  // a tooltip once it is shown (filterStacks)
+            if (text) {  // a tooltip once it is shown (filterStacks)
                 layer._label = {text: text, options: {permanent: true, direction: 'center',
                     className: 'map-label map-label-' + name}};
             }
@@ -388,9 +400,14 @@
                     return L.point(latlng.lng * Math.cos(latlng.lat * Math.PI / 180), latlng.lat);
                 })) : 0});
         });
-        // The same order at every zoom: parents before their parts (they push them out), then the smaller first.
+        // The same order at every zoom: unique items first (close up, their names count most; the areas' labels move
+        // aside), then parents before their parts (they push them out), then the smaller first.
+        function rank(item) {
+            return item.layer.feature.properties.category === 'item' ? 0 : 1;
+        }
         items.sort(function (a, b) {
-            return a.depth - b.depth || a.order - b.order || (a.layer._leaflet_id - b.layer._leaflet_id);
+            return rank(a) - rank(b) || a.depth - b.depth || a.order - b.order ||
+                (a.layer._leaflet_id - b.layer._leaflet_id);
         });
 
         function box(latlng, size) {
@@ -530,7 +547,108 @@
         }
         layer.setStyle(HIGHLIGHT);
         if (layer.bringToFront) {
+            // Over the rest, but not over what lies in it (its parts, storage units, unique items: deeper in the tree):
+            // they stay to be clicked, in the order they were drawn.
             layer.bringToFront();
+            var depth = layer.feature.properties.depth || 0;
+            Object.keys(drawn.byId).forEach(function (id) {
+                var other = drawn.byId[id];
+                if (other !== layer && other.bringToFront && (other.feature.properties.depth || 0) > depth &&
+                        other._extent.intersects(layer._extent)) {
+                    if (other.casing) {
+                        other.casing.bringToFront();
+                    }
+                    other.bringToFront();
+                }
+            });
+        }
+        return layer;
+    }
+
+    // A popup (clicked, or opened for a link's ?p=, in the location window, after editing, for a marked area) goes
+    // right above what it is about, so as not to hide it, when it fits there wholly in view without moving the map;
+    // else where it would open anyway: where clicked (`at`), else over its middle, the map moving to show it. A point's
+    // goes above its circle.
+    var POPUP_OFFSET = 7;  // Leaflet's: the tip ends this far below the point the popup is opened at
+
+    // The highest point of a layer's outline (on the screen, in pixels of the map) between two x: where a popup over
+    // that stretch can come down to (an area's top corner may lie aside, a turned rectangle's too).
+    function topWithin(map, layer, left, right) {
+        var best = Infinity;
+        (layer.eachLayer ? layer.getLayers() : [layer]).forEach(function (part) {
+            if (part.getRadius) {  // a circle: its rim
+                var c = map.latLngToContainerPoint(part.getLatLng()), r = part.getRadius();
+                var dx = c.x < left ? left - c.x : c.x > right ? c.x - right : 0;
+                if (dx <= r) {
+                    best = Math.min(best, c.y - Math.sqrt(r * r - dx * dx));
+                }
+                return;
+            }
+            if (!part.getLatLngs) {
+                return;
+            }
+            var rings = [];
+            (function collect(latlngs) {
+                if (latlngs.length && latlngs[0] instanceof L.LatLng) {
+                    rings.push(latlngs);
+                } else {
+                    latlngs.forEach(collect);
+                }
+            })(part.getLatLngs());
+            rings.forEach(function (ring) {
+                var points = ring.map(function (latlng) { return map.latLngToContainerPoint(latlng); });
+                points.forEach(function (a, i) {
+                    var b = points[(i + 1) % points.length];
+                    var from = Math.max(left, Math.min(a.x, b.x)), to = Math.min(right, Math.max(a.x, b.x));
+                    if (from > to) {
+                        return;  // the edge lies beside the stretch
+                    }
+                    [from, to].forEach(function (x) {
+                        var y = a.x === b.x ? Math.min(a.y, b.y) : a.y + (b.y - a.y) * (x - a.x) / (b.x - a.x);
+                        best = Math.min(best, y);
+                    });
+                });
+            });
+        });
+        return best;
+    }
+
+    function openPopupAbove(layer, at) {
+        var map = layer._map, popup = layer.getPopup && layer.getPopup();
+        if (!map || !popup) {
+            layer.openPopup(at);
+            return layer;
+        }
+        var bounds = layer.getBounds ? layer.getBounds() : L.latLngBounds([layer.getLatLng()]);
+        var middle = map.latLngToContainerPoint(bounds.getCenter()).x;
+        var autoPan = popup.options.autoPan;
+        popup.options.autoPan = false;  // tried as it is
+        layer.openPopup(map.containerPointToLatLng([middle, map.latLngToContainerPoint(bounds.getCenter()).y]));
+        // As low as the outline under its width lets it: its tip on the highest point there.
+        var width = popup.getElement() ? popup.getElement().offsetWidth : 0;
+        var top = topWithin(map, layer, middle - width / 2, middle + width / 2);
+        var point = L.point(middle, (isFinite(top) ? top : map.latLngToContainerPoint(
+            L.latLng(bounds.getNorth(), bounds.getCenter().lng)).y) - POPUP_OFFSET);
+        popup.setLatLng(map.containerPointToLatLng(point));
+        popup.options.autoPan = autoPan;
+        var box = popup.getElement() && popup.getElement().getBoundingClientRect();
+        var frame = map.getContainer().getBoundingClientRect();
+        var fits = box && point.y >= 0 && point.y <= frame.height && box.top >= frame.top && box.left >= frame.left &&
+            box.right <= frame.right;
+        if (!fits) {
+            layer.closePopup();
+            layer.openPopup(at);
+        }
+        return layer;
+    }
+
+    // What a link names (?p=, the "On the map" links) and what the small maps of a location or unique item show
+    // (map_mini.js, map_place.js): highlighted and in view (`fit`: false to leave the view), as on the large map.
+    function focus(drawn, id, fit) {
+        var layer = highlight(drawn, id);
+        if (layer && fit !== false) {
+            drawn.map.fitBounds(layer.getBounds ? layer.getBounds() : L.latLngBounds([layer.getLatLng()]),
+                {maxZoom: 22, padding: [40, 40], animate: false});
         }
         return layer;
     }
@@ -747,6 +865,7 @@
     }
 
     window.ZamMap = {create: create, draw: draw, planLayer: planLayer, load: load, highlight: highlight, reveal: reveal,
+        focus: focus, openPopupAbove: openPopupAbove,
         stackControl: stackControl,
         filterStacks: filterStacks, layerControl: layerControl, STYLES: STYLES, ITEM_POINT: ITEM_POINT,
         cornerDrawing: cornerDrawing,
@@ -870,14 +989,12 @@
             }
             // The address's view (the marked point or #z, b: showView, below), else what #p names (the "On the map"
             // links), else the whole level.
-            var named = start.popup ? highlight(drawn, start.popup) : null;
-            if (start.bounds || start.mark || start.area) {
-                return;  // set below
+            var view = start.bounds || start.mark || start.area;  // set below
+            var named = start.popup ? focus(drawn, start.popup, !view) : null;
+            if (view) {
+                return;
             }
-            if (named) {
-                map.fitBounds(named.getBounds ? named.getBounds() : L.latLngBounds([named.getLatLng()]),
-                    {maxZoom: 22, padding: [40, 40], animate: false});
-            } else if (drawn.bounds) {
+            if (!named && drawn.bounds) {
                 map.fitBounds(drawn.bounds, {padding: [10, 10]});
             }
             if (!drawn.bounds && !Object.keys(map.baseLayers).length) {
@@ -1025,7 +1142,7 @@
             }
         }
         if (target.popup && page.drawn && page.drawn.byId[target.popup]) {
-            reveal(page.drawn, target.popup).openPopup();
+            openPopupAbove(reveal(page.drawn, target.popup));
         }
     }
 

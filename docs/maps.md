@@ -3,10 +3,13 @@
 Floor plans of the levels on a background map, with the positions of building parts and storage units on them (the
 `maps` app). The map gives orientation when searching ("On the map" in the results), in the location window (a
 location's code chip: a small map with it, or the place it is in, highlighted; Leaflet is loaded only then) and on
-the pages of locations:
-**Position** opens a small map of where it is, with "Show on the map" to the large map. Whoever may place it switches
-to **Edit** there first, so that nothing is moved by accident; others see "Edit" disabled with the reason (guests do
-not see it).
+the pages of locations and unique items: their grey box shows a small map of where it is (on the left, the other
+fields beside it), with "Show on the map" to the large map. Whoever may place it switches to **Change position** (or
+**Place on the map**) first, so that nothing is moved by accident; the box then grows to the whole width (on phones:
+the whole screen). Those logged in who may not place it see "Place on the map" disabled with the reason; "Change
+position" is left out for them, like the pencils of a location's fields. Whoever may also move it can choose another
+**level**: saving there moves it into the room or area at its new position, after a confirmation (none there: it
+asks for a click inside one).
 
 Maps are optional. Small installations leave them off and run on plain SQLite or PostgreSQL; nothing of the
 inventory depends on them.
@@ -66,7 +69,7 @@ coordinates.
 - **Stacked parts:** a room or area whose parts lie on top of each other (the platforms `HBB.1` below and `HBB.2`
   above) gets "parts stacked" (admin: *Location shapes*). The map then offers a switch "HBB: all / .1 / .2".
 - **Shapes:** by default levels, rooms and areas are areas (polygons), storage units and containers points or
-  rectangles; a type's map settings can allow others (the placing dialog then offers a choice, "New" on the map only
+  rectangles; a type's map settings can allow others (placing then offers a choice, "New" on the map only
   lists locations whose type allows the drawn shape). **Storage units** (shelves, cabinets) as points or rectangles:
   the dialog asks for width and depth in cm (filled in with the usual size of their type); the middle handle moves
   it, the outer one turns it. Without a size, the rectangle is drawn by two opposite corners (a click on each, or
@@ -83,13 +86,15 @@ coordinates.
   no type that is another type's sublocation type.
 - **Unique items** can have positions of their own whenever maps are on: a point, a rectangle or an area, each of
   them, as storage units and rooms are placed. Their item may give the usual shape and the size of a rectangle (admin:
-  the item's page, section *Map (unique items)*); the placing dialog starts with them, and each unique item may differ. Unique items that are points have a layer of their own in the layer selection,
+  the item's page, section *Map (unique items)*); placing starts with them, and each unique item may differ. Unique items that are points have a layer of their own in the layer selection,
   "Unique items (points)", off at first, also in the edit mode: many points hide the rest. One a link names (`?p=item:…`,
   "On the map", "Show on the map") is shown all the same, and so are the link previews (`preview.shown`). Rectangles and
-  areas of unique items are always shown.
+  areas of unique items are always shown. From zoom 22.5 on they are named: the item (and its own name; a long one
+  in two lines), the ZAMid below (`#<pk>` without one). Their labels come first; those of the areas around move aside.
+  A click on one opens its popup, as for locations, with its ZAMid as the chip.
 - Something without a position of its own is shown by the nearest location above it that has one ("is in HBB.2;
-  its own position is not known"). "Position" and "On the map" appear only where there is something to show (or,
-  for "Position", for whoever may place it).
+  its own position is not known"). The map in the grey box and "On the map" appear only where there is something to
+  show; without it, the grey box says "No position yet." to whoever may place it (or is logged in).
 
 ### Edit mode of the map
 
@@ -113,7 +118,9 @@ indented below "Done" and "Save" in the box, too (`map_edit.js`); saved, it stay
 Each step on the selected position (a drag, a removed corner, a size, number or turn entered, another location) can be
 undone and redone (not the X's removal, which is saved at once):
 with the arrows beside "Done", Ctrl+Z / Ctrl+Y (⌘Z / ⇧⌘Z), or the browser's back and forward, since each step is an
-entry of the browser's history (`map_edit.js`; `map.js` keeps that state when it writes the view into the address).
+entry of the browser's history (`map_shape_edit.js`; `map.js` keeps that state when it writes the view into the
+address). Changing the shapes (handles, corners and their X, dragging an area, snapping), the steps and the keys are
+shared with the grey box of a location's or unique item's page (`map_shape_edit.js`), so both behave alike.
 The steps belong to the selection: once it is saved, discarded or another one is selected, back and forward pass
 over its entries.
 
@@ -190,7 +197,11 @@ gaps.
 ### Sharing a view
 
 The "On the map" links lead to the level with `?p=loc:<pk>` (or `item:`): the map shows that location, or the
-place it is in, highlighted with its popup open. The small map in the location window shows that popup too.
+place it is in, highlighted with its popup open (`map.js` focus). The small map in the location window shows that
+popup too; the small map in the grey box of a location's or unique item's page highlights it the same way, without a
+popup. What lies in the highlighted area (its parts, storage units, unique items) stays above it, to be clicked.
+A popup goes right above what it is about (also when clicked) if it fits there wholly in view without moving the map,
+as low as the outline under it allows; else where it was clicked, or over its middle with the map moving to show it.
 A location's popup shows its overview photo above its name and code; the thumbnail is made when the popup first
 opens (`maps:location_photo`), not for the whole level.
 
@@ -223,7 +234,8 @@ link of an earlier version pasted into the open page's address applies at once (
   or in it, are cleared, unless the move dialog's "Mark the new place on the map" gave a new one. Then the new place
   is set and the things on it move along.
 - **Building parts** keep their areas when they get another parent; that is restructuring.
-- Every change is in the change log of the location or unique item ("Position on the map").
+- Every change is in the change log of the location or unique item ("Position on the map: changed"), without
+  coordinates, sizes or areas: they say nothing to people (`inventory.change_log.SUMMARY_FIELDS`).
 
 The inventory does not know the maps app: it sends `inventory.signals.moved` and renders template slots
 (`inventory/slots.py`, `{% slot %}`) that the app fills (`maps/apps.py`). "On the map" in

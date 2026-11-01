@@ -13,6 +13,8 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase, override_settings
 from django.urls import reverse
 
+from inventory.label_ids import services
+from inventory.label_ids.testing import make_id
 from inventory.models import ChangeLog, Location, LocationType
 from PIL import Image
 
@@ -115,7 +117,7 @@ class MapViewTests(Building, TestCase):
     def test_what_is_placed_is_set_per_location_type_in_the_admin(self):
         self.client.force_login(self.member)
         positions.set_location_shape(self.hbb, LocationShape.Kind.AREA, geo.rectangle(local_point(5, 0), 5, 5))
-        self.assertNotIn("data-place-edit", self.client.get(self.pallet.get_absolute_url()).content.decode())
+        self.assertNotIn("data-place-start", self.client.get(self.pallet.get_absolute_url()).content.decode())
         admin = get_user_model().objects.create_superuser("admin")
         self.client.force_login(admin)
         change = reverse("admin:inventory_locationtype_change", args=[self.pallet_type.pk])
@@ -135,7 +137,7 @@ class MapViewTests(Building, TestCase):
                          response.context["adminform"].form.errors)
         self.assertTrue(LocationTypeMap.objects.get(type=self.pallet_type).placeable)
         self.client.force_login(self.member)
-        self.assertIn("data-place-edit", self.client.get(self.pallet.get_absolute_url()).content.decode())
+        self.assertIn("data-place-start", self.client.get(self.pallet.get_absolute_url()).content.decode())
 
     def test_staff_edit_and_move_everything_on_the_map(self):
         area = geo.rectangle(local_point(20, 0), 5, 5).json
@@ -361,32 +363,84 @@ class MapViewTests(Building, TestCase):
         self.client.force_login(self.member)
         positions.set_item_position(self.saw, None, None)
         page = self.client.get(self.pallet.get_absolute_url()).content.decode()
-        self.assertNotIn("map-place-modal", page)  # nothing to show, nothing to place: no "Position"
+        self.assertNotIn("data-map-place", page)  # nothing to show, nothing to place: no "Position"
         self.assertNotIn("/map/-1/?p=", page)
         positions.set_location_shape(self.store, LocationShape.Kind.AREA, geo.rectangle(local_point(20, 0), 5, 5))
         positions.set_location_shape(self.hbb, LocationShape.Kind.AREA, geo.rectangle(local_point(5, 0), 5, 5))
         page = self.client.get(self.pallet.get_absolute_url()).content.decode()
         self.assertIn(f"/map/-1/?p=loc:{self.hbb.pk}", page)  # shown by HBB, the area it is in
-        self.assertIn("map-place-modal", page)  # to look at
-        self.assertNotIn("data-place-edit", page)  # but not to place
+        self.assertIn("data-map-place ", page)  # to look at
+        self.assertNotIn("data-place-start", page)  # but not to place
 
-    def test_the_position_button_opens_the_map_editing_is_explicit(self):
+    def test_the_position_is_in_the_grey_box_editing_is_explicit(self):
         positions.set_location_shape(self.hbb, LocationShape.Kind.AREA, geo.rectangle(local_point(5, 0), 5, 5))
         guest = self.client.get(self.store.get_absolute_url()).content.decode()
-        self.assertNotIn("map-place-modal", guest)  # nothing to show yet, and guests do not place
+        self.assertNotIn("data-map-place", guest)  # nothing to show yet, and guests do not place
         guest = self.client.get(self.upper.get_absolute_url()).content.decode()
-        self.assertIn("map-place-modal", guest)  # shown by HBB
-        self.assertNotIn("data-place-edit", guest)
-        self.assertNotIn("Change the position", guest)  # guests do not see the disabled "Edit"
+        self.assertIn("data-map-place ", guest)  # the map: shown by HBB
+        # As on the large map with ?p=: the level and HBB highlighted; it is in HBB.
+        self.assertIn(f'data-map-url="{reverse("maps:level_data", args=[-1])}" data-focus="loc:{self.hbb.pk}"', guest)
+        self.assertIn("Its own position is not known; it is in Holzbaubühne", guest)
+        self.assertNotIn("map-place-empty", guest)
+        self.assertNotIn("data-place-start", guest)
+        self.assertNotIn("Place on the map", guest)  # guests do not see the disabled button
         self.client.force_login(self.member)  # may change locations, but not building parts
         page = self.client.get(self.upper.get_absolute_url()).content.decode()
-        self.assertNotIn("data-place-edit", page)
-        self.assertIn("Change the position", page)  # disabled, with the reason
+        self.assertNotIn("data-place-start", page)
+        self.assertIn("Drawing levels, rooms and areas needs", page)  # "Place on the map" disabled, with the reason
         self.assertIn("Show on the map", page)
+        page = self.client.get(self.hbb.get_absolute_url()).content.decode()
+        self.assertNotIn("Change position", page)  # its own position: like the fields' pencils, none without
+        self.assertNotIn("Place on the map", page)
         self.client.force_login(self.staff)
         page = self.client.get(self.store.get_absolute_url()).content.decode()
-        self.assertIn("data-place-edit", page)  # may place it, even though nothing is shown yet
+        self.assertIn("data-place-start", page)  # may place it, even though nothing is shown yet
+        self.assertIn("map-place-empty", page)  # but no map until it is placed
         self.assertNotIn("Show on the map", page)
+        self.assertNotIn("Remove position", page)
+        page = self.client.get(self.hbb.get_absolute_url()).content.decode()
+        self.assertIn("Change position", page)
+        self.assertIn("Remove position", page)
+        self.assertNotIn("data-place-level", page)  # building parts are not moved: no other level
+        for url in (self.hbb.get_absolute_url(), reverse("view_unique_item", args=[self.saw.pk])):
+            self.assertNotIn("map-place-modal", self.client.get(url).content.decode())  # no "Position" action
+
+    def test_another_level_moves_it_there_once_confirmed(self):
+        third = Location.objects.create(type=self.level.type, name="Werkhaus +1", short_name="WH+1")
+        room = Location.objects.create(type=self.store.type, name="Werkstatt", short_name="WS", parent_location=third)
+        positions.set_location_shape(room, LocationShape.Kind.AREA, geo.rectangle(local_point(20, 0), 5, 5))
+        positions.set_item_position(self.saw, None, CENTER)
+        self.client.force_login(self.member)
+        page = self.client.get(reverse("view_unique_item", args=[self.saw.pk])).content.decode()
+        self.assertIn("data-place-level", page)  # may move it: other levels too
+        self.assertIn(f'data-move="{reverse("move_unique_item", args=[self.saw.pk])}"', page)
+        query = {"item": self.saw.pk, "levels": "1"}
+        context = self.client.get(reverse("maps:place_context"), query).json()
+        self.assertEqual((context["level"], context["home_level"]), (-1, -1))
+        self.assertEqual([level["number"] for level in context["levels"]], [1, -1])  # top down
+        self.assertIsNotNone(context["own"]["geometry"])
+        context = self.client.get(reverse("maps:place_context"), {**query, "level": "1"}).json()
+        self.assertEqual((context["level"], context["home_level"]), (1, -1))
+        self.assertEqual(context["data_url"], reverse("maps:level_data", args=[1]))
+        self.assertIsNone(context["around"])  # nothing around it there yet
+        self.assertIsNone(context["own"]["geometry"])  # to be placed there
+        at = self.client.get(reverse("maps:area_at"), {"level": "1", "lon": local_point(20, 1).x,
+                                                      "lat": local_point(20, 1).y}).json()
+        self.assertEqual(at["area"]["pk"], room.pk)
+        # Confirmed: moved with its new position (map_place.js posts both to the move).
+        point = local_point(20, 1)
+        response = self.client.post(reverse("move_unique_item", args=[self.saw.pk]),
+                                    {"location": room.pk, "map_geometry": point.json, "map_kind": "point"})
+        self.assertEqual(response.status_code, 302)
+        self.saw.refresh_from_db()
+        self.assertEqual(self.saw.location, room)
+        self.assertLess(geo.distance_m(geo.anchor(positions.item_shape(self.saw).geometry), point), 0.001)
+        # Who may not move it gets no other level.
+        reader = get_user_model().objects.create_user(username="mapper", is_staff=True)  # edits the map, moves nothing
+        self.client.force_login(reader)
+        page = self.client.get(reverse("view_unique_item", args=[self.saw.pk])).content.decode()
+        self.assertIn("Change position", page)
+        self.assertNotIn("data-place-level", page)
 
     def test_saving_positions_needs_the_permissions(self):
         LocationTypeMap.objects.filter(type=self.pallet_type).update(placeable=True)
@@ -430,6 +484,14 @@ class MapViewTests(Building, TestCase):
         data = self.client.get(reverse("maps:level_data", args=[-1])).json()
         feature = {f["properties"]["id"]: f for f in data["features"]["features"]}[f"item:{self.saw.pk}"]
         self.assertEqual((feature["properties"]["kind"], feature["geometry"]["type"]), ("area", "Polygon"))
+        # Named from close up: the item (and its own name), the number in the line below while it has no ZAMid.
+        self.assertEqual(feature["properties"]["label"],
+                         {"title": "Saw", "subtitle": "", "code": f"#{self.saw.pk}", "min_zoom": 22.5})
+        services.claim(make_id("K7R4X").code, self.saw, None)
+        data = self.client.get(reverse("maps:level_data", args=[-1])).json()
+        feature = {f["properties"]["id"]: f for f in data["features"]["features"]}[f"item:{self.saw.pk}"]
+        self.assertEqual((feature["properties"]["label"]["code"], feature["properties"]["lid"]), ("K7R-4XD", "K7R-4XD"))
+        self.assertEqual(feature["properties"]["title"], "Saw")  # the ZAMid only below, not in the name
         self.assertTrue(self.client.post(url, {"map_geometry": ""}).json()["ok"])
         self.assertIsNone(positions.item_shape(self.saw))
 

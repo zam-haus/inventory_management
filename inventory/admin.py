@@ -318,6 +318,7 @@ class ChangeLogDisplayMixin:
             parts.append(format_html("{} → {}", *shown["move"]))
         parts.extend(format_html("{}", line) for line in shown["lines"])
         parts.extend(format_html("{}: {}", change["field"], _("changed (internal)")) if change["internal"]
+                     else format_html("{}: {}", change["field"], _("changed")) if change["summary"]
                      else format_html("{}: {} → {}", change["field"], change["before"], change["after"])
                      for change in shown["changes"])
         return format_html_join("", "<div>{}</div>", ((part,) for part in parts)) or "–"

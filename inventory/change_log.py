@@ -147,6 +147,9 @@ FORMER_FIELDS = {
 # Labels of what optional apps log as changed fields of inventory subjects (e.g. maps: ("location", "map_position")),
 # filled in by those apps: {(model name, name): label}.
 APP_FIELDS = {}
+# Of those, the ones logged only as changed, without their values (e.g. maps: a position's coordinates and area say
+# nothing to people): {(model name, name)}.
+SUMMARY_FIELDS = set()
 
 
 def missing_fields():

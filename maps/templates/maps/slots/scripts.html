@@ -1,10 +1,13 @@
-{% load static maps_tags %}{% map_dialog object as dialog %}{% if dialog.show %}{% map_config %}{# Leaflet and the map scripts for the dialogs (location and unique item pages). #}
+{% load static maps_tags %}{% map_place object as place %}{% if place.show %}{% map_config %}{# Leaflet and the map scripts for the position in the grey box (location and unique item pages). #}
 <link rel="stylesheet" href="{% static 'maps/vendor/leaflet/leaflet.css' %}">
 <link rel="stylesheet" href="{% static 'maps/vendor/leaflet-geoman/leaflet-geoman.css' %}">
 <link rel="stylesheet" href="{% static 'maps/maps.css' %}">
 <script src="{% static 'maps/vendor/leaflet/leaflet.js' %}"></script>
-{% if dialog.editable and dialog.area %}<script src="{% static 'maps/vendor/leaflet-geoman/leaflet-geoman.min.js' %}"></script>{% endif %}
+{% if place.editable and place.area %}<script src="{% static 'maps/vendor/leaflet-geoman/leaflet-geoman.min.js' %}"></script>{% endif %}
 <script src="{% static 'maps/plan_overlay.js' %}"></script>
 <script src="{% static 'maps/map.js' %}"></script>
+<script src="{% static 'maps/map_shape_edit.js' %}"></script>
 <script src="{% static 'maps/map_place.js' %}"></script>
+{% elif place.edit_denied %}{# Only the disabled "Place on the map": no map, no scripts. #}
+<link rel="stylesheet" href="{% static 'maps/maps.css' %}">
 {% endif %}

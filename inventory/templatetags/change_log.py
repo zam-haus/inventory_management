@@ -13,7 +13,7 @@ from django.utils.text import Truncator
 from django.utils.translation import gettext as _, ngettext
 
 from .. import location_display
-from ..change_log import APP_FIELDS, FORMER_FIELDS, actor_label
+from ..change_log import APP_FIELDS, FORMER_FIELDS, SUMMARY_FIELDS, actor_label
 from ..label_ids import naming
 from ..models import ChangeLog, Item, Location, UniqueItem, format_amount
 
@@ -111,9 +111,12 @@ def describe(entry, page, user):
         shown["lines"] = [entry.get_reason_display()]
     for change in entry.changes:
         visible = internal or not change.get("internal")
+        summary = (entry.subject_type, change["field"]) in SUMMARY_FIELDS
         shown["changes"].append({
             "field": field_label(entry.subject_type, change["field"]), "internal": not visible,
-            "before": short(change["before"]) if visible else "", "after": short(change["after"]) if visible else "",
+            "summary": visible and summary,
+            "before": short(change["before"]) if visible and not summary else "",
+            "after": short(change["after"]) if visible and not summary else "",
         })
     return shown
 

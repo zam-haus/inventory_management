@@ -42,10 +42,11 @@ def describe(shape):
 
 
 def _log(subject, before, after, *, entry=None, **links):
-    """The change in the entry of the same save (e.g. the move), else in an entry of its own."""
+    """The change in the entry of the same save (e.g. the move), else in an entry of its own: only that it changed
+    (inventory.change_log.SUMMARY_FIELDS); before and after (describe) only tell whether it did."""
     if before == after:
         return
-    change = {"field": FIELD, "before": before, "after": after, "internal": False}
+    change = {"field": FIELD, "before": "", "after": "", "internal": False}
     if entry is not None:
         entry.changes = [*entry.changes, change]
         entry.save(update_fields=["changes"])

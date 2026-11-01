@@ -1,20 +1,16 @@
 // Placing a location or unique item on the map (maps/views.py place_context, LocationShapeView, ItemPositionView).
-// A click sets where it is. A storage unit (or unique item) is a point or a rectangle of the width and depth entered here: the
-// middle handle drags it, the outer one turns it; the slider turns it too. Without a size, a rectangle is drawn by two
-// opposite corners (a click on each, or dragging from one to the other), along the turn set (at first the plan's walls). Dragging snaps its corners to the corners
-// and edges of the rooms, areas and storage units around it, turning to their edges and the plan's walls (Alt while
-// dragging: no snapping).
-// Levels, rooms and areas (and unique items, if chosen) get an area drawn with Leaflet-Geoman. Two uses:
-//   [data-map-place]  the dialog on the page of a location or unique item: saves at once;
+// A click sets where it is. A storage unit (or unique item) is a point or a rectangle of the width and depth entered
+// here; the slider turns it too. Without a size, a rectangle is drawn by two opposite corners (a click on each, or
+// dragging from one to the other), along the turn set (at first the plan's walls). Levels, rooms and areas (and unique
+// items, if chosen) get an area drawn with Leaflet-Geoman. The handles, corners, snapping and steps are those of the
+// map's edit mode (map_shape_edit.js). Two uses:
+//   [data-map-place]  the grey box on the page of a location or unique item: the map as on the large one, saves at once;
 //   [data-map-pick]   a step in the move dialogs: fills hidden fields that go with the move (signals.moved).
 (function () {
     'use strict';
 
-    var geometry = ZamMap.geometry, offset = geometry.offset, rectangle = geometry.rectangle;
-    var planRotation = geometry.planRotation;
-
-    // Areas snap to the corners and edges of the other areas and storage units (Leaflet-Geoman); Alt: no snapping.
-    var AREA_EDITING = {allowSelfIntersection: false, snappable: true, snapDistance: 15};
+    var geometry = ZamMap.geometry, planRotation = geometry.planRotation;
+    var STYLE = {color: '#d63384', weight: 3, fillOpacity: 0.15};
 
     function csrf(root) {
         var input = root.querySelector('[name=csrfmiddlewaretoken]') ||
@@ -39,39 +35,37 @@
         this.moveLabel = root.querySelector('[data-place-move-label]');
         this.map = null;
         this.editing = false;
+        this.onStep = null;  // after each step (a drag let go, a click, a size or turn entered)
         this.reset();
         this.rotationInput.addEventListener('input', function () {
             self.rotation = Number(self.rotationInput.value);
+            self.changed = true;
             self.redraw();
         });
+        this.rotationInput.addEventListener('change', function () { self.stepped(); });  // let go
         root.querySelectorAll('[data-place-turn]').forEach(function (button) {
             button.addEventListener('click', function () {
                 self.rotation = (self.rotation + Number(button.dataset.placeTurn) + 360) % 360;
+                self.changed = true;
                 self.redraw();
+                self.stepped();
             });
         });
         root.querySelectorAll('[data-place-kind]').forEach(function (radio) {
             radio.addEventListener('change', function () {
-                var wasArea = self.kind === 'area';
-                self.kind = radio.value;
-                self.corners.reset();
-                if (wasArea !== (self.kind === 'area')) {  // an area and a point are different drawings
-                    self.dropArea();
-                    self.center = null;
-                }
-                self.redraw();
-                self.showArea();
-                self.sayWhatToDo();
+                self.setKind(radio.value);
+                self.stepped();
             });
         });
         [this.widthInput, this.depthInput].forEach(function (input) {
             input.addEventListener('input', function () {
-                var width = Number(self.widthInput.value), depth = Number(self.depthInput.value);
-                self.size = width > 0 && depth > 0 ? [width / 100, depth / 100] : null;
+                self.readSize();
                 self.corners.reset();
+                self.changed = true;
                 self.redraw();
                 self.sayWhatToDo();
             });
+            input.addEventListener('change', function () { self.stepped(); });  // entered
         });
     }
 
@@ -85,6 +79,7 @@
         this.size = null;
         this.moveTo = null;
         this.changed = false;
+        this.s = null;  // what the shape editor changes: {center, rotation, size} or {area}
     };
 
     Placer.prototype.say = function (text) {
@@ -101,15 +96,13 @@
         return this.kind === 'rectangle' && Boolean(this.size);
     };
 
+    Placer.prototype.readSize = function () {
+        var width = Number(this.widthInput.value), depth = Number(this.depthInput.value);
+        this.size = width > 0 && depth > 0 ? [width / 100, depth / 100] : null;
+    };
+
     Placer.prototype.sayWhatToDo = function () {
         var strings = this.root.dataset;
-        if (!this.editing) {
-            // Viewing: where it is, or that only the place around it is known.
-            var own = this.own();
-            this.say(own.geometry || !this.context || !this.context.around_title ? '' :
-                strings.approximate.replace('{where}', this.context.around_title));
-            return;
-        }
         if (this.kind === 'area') {
             this.say(this.area ? strings.editArea : strings.drawArea);
             return;
@@ -121,8 +114,8 @@
         }
     };
 
-    // Loads the context (thing, level, area around) and draws the level; `query` e.g. "location=12&target=40".
-    Placer.prototype.load = function (query) {
+    // The map (made the first time) without anything on it but its background.
+    Placer.prototype.prepare = function () {
         var self = this;
         var strings = this.root.dataset;
         if (!this.map) {
@@ -136,16 +129,25 @@
                     return event && event.altKey ? latlng : geometry.snapCenter(self.map,
                         geometry.snapTargets(self.map, self.drawn), latlng, function (at) { return [at]; });
                 },
-                style: {color: '#d63384', weight: 3, fillOpacity: 0.15},
+                style: STYLE,
                 done: function (drawn) { self.drawnCorners(drawn); }
+            });
+            this.shapes = ZamMap.shapeEditor(this.map, {
+                style: STYLE, snapNote: strings.snapNote, dragHandle: strings.dragHandle, turnHandle: strings.turnHandle,
+                cornerBox: this.root.querySelector('[data-edit-corner-box]'),
+                targets: function () { return geometry.snapTargets(self.map, self.drawn); },
+                walls: function () { return self.walls; },
+                active: function () { return self.editing; },
+                changed: function (s) { self.shapeChanged(s); },
+                stepped: function () { self.stepped(); }
             });
         }
         this.corners.reset();
-        if (this.map.pm) {
-            this.map.pm.disableDraw();
-        }
+        this.shapes.clear(this.s);
+        this.map.closePopup();
         if (this.drawn) {
-            this.drawn.off();  // drawn anew below
+            this.drawn.off();  // drawn anew
+            this.drawn = null;
         }
         var backgrounds = Object.keys(this.map.baseLayers).map(function (name) { return self.map.baseLayers[name]; });
         this.map.eachLayer(function (layer) {
@@ -153,6 +155,14 @@
                 self.map.removeLayer(layer);
             }
         });
+    };
+
+    // Loads the context (thing, level, area around) and draws the level to place it on; `query` e.g.
+    // "location=12&target=40".
+    Placer.prototype.load = function (query) {
+        var self = this;
+        var strings = this.root.dataset;
+        this.prepare();
         this.reset();
         this.say(strings.loading);
         return ZamMap.load(strings.context + '?' + query).then(function (context) {
@@ -174,9 +184,7 @@
             // The type's usual size as a hint (admin: the location type's map settings).
             self.widthInput.placeholder = own.type_size ? Math.round(own.type_size[0] * 100) : '';
             self.depthInput.placeholder = own.type_size ? Math.round(own.type_size[1] * 100) : '';
-            self.root.querySelectorAll('[data-place-kind]').forEach(function (radio) {
-                radio.checked = radio.value === self.kind;
-            });
+            self.checkKind();
             if (!context.data_url) {
                 self.say(strings.noLevel);
                 return null;
@@ -196,12 +204,13 @@
                 } else if (self.walls !== null) {
                     self.rotation = self.walls;
                 }
-                self.redraw();
+                self.map.invalidateSize();
                 var focus = self.area ? self.area.getBounds() : self.center ? L.latLngBounds([self.center]).pad(0.0005)
                     : around ? around.getBounds() : drawn.bounds;
                 if (focus) {
-                    self.map.fitBounds(focus, {maxZoom: 22, padding: [20, 20]});
+                    self.map.fitBounds(focus, {maxZoom: 22, padding: [20, 20], animate: false});
                 }
+                self.redraw();
                 self.showArea();
                 self.sayWhatToDo();
                 return context;
@@ -209,6 +218,40 @@
         }).catch(function () {
             self.say(strings.error);
         });
+    };
+
+    // Done editing: the handles and corners go.
+    Placer.prototype.stop = function () {
+        this.editing = false;
+        if (this.map) {
+            this.corners.reset();
+            this.shapes.clear(this.s);
+        }
+        this.s = null;
+    };
+
+    Placer.prototype.checkKind = function () {
+        var self = this;
+        this.root.querySelectorAll('[data-place-kind]').forEach(function (radio) {
+            radio.checked = radio.value === self.kind;
+        });
+    };
+
+    // Another shape: an area and a point are different drawings.
+    Placer.prototype.setKind = function (kind) {
+        var wasArea = this.kind === 'area';
+        this.kind = kind;
+        this.checkKind();
+        this.corners.reset();
+        if (wasArea !== (kind === 'area')) {
+            this.dropArea();
+            this.center = null;
+        }
+        this.readSize();
+        this.changed = true;
+        this.redraw();
+        this.showArea();
+        this.sayWhatToDo();
     };
 
     // A rectangle without a size yet is drawn by its corners (cornerDrawing).
@@ -223,8 +266,8 @@
         this.depthInput.value = Math.round(this.size[1] * 100);
         this.changed = true;
         this.redraw();
-        this.lookUpArea();
         this.sayWhatToDo();
+        this.stepped();
     };
 
     Placer.prototype.click = function (latlng) {
@@ -232,40 +275,40 @@
                 this.drawsCorners() || this.corners.clickTaken()) {
             return;
         }
-        this.center = this.snappedCenter(latlng);
+        this.center = this.shapes.snapCenter({rotation: this.rotation, size: this.isRectangle() ? this.size : null},
+            latlng, false);
         this.changed = true;
         this.redraw();
+        this.stepped();
+    };
+
+    // The shape editor moved, turned or reshaped it.
+    Placer.prototype.shapeChanged = function (s) {
+        if (s.area) {
+            this.area = s.area;
+        } else {
+            this.center = s.center;
+            this.rotation = s.rotation;
+            this.rotationInput.value = Math.round(this.rotation);
+            this.rotationOutput.textContent = Math.round(this.rotation) + '°';
+        }
+        this.changed = true;
+    };
+
+    Placer.prototype.stepped = function () {
+        this.changedFields();
         this.lookUpArea();
+        if (this.onStep) {
+            this.onStep();
+        }
     };
 
-    // Where the dragged center goes: a corner of the shape snaps to the corners and edges around it.
-    Placer.prototype.snappedCenter = function (center) {
-        var self = this;
-        return geometry.snapCenter(this.map, geometry.snapTargets(this.map, this.drawn), center, function (at) {
-            return self.isRectangle() ? rectangle(at, self.size, self.rotation) : [at];
-        });
-    };
-
-    // The turn snapped to the edges nearby and the plan's walls.
-    Placer.prototype.snapped = function (rotation) {
-        return geometry.snapRotation(this.map, geometry.snapTargets(this.map, this.drawn), this.center, rotation,
-            this.walls);
-    };
-
-    Placer.prototype.knobPosition = function () {
-        // Beyond the middle of the rectangle's far side ("north" before turning).
-        return offset(this.center, 0, this.size[1] / 2 + Math.max(0.3, this.size[1] * 0.4), this.rotation);
-    };
-
+    // The tools for the shape, and the handles of a point or rectangle (drawn anew).
     Placer.prototype.redraw = function () {
-        var self = this;
-        [this.shape, this.handle, this.knob].forEach(function (layer) {
-            if (layer) {
-                self.map.removeLayer(layer);
-            }
-        });
-        this.shape = this.handle = this.knob = null;
-        var rectangular = this.isRectangle();
+        if (this.s && !this.s.area) {
+            this.shapes.dropHandles(this.s);
+            this.s = null;
+        }
         // The choice of shape when the type allows several; the size when it is a rectangle.
         var choice = (this.kinds || []).length > 1;
         this.shapeBox.hidden = !this.editing || !(choice || this.kind === 'rectangle');
@@ -274,139 +317,115 @@
         this.rotationBox.hidden = !this.editing || this.kind !== 'rectangle';  // also to turn one before drawing it
         this.rotationInput.value = Math.round(this.rotation);
         this.rotationOutput.textContent = Math.round(this.rotation) + '°';
-        if (!this.center || !this.map) {
-            this.changedFields();
-            return;
-        }
-        var style = Object.assign({}, rectangular ? ZamMap.STYLES.storage_unit : ZamMap.ITEM_POINT,
-            {color: '#d63384', weight: 3});
-        this.shape = rectangular ? L.polygon(rectangle(this.center, this.size, this.rotation), style)
-            : L.circleMarker(this.center, Object.assign({radius: 8}, style));
-        this.shape.addTo(this.map);
-        if (!this.editing) {
-            return;
-        }
-        this.handle = L.marker(this.center, {draggable: true, keyboard: false, title: this.root.dataset.dragHandle,
-            icon: L.divIcon({className: 'map-place-handle', iconSize: [18, 18]})}).addTo(this.map);
-        this.handle.on('drag', function (event) {
-            var free = event.originalEvent && event.originalEvent.altKey;
-            self.center = free ? event.target.getLatLng() : self.snappedCenter(event.target.getLatLng());
-            self.changed = true;
-            self.follow();
-        });
-        this.handle.on('dragend', function () {
-            self.handle.setLatLng(self.center);
-            self.changedFields();
-            self.lookUpArea();
-        });
-        if (rectangular) {
-            this.knob = L.marker(this.knobPosition(), {draggable: true, keyboard: false,
-                title: this.root.dataset.turnHandle,
-                icon: L.divIcon({className: 'map-place-handle map-place-knob', iconSize: [16, 16]})}).addTo(this.map);
-            this.knob.on('drag', function (event) {
-                var turned = geometry.bearing(self.center, event.target.getLatLng());
-                self.rotation = event.originalEvent && event.originalEvent.altKey ? turned : self.snapped(turned);
-                self.changed = true;
-                self.follow(true);
-            });
-            this.knob.on('dragend', function () {
-                self.knob.setLatLng(self.knobPosition());
-                self.changedFields();
-            });
+        if (this.center && this.map && this.editing && this.kind !== 'area') {
+            this.s = {center: this.center, rotation: this.rotation, size: this.isRectangle() ? this.size : null};
+            this.shapes.drawHandles(this.s);
         }
         this.changedFields();
     };
 
-    // Moves the drawn shape (and the turning knob unless it is being dragged) along while dragging.
-    Placer.prototype.follow = function (turning) {
-        if (this.isRectangle()) {
-            this.shape.setLatLngs(rectangle(this.center, this.size, this.rotation));
-            if (!turning && this.knob) {
-                this.knob.setLatLng(this.knobPosition());
-            }
-            this.rotationInput.value = Math.round(this.rotation);
-            this.rotationOutput.textContent = Math.round(this.rotation) + '°';
-        } else {
-            this.shape.setLatLng(this.center);
-        }
-    };
-
-    // A level's, room's or area's own area: shown, or editable with Leaflet-Geoman.
+    // A level's, room's or area's own area: its corners editable, or drawn anew.
     Placer.prototype.showArea = function () {
-        if (this.kind !== 'area') {
-            return;
-        }
-        if (this.editing) {
-            this.startArea();
-        } else if (this.area) {
-            this.area.setStyle({color: '#d63384', weight: 3, fillOpacity: 0.15});
-            this.area.addTo(this.map);
-        }
-    };
-
-    Placer.prototype.dropArea = function () {
-        if (this.map && this.map.pm) {
-            this.map.pm.disableDraw();
-        }
-        if (this.area) {
-            if (this.area.pm) {
-                this.area.pm.disable();
-            }
-            this.map.removeLayer(this.area);
-            this.area = null;
-        }
-    };
-
-    // Switches between looking at the map and changing the position (explicitly, against accidental changes).
-    Placer.prototype.setEditing = function (on) {
-        this.editing = on;
-        if (!on && this.map && this.map.pm) {
-            this.map.pm.disableDraw();
-            if (this.area && this.area.pm) {
-                this.area.pm.disable();
-            }
-        }
-        this.showArea();
-        this.redraw();
-        this.sayWhatToDo();
-    };
-
-    Placer.prototype.startArea = function () {
         var self = this;
         var strings = this.root.dataset;
+        if (this.kind !== 'area' || !this.editing || !this.map) {
+            return;
+        }
         if (typeof this.map.pm === 'undefined') {
             this.say(strings.error);
             return;
         }
-        this.map.pm.setLang((document.documentElement.lang || 'en').slice(0, 2));
+        this.s = {area: this.area};
         if (this.area) {
-            this.area.addTo(this.map);
-            this.area.pm.enable(AREA_EDITING);
-            this.area.on('pm:edit', function () { self.changed = true; });
+            this.shapes.editArea(this.s);
             this.say(strings.editArea);
         } else {
-            this.map.pm.enableDraw('Polygon', AREA_EDITING);
-            this.map.once('pm:create', function (event) {
-                self.area = event.layer;
+            var s = this.s;
+            this.shapes.drawArea(s, function () {
+                self.area = s.area;
                 self.changed = true;
-                self.area.pm.enable(AREA_EDITING);
-                self.area.on('pm:edit', function () { self.changed = true; });
                 self.say(strings.editArea);
+                self.stepped();
             });
             this.say(strings.drawArea);
         }
     };
 
-    // Offers moving it into the room or area the point lies in, if that is not where it is.
+    Placer.prototype.dropArea = function () {
+        if (this.s && this.s.area !== undefined) {
+            this.shapes.clear(this.s);
+            this.s = null;
+        } else if (this.area && this.map) {
+            this.map.removeLayer(this.area);
+        }
+        this.area = null;
+    };
+
+    // What can be undone and redone (map_shape_edit.js editSteps).
+    Placer.prototype.snapshot = function () {
+        return {kind: this.kind, rotation: this.rotation, size: this.size ? this.size.slice() : null,
+            center: this.center ? [this.center.lat, this.center.lng] : null,
+            area: this.area ? this.area.getLatLngs().map(function (ring) {
+                return ring.map(function (corner) { return [corner.lat, corner.lng]; });
+            }) : null};
+    };
+
+    Placer.prototype.restore = function (state) {
+        var rings = state.area && state.area.map(function (ring) {
+            return ring.map(function (corner) { return L.latLng(corner[0], corner[1]); });
+        });
+        if (state.kind !== this.kind || (this.area && !rings)) {
+            this.dropArea();
+        }
+        this.kind = state.kind;
+        this.checkKind();
+        this.size = state.size && state.size.slice();
+        this.widthInput.value = this.size ? Math.round(this.size[0] * 100) : '';
+        this.depthInput.value = this.size ? Math.round(this.size[1] * 100) : '';
+        this.rotation = state.rotation;
+        this.center = state.center ? L.latLng(state.center[0], state.center[1]) : null;
+        if (rings && this.area && this.s && this.s.area === this.area) {
+            this.shapes.setArea(this.s, rings);
+        } else if (rings) {
+            this.area = L.polygon(rings, STYLE);
+            this.showArea();
+        } else if (this.kind === 'area') {
+            this.showArea();  // drawn anew
+        }
+        this.redraw();
+        this.sayWhatToDo();
+        this.changedFields();
+        this.lookUpArea();
+    };
+
+    // Where it is placed: the point or the middle of the rectangle, else the middle of the area drawn.
+    Placer.prototype.point = function () {
+        return this.center || (this.area ? this.area.getBounds().getCenter() : null);
+    };
+
+    // The room or area at that point on the level shown (maps/views.py area_at), or null.
+    Placer.prototype.areaAt = function () {
+        var point = this.point();
+        if (!point || !this.context || this.context.level === null) {
+            return Promise.resolve(null);
+        }
+        var url = this.context.at_url + '?level=' + this.context.level + '&lon=' + point.lng + '&lat=' + point.lat +
+            '&current=' + (this.context.around || '');
+        return ZamMap.load(url).then(function (answer) { return answer.area; });
+    };
+
+    // Offers moving it into the room or area the point lies in, if that is not where it is. On another level
+    // (nothing around it) moving is confirmed on saving instead.
     Placer.prototype.lookUpArea = function () {
         var self = this;
-        if (!this.moveBox || !this.root.dataset.move || !this.center || this.context.level === null) {
+        if (!this.moveBox || !this.root.dataset.move || !this.center || !this.context || this.context.around === null) {
+            if (this.moveBox) {
+                this.moveBox.hidden = true;
+            }
+            this.moveTo = null;
             return;
         }
-        var url = this.context.at_url + '?level=' + this.context.level + '&lon=' + this.center.lng + '&lat=' +
-            this.center.lat + '&current=' + this.context.around;
-        ZamMap.load(url).then(function (answer) {
-            var area = answer.area;
+        this.areaAt().then(function (area) {
             self.moveTo = area && area.pk !== self.context.around ? area : null;
             self.moveBox.hidden = !self.moveTo;
             if (self.moveTo) {
@@ -429,7 +448,6 @@
     // The fields saved with a location's or unique item's position (LocationShapeView, ItemPositionView,
     // positions.placement_from).
     Placer.prototype.fields = function (geometry) {
-        var own = this.own();
         var fields = {map_geometry: geometry, map_rotation: this.rotation,
             map_kind: this.kind === 'area' ? 'area' : (this.isRectangle() ? 'rectangle' : 'point')};
         if (this.isRectangle()) {
@@ -441,33 +459,143 @@
 
     Placer.prototype.changedFields = function () {};
 
-    // The dialog on a location's or unique item's page: shows where it is; who may change it switches to editing.
-    function setUpDialog(root) {
-        var placer = new Placer(root, root.querySelector('[data-place-canvas]'));
+    // The position in the grey box of a location's or unique item's page (place_inline.html): the map as on the large
+    // one (map.js focus: highlighted; no popup, the page is about it); whoever may change it switches to editing
+    // there, the box growing for it (on phones: the whole screen). Another level moves it into the room or area at the
+    // point, once confirmed.
+    function setUpInline(root) {
+        var cell = root.closest('[data-map-place-cell]') || root;
+        var canvas = root.querySelector('[data-place-canvas]');
+        var placer = new Placer(root, canvas);
         var strings = root.dataset;
+        var levelSelect = root.querySelector('[data-place-level]');
+        var confirmBox = root.querySelector('[data-place-confirm]');
+        var phone = window.matchMedia('(max-width: 575.98px)');
+        var home = null;  // the level it is on
+        var level = null;  // another level chosen to move it to
+        var editing = false;
 
-        function mode(editing) {
-            root.querySelectorAll('[data-place-view-only]').forEach(function (element) { element.hidden = editing; });
-            root.querySelectorAll('[data-place-edit-only]').forEach(function (element) { element.hidden = !editing; });
+        function mode(on) {
+            editing = on;
+            cell.classList.toggle('is-editing', on);
+            canvas.classList.toggle('map-editing', on);
+            cell.querySelectorAll('[data-place-view-only]').forEach(function (element) { element.hidden = on; });
+            cell.querySelectorAll('[data-place-edit-only]').forEach(function (element) { element.hidden = !on; });
+            confirmBox.hidden = true;
+            document.body.classList.toggle('map-place-fullscreen', on && phone.matches);
         }
 
-        function load() {
-            mode(false);
-            placer.editing = false;
-            return placer.load(strings.query).then(function () { placer.map.invalidateSize(); });
+        // Looking at it in the page: scrolling (and on phones swiping) moves the page, not the map.
+        function interactive(on) {
+            placer.map.scrollWheelZoom[on ? 'enable' : 'disable']();
+            placer.map.dragging[on || !L.Browser.mobile ? 'enable' : 'disable']();
         }
 
-        root.addEventListener('shown.bs.modal', load);
-        // Closing forgets what was changed and not saved (modals.js: dialogs forget on close).
-        root.addEventListener('hidden.bs.modal', function () { mode(false); });
-        var edit = root.querySelector('[data-place-edit]');
-        if (edit) {
-            edit.addEventListener('click', function () {
-                mode(true);
-                placer.setEditing(true);
+        // As on the large map with ?p=: everything as drawn there (the others' popups too), what it shows highlighted.
+        function view() {
+            if (!strings.focus) {
+                return;
+            }
+            placer.prepare();
+            placer.say('');
+            ZamMap.load(strings.mapUrl).then(function (data) {
+                if (editing) {
+                    return;
+                }
+                placer.map.invalidateSize();
+                var drawn = ZamMap.draw(placer.map, data);
+                placer.drawn = drawn;
+                var layer = ZamMap.focus(drawn, strings.focus);
+                if (!layer && drawn.bounds) {
+                    placer.map.fitBounds(drawn.bounds, {padding: [10, 10], animate: false});
+                }
+                interactive(false);
+            }).catch(function () {
+                placer.say(strings.error);
             });
         }
-        root.querySelector('[data-place-cancel]').addEventListener('click', load);
+
+        function fillLevels(context) {
+            home = context.home_level;
+            if (!levelSelect || !context.levels || levelSelect.options.length) {
+                return;
+            }
+            if (home === null) {
+                levelSelect.add(new Option(strings.noLevelOption, ''));
+            }
+            context.levels.forEach(function (entry) {
+                levelSelect.add(new Option(strings.levelOption.replace('{label}', entry.label), entry.number));
+            });
+        }
+
+        // Undo and redo, as in the map's edit mode.
+        var steps = ZamMap.editSteps({
+            undo: root.querySelector('[data-place-undo]'), redo: root.querySelector('[data-place-redo]'),
+            snapshot: function () { return placer.snapshot(); },
+            restore: function (state) { placer.restore(state); },
+            active: function () { return editing; }
+        });
+        placer.onStep = function () { steps.record(); };
+
+        function load() {
+            steps.end();
+            placer.editing = true;
+            var query = strings.query + (level !== null ? '&level=' + level : '') +
+                (levelSelect && !levelSelect.options.length ? '&levels=1' : '');
+            return placer.load(query).then(function (context) {
+                if (placer.context) {
+                    fillLevels(placer.context);
+                    if (levelSelect) {
+                        levelSelect.value = level !== null ? String(level) : (home === null ? '' : String(home));
+                    }
+                }
+                interactive(true);
+                if (editing) {
+                    steps.begin();
+                }
+                return context;
+            });
+        }
+
+        function edit() {
+            mode(true);
+            load();
+        }
+
+        // Cancelling forgets what was changed and not saved (modals.js: dialogs forget on close).
+        function cancel() {
+            steps.end();
+            level = null;
+            placer.stop();
+            mode(false);
+            view();
+        }
+
+        cell.querySelectorAll('[data-place-start]').forEach(function (button) {
+            button.addEventListener('click', edit);
+        });
+        root.querySelectorAll('[data-place-cancel]').forEach(function (button) {
+            button.addEventListener('click', cancel);
+        });
+        cell.addEventListener('keydown', function (event) {
+            if (event.key === 'Escape' && editing && !event.defaultPrevented) {
+                cancel();
+            }
+        });
+        phone.addEventListener('change', function () {
+            document.body.classList.toggle('map-place-fullscreen', editing && phone.matches);
+            if (placer.map) {
+                placer.map.invalidateSize();
+            }
+        });
+        if (levelSelect) {
+            levelSelect.addEventListener('change', function () {
+                var value = levelSelect.value;
+                level = value === '' || Number(value) === home ? null : Number(value);
+                confirmBox.hidden = true;
+                load();
+            });
+        }
 
         function post(url, fields) {
             var body = new FormData();
@@ -477,47 +605,107 @@
                 headers: {'Accept': 'application/json'}});
         }
 
-        function fields(geometry) {
-            return placer.fields(geometry);
-        }
-
-        function finish(response) {
+        // Saved: the page anew (after a move: the page it was sent to, its address may have changed).
+        function finish(response, moving) {
             if (!response.ok) {
                 return response.json().then(function (answer) { throw new Error(answer.error || response.status); },
                     function () { throw new Error(response.status); });
             }
-            window.location.reload();
+            if (moving && !response.redirected) {
+                // The move form came back with its errors (LocationMoveView).
+                return response.text().then(function (html) {
+                    var page = new DOMParser().parseFromString(html, 'text/html');
+                    var errors = Array.prototype.map.call(page.querySelectorAll('.invalid-feedback, .errorlist, ' +
+                        '.alert-danger'), function (element) { return element.textContent.trim(); });
+                    throw new Error(errors.filter(Boolean).join(' ') || strings.error);
+                });
+            }
+            leaving = true;
+            if (response.redirected) {
+                window.location.assign(response.url);
+            } else {
+                window.location.reload();
+            }
         }
 
-        root.querySelector('[data-place-save]').addEventListener('click', function () {
-            var geometry = placer.geometry();
-            if (!geometry) {
-                placer.say(strings.nothing);
-                return;
-            }
-            if (placer.kind === 'rectangle' && !placer.size) {
-                placer.say(strings.enterSize);
-                return;
-            }
-            var data = fields(geometry);
-            var moving = placer.moveTo && placer.moveBox.querySelector('input').checked;
-            var request;
-            if (moving) {
-                data[strings.moveField] = placer.moveTo.pk;
-                request = post(strings.move, data);
-            } else {
-                request = post(strings.save, data);
-            }
-            request.then(finish).catch(function (error) { placer.say(error.message || strings.error); });
-        });
+        function send(url, data, moving) {
+            post(url, data).then(function (response) { return finish(response, moving); })
+                .catch(function (error) { placer.say(error.message || strings.error); });
+        }
+
+        function move() {
+            var data = placer.fields(placer.geometry());
+            data[strings.moveField] = placer.moveTo.pk;
+            send(strings.move, data, true);
+        }
+
+        var save = root.querySelector('[data-place-save]');
+        if (save) {
+            save.addEventListener('click', function () {
+                var geometry = placer.geometry();
+                if (!geometry) {
+                    placer.say(strings.nothing);
+                    return;
+                }
+                if (placer.kind === 'rectangle' && !placer.size) {
+                    placer.say(strings.enterSize);
+                    return;
+                }
+                if (level !== null) {
+                    // Another level: into the room or area at the point, once confirmed.
+                    placer.areaAt().then(function (area) {
+                        placer.moveTo = area;
+                        if (!area) {
+                            placer.say(strings.needArea);
+                            return;
+                        }
+                        var option = levelSelect.options[levelSelect.selectedIndex];
+                        confirmBox.querySelector('[data-place-confirm-text]').textContent = strings.confirmMove
+                            .replace('{title}', area.title).replace('{level}', option ? option.text : level);
+                        confirmBox.hidden = false;
+                        confirmBox.querySelector('[data-place-confirm-yes]').focus();
+                    }).catch(function () { placer.say(strings.error); });
+                    return;
+                }
+                if (placer.moveTo && placer.moveBox.querySelector('input').checked) {
+                    move();
+                } else {
+                    send(strings.save, placer.fields(geometry), false);
+                }
+            });
+            confirmBox.querySelector('[data-place-confirm-yes]').addEventListener('click', move);
+            confirmBox.querySelector('[data-place-confirm-no]').addEventListener('click', function () {
+                confirmBox.hidden = true;
+            });
+            // Enter or Ctrl+S (⌘S) saves (in the confirmation: moves), Delete removes the chosen corner.
+            ZamMap.editKeys({
+                active: function () { return editing; }, editor: {
+                    corner: function () { return placer.shapes && placer.shapes.corner(); },
+                    removeCorner: function () { placer.shapes.removeCorner(); }
+                },
+                fields: function (element) { return root.contains(element); },
+                save: function () {
+                    (confirmBox.hidden ? save : confirmBox.querySelector('[data-place-confirm-yes]')).click();
+                    return true;
+                }
+            });
+        }
         var remove = root.querySelector('[data-place-remove]');
         if (remove) {
             remove.addEventListener('click', function () {
-                post(strings.save, fields('')).then(finish).catch(function (error) {
-                    placer.say(error.message || strings.error);
-                });
+                send(strings.save, placer.fields(''), false);
             });
         }
+        // Leaving the page while editing with a change not saved asks first (as on the large map).
+        var leaving = false;
+        window.addEventListener('beforeunload', function (event) {
+            if (editing && !leaving && (steps.unsaved() || level !== null)) {
+                event.preventDefault();
+                event.returnValue = '';  // older browsers ask only with this
+            }
+        });
+        mode(false);
+        view();
     }
 
     // A step in a move dialog: the place in the new location, sent along with the move.
@@ -555,7 +743,7 @@
             panel.hidden = !panel.hidden;
             if (panel.hidden) {
                 placer.center = null;
-                placer.changedFields();
+                placer.redraw();
             }
             load();
         });
@@ -571,11 +759,15 @@
             modal.addEventListener('hidden.bs.modal', function () {
                 panel.hidden = true;
                 placer.center = null;
-                placer.changedFields();
+                if (placer.map) {
+                    placer.redraw();
+                } else {
+                    placer.changedFields();
+                }
             });
         }
     }
 
-    document.querySelectorAll('[data-map-place]').forEach(setUpDialog);
+    document.querySelectorAll('[data-map-place]').forEach(setUpInline);
     document.querySelectorAll('[data-map-pick]').forEach(setUpPick);
 })();

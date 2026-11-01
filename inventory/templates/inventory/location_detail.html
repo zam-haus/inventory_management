@@ -101,6 +101,7 @@
                         {% if fire.pk != object.pk %}<span class="location-muted">{% blocktrans with location=fire.title %}from {{ location }}{% endblocktrans %}</span>{% endif %}</dd>
                 </div>
                 {% endif %}{% endwith %}
+                {% slot "location_detail.summary" %}
             </dl>
         </div>
     </header>

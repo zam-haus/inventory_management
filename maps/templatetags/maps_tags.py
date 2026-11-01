@@ -83,32 +83,38 @@ def _index(context):
     return index
 
 
-@register.simple_tag(takes_context=True)
-def map_focus_url(context, obj):
-    """The map of the level, showing (highlighted, its popup open: ?p=…, map.js) a location, unique item or item
-    (where it is first) or the place it is in, or "" if nothing of it is on the map: links to the map only where there
-    is something to show."""
-    index = _index(context)
+def _focus(index, obj):
+    """What the map shows for a location, unique item or item (where it is first): (level number, feature id,
+    location shown for it, or None for a unique item's own position), or None if nothing of it is on the map."""
 
-    def link(shown, feature):
+    def found(shown, feature, location):
         number = index.tree.level_number(shown)
-        return f"{reverse('maps:level', args=[number])}?p={feature}" if number is not None else ""
+        return (number, feature, location) if number is not None else None
 
     if hasattr(obj, "places") and hasattr(obj, "obj"):  # a result row (inventory/search/render.py Entry)
         obj = obj.obj if isinstance(obj.obj, (Location, UniqueItem)) else [place.location.pk for place in obj.places]
     if isinstance(obj, Location):
         shown = index.shown_by(obj.pk)
-        return link(shown, f"loc:{shown}") if shown else ""
+        return found(shown, f"loc:{shown}", shown) if shown else None
     if isinstance(obj, UniqueItem):
         if obj.pk in index.items:
-            return link(obj.location_id, f"item:{obj.pk}")
+            return found(obj.location_id, f"item:{obj.pk}", None)
         shown = index.shown_by(obj.location_id) if obj.location_id else None
-        return link(shown, f"loc:{shown}") if shown else ""
+        return found(shown, f"loc:{shown}", shown) if shown else None
     for location_pk in obj:  # the places of an item
         shown = index.shown_by(location_pk)
         if shown:
-            return link(shown, f"loc:{shown}")
-    return ""
+            return found(shown, f"loc:{shown}", shown)
+    return None
+
+
+@register.simple_tag(takes_context=True)
+def map_focus_url(context, obj):
+    """The map of the level, showing (highlighted, its popup open: ?p=…, map.js) a location, unique item or item
+    (where it is first) or the place it is in, or "" if nothing of it is on the map: links to the map only where there
+    is something to show."""
+    focus = _focus(_index(context), obj)
+    return f"{reverse('maps:level', args=[focus[0]])}?p={focus[1]}" if focus else ""
 
 
 @register.simple_tag(takes_context=True)
@@ -134,23 +140,38 @@ def map_level_shown(context, number):
 
 
 @register.simple_tag(takes_context=True)
-def map_dialog(context, obj):
-    """What the "Position" button and dialog of a location or unique item offer: shown when there is something to show
-    or the user may place it; editing for whoever may place it, else disabled with the reason (not for guests)."""
+def map_place(context, obj):
+    """What the position in the grey box of a location or unique item offers (place_inline.html): shown when there
+    is something to show or the user may place it; the map when it or the place it is in has a position (has_own: its
+    own); editing for whoever may place it, else disabled with the reason (not for guests); another level for whoever
+    may also move it (move_url)."""
     user = context["request"].user
+    index = _index(context)
     if isinstance(obj, UniqueItem):
         denied = permissions.item_position_denied(user, obj)
         placeable = True
+        has_own = obj.pk in index.items
+        move_url = reverse("move_unique_item", args=[obj.pk]) if user.has_perm("inventory.change_uniqueitem") else ""
     else:
         denied = permissions.shape_denied(user, obj)
         placeable = permissions.placeable(obj)
+        has_own = obj.pk in index.shaped
+        move_url = reverse("location_move", args=[obj.pk]) \
+            if obj.type.moveable and user.has_perm("inventory.change_location") else ""
+    focus = _focus(index, obj)
     focus_url = map_focus_url(context, obj)
+    # Without its own position: the location shown instead ("it is in …", highlighted).
+    around = Location.objects.filter(pk=focus[2]).first() if focus and not has_own and focus[2] else None
     editable = placeable and not denied
     # Unique items: every shape (their item only gives the usual one).
     kinds = list(UniqueItemPosition.Kind.values) if isinstance(obj, UniqueItem) else \
         permissions.allowed_kinds(obj.type)
-    return {"show": bool(focus_url or editable), "focus_url": focus_url, "editable": editable, "kinds": kinds,
-            "area": "area" in kinds,
+    return {"show": bool(focus_url or editable), "focus_url": focus_url, "has_map": bool(focus_url),
+            # The map as on the large one with ?p= (map.js focus): the level and what it shows.
+            "data_url": reverse("maps:level_data", args=[focus[0]]) if focus else "", "focus": focus[1] if focus else "",
+            "around": around,
+            "has_own": has_own, "editable": editable, "kinds": kinds, "area": "area" in kinds,
+            "move_url": move_url if editable else "",
             "edit_denied": denied if placeable and denied and user.is_authenticated else ""}
 
 

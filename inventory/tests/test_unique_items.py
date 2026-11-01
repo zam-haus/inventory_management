@@ -164,6 +164,7 @@ class UniqueItemViewTests(UniqueItemFixture, TestCase):
         # No label section: labels are printed with the print dialog's templates
         self.assertNotContains(response, "/print/templates/")
         self.assertContains(response, "Woodworking")
+        self.assertContains(response, 'class="team-badge')  # the team as on the location page
         self.assertContains(response, "Alex")
         self.assertContains(response, "Not ZAM property: Robin")
         self.assertContains(response, '<a href="https://example.org/manual" rel="nofollow noopener noreferrer">manual</a>', html=True)

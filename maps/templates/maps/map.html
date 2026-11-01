@@ -141,11 +141,7 @@
         <button type="button" class="btn btn-sm btn-outline-danger map-edit-box-button" data-edit-remove
                 data-remove="{% trans 'Remove position' %}" data-drop="{% trans 'Drop the shape' %}">{% icon "x-lg" %}</button>
     </div>
-    {# Above the chosen corner of an area (also: tapping it again, Delete; a right click removes a corner at once). #}
-    <div class="map-edit-box map-edit-corner-box" data-edit-corner-box hidden>
-        <button type="button" class="btn btn-sm btn-outline-danger map-edit-box-button" data-edit-remove-corner
-                title="{% trans 'Remove corner' %}" aria-label="{% trans 'Remove corner' %}">{% icon "x-lg" %}</button>
-    </div>
+    {% include "maps/edit_corner_box.html" %}
     {# The box's X on a position that belongs to something (map_edit.js). #}
     <div class="modal fade" id="map-edit-unassign" tabindex="-1" aria-labelledby="map-edit-unassign-title" aria-hidden="true" data-edit-unassign>
         <div class="modal-dialog modal-dialog-centered">
@@ -201,5 +197,6 @@
     <script src="{% static 'maps/map.js' %}"></script>
     <script src="{% static 'maps/map_measure.js' %}"></script>
     <script src="{% static 'maps/map_mark.js' %}"></script>
-    {% if not edit_denied %}<script src="{% static 'maps/map_edit.js' %}"></script>{% endif %}
+    {% if not edit_denied %}<script src="{% static 'maps/map_shape_edit.js' %}"></script>
+    <script src="{% static 'maps/map_edit.js' %}"></script>{% endif %}
 {% endblock %}

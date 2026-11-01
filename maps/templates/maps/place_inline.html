@@ -1,0 +1,49 @@
+{% load i18n icons actions %}{# The position of a location or unique item in the grey box of its page (map_place.js): the map where it is (or the place it is in, highlighted); whoever may change it edits it right there, the box growing for it (on phones: the whole screen); with move_url also on another level, moving it into the room or area there. From the slot template: kind, object, save, field, move_field, title, code, dt_class, eyebrow_class and place (maps_tags.map_place). #}
+<div class="map-place-cell{% if not place.has_map %} map-place-empty{% endif %}" data-map-place-cell>
+    <dt class="map-place-dt {{ dt_class }}"><span class="{{ eyebrow_class }}">{% trans "Position" %}</span>
+        {# Changing it like the pencils of the location's fields: only for whoever may change it. Placing it the same way, but disabled with the reason for those logged in who may not. #}
+        {% if place.has_own %}{% if place.editable %}<button type="button" class="btn btn-sm btn-warning map-place-edit-button" data-place-start data-place-view-only>{% icon "pencil" %} <span class="action-label">{% trans "Change position" %}</span></button>{% endif %}
+        {% elif place.editable %}<button type="button" class="btn btn-sm btn-warning map-place-edit-button" data-place-start data-place-view-only>{% icon "pin-map" %} <span class="action-label">{% trans "Place on the map" %}</span></button>
+        {% elif place.edit_denied %}{% icon "pin-map" as pin_icon %}{% disabled_action pin_icon label=_("Place on the map") reason=place.edit_denied classes="btn btn-sm btn-warning map-place-edit-button" %}{% endif %}
+        {# Right above the map: the large map with it. #}
+        {% if place.focus_url %}<a class="btn btn-sm btn-outline-secondary map-place-focus" href="{{ place.focus_url }}" data-place-view-only>{% icon "map" %} {% trans "Show on the map" %}</a>{% endif %}</dt>
+    {# Without anything to show nor the permission to place it: only "No position yet." (and the disabled "Place on the map" above). #}
+    <dd{% if place.show %} data-map-place data-context="{% url 'maps:place_context' %}" data-query="{{ kind }}={{ object.pk }}" data-save="{{ save }}" data-field="{{ field }}"
+        data-move="{{ place.move_url }}" data-move-field="{{ move_field }}" data-map-url="{{ place.data_url }}" data-focus="{{ place.focus }}"
+        {% include "maps/place_strings.html" %}{% endif %}>
+        {% if place.show %}{% csrf_token %}
+        {# On phones, where editing takes the whole screen: what is placed, and closing. #}
+        <div class="map-place-head" data-place-edit-only hidden>
+            <h2 class="fs-5 map-place-heading"><span class="visually-hidden">{% trans "Position" %}: </span>{{ title }}{% if code %}<span class="loc-code">{{ code }}</span>{% endif %}</h2>
+            <button type="button" class="btn-close" data-place-cancel aria-label="{% trans 'Cancel' %}"></button>
+        </div>
+        <div class="map-place-tools map-place-level" data-place-edit-only hidden>
+            {% if place.move_url %}<label class="form-label mb-0" for="map-place-level">{% trans "Level" %}</label>
+            <select class="form-select form-select-sm" id="map-place-level" data-place-level></select>{% endif %}
+            {# As in the map's edit mode (map_shape_edit.js): also Ctrl+Z, Ctrl+Y and the browser's back and forward. #}
+            <span class="btn-group btn-group-sm ms-auto" role="group">
+                <button type="button" class="btn btn-outline-secondary" data-place-undo disabled title="{% trans 'Undo' %}" aria-label="{% trans 'Undo' %}">{% icon "arrow-counterclockwise" %}</button>
+                <button type="button" class="btn btn-outline-secondary" data-place-redo disabled title="{% trans 'Redo' %}" aria-label="{% trans 'Redo' %}">{% icon "arrow-clockwise" %}</button>
+            </span>
+        </div>
+        {% include "maps/place_tools.html" with prefix="map-place" %}
+        {% if place.editable %}{% include "maps/edit_corner_box.html" %}{% endif %}
+        {% if place.around %}<p class="map-place-around" data-place-view-only>{% blocktrans with where=place.around.title_with_code %}Its own position is not known; it is in {{ where }} (highlighted).{% endblocktrans %}</p>{% endif %}
+        <div class="form-check" data-place-move hidden>
+            <input class="form-check-input" type="checkbox" id="map-place-move">
+            <label class="form-check-label" for="map-place-move" data-place-move-label></label>
+        </div>
+        {# Another level: it is moved into the room or area at the point, once confirmed. #}
+        <div class="alert alert-warning map-place-confirm" role="alert" data-place-confirm hidden>
+            <p class="mb-2" data-place-confirm-text></p>
+            <button type="button" class="btn btn-sm btn-primary" data-place-confirm-yes>{% trans "Move and save" %}</button>
+            <button type="button" class="btn btn-sm btn-secondary" data-place-confirm-no>{% trans "Back" %}</button>
+        </div>{% endif %}
+        {% if not place.has_map %}<p class="map-place-none" data-place-view-only>{% trans "No position yet." %}</p>{% endif %}
+        {% if place.editable %}<div class="map-place-actions" data-place-edit-only hidden>
+            {% if place.has_own %}<button type="button" class="btn btn-outline-danger me-auto map-place-remove" data-place-remove>{% trans "Remove position" %}</button>{% endif %}
+            <button type="button" class="btn btn-secondary" data-place-cancel>{% trans "Cancel" %}</button>
+            <button type="button" class="btn btn-primary" data-place-save>{% trans "Save" %}</button>
+        </div>{% endif %}
+    </dd>
+</div>

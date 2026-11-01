@@ -17,7 +17,7 @@
                     <ul class="change-log-changes">
                         {% for change in shown.changes %}
                             <li><span class="change-log-field">{{ change.field }}:</span>
-                                {% if change.internal %}{% trans "changed" %} {% include 'inventory/internal_chip.html' %}{% else %}<del>{{ change.before }}</del> <span aria-hidden="true">→</span><span class="visually-hidden">{% trans "becomes" %}</span> <ins>{{ change.after }}</ins>{% endif %}</li>
+                                {% if change.internal %}{% trans "changed" %} {% include 'inventory/internal_chip.html' %}{% elif change.summary %}{% trans "changed" %}{% else %}<del>{{ change.before }}</del> <span aria-hidden="true">→</span><span class="visually-hidden">{% trans "becomes" %}</span> <ins>{{ change.after }}</ins>{% endif %}</li>
                         {% endfor %}
                     </ul>
                 {% endif %}
