@@ -12,7 +12,9 @@ first, just below the navbar; clicked again with nothing typed in between, it go
 with the words of the field (on touch screens into the field beside it). Ctrl+F (⌘F on a Mac) does the same, and
 on a page without a field goes to the search at once; on the search page a second Ctrl+F is left to the browser,
 to find on the page. Elsewhere the browser's own find stays in its menu; in an open dialog or photo Ctrl+F is the
-browser's. The magnifier's tooltip says what the next click does; going to the field (scrolling to it where it is further down), the navbar stays, so that the magnifier can be clicked again, and a hint below the magnifier says that once more goes on to everything, until typing, a click elsewhere, scrolling on one's own, or six seconds (the hint; the navbar until then). The hint shows at most once a week in a browser (`localStorage`), the tooltip each time. To browse instead, *Items* and *Locations* in the navbar show
+browser's. **Ctrl+K** (⌘K) goes straight to the search of everything from any page, without the words of the page's
+field (on the search page into its field; on touch screens into the field beside the magnifier); the magnifier's
+tooltip names both keys. The magnifier's tooltip says what the next click does; going to the field (scrolling to it where it is further down), the navbar stays, so that the magnifier can be clicked again, and a hint below the magnifier says that once more goes on to everything, until typing, a click elsewhere, scrolling on one's own, or six seconds (the hint; the navbar until then). The hint shows at most once a week in a browser (`localStorage`), the tooltip each time. To browse instead, *Items* and *Locations* in the navbar show
 [trees](trees.md); an old link with a search there (`/item/?q=`, `/loc/?q=`, `/location/?q=`) comes here.
 
 ## Using it

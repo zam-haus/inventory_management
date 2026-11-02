@@ -5361,6 +5361,9 @@ msgstr "Alles durchsuchen"
 msgid "Ctrl+F"
 msgstr "Strg+F"
 
+msgid "Ctrl+K"
+msgstr "Strg+K"
+
 #: search/render.py
 msgctxt "found in"
 msgid "keywords of its category"

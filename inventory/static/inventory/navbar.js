@@ -46,7 +46,7 @@
 // On a page with a search field of its own (the search page, a category's or a location's page) the magnifier goes
 // to that field first; a second click, nothing typed in between, goes on to the search of everything, with the
 // words of the field. Ctrl+F (⌘F on a Mac) does the same, on a page without a field at once; on the search page a
-// second one is left to the browser, to find on the page. Going to the field, a hint below the magnifier (below
+// second one is left to the browser, to find on the page. Ctrl+K (⌘K) goes straight to the search of everything. Going to the field, a hint below the magnifier (below
 // the field without a navbar) says so, until typing, going elsewhere or a few seconds, at most once a week in a
 // browser (localStorage); the navbar stays meanwhile.
 (() => {
@@ -81,14 +81,17 @@
     const release = () => navbar?.removeAttribute('data-held');
     ['wheel', 'touchmove'].forEach(type => window.addEventListener(type, release, {passive: true}));
 
-    // What the next click does, with the keys for it.
+    // What the next click does, with the keys for it; the keys for everything at once, too.
+    const findKeys = mac ? '⌘F' : button.dataset.shortcut;
+    const allKeys = mac ? '⌘K' : button.dataset.shortcutAll;
     function label() {
         const field = pageField();
         const text = field && !isSearchPage(field) && !again(field) ? button.dataset.textPage : button.dataset.textAll;
         button.setAttribute('aria-label', text);
-        button.title = `${text} (${mac ? '⌘F' : button.dataset.shortcut})`;
+        button.title = text === button.dataset.textAll ? `${text} (${findKeys}, ${allKeys})`
+            : `${text} (${findKeys}) · ${button.dataset.textAll} (${allKeys})`;
     }
-    button.setAttribute('aria-keyshortcuts', mac ? 'Meta+F' : 'Control+F');
+    button.setAttribute('aria-keyshortcuts', mac ? 'Meta+F Meta+K' : 'Control+F Control+K');
     label();
 
     function disarm() {
@@ -120,7 +123,7 @@
     function showHint(field) {
         hideHint();
         if (isSearchPage(field) || !button.dataset.textAgain || !hintDue()) return;
-        const keys = mac ? '⌘F' : button.dataset.shortcut;
+        const keys = findKeys;
         hint = document.createElement('div');
         hint.className = 'navbar-search-hint';
         hint.setAttribute('role', 'status');
@@ -228,10 +231,20 @@
         open(words);
     });
 
+    // Ctrl (⌘ on a Mac) with this key alone, unless something on the page took it or a dialog or photo is open.
+    const shortcut = (event, key) => (mac ? event.metaKey && !event.ctrlKey : event.ctrlKey && !event.metaKey)
+        && !event.altKey && !event.shiftKey && event.key.toLowerCase() === key && !event.defaultPrevented
+        && !document.querySelector('.modal.show, dialog[open]');
     document.addEventListener('keydown', event => {
-        const shortcut = mac ? event.metaKey && !event.ctrlKey : event.ctrlKey && !event.metaKey;
-        if (!shortcut || event.altKey || event.shiftKey || event.key.toLowerCase() !== 'f' || event.defaultPrevented
-            || document.querySelector('.modal.show, dialog[open]')) return;
+        if (!shortcut(event, 'k')) return;
+        // Straight to the search of everything, without the words of a page's field; on the search page into its field.
+        event.preventDefault();
+        const field = pageField();
+        if (field && isSearchPage(field)) toField(field);
+        else everything('');
+    });
+    document.addEventListener('keydown', event => {
+        if (!shortcut(event, 'f')) return;
         const field = pageField();
         if (field && again(field)) {
             if (isSearchPage(field)) {
