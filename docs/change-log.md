@@ -11,7 +11,11 @@ were not carried over (migration `inventory.0046_change_log`).
 Each entry has the time, who acted (the account and its user name at the time), through which part
 of the application (stock dialog, website, admin, location dissolution, label printing, other), the
 action and what it is about. Changed fields are kept with their values before and after, as people
-read them (names of related records, dates and prices formatted, choices by their label).
+read them (names of related records, dates and prices formatted, choices by their label). A file is kept by its
+name. On the pages a changed overview photo of a location shows the photos themselves, small (a thumbnail made
+once and kept, sorl-thumbnail) and linked to them, the earlier one paler: earlier overview photos stay, each under a
+path of its own (`PHOTO_FIELDS` in `templatetags/change_log.py`, `change_log_photo.html`). A photo no longer there
+shows its name.
 
 | Action | When |
 |---|---|

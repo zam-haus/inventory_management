@@ -21,6 +21,12 @@ from ..models import ChangeLog, Item, Location, UniqueItem, format_amount
 register = template.Library()
 
 VALUE_LENGTH = 80
+# Photos whose changes show the photos themselves, small and linked to them, instead of their file names:
+# {(model name, field): the stored path, from the entry and the file's name (change_log.value keeps only the name)}.
+# A location's earlier overview photos stay, each under a path of its own (get_location_overview_upload_path).
+PHOTO_FIELDS = {
+    ("location", "overview_photo"): lambda entry, name: f"locations/{entry.subject_id}/overview/{name}",
+}
 
 
 def field_label(subject_type, name):
@@ -48,6 +54,18 @@ def link(obj, text, icon):
     if obj is not None and not getattr(obj, "is_deleted", False):
         text = format_html('<a href="{}">{}</a>', obj.get_absolute_url(), text)
     return format_html('<span class="item-label">{} {}</span>', type_icon(icon), text)
+
+
+def photo(entry, field, name):
+    """{path, url, name} of a photo a change names, if it is still there; else None (its name is shown)."""
+    path_of = PHOTO_FIELDS.get((entry.subject_type, field))
+    if path_of is None or not name:
+        return None
+    storage = apps.get_model("inventory", entry.subject_type)._meta.get_field(field).storage
+    path = path_of(entry, name)
+    if not storage.exists(path):
+        return None
+    return {"path": path, "url": storage.url(path), "name": name}
 
 
 def stock_lines(entry):
@@ -118,6 +136,9 @@ def describe(entry, page, user):
             "summary": visible and summary,
             "before": short(change["before"]) if visible and not summary else "",
             "after": short(change["after"]) if visible and not summary else "",
+            # The photos themselves, where they are photos still there (change_log_panel.html).
+            "before_photo": photo(entry, change["field"], change["before"]) if visible and not summary else None,
+            "after_photo": photo(entry, change["field"], change["after"]) if visible and not summary else None,
         })
     return shown
 

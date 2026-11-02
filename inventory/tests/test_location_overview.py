@@ -135,6 +135,18 @@ class LocationOverviewTests(TestCase):
         self.assertTrue(storage.exists(first_name))
         self.assertTrue(storage.exists(second_name))
         self.assertEqual(self.events().count(), 3)
+        # The changes show the photos themselves, small and linked to them, not their file names.
+        content = self.history_client().get(self.location.get_absolute_url()).content.decode()
+        panel = content[content.index('class="location-panel change-log"'):]
+        for name in (first_name, second_name):
+            self.assertIn(f'<a class="change-log-photo" href="{storage.url(name)}" target="_blank" rel="noopener"><img ', panel)
+        self.assertEqual(panel.count('alt="Earlier photo"'), 2)  # the first one replaced, the second one removed
+        self.assertEqual(panel.count('alt="New photo"'), 2)  # the first one added, the second one
+        self.assertNotIn(f">{Path(first_name).name}<", panel)
+        # A photo no longer there: its name, as before.
+        storage.delete(first_name)
+        panel = self.history_client().get(self.location.get_absolute_url()).content.decode()
+        self.assertIn(f"<del>{Path(first_name).name}</del>", panel)
 
     def test_purpose_edit_preserves_photo_and_unrelated_location_fields(self):
         self.client.post(self.url, self.data(overview_photo=self.photo()))

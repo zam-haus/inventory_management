@@ -5370,3 +5370,11 @@ msgstr "den Stichwörtern der Kategorie"
 #, python-format
 msgid "Click again or press %(keys)s to search everything"
 msgstr "Noch einmal klicken oder %(keys)s drücken, um alles zu durchsuchen"
+
+#: templates/inventory/change_log_panel.html
+msgid "Earlier photo"
+msgstr "Bisheriges Foto"
+
+#: templates/inventory/change_log_panel.html
+msgid "New photo"
+msgstr "Neues Foto"

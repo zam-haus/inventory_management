@@ -1,4 +1,4 @@
-{% load i18n icons %}{# The last changes, from change_log_panel (templatetags/change_log.py); nothing without entries. #}
+{% load i18n icons thumbnail %}{# The last changes, from change_log_panel (templatetags/change_log.py); nothing without entries. #}
 {% if change_log_entries %}
 <section class="{{ panel }}-panel change-log" aria-labelledby="change-log-heading">
     <div class="{{ panel }}-panel-heading">
@@ -17,7 +17,7 @@
                     <ul class="change-log-changes">
                         {% for change in shown.changes %}
                             <li><span class="change-log-field">{{ change.field }}:</span>
-                                {% if change.internal %}{% trans "changed" %} {% include 'inventory/internal_chip.html' %}{% elif change.summary %}{% trans "changed" %}{% else %}<del>{{ change.before }}</del> <span aria-hidden="true">→</span><span class="visually-hidden">{% trans "becomes" %}</span> <ins>{{ change.after }}</ins>{% endif %}</li>
+                                {% if change.internal %}{% trans "changed" %} {% include 'inventory/internal_chip.html' %}{% elif change.summary %}{% trans "changed" %}{% else %}<del>{% if change.before_photo %}{% trans 'Earlier photo' as earlier %}{% include 'inventory/change_log_photo.html' with photo=change.before_photo alt=earlier %}{% else %}{{ change.before }}{% endif %}</del> <span aria-hidden="true">→</span><span class="visually-hidden">{% trans "becomes" %}</span> <ins>{% if change.after_photo %}{% trans 'New photo' as new %}{% include 'inventory/change_log_photo.html' with photo=change.after_photo alt=new %}{% else %}{{ change.after }}{% endif %}</ins>{% endif %}</li>
                         {% endfor %}
                     </ul>
                 {% endif %}

@@ -16,3 +16,8 @@
     .change-log-list { padding: 0 1rem 1rem; }
     .location-detail > .change-log { margin-top: 1rem; }
 }
+/* A changed photo: small, linked to it (change_log_photo.html); the earlier one paler. */
+.change-log-photo { display: inline-block; vertical-align: middle; }
+.change-log-photo img { width: 5rem; height: 5rem; object-fit: cover; border-radius: .375rem; border: 1px solid #dee2e6; }
+.change-log-changes del .change-log-photo img { opacity: .6; }
+.change-log-changes del:has(.change-log-photo) { text-decoration: none; }
