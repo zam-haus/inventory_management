@@ -100,7 +100,7 @@
                 <div class="location-summary-dimensions">
                     <dt><span class="location-eyebrow">{% trans "Dimensions" %}</span>
                         {% if not edit_denied %}<a href="#location-dimensions-editor" class="btn btn-sm btn-warning location-edit-dimensions" data-field-editor-open="location-dimensions-editor" data-bs-toggle="tooltip" title="{% trans 'Edit dimensions' %}" aria-label="{% trans 'Edit dimensions' %}">{% icon "pencil" %}</a>{% endif %}</dt>
-                    <dd>{% if dimensions %}{{ dimensions }}{% if footprint and footprint.pk != object.pk %} <span class="location-muted">{% blocktrans with location=footprint.title %}width and depth from {{ location }}{% endblocktrans %}</span>{% endif %}
+                    <dd>{% if dimensions %}{{ dimensions }}{% if footprint and footprint.pk != object.pk %} <span class="location-muted">{% location_name footprint as footprint_name %}{% blocktrans with location=footprint_name %}width and depth from {{ location }}{% endblocktrans %}</span>{% endif %}
                         {% else %}<span class="location-muted">{% trans "No dimensions yet." %}</span>{% endif %}</dd>
                 </div>
                 {% endif %}{% endwith %}
@@ -108,7 +108,7 @@
                 <div class="location-summary-fire">
                     <dt><span class="location-eyebrow">{% trans "Free of fire load" as fire_load %}{{ fire_load|capfirst }}</span></dt>
                     <dd>{% trans "No combustible materials may be stored here. Applies to everything inside." %}
-                        {% if fire.pk != object.pk %}<span class="location-muted">{% blocktrans with location=fire.title %}from {{ location }}{% endblocktrans %}</span>{% endif %}</dd>
+                        {% if fire.pk != object.pk %}<span class="location-muted">{% location_name fire as fire_name %}{% blocktrans with location=fire_name %}from {{ location }}{% endblocktrans %}</span>{% endif %}</dd>
                 </div>
                 {% endif %}{% endwith %}
                 {% slot "location_detail.summary" %}

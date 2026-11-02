@@ -88,7 +88,7 @@
                 <dd>
                     {# The teams as on the location page: code in its colour, then name. Without a team of its own, those of its location. #}
                     {% for team in teams %}<span class="item-team">{% include "inventory/team_badge.html" %} {{ team.group.name }}</span>{% endfor %}
-                    {% if source %}<span class="item-muted">{% blocktrans with location=source.title %}from {{ location }}{% endblocktrans %}</span>{% endif %}
+                    {% if source %}<span class="item-muted">{% location_name source as source_name %}{% blocktrans with location=source_name %}from {{ location }}{% endblocktrans %}</span>{% endif %}
                     {% if object.responsible_user %}
                         {% if teams %}·{% endif %}
                         {% if can_view_internal %}{{ object.responsible_user.get_full_name|default:object.responsible_user.username }}{% if object.responsible_user.email %} (<a href="mailto:{{ object.responsible_user.email }}">{{ object.responsible_user.email }}</a>){% endif %}

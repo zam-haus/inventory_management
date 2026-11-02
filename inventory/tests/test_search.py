@@ -10,6 +10,7 @@ from django.urls import reverse
 from django.utils import timezone
 
 from .. import public_export, search
+from ..icons import type_icon
 from ..change_log import TRACKED
 from ..label_ids import services
 from ..label_ids.testing import SETTINGS, make_id
@@ -137,11 +138,16 @@ class SearchTests(MediaMixin, TestCase):
     def test_entries_show_where_they_are(self):
         content = self.client.get(reverse("index"), {"q": "schraubendreher"}).content.decode()
         # The places are links of their own (the window in brief, location_info.js); the text stays selectable.
-        self.assertIn(f'5 pc · <a class="result-place" href="{self.rack.get_absolute_url()}">Regal 3</a>', content)
-        self.assertIn(f'2 pc · <a class="result-place" href="{self.metal.get_absolute_url()}">Metallwerkstatt</a>', content)
+        # Each with the icon of its type.
+        icon = lambda name: f'<svg class="bi bi-{name}" width="1em" height="1em" aria-hidden="true" focusable="false"><use href="#type-icon-{name}"/></svg>'
+        self.assertIn(f'5 pc · {icon("geo-alt")} <a class="result-place" href="{self.rack.get_absolute_url()}">Regal 3</a>', content)
+        self.assertIn(f'2 pc · {icon("geo-alt")} <a class="result-place" href="{self.metal.get_absolute_url()}">Metallwerkstatt</a>', content)
         self.assertNotIn('<a class="result-entry"', content)
         content = self.client.get(reverse("index"), {"q": "regal"}).content.decode()
-        self.assertIn("Holzwerkstatt [HW]", content)  # the path above
+        # The path above: each location with its icon, title and short name.
+        self.assertIn(f'<span class="result-meta result-path"><span class="loc-path"><span class="loc-label">{type_icon("geo-alt")} '
+                      f'<a href="{self.wood.get_absolute_url()}"><span class="loc-title">Holzwerkstatt</span></a> '
+                      '<span class="loc-code">HW</span></span></span></span>', content)
 
     def test_unique_items_lead_there_directly(self):
         content = self.client.get(reverse("index"), {"q": "akkuschrauber"}).content.decode()

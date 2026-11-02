@@ -27,6 +27,8 @@
 {% endblock %}
 
 {% block bootstrap5_content %}
+    {# The icons before the names of locations, items and unique items, referred to everywhere (icons.type_icon). #}
+    {% load icons %}{% type_icon_sprite %}
     {% block pre_container %}{% endblock %}
     {# Sticks to the top, slides away while scrolling down and comes back on scrolling up (navbar.js). #}
     {# Narrow screens: Items and Locations as icons; their names, Admin and the user menu in the … menu. #}

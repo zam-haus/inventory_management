@@ -1,4 +1,4 @@
-{% load i18n thumbnail %}{# Quick-items, listed first in the items panel of location_detail.html. #}
+{% load i18n thumbnail locations %}{# Quick-items, listed first in the items panel of location_detail.html. #}
 {% if can_manage_quick_items or quick_entries %}
 <div class="location-quick-items" id="location-quick-items" data-quick-items data-detailed-count="{{ entries|length }}"
          data-text-network-error="{% trans 'Saving failed. Check your connection and try again.' %}"
@@ -30,7 +30,7 @@
     {% else %}
         <ul class="location-quick-readonly">
             {% for entry in quick_entries %}
-                <li>{% with photo=entry.item.itemimage_set.all.0 %}{% if photo %}{% thumbnail photo.image "88x88" crop="center" as im %}<a class="location-quick-photo" href="{{ photo.image.url }}"><img src="{{ im.url }}" width="44" height="44" alt="{% blocktrans with name=entry.item.name %}Photo of “{{ name }}”{% endblocktrans %}"></a>{% endthumbnail %}{% endif %}{% endwith %}<a href="{{ entry.item.get_absolute_url }}">{{ entry.item.name }}</a></li>
+                <li>{% with photo=entry.item.itemimage_set.all.0 %}{% if photo %}{% thumbnail photo.image "88x88" crop="center" as im %}<a class="location-quick-photo" href="{{ photo.image.url }}"><img src="{{ im.url }}" width="44" height="44" alt="{% blocktrans with name=entry.item.name %}Photo of “{{ name }}”{% endblocktrans %}"></a>{% endthumbnail %}{% endif %}{% endwith %}{% item_label entry.item url=entry.item.get_absolute_url %}</li>
             {% endfor %}
         </ul>
     {% endif %}

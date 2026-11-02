@@ -388,17 +388,20 @@ class PrintableInventoryTests(TestCase):
         self.assertContains(response, "~25 pc")
 
     def test_query_count_does_not_grow_with_items_or_tree_depth(self):
-        # Selection, entries, images and unique items; recursion adds parent relationships.
-        with self.assertNumQueries(4):
+        # The selection checked, then with its types (their icons), the locations and the paths above them, entries,
+        # images and unique items; recursion adds parent relationships, and the locations above those below.
+        with self.assertNumQueries(6):
             self.report([self.root])
-        with self.assertNumQueries(5):
+        with self.assertNumQueries(8):
             self.report([self.root], include_children=True)
         for index in range(5):
             item = Item.objects.create(name=f"Extra {index}", measurement_unit=self.unit)
             ItemLocation.objects.create(item=item, location=self.grandchild, amount=index)
-        with self.assertNumQueries(4):
+        with self.assertNumQueries(6):
             self.report([self.root])
-        with self.assertNumQueries(5):
+        with self.assertNumQueries(8):
+            self.report([self.root, self.other], include_children=True)
+        with self.assertNumQueries(8):
             self.report([self.root], include_children=True)
 
     def test_preselected_report_shows_direct_items_without_location_selector(self):
@@ -531,13 +534,13 @@ class LocationAddressTests(TestCase):
         for url in ("/location/R303.a", f"/loc/{self.compartment.pk}/R303.a"):
             response = self.client.get(url)
             self.assertEqual(response.status_code, 404)
-            self.assertContains(response, "The location Compartment a was deleted.", status_code=404)
+            self.assertContains(response, '<span class="loc-title">Compartment a</span></span> was deleted.', status_code=404)
             self.assertContains(response, f'href="{self.shelf.get_absolute_url()}"', status_code=404)
         # A former code of it: the shelf got another code after it was archived.
         self.shelf.short_name = "R305"
         self.shelf.save()
         response = self.client.get("/location/R303.a")
-        self.assertContains(response, "The location Compartment a was deleted.", status_code=404)
+        self.assertContains(response, '<span class="loc-title">Compartment a</span></span> was deleted.', status_code=404)
         self.assertContains(response, "R305.a", status_code=404)
         pk = self.compartment.pk
         Location.objects.get(pk=pk).delete()  # for good

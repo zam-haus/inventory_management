@@ -15,13 +15,16 @@ size ([maps](maps.md)).
 
 A UX rule for every page, list and dialog (`inventory/location_display.py`, `{% load locations %}`):
 
-* **What people call it comes first:** its purpose, else its name (`Location.title`). Next to a
+* **The icon of its type comes first** (`geo-alt`, `bookshelf`, `eurobox-open`), also for each location in a path and
+  in a sentence ([icons](icons.md)).
+* **Then what people call it:** its purpose, else its name (`Location.title`). Next to a
   purpose the name follows, smaller and grey (`Location.subtitle`): "Schrauben M4 *Regal 301 Fach a*".
 * **The code comes after it** (the code, `unique_identifier`; a part's own short name where it stands
   under its parent, e.g. in breadcrumbs), **always alike:** white monospace on a muted grey chip (class `loc-code`,
   `inventory/static/inventory/locations.css`). Template tags: `{% location_label location %}`
   (title, name, code; `code="…"` for another code or `""` for none, `subtitle=False` without the name),
-  `{% location_code code %}`.
+  `{% location_path location %}` (where it is: each location above it with icon, title and short name, ›
+  between them), `{% location_name location %}` (in a sentence: icon and title), `{% location_code code %}`.
 * **Plain text** (page titles, messages, tooltips, select options) reads "Schrauben M4 · WH-1.R301.a"
   (`Location.title_with_code`).
 * Location fields (`widgets.LocationSelect`) show their suggestions the same way, with the parent
@@ -35,8 +38,8 @@ A UX rule for every page, list and dialog (`inventory/location_display.py`, `{% 
 
 Label templates follow the rule too: `{{ location.title }}` first, the code after or below it inverted in
 monospace ([label designs](label-designs.md)). The stored path (`descriptive_identifier`, "Halle [HAL] Regal 301
-[R301] …") and the admin keep the plain names; the path appears in the breadcrumb, and as text in the
-**Location details**.
+[R301] …") and the admin keep the plain names; pages show the path with icons (`{% location_path %}`): in the
+breadcrumb, the location in brief, the **Location details**, moving and dissolving, the result rows.
 
 **Purpose** (pencil) right after the title in the heading of the location page
 edits the purpose in a small dialog. The camera button edits the photo in its own dialog:

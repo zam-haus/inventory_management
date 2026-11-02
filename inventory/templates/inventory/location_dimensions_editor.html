@@ -1,4 +1,4 @@
-{% load i18n %}{# Width, depth and height, shown in the summary box; location_field_editor.js makes this a dialog. #}
+{% load i18n locations %}{# Width, depth and height, shown in the summary box; location_field_editor.js makes this a dialog. #}
 <section id="location-dimensions-editor" class="location-overview-editor location-dimensions-editor" data-field-editor tabindex="-1" aria-labelledby="location-dimensions-editor-title" data-open="{{ dimensions_editor_open|yesno:'true,false' }}">
     <div class="modal-dialog">
         <div class="modal-content">
@@ -17,7 +17,7 @@
                         </div>
                         {% endfor %}
                     </div>
-                    <p class="form-text">{% if object.parent_location and object.type == object.parent_location.type.sublocation_type %}{% blocktrans with location=object.parent_location.title %}Each one optional, outer dimensions in cm. Without width and depth of its own it has those of {{ location }}.{% endblocktrans %}{% else %}{% trans "Each one optional, outer dimensions in cm." %}{% endif %}</p>
+                    <p class="form-text">{% if object.parent_location and object.type == object.parent_location.type.sublocation_type %}{% location_name object.parent_location as parent_name %}{% blocktrans with location=parent_name %}Each one optional, outer dimensions in cm. Without width and depth of its own it has those of {{ location }}.{% endblocktrans %}{% else %}{% trans "Each one optional, outer dimensions in cm." %}{% endif %}</p>
                     <div class="text-danger" data-field-editor-errors>{% for field in dimensions_form %}{{ field.errors }}{% endfor %}</div>
                 </div>
                 <div class="modal-footer">

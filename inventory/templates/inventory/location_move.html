@@ -30,7 +30,7 @@
         <section class="location-overview" aria-label="{% trans 'Location details' %}">
             <div>
                 <h2 class="location-eyebrow">{% trans "Current location path" %} <button type="button" class="location-help location-help-icon" aria-label="{% trans 'Explain location path' %}" data-bs-toggle="tooltip" title="{% trans 'The full path from the top-level location to this storage location. Short identifiers are shown in square brackets.' %}">{% icon "info-circle" %}</button></h2>
-                <p class="location-path">{{ object.descriptive_identifier }}</p>
+                <p class="location-path">{% location_path object %}</p>
                 {% if object.description %}
                     <div class="location-description">{{ object.description|linebreaksbr }}</div>
                 {% endif %}

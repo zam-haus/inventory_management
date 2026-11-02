@@ -13,6 +13,7 @@ from django.utils.text import Truncator
 from django.utils.translation import gettext as _, ngettext
 
 from .. import location_display
+from ..icons import type_icon
 from ..change_log import APP_FIELDS, FORMER_FIELDS, SUMMARY_FIELDS, actor_label
 from ..label_ids import naming
 from ..models import ChangeLog, Item, Location, UniqueItem, format_amount
@@ -42,11 +43,11 @@ def location_link(location, fallback=""):
     return location_display.label_html(location, url=None if location.is_deleted else location.get_absolute_url())
 
 
-def link(obj, text):
-    """A link to the page of an item or unique item; deleted items have none."""
-    if obj is None or getattr(obj, "is_deleted", False):
-        return text
-    return format_html('<a href="{}">{}</a>', obj.get_absolute_url(), text)
+def link(obj, text, icon):
+    """A link to the page of an item or unique item, after the icon of its kind; deleted items have none."""
+    if obj is not None and not getattr(obj, "is_deleted", False):
+        text = format_html('<a href="{}">{}</a>', obj.get_absolute_url(), text)
+    return format_html('<span class="item-label">{} {}</span>', type_icon(icon), text)
 
 
 def stock_lines(entry):
@@ -79,16 +80,16 @@ def describe(entry, page, user):
         shown["note"] = entry.note  # free text that may name people, so only for those who see who acted
     is_page = page is not None and (entry.subject_type, entry.subject_id) == (page._meta.model_name, page.pk)
     if entry.subject_type == "itemlocation" and isinstance(page, Location):
-        shown["subject"] = link(entry.item, entry.subject_label)
+        shown["subject"] = link(entry.item, entry.subject_label, location_display.item_icon(entry.item))
     elif entry.subject_type == "itemlocation":
         if entry.action != ChangeLog.Action.MOVED:  # moves show both locations
             shown["subject"] = location_link(entry.location)
     elif entry.subject_type == "location" and not is_page:
         shown["subject"] = location_link(entry.location, entry.subject_label)
     elif entry.subject_type == "uniqueitem" and not is_page:
-        shown["subject"] = link(entry.unique_item, entry.subject_label)
+        shown["subject"] = link(entry.unique_item, entry.subject_label, "box-star")
     elif entry.subject_type == "item" and not is_page:
-        shown["subject"] = link(entry.item, entry.subject_label)
+        shown["subject"] = link(entry.item, entry.subject_label, location_display.item_icon(entry.item))
     elif not is_page:
         shown["subject"] = entry.subject_label  # names of internal files are shown on the pages, too
     if entry.action == ChangeLog.Action.MOVED and entry.subject_type != "location":
@@ -139,7 +140,7 @@ def change_log_panel(context, page):
         return {"change_log_entries": []}
     condition, admin_filter = page_filter(page)
     entries = (ChangeLog.objects.filter(condition)
-               .select_related("actor", "item", "unique_item__item", "location", "other_location")
+               .select_related("actor", "item", "unique_item__item", "location__type", "other_location__type")
                [:settings.CHANGE_LOG_SHOWN])
     admin_url = ""
     if user.is_staff:

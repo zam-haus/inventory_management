@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% load i18n %}
+{% load i18n locations %}
 {% load django_bootstrap5 %}
 
 {% block title %}{% trans "Delete Item" %}{% endblock %}
@@ -7,7 +7,7 @@
 {% block content %}
 <div class="alert alert-danger">
     <h4>{% trans "Are you sure you want to delete this item?" %}</h4>
-    <p>{{ object.name }}</p>
+    <p>{% item_label object %}</p>
 </div>
 
 <form method="post">

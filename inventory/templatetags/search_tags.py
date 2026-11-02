@@ -6,7 +6,7 @@ from django import template
 from django.utils.html import escape, format_html
 from django.utils.safestring import mark_safe
 
-from .. import icons
+from .. import icons, location_display
 from ..search.render import ICONS
 
 register = template.Library()
@@ -14,12 +14,15 @@ register = template.Library()
 
 @register.simple_tag
 def result_icon(name):
+    # The icons of types and kinds are on every page already (icons.type_icon_sprite).
+    if name in icons.TYPE_ICONS:
+        return icons.use(name, "type-icon", f"bi bi-{name}")
     return icons.use(name, "result-icon", f"bi bi-{name}")
 
 
 @register.simple_tag
 def result_icon_sprite():
-    return icons.sprite(ICONS, "result-icon", "result-sprite")
+    return icons.sprite(set(ICONS) - set(icons.TYPE_ICONS), "result-icon", "result-sprite")
 
 
 @register.simple_tag(takes_context=True)
@@ -51,3 +54,11 @@ def highlight(text, words):
         end = match.end()
     parts.append(escape(text[end:]))
     return mark_safe("".join(parts))
+
+
+
+@register.simple_tag
+def result_path(locations, words):
+    """The path above a location in a result row: each location with its icon and short name, search words marked."""
+    *above, last = locations
+    return location_display.path_html(last, above=above, mark=lambda text: highlight(text, words))

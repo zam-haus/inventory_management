@@ -1,5 +1,6 @@
 from django import template
 
+from .. import icons
 from ..icons import add_icon as render_add_icon
 from ..icons import icon as render_icon
 
@@ -16,3 +17,15 @@ def icon(name, classes=""):
 def add_icon(name):
     """{% add_icon "camera" %}: what an "add" button adds, with a plus badge (inventory/icons.py)."""
     return render_add_icon(name)
+
+
+@register.simple_tag
+def type_icon(name):
+    """{% type_icon "boxes" %}: the icon of a location's type or an item's kind before its name (icons.TYPE_ICONS)."""
+    return icons.type_icon(name)
+
+
+@register.simple_tag
+def type_icon_sprite():
+    """Once on every page (base.html): the icons type_icon refers to."""
+    return icons.type_icon_sprite()

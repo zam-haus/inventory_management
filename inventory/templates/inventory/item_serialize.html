@@ -1,13 +1,14 @@
 {% extends 'base.html' %}
-{% load i18n static crispy_forms_tags %}
+{% load i18n static crispy_forms_tags locations %}
 {# A bulk item with one piece at one location becomes a serialized item (unique_item_views.SerializeItemView). #}
 
 {% block title %}{% trans "Make it a serialized item" %}: {{ object }}{% endblock %}
+{% block page_header %}<h1>{% trans "Make it a serialized item" %}: {% item_label object %}</h1>{% endblock %}
 
 {% block content %}
-<p>{% blocktrans with location=location.title_with_code %}The one piece at {{ location }} becomes a unique item of its own, with a label; the item describes it, as a serialized item.{% endblocktrans %}</p>
+<p>{% location_label location subtitle=False info=False as location_label %}{% blocktrans with location=location_label %}The one piece at {{ location }} becomes a unique item of its own, with a label; the item describes it, as a serialized item.{% endblocktrans %}</p>
 <ul>
-    <li>{% blocktrans with location=location.title_with_code %}The stock entry at {{ location }} goes; the unique item is there instead.{% endblocktrans %}</li>
+    <li>{% blocktrans with location=location_label %}The stock entry at {{ location }} goes; the unique item is there instead.{% endblocktrans %}</li>
     {% if object.for_sale or object.sale_price is not None %}<li><strong>{% trans "It is no longer for sale: serialized items are not sold. Its sale price goes." %}</strong></li>{% endif %}
     {% if object.last_purchase_date or object.last_purchase_price is not None or object.procurement_source %}<li>{% trans "Its purchase date, price and source become those of the unique item." %}</li>{% endif %}
     {% if general_images or general_files %}<li>{% trans "Its photos and files belong to the unique item then." %}</li>{% endif %}

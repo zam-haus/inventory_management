@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% load i18n static maps_tags %}
+{% load i18n static maps_tags locations %}
 
 {% block bootstrap5_extra_head %}
     {{ block.super }}
@@ -13,7 +13,7 @@
 {% block content %}
     <p><a href="{% url 'maps:plans' %}">{% trans "All floor plans" %}</a>{% if number is not None %} · <a href="{% url 'maps:level' number %}">{% trans "Map of this level" %}</a>{% endif %}
         · {% trans "Source file" %}: <a href="{% url 'maps:plan_source' plan.pk %}">{{ plan.source_name }}</a> <span class="text-muted">({% trans "staff only" %})</span></p>
-    <p class="text-muted">{% blocktrans with level=plan.level|stringformat:"+d" %}Plan on level {{ level }}.{% endblocktrans %}{% if plan.location %} {% blocktrans with part=plan.location.title_with_code %}Only for the stacked part {{ part }}.{% endblocktrans %}{% endif %}
+    <p class="text-muted">{% blocktrans with level=plan.level|stringformat:"+d" %}Plan on level {{ level }}.{% endblocktrans %}{% if plan.location %} {% location_label plan.location subtitle=False info=False as part_label %}{% blocktrans with part=part_label %}Only for the stacked part {{ part }}.{% endblocktrans %}{% endif %}
         {% if plan.is_placed %}{% blocktrans with residual=plan.residual_m|floatformat:2 %}Placed; the control points deviate by up to {{ residual }} m.{% endblocktrans %}{% else %}{% trans "Not placed yet." %}{% endif %}</p>
 
     <div class="map-align" data-map-align

@@ -4,6 +4,7 @@ from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
 from django.utils import timezone
 
+from ..icons import type_icon
 from .. import trees
 from ..label_ids.testing import SETTINGS
 from ..models import Category, Item, ItemLocation, Location, LocationType, MeasurementUnit, UniqueItem
@@ -279,8 +280,11 @@ class LocationInfoTests(TestCase):
     def test_a_location_in_brief(self):
         content = self.client.get(reverse("location_info", args=[self.rack.pk])).content.decode()
         self.assertNotIn('<nav class="navbar', content)  # only the window's content
-        self.assertIn(f'<a href="{self.workshop.get_absolute_url()}">Workshop</a> <span class="loc-code">WS</span>', content)
-        self.assertIn('<span aria-current="location">Screws</span>', content)
+        # Its path: each location with the icon of its type and its short name.
+        self.assertIn(f'{type_icon("geo-alt")} <a href="{self.workshop.get_absolute_url()}"><span class="loc-title">Workshop</span></a> '
+                      '<span class="loc-code">WS</span>', content)
+        self.assertIn(f'<span aria-current="location"><span class="loc-label">{type_icon("bookshelf")} '
+                      '<span class="loc-title">Screws</span> <span class="loc-code">R1</span></span></span>', content)
         self.assertIn("Left of the door", content)
         self.assertIn(f'href="{self.rack.get_absolute_url()}" data-location-open', content)
         self.rack.delete()

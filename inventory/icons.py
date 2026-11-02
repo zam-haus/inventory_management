@@ -56,3 +56,21 @@ def use(name, prefix, classes):
     """An icon of a sprite()."""
     return format_html('<svg class="{}" width="1em" height="1em" aria-hidden="true" focusable="false">'
                        '<use href="#{}-{}"/></svg>', classes, prefix, name)
+
+
+# The icons of what locations, items and unique items are (docs/icons.md): before their names everywhere, from a
+# sprite drawn once on every page (type_icon_sprite in base.html), so that lists, rows loaded later and suggestions
+# of choice fields need only a reference.
+TYPE_ICONS = ("geo-alt", "bookshelf", "eurobox-open", "boxes", "box-star-stack", "box-star")
+
+
+def type_icon(name):
+    """The icon of a location's type or an item's kind, before its name: a reference to the page's sprite."""
+    return use(name, "type-icon", f"bi bi-{name} type-icon")
+
+
+def type_icon_sprite():
+    # Takes no room, also on pages without the app's styles (standalone pages, the print view).
+    svg = sprite(TYPE_ICONS, "type-icon", "type-icon-sprite")
+    return mark_safe(svg.replace("<svg ", '<svg style="position:absolute;width:0;height:0;overflow:hidden" ', 1))
+

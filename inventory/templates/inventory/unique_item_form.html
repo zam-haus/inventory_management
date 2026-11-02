@@ -1,7 +1,8 @@
 {% extends 'base.html' %}
-{% load i18n static crispy_forms_tags %}
+{% load i18n static crispy_forms_tags locations %}
 
 {% block title %}{{ title }}{% if object %}: {{ object }}{% endif %}{% endblock %}
+{% block page_header %}<h1>{{ title }}{% if object %}: {% unique_item_label object %}{% endif %}</h1>{% endblock %}
 
 {% block content %}
 <form method="post" enctype="multipart/form-data">

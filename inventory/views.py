@@ -144,7 +144,7 @@ class LocationResults:
 
 class LocationAutocomplete(LocationResults, autocomplete.Select2QuerySetView):
     def get_queryset(self):
-        qs = models.Location.active.select_related("parent_location")
+        qs = models.Location.active.select_related("type", "parent_location__type")  # their icons
 
         # `self.q` is the search term from the user, provided by DAL.
         return filter_locations(qs, self.q)
@@ -166,7 +166,7 @@ class PrintableInventoryView(PermissionRequiredMixin, View):
             form = forms.PrintableInventoryForm()
         context = {"form": form, "include_children": include_children, "query": query}
         if form.is_valid():
-            selected_locations = list(form.cleaned_data["locations"])
+            selected_locations = list(form.cleaned_data["locations"].select_related("type"))  # their icons
             location_ids = {location.pk for location in selected_locations}
             if include_children:
                 # Unique child identifiers need not start with their parent's.
@@ -185,12 +185,14 @@ class PrintableInventoryView(PermissionRequiredMixin, View):
             context.update(
                 selected_locations=selected_locations,
                 generated_at=timezone.now(),
+                # The path above each location, with their icons: in one query (location_display.paths).
+                paths=location_display.paths(models.Location.objects.filter(pk__in=location_ids)),
                 entries=models.ItemLocation.objects.filter(location_id__in=location_ids, item__is_deleted=False)
-                .select_related("location", "item", "item__measurement_unit")
+                .select_related("location__type", "item", "item__measurement_unit")
                 .prefetch_related("item__itemimage_set")
                 .order_by("location__locatable_identifier", "item__name", "item_id"),
                 unique_items=annotate_label_code(models.UniqueItem.active.filter(location_id__in=location_ids))
-                .select_related("location", "item")
+                .select_related("location__type", "item")
                 .order_by("location__locatable_identifier", "item__name", "pk"),
             )
         return render(request, "inventory/inventory_print.html", context)
@@ -976,7 +978,8 @@ class StructureOverviewView(TemplateView):
 
 class ParentLocationAutocompleteView(LocationResults, autocomplete.Select2QuerySetView):
     def get_queryset(self):
-        queryset = models.Location.active.filter(type__no_sublocations=False).select_related("parent_location")
+        queryset = models.Location.active.filter(type__no_sublocations=False).select_related(
+            "type", "parent_location__type")  # their icons
         try:
             moved = models.Location.objects.select_related("type").get(pk=int(self.forwarded.get("id")))
         except (TypeError, ValueError, models.Location.DoesNotExist):

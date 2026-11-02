@@ -1,4 +1,4 @@
-{% load i18n %}<!doctype html>
+{% load i18n locations %}<!doctype html>
 {% get_current_language as LANGUAGE_CODE %}
 <html lang="{{ LANGUAGE_CODE }}">
 <head>
@@ -26,6 +26,7 @@
     </style>
 </head>
 <body>
+{% load icons %}{% type_icon_sprite %}
 <main>
     {% if state == "lookup" %}
         <h1>{% blocktrans with name=label_id_name %}Look up a {{ name }}{% endblocktrans %}</h1>
@@ -46,7 +47,7 @@
     {% elif state == "retired" %}
         <h1>{% trans "Label no longer in use" %}</h1>
         <p>{% blocktrans with code=code %}The ID <span class="code">{{ code }}</span> has been retired.{% endblocktrans %}</p>
-        {% if target_url %}<p>{% trans "It last belonged to:" %} <a href="{{ target_url }}">{{ target_label }}</a></p>{% endif %}
+        {% if target_url %}<p>{% trans "It last belonged to:" %} {% if target is not None %}{% object_label target url=target_url %}{% else %}<a href="{{ target_url }}">{{ target_label }}</a>{% endif %}</p>{% endif %}
     {% elif state == "deleted" %}
         <h1>{% trans "No longer in the inventory" %}</h1>
         <p>{% blocktrans with code=code %}What the ID <span class="code">{{ code }}</span> belongs to has been removed from the inventory.{% endblocktrans %}</p>

@@ -114,7 +114,7 @@ def location_html(node, depth=0):
     of a storage unit (its compartments). Only the top level is open."""
     location = node.obj
     row = format_html('<span class="tree-row">{}{}{}</span>', use_icon(icon_name(location)),
-                      label_html(location, url=location.get_absolute_url(), info=True), location_pills(node))
+                      label_html(location, url=location.get_absolute_url(), info=True, icon=False), location_pills(node))
     node_id = f"loc-{location.pk}"
     if not node.children:
         return leaf(node_id, row)

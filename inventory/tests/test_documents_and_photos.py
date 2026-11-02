@@ -14,6 +14,7 @@ from django.urls import reverse
 from django.utils import timezone
 from PIL import Image
 
+from ..icons import type_icon
 from ..icons import icon
 from ..models import ItemFile, ItemImage, UniqueItem
 from .test_unique_items import UniqueItemFixture, grant
@@ -443,7 +444,7 @@ class QuickActionTests(MediaMixin, UniqueItemFixture, TestCase):
         url = reverse("location_lookup")
         self.assertEqual(self.client.get(url, {"q": "WS"}).json(),
                          {"id": self.location.pk, "text": "Workshop · WS",
-                          "html": '<span class="loc-label"><span class="loc-title">Workshop</span> '
+                          "html": f'<span class="loc-label">{type_icon("geo-alt")} <span class="loc-title">Workshop</span> '
                                   '<span class="loc-code">WS</span></span>'})
         self.assertEqual(self.client.get(url, {"q": f"https://inv.zam.haus{self.shelf.get_absolute_url()}"}).json()["id"], self.shelf.pk)
         label = services.claim(make_id("ABCDE").code, self.shelf, None)

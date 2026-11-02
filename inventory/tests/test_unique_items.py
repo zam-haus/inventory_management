@@ -15,6 +15,8 @@ from django.test import TestCase, TransactionTestCase, override_settings
 from django.urls import reverse
 
 from accounts.models import Team
+from ..icons import type_icon
+from ..location_display import icon_name
 from ..actor import acting_as
 from ..models import (
     Category, ChangeLog, Item, ItemFile, ItemLocation, LabelId, Location, LocationType, UniqueItem, UsageLevel,
@@ -182,14 +184,16 @@ class UniqueItemViewTests(UniqueItemFixture, TestCase):
         self.assertEqual((unique.effective_responsible_teams, unique.responsible_teams_source), ([metal], self.location))
         response = self.client.get(unique.get_absolute_url())
         self.assertContains(response, "Metalwork")
-        self.assertContains(response, f"from {self.location.title}")
+        self.assertContains(response, f'from <span class="loc-label">{type_icon(icon_name(self.location))} '
+                                      f'<span class="loc-title">{self.location.title}</span></span>')
         # Its own team wins, and nothing is inherited then.
         self.assertEqual((self.unique_item.effective_responsible_teams, self.unique_item.responsible_teams_source),
                          ([self.team], None))
         self.assertNotContains(self.client.get(self.unique_item.get_absolute_url()), f"from {self.location.title}")
         # The item's list of its unique items, too; the form names what applies without a team.
         response = self.client.get(self.extinguisher.get_absolute_url())
-        self.assertContains(response, f"Responsible team: Metalwork (from {self.location.title})")
+        self.assertContains(response, f'Responsible team: Metalwork (from <span class="loc-label">'
+                                      f'{type_icon(icon_name(self.location))} <span class="loc-title">{self.location.title}</span></span>)')
         self.assertContains(response, "Responsible team: Woodworking<")
         self.assertEqual(UniqueItemForm(instance=unique).fields["responsible_team"].empty_label,
                          "As for its location: Metalwork")

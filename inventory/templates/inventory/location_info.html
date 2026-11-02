@@ -7,7 +7,7 @@
 <div class="modal-body">
     {# Where it is: the locations above it, each opening its own brief view. #}
     <nav class="location-info-path" aria-label="{% trans 'Location path' %}">
-        {% for ancestor in object.ancestors %}<a href="{{ ancestor.get_absolute_url }}">{{ ancestor.title }}</a> <span class="loc-code">{{ ancestor.short_name }}</span> <span aria-hidden="true">›</span> {% endfor %}<span aria-current="location">{{ object.title }}</span>
+        {% if object.parent_location %}{% location_path object itself=False %} <span class="loc-path-sep" aria-hidden="true">›</span> {% endif %}<span aria-current="location">{% location_label object code=object.short_name subtitle=False info=False %}</span>
     </nav>
     {% if object.overview_photo %}
         {% thumbnail object.overview_photo "640x480" as im %}<img class="location-info-photo" src="{{ im.url }}" alt="{% trans 'Overview photo' %}">{% endthumbnail %}

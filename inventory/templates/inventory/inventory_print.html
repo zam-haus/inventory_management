@@ -1,4 +1,4 @@
-{% load mytemplatetags i18n static %}
+{% load mytemplatetags i18n static locations %}
 {% get_current_language as language_code %}
 <!doctype html>
 <html lang="{{ language_code }}">
@@ -39,6 +39,7 @@
     </style>
 </head>
 <body>
+{% load icons %}{% type_icon_sprite %}
     <div class="controls">
         <a href="{% url 'index_locations' %}">{% trans "Locations" %}</a>
         {% if selected_locations %}
@@ -71,19 +72,19 @@
     <h1>{% trans "Printable inventory" %}</h1>
     {% if selected_locations %}
         <p><strong>{% trans "Selected locations" %}:</strong>
-            {% for location in selected_locations %}{{ location.unique_identifier }} — {{ location.name }}{% if not forloop.last %}; {% endif %}{% endfor %}
+            {% for location in selected_locations %}{{ location.unique_identifier }} — {% type_icon location|icon_name %} {{ location.name }}{% if not forloop.last %}; {% endif %}{% endfor %}
         </p>
         <p>{% if include_children %}{% trans "Includes all child locations." %}{% else %}{% trans "Only items stored directly at the selected locations." %}{% endif %} {% trans "Generated" %}: {{ generated_at|date:"SHORT_DATETIME_FORMAT" }}</p>
         {% regroup entries by location as location_groups %}
         {% for group in location_groups %}
             <section>
                 <div class="location-heading">
-                    <h2>{% trans "Location" %}: {{ group.grouper.unique_identifier }}</h2>
-                    <p>{{ group.grouper.descriptive_identifier }}</p>
+                    <h2>{% trans "Location" %}: {% type_icon group.grouper|icon_name %} {{ group.grouper.unique_identifier }}</h2>
+                    <p>{% location_path group.grouper links=False paths=paths %}</p>
                 </div>
                 {% for entry in group.list %}
                     <article class="item">
-                        <h3>{{ entry.item }}</h3>
+                        <h3>{% item_label entry.item %}</h3>
                         <div class="facts">
                             <span><strong>{% trans "Amount" %}:</strong> {{ entry.amount_text }}</span>
                             <span><strong>{% trans "Location identifier" %}:</strong> {{ entry.location.unique_identifier }}</span>
@@ -118,12 +119,12 @@
             {% for group in unique_item_groups %}
                 <section>
                     <div class="location-heading">
-                        <h2>{% trans "Unique items" %} @ {{ group.grouper.unique_identifier }}</h2>
-                        <p>{{ group.grouper.descriptive_identifier }}</p>
+                        <h2>{% trans "Unique items" %} @ {% type_icon group.grouper|icon_name %} {{ group.grouper.unique_identifier }}</h2>
+                        <p>{% location_path group.grouper links=False paths=paths %}</p>
                     </div>
                     {% for unique_item in group.list %}
                         <article class="item">
-                            <h3>{{ unique_item.item }}{% if unique_item.name %} {{ unique_item.name }}{% endif %}</h3>
+                            <h3>{% type_icon "box-star" %} {{ unique_item.item }}{% if unique_item.name %} {{ unique_item.name }}{% endif %}</h3>
                             <div class="facts">
                                 <span><strong>{{ label_id_name }}:</strong> {% if unique_item.label_code %}{{ unique_item.label_display }}{% else %}–{% endif %}</span>
                                 <span><strong>{% trans "Location identifier" %}:</strong> {{ unique_item.location.unique_identifier }}</span>

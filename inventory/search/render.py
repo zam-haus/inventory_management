@@ -12,6 +12,7 @@ from django.utils.translation import ngettext
 from django.utils.translation import pgettext_lazy
 
 from ..label_ids.lookup import annotate_label_code
+from .. import location_display
 from ..location_display import CATEGORY_ICONS, icon_name
 from ..models import Category, Item, ItemImage, ItemLocation, Location, UniqueItem
 
@@ -82,7 +83,8 @@ class Entry:
     subtitle: str = ""
     code: str = ""  # a location's code
     label: str = ""  # a unique item's label ID (or its number), after its name
-    where: str = ""  # the path above a location or category
+    where: str = ""  # the path above a category
+    above: list = field(default_factory=list)  # the locations above a location, from the top (shown with their icons)
     excerpt: str = ""  # what belongs in a category (Category.summary)
     counts: list = field(default_factory=list)  # Tallies: what is in a location or category, as in the trees
     photos: list = field(default_factory=list)  # (image file, description), the first one as thumbnail
@@ -197,6 +199,10 @@ def prepare(kind, objects, here=None, item_photos=True, scope=None):
         return
     if kind == "location":
         prefetch_related_objects(objects, "parent_location", "type")
+        # The path above each, with the icons of the locations in it: in one query for the list.
+        above = location_display.paths(objects)
+        for location in objects:
+            location.entry_above = above[location.pk]
         # As in the location tree: the sub-locations in its whole subtree, the items and unique items right there.
         pks = [location.pk for location in objects]
         stock = dict(ItemLocation.objects.filter(location__in=pks, item__is_deleted=False).values("location")
@@ -217,9 +223,9 @@ def prepare(kind, objects, here=None, item_photos=True, scope=None):
         prefetch_related_objects(
             objects,
             Prefetch("itemlocation_set", to_attr="entry_places", queryset=places.select_related(
-                "location", "item__measurement_unit").order_by("location__locatable_identifier", "pk")[:MAX_PLACES]),
+                "location__type", "item__measurement_unit").order_by("location__locatable_identifier", "pk")[:MAX_PLACES]),
             Prefetch("unique_items", to_attr="entry_unique_items", queryset=annotate_label_code(
-                unique_items.select_related("location")).order_by("location__locatable_identifier", "pk")[:MAX_PLACES]),
+                unique_items.select_related("location__type")).order_by("location__locatable_identifier", "pk")[:MAX_PLACES]),
             # The item's own photos first, then those of its unique items still in the inventory.
             Prefetch("itemimage_set", to_attr="entry_images", queryset=ItemImage.objects.filter(
                 Q(unique_item__isnull=True) | Q(unique_item__disposed_at__isnull=True)).order_by(
@@ -232,7 +238,7 @@ def prepare(kind, objects, here=None, item_photos=True, scope=None):
             item.entry_place_count = counts.get(item.pk, 0)
         prefetch_related_objects(objects, "category")
     elif kind == "unique":
-        prefetch_related_objects(objects, "item__category", "location", Prefetch(
+        prefetch_related_objects(objects, "item__category", "location__type", Prefetch(
             "images", to_attr="entry_images", queryset=ItemImage.objects.order_by("-is_primary", "pk")))
         if item_photos:
             prefetch_related_objects(objects, Prefetch(
@@ -283,10 +289,11 @@ def entry(kind, obj, hit=None, here=None):
                for source in (hit.sources if hit else ()) if source in labels]
     common = {"kind": kind, "obj": obj, "sources": sources, "snippets": snippets}
     if kind == "location":
-        parent = obj.parent_location
-        # In the list of its parent, the path above it is that page's.
-        where = parent.descriptive_identifier if parent and parent != here else ""
-        return Entry(title=obj.title, subtitle=obj.subtitle, code=obj.unique_identifier, where=where,
+        # In the lists of a location's page, the path above it down to that location is the page's.
+        above = getattr(obj, "entry_above", [])
+        if here is not None and here.pk in [step.pk for step in above]:
+            above = above[[step.pk for step in above].index(here.pk) + 1:]
+        return Entry(title=obj.title, subtitle=obj.subtitle, code=obj.unique_identifier, above=above,
                      counts=obj.entry_counts, photos=[(obj.overview_photo, obj.title)] if obj.overview_photo else [], **common)
     if kind == "category":
         return Entry(title=obj.name, where=obj.full_name.rpartition("/")[0].replace("/", " › "),

@@ -390,7 +390,8 @@ class MapViewTests(Building, TestCase):
         self.assertIn("data-map-place ", guest)  # the map: shown by HBB
         # As on the large map with ?p=: the level and HBB highlighted; it is in HBB.
         self.assertIn(f'data-map-url="{reverse("maps:level_data", args=[-1])}" data-focus="loc:{self.hbb.pk}"', guest)
-        self.assertIn("Its own position is not known; it is in Holzbaubühne", guest)
+        self.assertIn("Its own position is not known; it is in <span class=\"loc-label\">", guest)  # with its icon
+        self.assertIn('<span class="loc-title">Holzbaubühne</span> <span class="loc-code">HBB</span></span> (highlighted)', guest)
         self.assertNotIn("map-place-empty", guest)
         self.assertNotIn("data-place-start", guest)
         self.assertNotIn("Place on the map", guest)  # guests do not see the disabled button

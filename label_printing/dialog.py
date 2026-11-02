@@ -15,7 +15,7 @@ from django.urls import reverse
 from django.utils.http import urlencode
 from django.utils.translation import gettext, gettext_lazy as _
 
-from django.utils.html import escape
+from django.utils.html import escape, format_html
 from django.utils.safestring import mark_safe
 
 from inventory import location_display
@@ -63,11 +63,16 @@ def title(subject_type, obj):
 
 
 def title_html(subject_type, obj):
-    """The same for the dialog's heading: locations as everywhere (title, name, code chip; location_display)."""
+    """The same for the dialog's heading: locations, items and unique items as everywhere, with their icons
+    (location_display)."""
     if subject_type == "location":
         return location_display.label_html(obj)
     if subject_type == "items":
         return mark_safe(escape(gettext("Price tags at %(location)s")) % {"location": location_display.label_html(obj)})
+    if subject_type == "item":
+        return location_display.item_html(obj)
+    if subject_type == "uniqueitem":
+        return location_display.unique_item_html(obj)
     return escape(title(subject_type, obj))
 
 
@@ -118,6 +123,19 @@ def subject_name(subject):
     return str(subject)
 
 
+def subject_html(subject):
+    """The subject of a row as everywhere, with its icon: a location (title, name, code chip), an item with its price."""
+    if isinstance(subject, Location):
+        return location_display.label_html(subject)
+    if isinstance(subject, ItemAt):
+        price = label_urls.price_text(subject.item)
+        item = location_display.item_html(subject.item)
+        return format_html("{} ({})", item, price) if price else item
+    if isinstance(subject, UniqueItem):
+        return location_display.unique_item_html(subject)
+    return ""
+
+
 def subject_pk(subject):
     return subject.item.pk if isinstance(subject, ItemAt) else subject.pk
 
@@ -139,8 +157,7 @@ def row(subject_type, subject, found, rules=None, last_labels=None):
     ranked = selection.rank(found, label_kind(subject_type), subject, rules, last_labels)
     on_medium, without = preview_urls(subject_type, subject)
     return {"name": subject_name(subject), "pk": str(subject_pk(subject)),
-            # locations shown as everywhere (title, name, code chip)
-            "html": location_display.label_html(subject) if isinstance(subject, Location) else "",
+            "html": subject_html(subject),
             "outcomes": [[entry.outcome.key, entry.priority, entry.shown] for entry in ranked],
             "chosen": ranked[0].outcome.key if ranked else "", "preview": on_medium, "template_preview": without,
             "priced": priced(subject) if isinstance(subject, ItemAt) else None}

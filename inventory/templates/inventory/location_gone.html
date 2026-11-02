@@ -7,7 +7,7 @@
 {% block content %}
     {% url 'index' as search_url %}
     {% if location %}
-        <p>{% blocktrans with title=location.title %}The location {{ title }} was deleted.{% endblocktrans %} {% location_code code %}</p>
+        <p>{% location_name location as location_title %}{% blocktrans with title=location_title %}The location {{ title }} was deleted.{% endblocktrans %} {% location_code code %}</p>
         {% if parent %}
             <p>{% trans "It was in:" %} {% location_label parent url=parent.get_absolute_url %}</p>
         {% endif %}

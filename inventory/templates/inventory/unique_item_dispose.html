@@ -1,10 +1,11 @@
 {% extends 'base.html' %}
-{% load i18n django_bootstrap5 %}
+{% load i18n django_bootstrap5 locations %}
 
 {% block title %}{% trans "Remove from inventory" %}: {{ object }}{% endblock %}
+{% block page_header %}<h1>{% trans "Remove from inventory" %}: {% unique_item_label object %}</h1>{% endblock %}
 
 {% block content %}
-<p>{% blocktrans with location=object.location.title_with_code name=label_id_name %}The unique item currently is at {{ location }}. Once removed, it no longer appears there; its page, history and {{ name }} remain, so an old label still leads here.{% endblocktrans %}</p>
+<p>{% location_label object.location subtitle=False info=False as location_label %}{% blocktrans with location=location_label name=label_id_name %}The unique item currently is at {{ location }}. Once removed, it no longer appears there; its page, history and {{ name }} remain, so an old label still leads here.{% endblocktrans %}</p>
 <form method="post" class="mb-3">
     {% csrf_token %}
     {% bootstrap_form form %}

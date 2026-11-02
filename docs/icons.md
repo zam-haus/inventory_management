@@ -24,6 +24,19 @@ with a code) and `price-label` (a price frame as the labels print it, `shape bul
 `label_printing/design/layout.py`: straight top and bottom, the sides arching out like a price gun's labels, a € in
 it).
 
+**Names have the icon of what they are.** A location's name has the icon of its type (`geo-alt`, `bookshelf` for
+storage units, `eurobox-open` for containers; `location_display.icon_name`), also each location in a path (where it
+is: the breadcrumbs, the location in brief, the result rows, moving and dissolving, the details); an item has the
+icon of its kind (`boxes`, `box-star-stack` for a serialized item), a unique item `box-star`. This holds in headings,
+lists, choices and sentences ("width and depth from <icon> Regal 3"); only where no icon can stand stays text: the
+browser's tab title, flash messages, the options of a native `<select>` and attributes such as `aria-label`. The
+shared renderers put them there, so a template need not: `{% location_label %}` (`location_display.label_html`;
+`icon=False` where a row draws it already, as the breadcrumbs and the trees), `{% location_path %}` (`path_html`, the
+locations above in one query by their code paths, `paths()`), `{% location_name %}` (in a sentence: icon and title),
+`{% item_label %}`, `{% unique_item_label %}` and `{% object_label %}` (`{% load locations %}`), and the result rows.
+They refer to a sprite drawn once on every page (`{% type_icon_sprite %}` in `base.html` and the standalone pages,
+`icons.TYPE_ICONS`, about 5 kB), so long lists and rows loaded later stay small (`{% type_icon name %}`).
+
 Where an action row shows actions by their icon only (`actions.js`), no icon stands twice without its text: actions
 whose icon another one shows too keep their text (or go into the menu). Give different actions different icons.
 

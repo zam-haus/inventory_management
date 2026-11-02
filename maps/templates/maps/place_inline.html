@@ -1,4 +1,4 @@
-{% load i18n icons actions %}{# The position of a location or unique item in the grey box of its page (map_place.js): the map where it is (or the place it is in, highlighted); whoever may change it edits it right there, the box growing for it (on phones: the whole screen); with move_url also on another level, moving it into the room or area there. From the slot template: kind, object, save, field, move_field, title, code, eyebrow_class and place (maps_tags.map_place). #}
+{% load i18n icons actions locations %}{# The position of a location or unique item in the grey box of its page (map_place.js): the map where it is (or the place it is in, highlighted); whoever may change it edits it right there, the box growing for it (on phones: the whole screen); with move_url also on another level, moving it into the room or area there. From the slot template: kind, object, save, field, move_field, title (with the icon title_icon), code, eyebrow_class and place (maps_tags.map_place). #}
 <div class="map-place-cell{% if not place.has_map %} map-place-empty{% endif %}" data-map-place-cell>
     <dt class="map-place-dt"><span class="{{ eyebrow_class }}">{% trans "Position" %}</span>
         {# Changing it like the pencils of the location's fields: only for whoever may change it. Placing it the same way, but disabled with the reason for those logged in who may not. #}
@@ -14,7 +14,7 @@
         {% if place.show %}{% csrf_token %}
         {# On phones, where editing takes the whole screen: what is placed, and closing. #}
         <div class="map-place-head" data-place-edit-only hidden>
-            <h2 class="fs-5 map-place-heading"><span class="visually-hidden">{% trans "Position" %}: </span>{{ title }}{% if code %}<span class="loc-code">{{ code }}</span>{% endif %}</h2>
+            <h2 class="fs-5 map-place-heading"><span class="visually-hidden">{% trans "Position" %}: </span>{% if title_icon %}{% type_icon title_icon %} {% endif %}{{ title }}{% if code %}<span class="loc-code">{{ code }}</span>{% endif %}</h2>
             <button type="button" class="btn-close" data-place-cancel aria-label="{% trans 'Cancel' %}"></button>
         </div>
         <div class="map-place-tools map-place-level" data-place-edit-only hidden>
@@ -28,7 +28,7 @@
         </div>
         {% include "maps/place_tools.html" with prefix="map-place" %}
         {% if place.editable %}{% include "maps/edit_corner_box.html" %}{% endif %}
-        {% if place.around %}<p class="map-place-around" data-place-view-only>{% blocktrans with where=place.around.title_with_code %}Its own position is not known; it is in {{ where }} (highlighted).{% endblocktrans %}</p>{% endif %}
+        {% if place.around %}<p class="map-place-around" data-place-view-only>{% location_label place.around subtitle=False info=False as around_label %}{% blocktrans with where=around_label %}Its own position is not known; it is in {{ where }} (highlighted).{% endblocktrans %}</p>{% endif %}
         <div class="form-check" data-place-move hidden>
             <input class="form-check-input" type="checkbox" id="map-place-move">
             <label class="form-check-label" for="map-place-move" data-place-move-label></label>

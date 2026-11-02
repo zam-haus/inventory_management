@@ -1,5 +1,5 @@
 {% extends 'inventory/location_dissolve_base.html' %}
-{% load i18n django_bootstrap5 actions %}
+{% load i18n django_bootstrap5 actions locations %}
 
 {% block dissolution_content %}
     <section class="location-overview">
@@ -24,7 +24,7 @@
             <ul class="mb-0">
                 {% for unique_item in blocking_unique_items %}
                     <li>
-                        <a href="{{ unique_item.get_absolute_url }}">{{ unique_item }}</a>
+                        {% unique_item_label unique_item url=unique_item.get_absolute_url %}
                         · {% if perms.inventory.change_uniqueitem %}<a href="{% url 'update_unique_item' unique_item.pk %}">{% trans "Move" %}</a>{% else %}{% disabled_action _("Move") classes="btn btn-link p-0 align-baseline" %}{% endif %}
                         · {% if perms.inventory.dispose_uniqueitem %}<a href="{% url 'dispose_unique_item' unique_item.pk %}">{% trans "Remove from inventory" %}</a>{% else %}{% disabled_action _("Remove from inventory") classes="btn btn-link p-0 align-baseline" %}{% endif %}
                     </li>

@@ -4,12 +4,9 @@
 {% load i18n %}
 {% load static %}
 
-{% block title %}
-    {{ title }}
-    {% if location %}
-        @ <a href={{ location.get_absolute_url }}>{% location_label location %}</a>
-    {% endif %}
-{% endblock %}
+{% block title %}{{ title }}{% if location %} @ {{ location.title_with_code }}{% endif %}{% endblock %}
+{# The heading names the location with its icon and code; the browser's tab only as text. #}
+{% block page_header %}<h1>{{ title }}{% if location %} @ {% location_label location url=location.get_absolute_url %}{% endif %}</h1>{% endblock %}
 
 {% block pre_container %}
 <div id="item-barcode-scanner" hidden

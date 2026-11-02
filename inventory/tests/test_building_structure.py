@@ -54,9 +54,10 @@ class StructureTests(TestCase):
         box, details = parts(self.box_lab)  # both from the room it is in
         self.assertIn("Werkstattgruppe Bio", box)
         self.assertIn('title="Werkstattgruppe Bio">B</span>', box)
-        self.assertEqual(box.count("from Chemieraum"), 1)  # the fire load's; where the teams come from: in the details
+        self.assertEqual(box.count('<span class="loc-title">Chemieraum</span></span>'), 1)  # the fire load's "from …"
         self.assertIn("Free of fire load", box)
-        self.assertIn("From Chemieraum · CHE: this location has no teams of its own", details)
+        self.assertIn('<span class="loc-title">Chemieraum</span> <span class="loc-code">CHE</span></span>: this location has no '
+                      'teams of its own', details)
         lab, details = parts(Location.objects.get(short_name="CHE"))  # its own
         self.assertIn("Free of fire load", lab)
         self.assertNotIn("from ", lab)

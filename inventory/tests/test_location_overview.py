@@ -14,6 +14,8 @@ from django.test.html import parse_html
 from django.urls import reverse
 from PIL import Image
 
+from ..icons import type_icon
+from ..location_display import icon_name
 from ..models import ChangeLog, Item, ItemLocation, Location, LocationType, MeasurementUnit
 
 
@@ -438,7 +440,7 @@ class LocationOverviewTests(TestCase):
         label = ('<span class="result-title">Carp project</span> <span class="result-subtitle">Box 23</span>')
         chip = (f'<span class="loc-code" data-location-info="{child.pk}" role="button" tabindex="0" '
                 f'title="Location in brief">{child.unique_identifier}</span>')
-        plain = ('<span class="loc-label"><span class="loc-title">Carp project</span> <span class="loc-name">Box 23</span> '
+        plain = (f'<span class="loc-label">{type_icon(icon_name(child))} <span class="loc-title">Carp project</span> <span class="loc-name">Box 23</span> '
                  f'<span class="loc-code">{child.unique_identifier}</span></span>')  # in choices: a click chooses
         detail = self.client.get(self.location.get_absolute_url())
         self.assertContains(detail, label)
@@ -451,7 +453,8 @@ class LocationOverviewTests(TestCase):
                 # the frontend's fields (widgets.LocationSelect): HTML, with where it is below
                 result = self.client.get(reverse(name), {"q": "carp", "html": "1"}).json()["results"][0]
                 self.assertInHTML(plain, result["text"])
-                self.assertIn(f'<span class="loc-where">{self.location.title}</span>', result["text"])
+                self.assertIn(f'<span class="loc-where">{type_icon(icon_name(self.location))} {self.location.title}</span>',
+                              result["text"])
                 self.assertInHTML(plain, result["selected_text"])
                 # the admin's: text with the path
                 results = self.client.get(reverse(name), {"q": "carp"}).json()["results"]
@@ -496,7 +499,9 @@ class LocationOverviewTests(TestCase):
         # The path is in the breadcrumb, and in the details, not in the heading.
         path = next(element for element in elements if "location-path" in dict(element.attributes).get("class", "").split())
         self.assertIn(path, list(html_elements(metadata)))
-        self.assertIn(self.location.descriptive_identifier, str(path))
+        # Each location in it with the icon of its type, its title and short name.
+        self.assertIn(f'#type-icon-{icon_name(self.location)}', str(path))
+        self.assertIn(self.location.title, str(path))
 
     def test_sublocation_panel_is_hidden_when_the_type_forbids_sublocations(self):
         self.client.logout()

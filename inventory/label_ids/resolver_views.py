@@ -129,7 +129,7 @@ def _resolve(request, raw, *, from_lookup=False):
         return HttpResponseRedirect(request.path)
     state = "retired" if lid.status == LabelId.Status.RETIRED else "deleted"
     return _page(request, state, 410, code=lid.display, target_url=url,
-                 target_label=str(lid.target) if lid.target is not None and url else url)
+                 target=lid.target if url else None, target_label=url)
 
 
 @require_safe

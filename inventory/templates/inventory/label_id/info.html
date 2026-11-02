@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% load i18n static actions label_printing %}
+{% load i18n static actions label_printing locations %}
 
 {% block title %}{{ label_id_name }} {{ lid.display }}{% endblock %}
 {% block bootstrap5_extra_head %}
@@ -20,8 +20,8 @@
             <dt class="col-sm-4">{% trans "status" %}</dt><dd class="col-sm-8">{{ lid.get_status_display }}</dd>
             <dt class="col-sm-4">{% trans "target" %}</dt>
             <dd class="col-sm-8">
-                {% if target_url %}<a href="{{ target_url }}">{% if lid.url %}{{ lid.url }}{% else %}{{ lid.target }}{% endif %}</a>
-                {% elif lid.target %}{{ lid.target }} ({% trans "deleted" %})
+                {% if target_url %}{% if lid.url %}<a href="{{ target_url }}">{{ lid.url }}</a>{% else %}{% object_label lid.target url=target_url %}{% endif %}
+                {% elif lid.target %}{% object_label lid.target %} ({% trans "deleted" %})
                 {% else %}–{% endif %}
                 {% if claimable %}{% if can_claim %}<a class="btn btn-sm btn-warning ms-2" href="{% url 'label_id_claim' lid.code %}">{% trans "Claim" %}</a>{% else %}<span class="ms-2">{% disabled_action _("Claim") classes="btn btn-sm btn-warning" %}</span>{% endif %}{% endif %}
             </dd>

@@ -7,11 +7,12 @@
 {% endblock %}
 
 {% block title %}{% trans "Change stock" %}: {{ entry.item }}{% endblock %}
+{% block page_header %}<h1>{% trans "Change stock" %}: {% item_label entry.item %}</h1>{% endblock %}
 
 {% block content %}
     <div class="stock-change-page">
         <h1 class="fs-3">{% icon "cart" %} {% trans "Change stock" %}</h1>
-        <p class="stock-change-subject"><a href="{{ entry.item.get_absolute_url }}">{{ entry.item }}</a> · <a href="{{ entry.location.get_absolute_url }}">{% location_label entry.location %}</a></p>
+        <p class="stock-change-subject">{% item_label entry.item url=entry.item.get_absolute_url %} · {% location_label entry.location url=entry.location.get_absolute_url %}</p>
         <form method="post" action="{% url 'stock_change' entry.pk %}" class="stock-change-form" {% include 'inventory/stock_change_form_attrs.html' %}
               data-amount="{% if entry.amount != None %}{{ entry.amount|unlocalize }}{% endif %}" data-kind="{{ entry.amount_kind }}" data-amount-text="{{ entry.amount_text }}"
               data-unit="{{ entry.item.measurement_unit.short }}" data-price="{% if entry.item.sale_price != None %}{{ entry.item.sale_price|unlocalize }}{% endif %}"

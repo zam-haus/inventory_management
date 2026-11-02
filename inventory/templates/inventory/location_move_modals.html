@@ -1,4 +1,4 @@
-{% load i18n django_bootstrap5 icons slots %}
+{% load i18n django_bootstrap5 icons slots locations %}
 {# Move this location, or move other locations into it, in dialogs opened by the header actions (data-modal-open). #}
 {# They post to the move pages, which also show errors and serve as the fallback without JavaScript. #}
 {# The QR scanners open their own dialogs above these, which need the focus (data-bs-focus). #}
@@ -12,7 +12,7 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{% trans 'Cancel' %}"></button>
             </div>
             <div class="modal-body">
-                <p class="text-muted">{% trans "Current location path" %}: {{ object.descriptive_identifier }}</p>
+                <p class="text-muted">{% trans "Current location path" %}: {% location_path object %}</p>
                 {% bootstrap_form move_form %}
                 {% slot "location_move.extra" %}
                 <p class="location-muted mb-0">{% trans "Stored items and child locations remain assigned to this location." %}{% if object.type.unique and not object.type.area_numbering %} {% trans "Leave the destination empty to make this a top-level location." %}{% endif %}</p>
@@ -36,7 +36,7 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{% trans 'Cancel' %}"></button>
                 </div>
                 <div class="modal-body">
-                    <p class="text-muted">{% trans "Destination" %}: {{ object.descriptive_identifier }}</p>
+                    <p class="text-muted">{% trans "Destination" %}: {% location_path object %}</p>
                     <div class="mb-3">
                         <span class="disabled-action" tabindex="0" data-bs-toggle="tooltip" title="{% trans 'This needs JavaScript.' %}"><button type="button" class="btn btn-secondary location-scan-button" data-scan-locations disabled
                                 data-title="{% trans 'Scan location labels' %}"

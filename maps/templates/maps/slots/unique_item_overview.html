@@ -1,5 +1,5 @@
 {% load maps_tags %}{# In the grey box of the unique item's page: its position on the map (place_inline.html). #}
 {% map_place object as place %}{% if place.show or place.edit_denied %}
 {% url 'maps:item_position' object.pk as save %}
-{% include "maps/place_inline.html" with kind="item" field="map_geometry" move_field="location" title=object code="" %}
+{% include "maps/place_inline.html" with kind="item" field="map_geometry" move_field="location" title=object code="" title_icon="box-star" %}
 {% endif %}

@@ -52,7 +52,7 @@
                                 <th scope="row">{% include 'inventory/location_dissolve_entry.html' %}</th>
                                 <td>{% if row.kind == 'item' %}{{ row.object.amount_text }}{% else %}—{% endif %}</td>
                                 <td>{% include 'inventory/location_dissolve_photos.html' %}</td>
-                                <td><a href="{{ row.destination.get_absolute_url }}">{{ row.destination.descriptive_identifier }}</a></td>
+                                <td>{% location_path row.destination %}</td>
                             </tr>
                         {% endfor %}
                     </tbody>

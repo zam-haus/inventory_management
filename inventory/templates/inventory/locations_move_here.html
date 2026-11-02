@@ -29,7 +29,7 @@
         <section class="location-overview" aria-label="{% trans 'Destination' %}">
             <div>
                 <h2 class="location-eyebrow">{% trans "Destination" %}</h2>
-                <p class="location-path">{{ object.descriptive_identifier }}</p>
+                <p class="location-path">{% location_path object %}</p>
             </div>
         </section>
         <section class="location-panel" aria-labelledby="move-locations-heading">

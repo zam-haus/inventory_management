@@ -44,7 +44,7 @@
                     <p class="location-muted mb-1">{% trans "Neighbouring ones should have consecutive numbers, the lower number on the left and the higher on the right where possible." %}</p>
                     {% include "inventory/numbered_location_order.html" %}
                     {% if source %}
-                        <p class="location-muted">{% blocktrans with type=kind.name ranges=ranges name=source.name %}{{ type }}: numbered from {{ ranges }} ({{ name }}).{% endblocktrans %}</p>
+                        <p class="location-muted">{% location_name source as source_name %}{% blocktrans with type=kind.name ranges=ranges name=source_name %}{{ type }}: numbered from {{ ranges }} ({{ name }}).{% endblocktrans %}</p>
                     {% else %}
                         <p class="location-muted">{% blocktrans with type=kind.name %}{{ type }}: no numbers reserved here yet.{% endblocktrans %}</p>
                     {% endif %}
