@@ -83,13 +83,15 @@
             </div>
             {% endif %}
             {% with teams=object.effective_responsible_teams source=object.responsible_teams_source %}
-            {% if teams or object.responsible_user %}
+            {% if teams or object.responsible_user or responsibility_form %}
             <div>
-                <dt>{% trans "Responsible" %}</dt>
+                <dt>{% trans "Responsible" %}
+                    {% if responsibility_form %}<a href="#unique-item-responsibility-editor" class="btn btn-sm btn-warning item-edit-responsibility" data-field-editor-open="unique-item-responsibility-editor" data-bs-toggle="tooltip" title="{% trans 'Edit responsibility' %}" aria-label="{% trans 'Edit responsibility' %}">{% icon "pencil" %}</a>{% endif %}</dt>
                 <dd>
                     {# The teams as on the location page: code in its colour, then name. Without a team of its own, those of its location. #}
                     {% for team in teams %}<span class="item-team">{% include "inventory/team_badge.html" %} {{ team.group.name }}</span>{% endfor %}
                     {% if source %}<span class="item-muted">{% location_name source as source_name %}{% blocktrans with location=source_name %}from {{ location }}{% endblocktrans %}</span>{% endif %}
+                    {% if not teams and not object.responsible_user %}<span class="item-muted">{% trans "No team yet." %}</span>{% endif %}
                     {% if object.responsible_user %}
                         {% if teams %}·{% endif %}
                         {% if can_view_internal %}{{ object.responsible_user.get_full_name|default:object.responsible_user.username }}{% if object.responsible_user.email %} (<a href="mailto:{{ object.responsible_user.email }}">{{ object.responsible_user.email }}</a>){% endif %}
@@ -174,6 +176,7 @@
     {% endif %}
     {% if not object.is_disposed %}{% label_print_dialog object "uniqueitem" %}{% slot "unique_item_detail.dialogs" %}{% endif %}
     {% if notes_form %}{% include 'inventory/unique_item_notes_editor.html' %}{% endif %}
+    {% if responsibility_form %}{% include 'inventory/unique_item_responsibility_editor.html' %}{% endif %}
 {% endblock %}
 
 {% block bootstrap5_extra_script %}
@@ -188,6 +191,8 @@
         {{ move_form.media.js }}
         <script src="{% static 'inventory/unique_item_move.js' %}"></script>
     {% endif %}
-    {% if notes_form %}{{ notes_form.media.js }}<script src="{% static 'inventory/location_field_editor.js' %}"></script>{% endif %}
+    {# The responsibility's person search comes with the move dialog's scripts (the same permission). #}
+    {% if notes_form %}{{ notes_form.media.js }}{% endif %}
+    {% if notes_form or responsibility_form %}<script src="{% static 'inventory/location_field_editor.js' %}"></script>{% endif %}
     {% if not object.is_disposed %}{% slot "unique_item_detail.scripts" %}{% endif %}
 {% endblock %}

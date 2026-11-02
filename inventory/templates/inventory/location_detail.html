@@ -98,7 +98,8 @@
                 {% endif %}
                 {# Who looks after it: its teams, else those of the location above it (explained in the location details). #}
                 <div>
-                    <dt><span class="location-eyebrow">{% trans "Responsible" %}</span></dt>
+                    <dt><span class="location-eyebrow">{% trans "Responsible" %}</span>
+                        {% if responsibility_form %}<a href="#location-responsibility-editor" class="btn btn-sm btn-warning location-edit-responsibility" data-field-editor-open="location-responsibility-editor" data-bs-toggle="tooltip" title="{% trans 'Edit responsible teams' %}" aria-label="{% trans 'Edit responsible teams' %}">{% icon "pencil" %}</a>{% endif %}</dt>
                     <dd>{% with source=object.responsible_teams_source %}{% if source %}
                         {% for team in source.responsible_teams.all %}<span class="location-team">{% include "inventory/team_badge.html" %} {{ team.group.name }}</span>{% endfor %}
                     {% else %}<span class="location-muted">{% trans "No team yet." %}</span>{% endif %}{% endwith %}</dd>
@@ -188,6 +189,7 @@
     {% include 'inventory/location_metadata.html' %}
     {% if not edit_denied %}{% include 'inventory/location_overview_editor.html' %}{% endif %}
     {% if not purpose_denied %}{% include 'inventory/location_purpose_editor.html' %}{% endif %}
+    {% if responsibility_form %}{% include 'inventory/location_responsibility_editor.html' %}{% endif %}
     {% if not edit_denied %}{% include 'inventory/location_description_editor.html' %}{% include 'inventory/location_dimensions_editor.html' %}{% endif %}
     {% if perms.inventory.change_location %}{% include 'inventory/location_move_modals.html' %}{% endif %}
     {% label_print_dialog object "location" %}
@@ -204,7 +206,8 @@
     <script src="{% static 'inventory/photo_lightbox.js' %}"></script>
     <script src="{% static 'inventory/live_search.js' %}"></script>
     <script src="{% static 'inventory/location_detail.js' %}"></script>
-    {% if perms.inventory.change_location %}<script src="{% static 'inventory/location_overview.js' %}"></script><script src="{% static 'inventory/location_field_editor.js' %}"></script>{% endif %}
+    {% if perms.inventory.change_location %}<script src="{% static 'inventory/location_overview.js' %}"></script>{% endif %}
+    {% if perms.inventory.change_location or responsibility_form %}<script src="{% static 'inventory/location_field_editor.js' %}"></script>{% endif %}
     {% if can_manage_quick_items %}<script src="{% static 'inventory/location_quick_items.js' %}"></script>{% endif %}
     {% if stock_change_form %}<script src="{% static 'inventory/stock_change.js' %}"></script>{% endif %}
     {% if move_form %}

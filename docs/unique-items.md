@@ -53,7 +53,8 @@ name (and its German label *Einzelobjekte*) with the objects.
   doubt; red (cross) use only after a briefing. Lists show the coloured icon with
   the explanation on hover, detail pages the explanation itself,
   warranty, notes, responsible team and person, owner, purchase date, price and
-  source, files. Without a team of its own the teams of its location are responsible, as a location takes those of
+  source, files. Team and person can also be changed in a dialog on its page (pencil beside *Responsible*, for who may
+  change unique items and see contact details). Without a team of its own the teams of its location are responsible, as a location takes those of
   the one it is in (`UniqueItem.effective_responsible_teams`): its page and the item's list show them with "from
   <location>", and the form's empty choice names them ("As for its location: …"). The form of a unique item also
   shows what its item says for all of its unique items (category, name, briefing requirement, barcodes, the number of

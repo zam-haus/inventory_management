@@ -14,6 +14,7 @@ from .help_views import HelpView
 from .problem_reports import ProblemReportView
 from .location_overview_views import (
     LocationDescriptionUpdateView, LocationDimensionsUpdateView, LocationOverviewUpdateView, LocationPurposeUpdateView,
+    LocationResponsibilityUpdateView,
 )
 from .numbered_location_views import (
     ContainerActivateView, ContainerCreateView, NumberedLocationCreateView, SublocationAddView, SublocationPurposeView,
@@ -29,6 +30,8 @@ urlpatterns = [
     path("location/<int:pk>/rows/<slug:part>/", views.location_rows, name="location_rows"),
     path("location/<int:pk>/overview/", LocationOverviewUpdateView.as_view(), name="location_overview_update"),
     path("location/<int:pk>/purpose/", LocationPurposeUpdateView.as_view(), name="location_purpose_update"),
+    path("location/<int:pk>/responsibility/", LocationResponsibilityUpdateView.as_view(),
+         name="location_responsibility_update"),
     path("location/<int:pk>/description/", LocationDescriptionUpdateView.as_view(), name="location_description_update"),
     path("location/<int:pk>/dimensions/", LocationDimensionsUpdateView.as_view(), name="location_dimensions_update"),
     path("location/<int:pk>/new-shelf/", NumberedLocationCreateView.as_view(), name="numbered_location_create"),
@@ -74,6 +77,8 @@ urlpatterns = [
     path("item/unique/<int:pk>", unique_item_views.DetailUniqueItemView.as_view(), name="view_unique_item"),
     path("item/unique/<int:pk>/update", unique_item_views.UpdateUniqueItemView.as_view(), name="update_unique_item"),
     path("item/unique/<int:pk>/notes", unique_item_views.UniqueItemNotesUpdateView.as_view(), name="unique_item_notes_update"),
+    path("item/unique/<int:pk>/responsibility", unique_item_views.UniqueItemResponsibilityUpdateView.as_view(),
+         name="unique_item_responsibility_update"),
     path("item/unique/<int:pk>/dispose", unique_item_views.DisposeUniqueItemView.as_view(), name="dispose_unique_item"),
     path("item/serialized-autocomplete/", unique_item_views.SerializedItemAutocomplete.as_view(),
          name="serialized_item_autocomplete"),

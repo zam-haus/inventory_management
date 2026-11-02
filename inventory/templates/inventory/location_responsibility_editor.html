@@ -1,0 +1,35 @@
+{% load i18n locations %}{# Its responsible teams; location_field_editor.js makes this a dialog (without JavaScript it stays here, below the page). #}
+<section id="location-responsibility-editor" class="location-overview-editor location-responsibility-editor" data-field-editor tabindex="-1" aria-labelledby="location-responsibility-editor-title" data-open="{{ responsibility_editor_open|yesno:'true,false' }}">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form action="{% url 'location_responsibility_update' object.pk %}" method="post">
+                {% csrf_token %}
+                <div class="modal-header">
+                    <h2 class="modal-title fs-5" id="location-responsibility-editor-title">{% trans "Edit responsible teams" %}</h2>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" data-field-editor-enhanced hidden aria-label="{% trans 'Cancel' %}"></button>
+                </div>
+                <div class="modal-body">
+                    <fieldset>
+                        <legend class="form-label fs-6">{% trans "Responsible teams" %}</legend>
+                        {% for team, checked in responsibility_form.team_choices %}
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="responsible_teams" value="{{ team.pk }}" id="responsible-team-{{ team.pk }}"{% if checked %} checked{% endif %}>
+                                <label class="form-check-label" for="responsible-team-{{ team.pk }}">{% include "inventory/team_badge.html" %} {{ team.group.name }}</label>
+                            </div>
+                        {% empty %}
+                            <p class="location-muted">{% trans "There are no teams yet (Admin → Accounts → Teams)." %}</p>
+                        {% endfor %}
+                    </fieldset>
+                    {% with above=object.parent_location.responsible_teams_source %}
+                    <p class="form-text">{% if above %}{% location_name above as above_name %}{% blocktrans with location=above_name %}Without a team of its own, those of {{ location }} are responsible, as for everything inside it.{% endblocktrans %}{% else %}{% trans "The teams are responsible for everything inside it, too, that has no team of its own." %}{% endif %}</p>
+                    {% endwith %}
+                    <div class="text-danger" data-field-editor-errors>{{ responsibility_form.responsible_teams.errors }}</div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" data-field-editor-enhanced hidden>{% trans "Cancel" %}</button>
+                    <button type="submit" class="btn btn-warning">{% trans "Save responsible teams" %}</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</section>

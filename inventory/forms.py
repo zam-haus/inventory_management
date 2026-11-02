@@ -6,7 +6,7 @@ from crispy_bootstrap5.bootstrap5 import FloatingField
 from django.core.exceptions import ValidationError
 from django.db.models import Q
 from django.forms import (
-    BooleanField, CharField, CheckboxInput, ChoiceField, DateInput, DecimalField, FileInput, Form, HiddenInput,
+    BooleanField, CharField, CheckboxInput, CheckboxSelectMultiple, ChoiceField, DateInput, DecimalField, FileInput, Form, HiddenInput,
     IntegerField, ModelChoiceField, ModelForm, ModelMultipleChoiceField, NullBooleanSelect, NumberInput,
     RadioSelect, Textarea, TextInput, UUIDField,
 )
@@ -109,6 +109,46 @@ class UniqueItemNotesForm(ModelForm):
         model = UniqueItem
         fields = ["notes"]
         widgets = {"notes": MarkdownEditor(attrs={"class": "form-control", "rows": 6, "data-modal-focus": ""})}
+
+
+class LocationResponsibilityForm(ModelForm):
+    """The responsible teams of a location, edited in a dialog on its page (LocationResponsibilityUpdateView); none:
+    those of the location above it (Location.effective_responsible_teams)."""
+    class Meta:
+        model = Location
+        fields = ["responsible_teams"]
+        widgets = {"responsible_teams": CheckboxSelectMultiple}
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        from accounts.models import Team
+
+        self.fields["responsible_teams"].queryset = Team.objects.select_related("group").order_by("group__name")
+        self.fields["responsible_teams"].required = False
+
+    def team_choices(self):
+        """(team, checked) for each team, as the dialog shows them with their badges."""
+        chosen = {str(value) for value in (self["responsible_teams"].value() or [])}
+        return [(team, str(team.pk) in chosen) for team in self.fields["responsible_teams"].queryset]
+
+
+class UniqueItemResponsibilityForm(ModelForm):
+    """The responsible team and person of a unique item, edited in a dialog on its page
+    (UniqueItemResponsibilityUpdateView); without a team, those of its location."""
+    class Meta:
+        model = UniqueItem
+        fields = ["responsible_team", "responsible_user"]
+        widgets = {"responsible_user": AutocompleteSelect(url="user_autocomplete", attrs={"data-allow-clear": 1})}
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        inherited = self.instance.location.effective_responsible_teams if self.instance.location_id else []
+        self.fields["responsible_team"].queryset = self.fields["responsible_team"].queryset.select_related("group")
+        self.fields["responsible_team"].empty_label = (
+            _("As for its location: %(teams)s") % {"teams": ", ".join(str(team) for team in inherited)}
+            if inherited else _("As for its location"))
+        self.fields["responsible_user"].label_from_instance = user_label
+        self.fields["responsible_team"].widget.attrs.update({"class": "form-select", "data-modal-focus": ""})
 
 
 class LocationOverviewForm(ModelForm):

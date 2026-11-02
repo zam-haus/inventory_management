@@ -26,6 +26,7 @@ from .change_log import change_context
 from .models import Category, ChangeLog, Item, ItemFile, ItemImage, Location, UniqueItem
 from .permissions import (
     ITEM_CONVERSION_PERMISSIONS, UNIQUE_ITEM_CREATE_PERMISSIONS, ItemEditorPermissionMixin, item_conversion_unavailable,
+    unique_item_responsibility_denied,
 )
 from .label_ids import naming as label_id_naming, services
 from .widgets import NEW_ITEM_PREFIX
@@ -60,6 +61,9 @@ class DetailUniqueItemView(DetailView):
             context.setdefault("notes_form", forms.UniqueItemNotesForm(instance=self.object))
         if not self.object.is_disposed and self.request.user.has_perm("inventory.change_uniqueitem"):
             context["move_form"] = forms.MoveUniqueItemForm(instance=self.object)
+        # Who is responsible, in a dialog (unique_item_responsibility_editor.html).
+        if not unique_item_responsibility_denied(self.request.user, self.object):
+            context.setdefault("responsibility_form", forms.UniqueItemResponsibilityForm(instance=self.object))
         return context
 
 
@@ -81,6 +85,28 @@ class UniqueItemNotesUpdateView(PermissionRequiredMixin, View):
         detail.setup(request, pk=pk)
         detail.object = detail.get_object()
         context = detail.get_context_data(notes_form=form, notes_editor_open=True)
+        return detail.render_to_response(context, status=400)
+
+
+class UniqueItemResponsibilityUpdateView(View):
+    """Saves the responsible team and person of a unique item from the dialog on its page, for who may change unique
+    items and see contact details (unique_item_responsibility_denied); then back to the page."""
+    http_method_names = ["post"]
+
+    def post(self, request, pk):
+        with transaction.atomic():
+            unique_item = get_object_or_404(UniqueItem.active.select_for_update(of=("self",)), pk=pk)
+            if unique_item_responsibility_denied(request.user, unique_item):
+                raise PermissionDenied
+            form = forms.UniqueItemResponsibilityForm(request.POST, instance=unique_item)
+            if form.is_valid():
+                form.save(commit=False).save(actor=request.user, update_fields=["responsible_team", "responsible_user"])
+                messages.success(request, _("Responsibility saved."))
+                return redirect(unique_item)
+        detail = DetailUniqueItemView()
+        detail.setup(request, pk=pk)
+        detail.object = detail.get_object()
+        context = detail.get_context_data(responsibility_form=form, responsibility_editor_open=True)
         return detail.render_to_response(context, status=400)
 
 

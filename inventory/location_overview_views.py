@@ -7,9 +7,10 @@ from django.shortcuts import get_object_or_404, redirect
 from django.utils.translation import gettext_lazy as _
 from django.views import View
 
-from .forms import LocationDescriptionForm, LocationDimensionsForm, LocationOverviewForm, LocationPurposeForm
+from .forms import (LocationDescriptionForm, LocationDimensionsForm, LocationOverviewForm, LocationPurposeForm,
+                    LocationResponsibilityForm)
 from .models import Location
-from .permissions import location_edit_denied, location_purpose_denied
+from .permissions import location_edit_denied, location_purpose_denied, location_responsibility_denied
 from .views import DetailLocationView
 
 
@@ -29,8 +30,7 @@ class LocationEditView(PermissionRequiredMixin, View):
                 raise PermissionDenied
             form = self.form_class(request.POST, request.FILES, instance=location)
             if form.is_valid():
-                location = form.save(commit=False)
-                location.save(actor=request.user, update_fields=self.fields)
+                location = self.save(form, request.user)
                 messages.success(request, self.success_message)
                 if wants_json:
                     return JsonResponse({"ok": True, "url": location.get_absolute_url()})
@@ -46,6 +46,11 @@ class LocationEditView(PermissionRequiredMixin, View):
         detail.object = detail.get_object()
         context = detail.get_context_data(**{f"{self.context_name}_form": form, f"{self.context_name}_editor_open": True})
         return detail.render_to_response(context, status=400)
+
+    def save(self, form, user):
+        location = form.save(commit=False)
+        location.save(actor=user, update_fields=self.fields)
+        return location
 
 
 class LocationOverviewUpdateView(LocationEditView):
@@ -76,3 +81,21 @@ class LocationPurposeUpdateView(LocationEditView):
     denied = staticmethod(location_purpose_denied)
     success_message = _("Purpose saved.")
     context_name = "purpose"
+
+
+class LocationResponsibilityUpdateView(LocationEditView):
+    """Its responsible teams: those of the building structure and storage furniture for who may change locations,
+    those of containers for who may see contact details (location_responsibility_denied); the change log records them
+    (change_log._teams_changed)."""
+    form_class = LocationResponsibilityForm
+    denied = staticmethod(location_responsibility_denied)
+    success_message = _("Responsible teams saved.")
+    context_name = "responsibility"
+
+    def has_permission(self):
+        return self.request.user.is_authenticated  # the rest by its category (denied)
+
+    def save(self, form, user):
+        location = form.save(commit=False)
+        form.save_m2m()  # the teams only; the location itself stays as it is
+        return location

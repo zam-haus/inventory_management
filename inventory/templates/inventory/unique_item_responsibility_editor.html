@@ -1,0 +1,31 @@
+{% load i18n %}{# Its responsible team and person; location_field_editor.js makes this a dialog that leaves the focus free for the person's search (without JavaScript it stays here, below the page). #}
+<section id="unique-item-responsibility-editor" class="unique-item-responsibility-editor" data-field-editor data-field-editor-focus="false" tabindex="-1" aria-labelledby="unique-item-responsibility-editor-title" data-open="{{ responsibility_editor_open|yesno:'true,false' }}">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form action="{% url 'unique_item_responsibility_update' object.pk %}" method="post">
+                {% csrf_token %}
+                <div class="modal-header">
+                    <h2 class="modal-title fs-5" id="unique-item-responsibility-editor-title">{% trans "Edit responsibility" %}</h2>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" data-field-editor-enhanced hidden aria-label="{% trans 'Cancel' %}"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="{{ responsibility_form.responsible_team.id_for_label }}" class="form-label">{% trans "Responsible team" %}</label>
+                        {{ responsibility_form.responsible_team }}
+                        <div class="text-danger" data-field-editor-errors>{{ responsibility_form.responsible_team.errors }}</div>
+                    </div>
+                    <div>
+                        <label for="{{ responsibility_form.responsible_user.id_for_label }}" class="form-label">{% trans "Responsible person" %}</label>
+                        {{ responsibility_form.responsible_user }}
+                        <p class="form-text">{% trans "Only the first name is public; the full name and e-mail address are shown to who may see contact details." %}</p>
+                        <div class="text-danger">{{ responsibility_form.responsible_user.errors }}</div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" data-field-editor-enhanced hidden>{% trans "Cancel" %}</button>
+                    <button type="submit" class="btn btn-warning">{% trans "Save responsibility" %}</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</section>

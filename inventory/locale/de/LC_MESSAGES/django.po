@@ -5586,3 +5586,68 @@ msgstr "%(sub)s: von unten nach oben mit Buchstaben: a unter dem Tisch, dann die
 #, python-format
 msgid "Below the %(type)s counts as the first one, its top and, if there is something above it, that one as the last ones."
 msgstr "Unter dem %(type)s zählt als erstes, die Arbeitsplatte und, falls etwas darüber ist, das als letzte."
+
+#: inventory/permissions.py
+msgid "Only who may change locations says who is responsible for the building structure and storage furniture."
+msgstr "Wer für Gebäudestruktur und Lagermöbel verantwortlich ist, legt nur fest, wer Standorte ändern darf."
+
+#: inventory/permissions.py
+msgid "Only who may see contact details says who is responsible for containers."
+msgstr "Wer für Behälter verantwortlich ist, legt nur fest, wer Kontaktdaten sehen darf."
+
+#: inventory/permissions.py
+msgid "It is no longer in the inventory."
+msgstr "Es ist nicht mehr im Inventar."
+
+#: inventory/permissions.py
+msgid "Only who may change unique items and see contact details says who is responsible for them."
+msgstr "Wer für Einzelobjekte verantwortlich ist, legt nur fest, wer Einzelobjekte ändern und Kontaktdaten sehen darf."
+
+#: inventory/location_overview_views.py
+msgid "Responsible teams saved."
+msgstr "Verantwortliche Teams gespeichert."
+
+#: inventory/unique_item_views.py
+msgid "Responsibility saved."
+msgstr "Verantwortung gespeichert."
+
+#: inventory/templates/inventory/location_detail.html
+msgid "Edit responsible teams"
+msgstr "Verantwortliche Teams bearbeiten"
+
+#: inventory/templates/inventory/location_responsibility_editor.html
+msgid "Responsible teams"
+msgstr "Verantwortliche Teams"
+
+#: inventory/templates/inventory/location_responsibility_editor.html
+msgid "There are no teams yet (Admin → Accounts → Teams)."
+msgstr "Es gibt noch keine Teams (Admin → Konten → Teams)."
+
+#: inventory/templates/inventory/location_responsibility_editor.html
+#, python-format
+msgid "Without a team of its own, those of %(location)s are responsible, as for everything inside it."
+msgstr "Ohne eigenes Team sind die von %(location)s verantwortlich, wie für alles darin."
+
+#: inventory/templates/inventory/location_responsibility_editor.html
+msgid "The teams are responsible for everything inside it, too, that has no team of its own."
+msgstr "Die Teams sind auch für alles darin verantwortlich, das kein eigenes Team hat."
+
+#: inventory/templates/inventory/location_responsibility_editor.html
+msgid "Save responsible teams"
+msgstr "Verantwortliche Teams speichern"
+
+#: inventory/templates/inventory/unique_item_detail.html
+msgid "Edit responsibility"
+msgstr "Verantwortung bearbeiten"
+
+#: inventory/templates/inventory/unique_item_responsibility_editor.html
+msgid "Only the first name is public; the full name and e-mail address are shown to who may see contact details."
+msgstr "Nur der Vorname ist öffentlich; vollständiger Name und E-Mail-Adresse sind nur für sichtbar, wer Kontaktdaten sehen darf."
+
+#: inventory/templates/inventory/unique_item_responsibility_editor.html
+msgid "Save responsibility"
+msgstr "Verantwortung speichern"
+
+#: inventory/templates/inventory/unique_item_responsibility_editor.html
+msgid "Responsible person"
+msgstr "Verantwortliche Person"

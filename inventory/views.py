@@ -30,6 +30,7 @@ from .location_lookup import resolve_location_reference
 from .permissions import (
     QUICK_ITEM_PERMISSIONS, UNIQUE_ITEM_CREATE_PERMISSIONS, ItemEditorPermissionMixin, location_deletion_denied,
     item_conversion_denied, item_conversion_denied_by_permission, location_edit_denied, location_purpose_denied,
+    location_responsibility_denied,
 )
 from .models.unique_item import inherit_responsible_teams
 from .stock_change_views import mark_last_stock
@@ -402,6 +403,8 @@ class DetailLocationView(DetailView):
         context["dissolve_denied"] = location_deletion_denied(self.request.user, self.object)
         context["edit_denied"] = location_edit_denied(self.request.user, self.object)
         context["purpose_denied"] = location_purpose_denied(self.request.user, self.object)
+        # Who is responsible, in a dialog (location_responsibility_editor.html): by its category.
+        context["responsibility_denied"] = location_responsibility_denied(self.request.user, self.object)
         if not self.object.type.no_sublocations:
             context["numbering_types"] = [kind.name for kind, _source in self.object.numbering_types()]
             context["container_types"] = [kind.name for kind in self.object.container_types()]
@@ -445,6 +448,8 @@ class DetailLocationView(DetailView):
             context.setdefault("dimensions_form", forms.LocationDimensionsForm(instance=self.object))
         if not context["purpose_denied"]:
             context.setdefault("purpose_form", forms.LocationPurposeForm(instance=self.object))
+        if not context["responsibility_denied"]:
+            context.setdefault("responsibility_form", forms.LocationResponsibilityForm(instance=self.object))
         if self.request.user.has_perm("inventory.change_location"):
             if self.object.type.moveable:
                 context["move_form"] = forms.LocationMoveForm(instance=self.object, initial={"id": self.object.pk})

@@ -38,7 +38,9 @@ are in [Standortregeln](standortregeln.md) (German).
 * **Free of fire load** (`Location.fire_load_free`): no combustible materials may be stored
   there. It applies to everything inside (`Location.is_fire_load_free`).
 * **Outdoors** (`Location.outdoor`): courtyards, roofs, outside stairs.
-* **Responsible teams** (`Location.responsible_teams`, one or more `accounts.Team`).
+* **Responsible teams** (`Location.responsible_teams`, one or more `accounts.Team`), also changed in a dialog on the
+  location's page (pencil beside *Responsible*; who may: [permissions](permissions.md)); without any, those of the
+  location above apply.
 * **Number ranges per area** (`LocationType.area_numbering`): locations of the type get their
   number from a range of the room or area they stand in (`Location.numbering_area()`, also for one
   on a pallet there). Only for storage units with building-wide codes (*unique*), a short name

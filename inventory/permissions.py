@@ -6,7 +6,7 @@ from django.db import transaction
 from django.utils.translation import gettext as _
 
 from .change_log import change_context
-from .models import ChangeLog
+from .models import ChangeLog, LocationType
 
 
 # Anyone who may create items may manage quick-items while they stay quick-items.
@@ -66,6 +66,33 @@ def item_conversion_denied(user, item):
 def location_purpose_denied(user, location):
     """Why `user` may not change the purpose of `location` on the inventory pages, or None: as for its other details."""
     return location_edit_denied(user, location)
+
+
+# Who may see contact details (the "active" members) may also say who is responsible for containers and unique items.
+INTERNAL_DETAILS_PERMISSION = "inventory.view_internal_details"
+UNIQUE_ITEM_RESPONSIBILITY_PERMISSIONS = ("inventory.change_uniqueitem", INTERNAL_DETAILS_PERMISSION)
+
+
+def location_responsibility_denied(user, location):
+    """Why `user` may not change the responsible teams of `location` on the inventory pages (a dialog on its page), or
+    None: those of the building structure and of storage furniture need the permission to change locations, those of
+    containers and anything else the permission to see contact details."""
+    if location.type.category in (LocationType.Category.SPACE, LocationType.Category.STORAGE_UNIT):
+        if not user.has_perm("inventory.change_location"):
+            return _("Only who may change locations says who is responsible for the building structure and storage "
+                     "furniture.")
+    elif not user.has_perm(INTERNAL_DETAILS_PERMISSION):
+        return _("Only who may see contact details says who is responsible for containers.")
+    return None
+
+
+def unique_item_responsibility_denied(user, unique_item):
+    """Why `user` may not change the responsible team and person of `unique_item` on its page, or None."""
+    if unique_item.is_disposed:
+        return _("It is no longer in the inventory.")
+    if not user.has_perms(UNIQUE_ITEM_RESPONSIBILITY_PERMISSIONS):
+        return _("Only who may change unique items and see contact details says who is responsible for them.")
+    return None
 
 
 def location_deletion_denied(user, location):

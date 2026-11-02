@@ -47,6 +47,12 @@ delete options stay visible but disabled, saying why
 (`inventory.permissions.location_deletion_denied`); the location details list the
 property with the other location type properties.
 
+**Responsibility** is set in dialogs on the pages (pencil beside *Responsible*, shown only to who may change it;
+`inventory.permissions.location_responsibility_denied`, `unique_item_responsibility_denied`): the teams of the
+building structure and of storage furniture (spaces and storage units) need `change_location`, also for admin-only
+types; those of containers and other locations need `view_internal_details` (whoever may see contact details); the
+team and person of a unique item need `change_uniqueitem` and `view_internal_details`. The change log records them.
+
 Location types marked **admin only** (`LocationType.admin_only`, used for the building
 structure, see [Building structure](location-structure.md)) go further: their locations are
 created, changed and deleted only in the admin, which requires staff status, their purpose
