@@ -667,7 +667,9 @@ class DetailItemView(DetailView):
         next_url = self.request.get_full_path()
         context["take_choices"] = [{
             "url": f"{reverse('stock_change', args=[entry.pk])}?{urlencode({'next': next_url})}",
-            "item": str(entry.item), "location": entry.location.unique_identifier, "locationTitle": entry.location.title,
+            "item": str(entry.item), "itemIcon": location_display.item_icon(entry.item),
+            "location": entry.location.unique_identifier, "locationTitle": entry.location.title,
+            "locationIcon": location_display.icon_name(entry.location),
             "label": entry.location.title_with_code, "amount": "" if entry.amount is None else str(entry.amount),
             "kind": entry.amount_kind, "amountText": entry.amount_text, "unit": entry.item.measurement_unit.short,
             "price": "" if entry.item.sale_price is None else str(entry.item.sale_price),

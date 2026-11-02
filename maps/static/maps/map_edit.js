@@ -77,7 +77,7 @@
             option.type = 'button';
             option.id = 'map-edit-hit-' + index;
             option.setAttribute('role', 'option');
-            L.DomUtil.create('span', 'map-edit-hit-title', option).textContent = location.title;
+            L.DomUtil.create('span', 'map-edit-hit-title', option).append(window.typeName(location.icon, location.title));
             L.DomUtil.create('span', 'loc-code', option).textContent = location.code;
             option.addEventListener('mousedown', function (event) { event.preventDefault(); });  // keeps the focus
             option.addEventListener('click', function () { choose(location); });
@@ -148,12 +148,13 @@
     // What the selected position belongs to: the location chosen in the box, else its own; none for a new one yet.
     function target() {
         var p = selected && selected.feature && selected.feature.properties;
-        return chosen || (p ? {title: p.title, code: p.code} : null);
+        return chosen || (p ? {title: p.title, code: p.code, icon: p.icon} : null);
     }
 
+    // What the selection belongs to, with the icon of its type (docs/icons.md), for texts in the boxes and dialogs.
     function selectionTitle() {
         var t = target();
-        return t ? t.title + (t.code ? ' · ' + t.code : '') : '';
+        return t ? window.typeName(t.icon, t.title + (t.code ? ' · ' + t.code : '')) : '';
     }
 
     // The box above the position: what it belongs to (a button to change it; for unique items only shown), or the
@@ -169,7 +170,7 @@
         assignButton.disabled = item;
         assignButton.textContent = '';
         if (t) {
-            L.DomUtil.create('span', 'map-edit-assign-title', assignButton).textContent = t.title;
+            L.DomUtil.create('span', 'map-edit-assign-title', assignButton).append(window.typeName(t.icon, t.title));
             if (t.code) {
                 L.DomUtil.create('span', 'loc-code', assignButton).textContent = t.code;
             }
@@ -225,7 +226,7 @@
             clearSelection();
             return;
         }
-        unassignDialog.querySelector('[data-unassign-title]').textContent = selectionTitle();
+        unassignDialog.querySelector('[data-unassign-title]').replaceChildren(selectionTitle());
         bootstrap.Modal.getOrCreateInstance(unassignDialog).show();
     });
     unassignDialog.addEventListener('shown.bs.modal', function () {
@@ -590,7 +591,7 @@
                 location.kinds.indexOf(kind) < 0;
         });
         kindsBox.hidden = false;
-        targetText.textContent = selectionTitle();
+        targetText.replaceChildren(selectionTitle());
         targetText.hidden = false;
     }
 
@@ -999,7 +1000,7 @@
         dialogSave.hidden = dialogKeep.hidden = unassigned;
         dialogAssign.hidden = !unassigned;
         var what = unsavedDialog.querySelector('[data-unsaved-title]');
-        what.textContent = selectionTitle();
+        what.replaceChildren(selectionTitle());
         what.hidden = !what.textContent;
         bootstrap.Modal.getOrCreateInstance(unsavedDialog).show();
     }

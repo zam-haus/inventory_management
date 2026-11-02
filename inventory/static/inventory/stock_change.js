@@ -57,9 +57,10 @@
             amount: number(data.amount), kind: data.kind, amountText: data.amountText, unit: data.unit,
             price: number(data.price), lastStock: data.lastStock === 'true',
         };
-        if (parts.item) parts.item.textContent = data.item;
+        // Item and location with their icons (docs/icons.md).
+        if (parts.item) parts.item.replaceChildren(window.typeName(data.itemIcon, data.item));
         if (parts.location) parts.location.textContent = data.location;
-        if (parts.locationTitle) parts.locationTitle.textContent = data.locationTitle || '';
+        if (parts.locationTitle) parts.locationTitle.replaceChildren(window.typeName(data.locationIcon, data.locationTitle || ''));
         parts.stock.textContent = entry.amountText;
         parts.unit.textContent = entry.unit;
         update();

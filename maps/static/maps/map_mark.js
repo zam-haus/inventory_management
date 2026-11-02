@@ -161,6 +161,7 @@
                     return;
                 }
                 where.textContent = strings.in + ' ';
+                where.append(window.typeIcon(data.area.icon), ' ');
                 var area = L.DomUtil.create('a', '', where);
                 area.href = data.area.url;
                 area.textContent = data.area.title;

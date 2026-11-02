@@ -200,10 +200,10 @@ function setUp(form, options) {
     function qrNote() {
         if (!parts.qrNote || !fields.location) return;
         const location = options.locations.find(item => String(item.id) === fields.location.value);
-        const fill = template => template.replace('{item}', options.item).replace('{location}', location?.code || '')
-            .replace('{id}', options.label_id);
-        parts.qrNote.textContent = fill(options.label_id ? (location ? text.labelQrExisting : text.labelQrNoLocation)
-            : (location ? text.labelQrNew : text.labelQrNewNoLocation));
+        // The item with the icon of its kind (docs/icons.md).
+        window.fillTemplate(parts.qrNote, options.label_id ? (location ? text.labelQrExisting : text.labelQrNoLocation)
+            : (location ? text.labelQrNew : text.labelQrNewNoLocation),
+        {item: window.typeName(options.item_icon, options.item), location: location?.code || '', id: options.label_id});
     }
 
     form.addEventListener('input', event => {

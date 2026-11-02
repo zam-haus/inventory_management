@@ -445,7 +445,7 @@ class QuickActionTests(MediaMixin, UniqueItemFixture, TestCase):
         self.assertEqual(self.client.get(url, {"q": "WS"}).json(),
                          {"id": self.location.pk, "text": "Workshop · WS",
                           "html": f'<span class="loc-label">{type_icon("geo-alt")} <span class="loc-title">Workshop</span> '
-                                  '<span class="loc-code">WS</span></span>'})
+                                  '<span class="loc-code">WS</span></span>', "icon": "geo-alt"})
         self.assertEqual(self.client.get(url, {"q": f"https://inv.zam.haus{self.shelf.get_absolute_url()}"}).json()["id"], self.shelf.pk)
         label = services.claim(make_id("ABCDE").code, self.shelf, None)
         self.assertEqual(self.client.get(url, {"q": f"HTTPS://I.ZAM.HAUS/{label.code}"}).json()["id"], self.shelf.pk)

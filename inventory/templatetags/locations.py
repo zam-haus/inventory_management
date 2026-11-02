@@ -64,3 +64,10 @@ def object_label(obj, url=None):
 def location_name(location):
     """In a sentence: the icon of its type and its title, without code ("width and depth from <icon> Regal 3")."""
     return location_display.label_html(location, code="", subtitle=False)
+
+
+
+@register.filter
+def item_icon(item):
+    """The icon of an item's kind: {% type_icon item|item_icon %}, data for scripts."""
+    return location_display.item_icon(item)

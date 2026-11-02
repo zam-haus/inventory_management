@@ -25,6 +25,7 @@ from django.views.decorators.http import require_GET
 from sorl.thumbnail import get_thumbnail
 
 from inventory.favicon import favicon_dir
+from inventory.location_display import icon_name
 from inventory.label_ids.core import display as label_display
 from inventory.models import LabelId, Location, LocationType, UniqueItem
 
@@ -100,7 +101,7 @@ def _location_feature(shape, tree):
         "structure": location.type.structure or "", "kind": shape.kind, "rotation": shape.rotation,
         "size": [size[0] / 100, size[1] / 100] if size else None, "sizeFixed": shape.size_fixed(),
         "code": location.unique_identifier, "short": location.short_name, "title": location.title,
-        "url": location.get_absolute_url(), "photo": location_photo_url(location), "stack": tree.stack(location.pk),
+        "icon": icon_name(location), "url": location.get_absolute_url(), "photo": location_photo_url(location), "stack": tree.stack(location.pk),
         "depth": tree.depth(location.pk),
     }}
 
@@ -123,7 +124,7 @@ def _item_feature(position, tree):
         # two lines).
         "label": {"title": str(item.item), "subtitle": item.name, "code": lid, "min_zoom": ITEM_LABEL_ZOOM},
         "lid": lid,
-        "id": f"item:{item.pk}", "pk": item.pk, "category": "item", "kind": position.kind,
+        "id": f"item:{item.pk}", "pk": item.pk, "category": "item", "icon": "box-star", "kind": position.kind,
         "rotation": position.rotation, "size": [size[0] / 100, size[1] / 100] if size else None, "title": title,
         "code": item.location.unique_identifier, "url": item.get_absolute_url(),
         "stack": tree.stack(item.location_id), "depth": tree.depth(item.location_id) + 1,
@@ -347,7 +348,7 @@ def place_context(request):
     found = levels.effective_shape(around) if around else None
     data.update({
         "level": number, "home_level": home, "around": around.pk if around else None,
-        "around_title": around.title_with_code if around else "",
+        "around_title": around.title_with_code if around else "", "around_icon": icon_name(around) if around else "",
         "around_id": f"loc:{found[1].pk}" if found else None,
         "data_url": reverse("maps:level_data", args=[number]) if number is not None else None,
         "at_url": reverse("maps:area_at"),
@@ -380,7 +381,7 @@ def unplaced(request, number):
         footprint = location.footprint_cm
         size = [footprint[0] / 100, footprint[1] / 100] if footprint else type_size(location.type)
         rows.append({"pk": location.pk, "code": location.unique_identifier, "title": location.title,
-                     "type": location.type_id, "kinds": kinds,
+                     "icon": icon_name(location), "type": location.type_id, "kinds": kinds,
                      "default_kind": "rectangle" if size and "rectangle" in kinds else kinds[0],
                      "size": size, "size_fixed": footprint is not None})
     items = []
@@ -391,6 +392,7 @@ def unplaced(request, number):
             "item__map_settings", "location").order_by("location__unique_identifier", "item__name", "pk"):
         settings_ = getattr(item.item, "map_settings", None)
         items.append({"pk": item.pk, "item": True, "code": item.location.unique_identifier, "title": str(item),
+                      "icon": "box-star",
                       "type": None, "kinds": list(UniqueItemPosition.Kind.values),
                       "default_kind": settings_.default_kind if settings_ else "point",
                       "size": type_size(item.item), "size_fixed": False})
@@ -409,7 +411,7 @@ def area_at(request):
     location = preview.area_at_point(point, number, int(current) if current.isdigit() else None)
     if location is None:
         return JsonResponse({"area": None})
-    return JsonResponse({"area": {"pk": location.pk, "code": location.unique_identifier,
+    return JsonResponse({"area": {"pk": location.pk, "code": location.unique_identifier, "icon": icon_name(location),
                                   "title": location.title_with_code, "url": location.get_absolute_url()}})
 
 

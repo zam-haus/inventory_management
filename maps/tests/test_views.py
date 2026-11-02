@@ -13,6 +13,7 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase, override_settings
 from django.urls import reverse
 
+from inventory.location_display import icon_name
 from inventory.label_ids import services
 from inventory.label_ids.testing import make_id
 from inventory.models import ChangeLog, Location, LocationType
@@ -72,6 +73,9 @@ class MapViewTests(Building, TestCase):
         self.assertEqual(features[f"loc:{self.pallet.pk}"]["stack"], [self.hbb.pk, self.upper.pk])
         self.assertEqual(features[f"loc:{self.pallet.pk}"]["kind"], "rectangle")
         self.assertEqual(features[f"item:{self.saw.pk}"]["kind"], "point")  # map.js: in the layer of points
+        # The icon of its type or kind, before its name in labels and popups (map.js).
+        self.assertEqual((features[f"loc:{self.pallet.pk}"]["icon"], features[f"item:{self.saw.pk}"]["icon"]),
+                         (icon_name(self.pallet), "box-star"))
         self.assertEqual([part["short"] for part in data["stacks"][0]["parts"]], [".1", ".2"])
         page = self.client.get(reverse("maps:level", args=[-1]))
         self.assertContains(page, "data-map-page")
@@ -188,7 +192,8 @@ class MapViewTests(Building, TestCase):
         for kind in ("point", "rectangle", "area"):  # every shape
             items = self.client.get(url, {"kind": kind}).json()["items"]
             self.assertEqual(items, [{"pk": self.saw.pk, "item": True, "code": self.box.unique_identifier,
-                                      "title": str(self.saw), "type": None, "kinds": ["point", "rectangle", "area"],
+                                      "title": str(self.saw), "icon": "box-star", "type": None,
+                                      "kinds": ["point", "rectangle", "area"],
                                       "default_kind": "rectangle", "size": [2, 0.8], "size_fixed": False}])
         self.assertEqual(self.client.get(reverse("maps:unplaced", args=[0])).json()["items"], [])  # another level
         positions.set_item_position(self.saw, None, CENTER)

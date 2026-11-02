@@ -24,7 +24,7 @@
                 select.value = String(result.id);
                 select.dispatchEvent(new Event('change', {bubbles: true}));
             }
-            status.textContent = data.found.replace('{location}', result.text);
+            window.fillTemplate(status, data.found, {location: window.typeName(result.icon, result.text)});
             status.classList.remove('text-danger');
         } catch (error) {
             status.textContent = error.message || String(error);

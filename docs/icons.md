@@ -35,7 +35,13 @@ shared renderers put them there, so a template need not: `{% location_label %}` 
 locations above in one query by their code paths, `paths()`), `{% location_name %}` (in a sentence: icon and title),
 `{% item_label %}`, `{% unique_item_label %}` and `{% object_label %}` (`{% load locations %}`), and the result rows.
 They refer to a sprite drawn once on every page (`{% type_icon_sprite %}` in `base.html` and the standalone pages,
-`icons.TYPE_ICONS`, about 5 kB), so long lists and rows loaded later stay small (`{% type_icon name %}`).
+`icons.TYPE_ICONS`, about 5 kB), so long lists and rows loaded later stay small (`{% type_icon name %}`). Scripts name things
+the same way (`actions.js`): `window.typeIcon(name)`, `window.typeName(icon, text)` and, for a translated text with
+placeholders, `window.fillTemplate(element, text, {title: node})`; the data they get carry the icon's name (`icon` in
+the map's features, its unplaced locations and unique items, the area at a point and the location lookup of scans;
+`data-item-icon`/`data-location-icon` and `itemIcon`/`locationIcon` for the stock dialog; `item_icon` in the label
+dialog's options). So do the map's labels and popups, the edit mode's search, its "belongs to" box and dialogs, the
+marked point's area, the stock dialog and the label dialog's note on the QR code.
 
 Where an action row shows actions by their icon only (`actions.js`), no icon stands twice without its text: actions
 whose icon another one shows too keep their text (or go into the menu). Give different actions different icons.

@@ -228,6 +228,7 @@ def options(subject_type, obj):
     if subject_type == "item":
         # Where the QR code leads: the item's label ID (given out when first printed) with the location
         data["item"] = obj.name
+        data["item_icon"] = location_display.item_icon(obj)  # before its name in the note (docs/icons.md)
         data["locations"] = [{"id": location.pk, "code": location.unique_identifier, "name": location.name,
                               "label": location.title_with_code}
                              for location in item_locations(obj)]

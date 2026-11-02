@@ -4,6 +4,37 @@ window.appIcon = name => {
     return template ? template.content.cloneNode(true) : document.createDocumentFragment();
 };
 
+// The icon of a location's type or an item's kind, before its name (docs/icons.md): a reference to the sprite on every
+// page (icons.type_icon_sprite). window.typeIcon('bookshelf') returns the <svg>; window.typeName(icon, text) the icon
+// and the name; window.fillTemplate(element, 'Moves into {title}.', {title: node}) fills a translated text's
+// placeholders with nodes or texts, so that names in it keep their icons.
+window.typeIcon = name => {
+    const ns = 'http://www.w3.org/2000/svg';
+    if (!name) return document.createDocumentFragment();
+    const svg = document.createElementNS(ns, 'svg');
+    svg.setAttribute('class', `bi bi-${name} type-icon`);
+    svg.setAttribute('width', '1em');
+    svg.setAttribute('height', '1em');
+    svg.setAttribute('aria-hidden', 'true');
+    svg.setAttribute('focusable', 'false');
+    const use = document.createElementNS(ns, 'use');
+    use.setAttribute('href', `#type-icon-${name}`);
+    svg.append(use);
+    return svg;
+};
+window.typeName = (icon, text) => {
+    const name = document.createDocumentFragment();
+    if (icon) name.append(window.typeIcon(icon), ' ');
+    name.append(text);
+    return name;
+};
+window.fillTemplate = (element, template, values) => {
+    element.replaceChildren(...template.split(/(\{\w+\})/).filter(Boolean).map(part => {
+        const value = /^\{\w+\}$/.test(part) && Object.hasOwn(values, part.slice(1, -1)) ? values[part.slice(1, -1)] : part;
+        return value instanceof Node ? value : String(value ?? '');
+    }));
+};
+
 // Bootstrap tooltips for every [data-bs-toggle="tooltip"] on the page, and the
 // helpers for buttons that stay visible while unavailable (.disabled-action).
 (() => {

@@ -143,8 +143,8 @@
         return STYLES[c] ? c : 'container';
     }
 
-    // The label (maps/views.py _label): purpose or name, the code chip in the line below; null for none.
-    // A unique item's name and its own one in a line, or in two when that would be long.
+    // The label (maps/views.py _label): the icon of its type and its purpose or name, the code chip in the line below;
+    // null for none. A unique item's name and its own one in a line, or in two when that would be long.
     var LABEL_LINE = 24;
 
     function label(feature) {
@@ -155,9 +155,9 @@
         var box = document.createElement('span');
         var lines = !given.subtitle ? [given.title] : (given.title + ' ' + given.subtitle).length > LABEL_LINE ?
             [given.title, given.subtitle] : [given.title + ' ' + given.subtitle];
-        lines.filter(Boolean).forEach(function (text) {
+        lines.filter(Boolean).forEach(function (text, index) {
             var title = L.DomUtil.create('span', 'map-label-title', box);
-            title.textContent = text;
+            title.append(index === 0 ? window.typeName(feature.properties.icon, text) : text);
             Object.assign(title.style, given.style || {});  // the type's label size, colour, weight
         });
         if (given.code) {
@@ -171,7 +171,8 @@
         return Boolean(stack && stack[1] === feature.properties.pk);
     }
 
-    // As locations are shown everywhere: purpose or name (a link to its page), the code chip in the line below; above
+    // As locations are shown everywhere: the icon of its type, purpose or name (a link to its page), the code chip in
+    // the line below; above
     // them the overview photo, if there is one (the popup is laid out again once it has loaded).
     function popup(feature, layer) {
         var p = feature.properties;
@@ -188,7 +189,9 @@
             });
             photo.src = p.photo;
         }
-        var link = L.DomUtil.create('a', 'map-popup-title', box);
+        var heading = L.DomUtil.create('span', 'map-popup-heading', box);
+        heading.append(window.typeIcon(p.icon), ' ');
+        var link = L.DomUtil.create('a', 'map-popup-title', heading);
         link.href = p.url;
         link.textContent = p.title;
         // A unique item's own code is its ZAMid (its `code` is its location's).

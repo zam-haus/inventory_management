@@ -434,7 +434,7 @@
             self.moveTo = area && area.pk !== self.context.around ? area : null;
             self.moveBox.hidden = !self.moveTo;
             if (self.moveTo) {
-                self.moveLabel.textContent = self.root.dataset.moveInto.replace('{title}', area.title);
+                window.fillTemplate(self.moveLabel, self.root.dataset.moveInto, {title: window.typeName(area.icon, area.title)});
                 self.moveBox.querySelector('input').checked = false;
             }
         });
@@ -665,8 +665,8 @@
                             return;
                         }
                         var option = levelSelect.options[levelSelect.selectedIndex];
-                        confirmBox.querySelector('[data-place-confirm-text]').textContent = strings.confirmMove
-                            .replace('{title}', area.title).replace('{level}', option ? option.text : level);
+                        window.fillTemplate(confirmBox.querySelector('[data-place-confirm-text]'), strings.confirmMove,
+                            {title: window.typeName(area.icon, area.title), level: option ? option.text : level});
                         confirmBox.hidden = false;
                         confirmBox.querySelector('[data-place-confirm-yes]').focus();
                     }).catch(function () { placer.say(strings.error); });

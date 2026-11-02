@@ -94,4 +94,4 @@ def location_lookup(request):
     except ValidationError as error:
         return JsonResponse({"error": " ".join(error.messages)}, status=404)
     return JsonResponse({"id": location.pk, "text": location.title_with_code,
-                         "html": location_display.label_html(location)})
+                         "html": location_display.label_html(location), "icon": location_display.icon_name(location)})
