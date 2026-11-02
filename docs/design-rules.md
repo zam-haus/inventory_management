@@ -12,8 +12,8 @@ how locations are named in [Location purpose and photo](locations.md). The share
 * **Icons are never blue,** also inside a link: they keep the text's colour (`a .type-icon` in `text.css`, the
   breadcrumbs in `breadcrumbs.css`). Buttons, menus and icon-only links colour their own icons.
 * **Underlined:**
-  * **names in lists** (result rows, the location and item trees, the levels-and-axes overview): on hover and focus only;
-    blue and bold tell them apart;
+  * **names in lists** (result rows, the location and item trees, the levels-and-axes overview, the category headings
+    in result lists): on hover and focus only; blue and bold tell them apart;
   * **every other text link** (running text and markdown, the lines below a result row's name such as places,
     category and path, breadcrumbs, counts, back links, links in headings): always, thicker on hover. A link around a
     location's label underlines the title only, not the code chip after it (`locations.css`).

@@ -72,6 +72,9 @@ body:has(.app-navbar.is-hidden) .result-group { top: var(--sticky-top); }
 .result-group.is-static { position: static; }
 @media (prefers-reduced-motion: reduce) { .result-group { transition: none; } }
 .result-group-title { display: flex; align-items: center; gap: .35rem; margin: 0; font-size: 1.1rem; }
+/* A category's name leading to its page: like the names in lists and trees, underlined on hover (docs/design-rules.md). */
+.result-group-title a { text-decoration: none; }
+.result-group-title a:hover, .result-group-title a:focus-visible { text-decoration: underline; }
 /* Folds its rows on a category's page (results.js): a triangle, turned while they are shown. */
 .result-group-toggle { display: inline-flex; align-items: center; justify-content: center; width: 1.6rem; height: 1.6rem;
     margin-left: -.35rem; padding: 0; border: 0; border-radius: .25rem; background: transparent; color: inherit; }
