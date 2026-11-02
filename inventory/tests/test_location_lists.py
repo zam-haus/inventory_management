@@ -21,7 +21,7 @@ class LocationListTests(TestCase):
 
     def test_overview_links_to_sections_with_counts(self):
         response = self.client.get(self.room.get_absolute_url())
-        self.assertContains(response, "Hier befinden sich …")
+        self.assertContains(response, "Hier sind …")
         icon = lambda name: Template(f'{{% load icons %}}{{% icon "{name}" %}}').render(Context())
         self.assertContains(response, f'<a href="#location-items">{icon("boxes")} <span class="location-contents-count" data-items-count>3</span> Mengenartikel</a>', html=True)
         self.assertContains(response, f'<a href="#location-children">{icon("geo-alt")} <span class="location-contents-count">11</span> Unterstandorte</a>', html=True)

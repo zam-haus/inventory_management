@@ -39,7 +39,8 @@ browser's. The magnifier's tooltip says what the next click does; going to the f
   what belongs there (the first line of its description) and, as in the item tree, its counted and unique items,
   those below it included; it leads to its page, where the search goes on within it ([trees](trees.md)). An item shows where it is stored with its stock or its unique items (named as
   everywhere: item, own name, label ID), a unique item its label ID after its name and its location, a location
-  the path above it and, as in the location tree, its sub-locations by kind (whole subtree) and the items and unique
+  the path above it and, as in the location tree, its sub-locations by kind (whole subtree, counted by the database in one query for the list by their code paths,
+  `render.sub_locations`) and the items and unique
   items right there ([trees](trees.md)). A unique item's name leads to that unique item; a place's name leads to it, its code chip opens it in brief
   ([locations](locations.md)). The words are marked; matches elsewhere are named, e.g. "Found in text on a
   photo".

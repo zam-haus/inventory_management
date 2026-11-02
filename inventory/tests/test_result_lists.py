@@ -67,6 +67,14 @@ class ResultListTests(MediaMixin, TestCase):
         content = self.client.get(self.room.get_absolute_url()).content.decode()
         row = content[content.index(f'class="result-link" href="{self.shelf.get_absolute_url()}"'):]
         self.assertIn('<span class="result-count" title="1 container">', row[:row.index("</li>")])
+        # Each its whole subtree, also with locations of it in the same list (a search): the box inside the shelf
+        # inside the room counts for both, the insert in the box for all three.
+        box_1 = Location.objects.get(short_name="B1")
+        Location.objects.create(type=box, name="Insert", short_name="I1", parent_location=box_1)
+        sub_locations = lambda entry: [(tally.icon, tally.number) for tally in entry.counts
+                                       if tally.icon not in ("boxes", "box-star")]
+        self.assertEqual([sub_locations(entry) for entry in search.render.listed("location", [self.room, self.shelf, box_1])],
+                         [[("bookshelf", 1), ("eurobox-open", 2)], [("eurobox-open", 2)], [("eurobox-open", 1)]])
 
     def test_the_item_page_lists_result_rows(self):
         page = self.client.get(self.glue.get_absolute_url(), {"loc": self.other.pk}).content.decode()

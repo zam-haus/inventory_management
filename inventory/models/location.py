@@ -603,12 +603,14 @@ class Location(SoftDeleteModel, ComputedFieldsModel):
         ],
         verbose_name=_("name"),
     )
+    # Letters and numbers, + and - (levels: HH+0, HH-1). No dot: it separates the short names in the code paths
+    # (locatable_identifier, HW.R3.a), by which lists, counts and searches find what is below a location.
     short_name = models.CharField(
         _("short name"),
         max_length=8,
         validators=[
             validators.RegexValidator(
-                "[^a-zA-Z0-9]*", message=_("Only numbers and letters allowed.")
+                r"^[A-Za-z0-9+-]+\Z", message=_("Only letters, numbers, + and - are allowed.")
             )
         ],
     )

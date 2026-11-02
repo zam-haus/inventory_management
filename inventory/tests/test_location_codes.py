@@ -136,6 +136,18 @@ class CodesIgnoringCaseTests(CodeTypesMixin, TestCase):
         with self.assertRaisesMessage(ValidationError, message):
             location.full_clean(exclude=self.EXCLUDE)
 
+    def test_short_names_are_letters_numbers_plus_and_minus(self):
+        # No dot (it separates the short names in the code paths), no spaces or other signs; levels have + and -.
+        for short_name in ("c.d", "c d", "c_d", "c/d", "c%", ""):
+            with self.subTest(short_name=short_name), self.assertRaises(ValidationError) as caught:
+                Location(type=self.compartment, name="Fach", short_name=short_name,
+                         parent_location=self.shelf).full_clean(exclude=self.EXCLUDE)
+            self.assertIn("short_name", caught.exception.message_dict)
+        for short_name in ("c", "HH+0", "HH-1", "R302"):
+            with self.subTest(short_name=short_name):
+                Location(type=self.compartment, name="Fach", short_name=short_name,
+                         parent_location=self.shelf).full_clean(exclude=self.EXCLUDE)
+
     def test_codes_that_differ_only_in_case_are_refused(self):
         self.assertRefused(Location(type=self.compartment, name="Fach A", short_name="A", parent_location=self.shelf),
                            "unique among all sibling locations")

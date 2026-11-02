@@ -2071,8 +2071,8 @@ msgid "Only numbers, letters and spaces allowed."
 msgstr "Nur Zahlen, Buchstaben und Leerzeichen erlaubt."
 
 #: models/location.py:214
-msgid "Only numbers and letters allowed."
-msgstr "Nur Zahlen und Buchstaben erlaubt."
+msgid "Only letters, numbers, + and - are allowed."
+msgstr "Nur Buchstaben, Zahlen, + und - sind erlaubt."
 
 #: models/location.py:293
 msgid "Short name must be unique, as defined by type."
@@ -2799,7 +2799,7 @@ msgstr "Alle %(counter)s anzeigen"
 
 #: inventory/templates/inventory/location_detail.html
 msgid "At this location …"
-msgstr "Hier befinden sich …"
+msgstr "Hier sind …"
 
 #: inventory/templates/inventory/location_detail.html
 #: inventory/templates/inventory/location_dissolve_base.html

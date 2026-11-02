@@ -82,6 +82,11 @@ the location type), so moving a location never changes its code; only changing a
 (also for the compartments below it), or hanging a compartment or part of a room elsewhere in the admin. Former
 codes stay blocked for good (`LocationFormerCode`), so a link never leads to another location.
 
+A **short name** has letters, numbers, + and - only (levels: `HH+0`, `HH-1`; `Location.short_name`). No dot: it
+separates the short names in the full path (`locatable_identifier`, `HH+0.MSL.R303.a`), which is always the path of
+the location above it, a dot and its short name, also where a type has codes of its own (a box `K12` at
+`HH+0.MSL.R303.K12`). Lists, counts and the search below a location find what is below it by that path.
+
 * Another spelling of the code (`/location/r303.A`) goes on to the page (301).
 * A former code goes on to the location's current code (301) with a notice: the link names the former code,
   a label with it should be printed anew.

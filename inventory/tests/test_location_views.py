@@ -156,14 +156,16 @@ class LocationsMoveHereTests(TestCase):
         self.assertEqual(numeric.parent_location_id, self.parent.pk)
         self.assertEqual(self.box.parent_location_id, self.source.pk)
 
-    def test_codes_come_before_paths(self):
-        # "SRC.U" is the code of one location and the short-name path of another: the code wins (inventory/codes.py).
-        coded = Location.objects.create(type=self.room_type, name="Coded", short_name="SRC.U", parent_location=self.source)
+    def test_found_by_code_url_or_path(self):
+        # By its short-name path (SRC.U; its code is U) and by its URL. A code never reads as another location's path:
+        # short names have no dot (Location.short_name), so only parts (compartments) have codes with dots, and those
+        # are their paths below a location with a code of its own (inventory/codes.py looks for codes first).
         self.assertContains(self.post("SRC.U"), "Locations moved: 1. Errors: 0.")
-        coded.refresh_from_db()
         self.unique.refresh_from_db()
-        self.assertEqual((coded.parent_location, self.unique.parent_location), (self.parent, self.source))
-        self.assertContains(self.post(self.unique.get_absolute_url()), "Locations moved: 1. Errors: 0.")
+        self.assertEqual(self.unique.parent_location, self.parent)
+        self.assertContains(self.post(self.box.get_absolute_url()), "Locations moved: 1. Errors: 0.")
+        self.box.refresh_from_db()
+        self.assertEqual(self.box.parent_location, self.parent)
 
     def test_empty_input_does_not_redirect_or_move(self):
         response = self.post(" ; \n\t;")

@@ -37,7 +37,7 @@ Jeder Standort gehört über seinen Typ zu einer von drei Kategorien:
 
 Lagermöbel bleiben Lagermöbel, auch wenn sie Rollen haben. *Mobil* (unterwegs oder verliehen)
 hat keine Kategorie. Die Standortseite listet die Unterstandorte je Kategorie in einem eigenen
-Kasten: unter „Hier befinden sich …“ links die Sachen, rechts Gebäudeteile, Lagermöbel und
+Kasten: unter „Hier sind …“ links die Sachen, rechts Gebäudeteile, Lagermöbel und
 Behälter. Bei den Lagermöbeln legt **+** ein neues an (wie der Knopf **Regal / Schrank**), bei
 den Behältern holt der Knopf daneben weitere hierher (wie **Hierher bewegen**).
 

@@ -3,9 +3,12 @@ and every other list of locations, categories, items and unique items (results/e
 import json
 from collections import Counter, defaultdict
 from dataclasses import dataclass, field
+from functools import reduce
+from operator import or_
 
 from django.conf import settings
-from django.db.models import Count, F, OuterRef, Prefetch, Q, Subquery, prefetch_related_objects
+from django.db.models import (Case, Count, F, IntegerField, OuterRef, Prefetch, Q, Subquery, Value, When,
+                              prefetch_related_objects)
 from django.db.models.functions import Coalesce
 from django.utils.translation import gettext_lazy as _
 from django.utils.translation import ngettext
@@ -154,30 +157,27 @@ def count_text(kind, count, more=False):
     return texts[kind] % {"count": f"{count}+" if more else count}
 
 
-def sub_locations(pks):
-    """{pk: Counter by icon_name} of the active locations below these, in their whole subtrees; a query per level."""
-    children, icons = defaultdict(list), {}
-    seen, level = set(pks), set(pks)
-    while level:
-        rows = Location.active.filter(parent_location__in=level).values_list("pk", "parent_location", "type__category")
-        level = set()
-        for pk, parent, category in rows:
-            children[parent].append(pk)
-            icons[pk] = CATEGORY_ICONS.get(category, "geo-alt")
-            if pk not in seen:
-                seen.add(pk)
-                level.add(pk)
-
-    def below(pk):
-        counted, pending, done = Counter(), list(children[pk]), set()
-        while pending:
-            child = pending.pop()
-            if child not in done:
-                done.add(child)
-                counted[icons[child]] += 1
-                pending += children[child]
-        return counted
-    return {pk: below(pk) for pk in pks}
+def sub_locations(locations):
+    """{pk: Counter by icon_name} of the active locations below these, in their whole subtrees: counted by the database
+    in one query, by their code paths (locatable_identifier, its prefix index), each to the innermost listed location
+    it is below; a listed location inside another one then adds its count to that one's."""
+    if not locations:
+        return {}
+    below = lambda location: Q(locatable_identifier__startswith=f"{location.locatable_identifier}.")
+    innermost = sorted(locations, key=lambda location: -len(location.locatable_identifier))
+    owner = Case(*[When(below(location), then=Value(location.pk)) for location in innermost],
+                 output_field=IntegerField())
+    rows = (Location.active.filter(reduce(or_, (below(location) for location in locations)))
+            .annotate(owner=owner).values("owner", "type__category").annotate(n=Count("pk")).order_by())
+    counted = defaultdict(Counter)
+    for row in rows:
+        counted[row["owner"]][CATEGORY_ICONS.get(row["type__category"], "geo-alt")] += row["n"]
+    totals = {}
+    for location in locations:
+        totals[location.pk] = sum((counted[other.pk] for other in locations
+                                   if other.locatable_identifier.startswith(f"{location.locatable_identifier}.")),
+                                  Counter(counted[location.pk]))
+    return totals
 
 
 def photos(images):
@@ -209,7 +209,7 @@ def prepare(kind, objects, here=None, item_photos=True, scope=None):
                      .annotate(n=Count("pk")).values_list("location", "n"))
         unique = dict(UniqueItem.active.filter(location__in=pks).values("location").annotate(n=Count("pk"))
                       .values_list("location", "n"))
-        below = sub_locations(pks)
+        below = sub_locations(objects)
         for location in objects:
             location.entry_counts = tallies(below[location.pk], stock.get(location.pk, 0), unique.get(location.pk, 0))
     elif kind == "item":
