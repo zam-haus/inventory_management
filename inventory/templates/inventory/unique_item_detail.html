@@ -25,7 +25,7 @@
         <div class="item-heading" data-action-row>
             <div class="item-heading-text">
                 <p class="item-eyebrow">{% trans "Unique item" %}</p>
-                <h1><span class="title-kind" aria-hidden="true">{% icon "box-star" %}</span><a class="unique-item-of" href="{{ object.item.get_absolute_url }}">{{ object.item }}</a>{% if object.name %} {{ object.name }}{% endif %} {% if lid %}<span class="unique-item-code">{{ lid.display }}</span>{% else %}<span class="item-muted">#{{ object.pk }}</span>{% endif %}</h1>
+                <h1><span class="title-kind" aria-hidden="true">{% icon "box-star" %}</span>{{ object.name_html }}</h1>
             </div>
             {% if not object.is_disposed %}
             <div class="item-actions gap-2" data-action-group>
@@ -68,7 +68,7 @@
             {% if lid %}
             <div>
                 <dt>{{ label_id_name }}</dt>
-                <dd>{{ lid.display }} {% help_link "zamid" %}</dd>
+                <dd>{% zamid lid.display %} {% help_link "zamid" %}</dd>
             </div>
             {% endif %}
             <div>

@@ -17,11 +17,11 @@ html { scroll-padding-top: calc(var(--sticky-top) + .5rem); }
 
 .breadcrumb-row { display: flex; flex-wrap: wrap; gap: 0 .5rem; align-items: baseline; font-size: .9rem; }
 .breadcrumb-row > a, .breadcrumb-row > [aria-current] { display: inline-flex; align-items: baseline; gap: .3rem; padding: .2rem 0; }
-/* The icons keep the text's colour, also in the links. */
+/* The icons keep the text's colour, also in the links (docs/design-rules.md). */
 .breadcrumb-row .bi { flex: none; align-self: center; color: var(--bs-body-color, #212529); }
 /* The page itself: dark and bold, still underlined where it is a link (as the other crumbs). */
 .breadcrumb-row [aria-current] { color: inherit; font-weight: 600; }
-.breadcrumb-row a[aria-current] { text-decoration: underline; }
+.breadcrumb-row a[aria-current]:not(:has(> .loc-label, > .item-label)) { text-decoration: underline; }
 .breadcrumb-row > [aria-hidden] { color: #8a939c; }
 .breadcrumb-row .loc-code { font-size: .75em; }
 /* Narrow screens: each path on one line, which scrolls sideways; it starts scrolled to its end (navbar.js). */

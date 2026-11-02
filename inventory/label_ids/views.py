@@ -16,7 +16,7 @@ from django.views.decorators.http import require_safe
 
 from ..models import Item, UniqueItem
 from ..models import LabelId
-from . import access, core, parsing, qr, services
+from . import access, core, naming, parsing, qr, services
 from .forms import ClaimItemForm, ClaimLocationForm, ClaimUniqueItemForm, NewItemForm, NewUniqueItemForm
 from .resolver_views import target_url
 from .targets import RELATED_TARGETS
@@ -98,7 +98,8 @@ class ClaimView(PermissionRequiredMixin, View):
         except services.LabelIdError as e:
             messages.error(request, str(e))
             return self.render_page(request, lid, {kind: form})
-        messages.success(request, _("The ID %(code)s now belongs to %(target)s.") % {"code": lid.display, "target": target})
+        messages.success(request, _("The %(name)s %(code)s now belongs to %(target)s.") % {
+            "name": naming.name(), "code": lid.display, "target": target})
         if kind == "new_item":
             return redirect("update_item", pk=target.pk)
         if kind == "new_unique_item":

@@ -1,4 +1,4 @@
-{% load i18n icons %}{% comment %}The category path, a row of the breadcrumbs (base.html): the items tree, opened at the category, its
+{% load i18n icons locations %}{% comment %}The category path, a row of the breadcrumbs (base.html): the items tree, opened at the category, its
 categories down to `category`, then `item` and `unique_item` where given. The last one is the page itself.{% endcomment %}
 <nav aria-label="{% trans 'Category path' %}" class="item-breadcrumb breadcrumb-row">
     <a href="{% url 'index_items' %}#cat-{% if category %}{{ category.pk }}{% else %}none{% endif %}">{% icon "boxes" %} {% trans "Items" %}</a>
@@ -16,6 +16,6 @@ categories down to `category`, then `item` and `unique_item` where given. The la
     {% endif %}
     {% if unique_item %}
         <span aria-hidden="true">/</span>
-        <a href="{{ unique_item.get_absolute_url }}" aria-current="page">{% icon "box-star" %} {% if unique_item.name %}{{ unique_item.name }} {% endif %}{% if unique_item.label_display %}{{ unique_item.label_display }}{% else %}#{{ unique_item.pk }}{% endif %}</a>
+        <a href="{{ unique_item.get_absolute_url }}" aria-current="page">{% icon "box-star" %} <span class="item-label">{% if unique_item.name %}<span class="item-title">{{ unique_item.name }}</span> {% endif %}{{ unique_item.code_html }}</span></a>
     {% endif %}
 </nav>

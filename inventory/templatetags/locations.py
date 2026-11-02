@@ -1,9 +1,10 @@
 """{% location_label location %}, {% location_path location %} and {% location_code code %}: locations shown alike;
 {% item_label item %}, {% unique_item_label unique_item %}: items and unique items with their icons
-(location_display.py)."""
+(location_display.py); {% zamid code %}: a label ID (label_ids/naming.py)."""
 from django import template
 
 from .. import location_display
+from ..label_ids import naming
 
 register = template.Library()
 
@@ -30,8 +31,8 @@ def item_label(item, url=None):
 
 
 @register.simple_tag
-def unique_item_label(unique_item, url=None):
-    return location_display.unique_item_html(unique_item, url=url)
+def unique_item_label(unique_item, url=None, icon=True):
+    return location_display.unique_item_html(unique_item, url=url, icon=icon)
 
 
 @register.simple_tag
@@ -71,3 +72,9 @@ def location_name(location):
 def item_icon(item):
     """The icon of an item's kind: {% type_icon item|item_icon %}, data for scripts."""
     return location_display.item_icon(item)
+
+
+@register.simple_tag
+def zamid(display):
+    """A label ID (its display form, K7R-4XD) as everywhere: bold Roboto Mono, as on the label."""
+    return naming.html(display)

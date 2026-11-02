@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% load i18n static django_bootstrap5 %}
+{% load i18n static django_bootstrap5 locations %}
 
 {% block bootstrap5_extra_head %}
     {{ block.super }}
@@ -7,6 +7,7 @@
 {% endblock %}
 
 {% block title %}{% trans "New label" %} {{ lid.display }}{% endblock %}
+{% block page_header %}<h1>{% trans "New label" %} {% zamid lid.display %}</h1>{% endblock %}
 
 {% block content %}
 <p class="text-muted">{% trans "This label is not attached to anything yet. Choose what it belongs to. This link is permanent and cannot be changed later." %}</p>

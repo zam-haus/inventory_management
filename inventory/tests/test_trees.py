@@ -161,8 +161,8 @@ class TreeTests(TestCase):
         # The list on the item's page names them the same way (as result rows).
         page = self.client.get(self.drill.get_absolute_url())
         self.assertContains(page, f'<a class="result-link" href="{red.get_absolute_url()}"><span class="visually-hidden">'
-                                  f'Unique item: </span><span class="result-title">drill</span> <span class="result-subtitle">'
-                                  f'red</span> <span class="unique-item-code">#{red.pk}</span></a>', html=True)
+                                  f'Unique item: </span><span class="result-title">drill red</span></a> '
+                                  f'<span class="unique-item-number">#{red.pk}</span>', html=True)
         self.assertContains(page, 'class="bi bi-box-star-stack"')  # before its title
 
     def test_old_searches_go_to_the_search(self):

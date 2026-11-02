@@ -46,7 +46,7 @@ class ResultListTests(MediaMixin, TestCase):
         self.assertLess(row.index("3 pc"), row.index("stock-change-button"))
         self.assertIn("Wood glue", items)
         unique = content[content.index('id="location-unique-items"'):]
-        self.assertIn('<span class="result-subtitle">blue</span>', unique)
+        self.assertIn(' blue</span></a> <span class="unique-item-number">#', unique)  # its own name in its name, then its number
         self.assertIn("Spare battery", unique)
         self.assertNotIn(f'class="result-place" href="{self.room.get_absolute_url()}"', unique)
         # A sub-location without the path above it: that is this page.

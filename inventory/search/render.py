@@ -53,8 +53,7 @@ ACTIVE_PLACE = {"location__is_deleted": False, "location__is_reserved": False}
 class Place:
     location: Location
     amount: str = ""  # stock of an item, e.g. "3 pc"
-    label: str = ""  # a unique item of an item, named as everywhere (UniqueItem.name_html)
-    url: str = ""  # the unique item's page, so that its label ID leads there directly
+    label: str = ""  # a unique item of an item, named as everywhere and linked to its page (unique_item_html)
 
 
 @dataclass
@@ -85,7 +84,8 @@ class Entry:
     title: str
     subtitle: str = ""
     code: str = ""  # a location's code
-    label: str = ""  # a unique item's label ID (or its number), after its name
+    label: str = ""  # a unique item's label ID, after its name
+    number: int | None = None  # instead, the number of a unique item without one
     where: str = ""  # the path above a category
     above: list = field(default_factory=list)  # the locations above a location, from the top (shown with their icons)
     excerpt: str = ""  # what belongs in a category (Category.summary)
@@ -300,12 +300,14 @@ def entry(kind, obj, hit=None, here=None):
                      excerpt=obj.summary, counts=obj.entry_counts, **common)
     if kind == "item":
         places = [Place(entry.location, amount=entry.amount_text) for entry in obj.entry_places]
-        places += [Place(unique_item.location, label=unique_item.name_html, url=unique_item.get_absolute_url())
+        places += [Place(unique_item.location, label=location_display.unique_item_html(
+                       unique_item, url=unique_item.get_absolute_url(), icon=False))
                    for unique_item in obj.entry_unique_items]
         return Entry(title=str(obj), photos=photos(obj.entry_images), places=places[:MAX_PLACES],
                      more_places=max(0, obj.entry_place_count - MAX_PLACES), category=obj.category, **common)
     images = obj.entry_images + getattr(obj.item, "entry_general_images", [])
-    return Entry(title=str(obj.item), subtitle=obj.name, label=obj.label_display or f"#{obj.pk}",
+    return Entry(title=obj.title, label=obj.label_display,
+                 number=None if obj.label_code else obj.pk,
                  photos=photos(images), places=[] if obj.location == here else [Place(obj.location)],
                  category=obj.item.category, **common)
 

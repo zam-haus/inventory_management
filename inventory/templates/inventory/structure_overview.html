@@ -76,7 +76,7 @@
                                 <td class="{% if not cell.present %}structure-void{% endif %}{% if cell.wide %} structure-wide{% endif %}">
                                     {% for level in cell.mains %}
                                         <div class="structure-main">
-                                            <a href="{{ level.get_absolute_url }}">{% type_icon level|icon_name %} <span>{% if level.purpose %}<strong>{{ level.purpose }}</strong>{% else %}{{ level.name }}{% endif %}</span> {% location_code level.short_name %}</a>
+                                            <a href="{{ level.get_absolute_url }}">{% type_icon level|icon_name %} <span class="structure-node-title">{{ level.title }}</span> {% location_code level.short_name %}</a>
                                             {% if level.description %}<span class="location-muted">{{ level.description }}</span>{% endif %}
                                             {% include "inventory/team_badges.html" with teams=level.responsible_teams.all %}
                                         </div>

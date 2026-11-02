@@ -381,11 +381,12 @@ class UniqueItemViewTests(UniqueItemFixture, TestCase):
         self.assertEqual(self.client.post(reverse("update_unique_item", args=[self.unique_item.pk]), data).status_code, 302)
         unique_item = UniqueItem.objects.get(pk=self.unique_item.pk)
         self.assertEqual(str(unique_item), "Fire extinguisher Workshop spare K7R-4XD")
-        self.assertContains(self.client.get(unique_item.get_absolute_url()), "</a> Workshop spare <span class=\"unique-item-code\">")
+        # One name, the item and its own name; the label ID after it (outside the link in lists).
+        self.assertContains(self.client.get(unique_item.get_absolute_url()), 'Fire extinguisher Workshop spare <span class="zamid">')
         self.assertContains(self.client.get(self.location.get_absolute_url()),
-                            '<span class="result-title">Fire extinguisher</span> <span class="result-subtitle">Workshop spare</span>')
+                            '<span class="result-title">Fire extinguisher Workshop spare</span></a> <span class="zamid">')
         self.assertContains(self.client.get(self.extinguisher.get_absolute_url()),
-                            '<span class="result-subtitle">Workshop spare</span> <span class="unique-item-code">')
+                            '<span class="result-title">Fire extinguisher Workshop spare</span></a> <span class="zamid">')
         found = self.client.get(reverse("index"), {"q": "workshop spare"})
         self.assertIn(unique_item, [entry.obj for entry in found.context["entries"]])
 
@@ -520,7 +521,8 @@ class UniqueItemViewTests(UniqueItemFixture, TestCase):
         self.assertFalse(Item.objects.filter(name="Ladder").exists())
 
     def test_breadcrumbs(self):
-        # Items follow their categories (test_trees); the heading leads to the item. The last crumb of each row is
+        # Items follow their categories (test_trees); the crumb before the page leads to the item, the heading is no
+        # link (docs/design-rules.md). The last crumb of each row is
         # the page itself: the item's path ends in the item and the unique item, its place's path in the unique item.
         response = self.client.get(self.unique_item.get_absolute_url())
         code = self.unique_item.label_display
@@ -530,8 +532,7 @@ class UniqueItemViewTests(UniqueItemFixture, TestCase):
              (self.extinguisher.get_absolute_url(), "Fire extinguisher", False),
              (self.unique_item.get_absolute_url(), code, True)],
             [(self.location.get_absolute_url(), f"{self.location.title} {self.location.short_name}", False), here]])
-        self.assertContains(response, f'<a class="unique-item-of" href="{self.extinguisher.get_absolute_url()}">'
-                                      'Fire extinguisher</a>', html=True)
+        self.assertNotContains(response, "unique-item-of")
         drawer = Location.objects.create(name="Drawer", short_name="D2", type=self.kind, parent_location=self.shelf)
         response = self.client.get(drawer.get_absolute_url())
         self.assertEqual(breadcrumbs(response), [[

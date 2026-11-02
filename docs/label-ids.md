@@ -8,7 +8,8 @@ plus text on a Brother P-touch label.
 Users see them under the name in `LABEL_ID_NAME` (default `ZAMid`): page
 titles, texts, the admin and the logo on printed labels. Code, database and
 settings always say "label ID", so another organization only changes that
-setting (and the hosts below).
+setting (and the hosts below). Pages show the code in bold Roboto Mono, as the label prints it (`{% zamid %}`,
+[design rules](design-rules.md#the-zamid)).
 
 ## Codes: what counts where
 

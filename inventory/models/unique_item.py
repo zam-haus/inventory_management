@@ -18,6 +18,7 @@ from django.utils.html import format_html
 from django.utils.translation import gettext_lazy as _
 
 from ..actor import acting_as
+from ..label_ids import naming as label_id_naming
 from ..signals import moved, send_moved
 from .item import UsageLevel
 
@@ -109,15 +110,25 @@ class UniqueItem(models.Model):
 
     def __str__(self):
         """The item, its own name if it has one, and its label ID: "Akkuschrauber blau K7R-4XD"."""
-        return " ".join(part for part in (str(self.item), self.name, self.label_display or f"#{self.pk}") if part)
+        return f"{self.title} {self.label_display or f'#{self.pk}'}"
+
+    @property
+    def title(self):
+        """Its name: the item and its own name if it has one, one name ("Akkuschrauber blau"); its label ID follows."""
+        return " ".join(part for part in (str(self.item), self.name) if part)
+
+    @property
+    def code_html(self):
+        """Its label ID as everywhere (bold mono, label_ids/naming.py), or its number while it has none (grey)."""
+        if self.label_code:
+            return label_id_naming.html(self.label_display)
+        return format_html('<span class="unique-item-number">#{}</span>', self.pk)
 
     @property
     def name_html(self):
-        """Like __str__, the way every list names it: the item, its own name if it has one, and its label ID (or
-        its number while it has none)."""
-        code = format_html('<span class="unique-item-code">{}</span>', self.label_display) if self.label_code \
-            else f"#{self.pk}"
-        return format_html("{}{} {}", self.item, f" {self.name}" if self.name else "", code)
+        """Like __str__, the way every list names it: its title, then its label ID (or its number). A link to it holds
+        the title only, the code follows outside it (location_display.unique_item_html, docs/design-rules.md)."""
+        return format_html("{} {}", self.title, self.code_html)
 
     def get_absolute_url(self):
         return reverse("view_unique_item", kwargs={"pk": self.pk})

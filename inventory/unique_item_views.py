@@ -27,7 +27,7 @@ from .models import Category, ChangeLog, Item, ItemFile, ItemImage, Location, Un
 from .permissions import (
     ITEM_CONVERSION_PERMISSIONS, UNIQUE_ITEM_CREATE_PERMISSIONS, ItemEditorPermissionMixin, item_conversion_unavailable,
 )
-from .label_ids import services
+from .label_ids import naming as label_id_naming, services
 from .widgets import NEW_ITEM_PREFIX
 from .label_ids.lookup import active_id, annotate_label_code
 
@@ -195,8 +195,9 @@ class CreateUniqueItemView(UniqueItemEditorMixin, extra_views.CreateWithInlinesV
             lid = services.claim(code, self.object, self.request.user)
         else:
             lid = services.generate_and_claim(self.object, self.request.user)
-        messages.success(self.request, _("The ID %(code)s now belongs to %(target)s.") % {
-            "code": lid.display, "target": getattr(self.object, "title_with_code", self.object)})
+        messages.success(self.request, _("The %(name)s %(code)s now belongs to %(target)s.") % {
+            "name": label_id_naming.name(), "code": lid.display,
+            "target": getattr(self.object, "title_with_code", self.object)})
         return response
 
     def post(self, request, *args, **kwargs):

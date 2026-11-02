@@ -11,7 +11,7 @@ label 105 x 52  margin 1
 row  gap 3
   qr {{ qr }}  ecc Q  max 32
   column  gap 3
-    text {{ location.unique_identifier }}  font condensed  bold  invert  height 18
+    text {{ location.unique_identifier }}  font mono  bold  invert  height 18
     image "ZAM Logo"
 text "Eigentum Betreiberverein ZAM e.V."  font condensed  bold  center  height 4.5
 ```

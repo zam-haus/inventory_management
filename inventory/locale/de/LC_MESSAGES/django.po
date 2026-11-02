@@ -1333,13 +1333,13 @@ msgstr "Etiketten herunterladen"
 
 #: inventory/label_ids/admin.py
 #, python-format
-msgid "%(code)s is not a valid ID."
-msgstr "%(code)s ist keine gültige ID."
+msgid "%(code)s is not a valid %(name)s."
+msgstr "%(code)s ist keine gültige %(name)s."
 
 #: inventory/label_ids/admin.py inventory/label_ids/views.py:81
 #, python-format
-msgid "The ID %(code)s now belongs to %(target)s."
-msgstr "Die ID %(code)s gehört jetzt zu %(target)s."
+msgid "The %(name)s %(code)s now belongs to %(target)s."
+msgstr "Die %(name)s %(code)s gehört jetzt zu %(target)s."
 
 #: inventory/models/label_id.py:79
 msgid "label IDs"
@@ -1477,18 +1477,18 @@ msgstr "Es können 1 bis %(max)d IDs auf einmal erzeugt werden."
 
 #: inventory/label_ids/services.py:49
 #, python-format
-msgid "The ID %(code)s does not exist."
-msgstr "Die ID %(code)s existiert nicht."
+msgid "The %(name)s %(code)s does not exist."
+msgstr "Die %(name)s %(code)s existiert nicht."
 
 #: inventory/label_ids/services.py:54
 #, python-format
-msgid "The ID %(code)s is already in use."
-msgstr "Die ID %(code)s ist bereits vergeben."
+msgid "The %(name)s %(code)s is already in use."
+msgstr "Die %(name)s %(code)s ist bereits vergeben."
 
 #: inventory/label_ids/services.py:56 inventory/label_ids/services.py:107
 #, python-format
-msgid "The ID %(code)s has been retired."
-msgstr "Die ID %(code)s wurde stillgelegt."
+msgid "The %(name)s %(code)s has been retired."
+msgstr "Die %(name)s %(code)s wurde stillgelegt."
 
 #: inventory/label_ids/services.py:69
 msgid "This already has an ID. Retire it first."
@@ -1504,8 +1504,8 @@ msgstr "Gelöschte Objekte können keine ID bekommen."
 
 #: inventory/label_ids/services.py:85
 #, python-format
-msgid "%(target)s already has the ID %(code)s. Retire it first."
-msgstr "%(target)s hat bereits die ID %(code)s. Lege sie zuerst still."
+msgid "%(target)s already has the %(name)s %(code)s. Retire it first."
+msgstr "%(target)s hat bereits die %(name)s %(code)s. Lege sie zuerst still."
 
 #: inventory/templates/admin/inventory/labelid/action_form.html:13
 #, python-format
@@ -1617,8 +1617,8 @@ msgstr "Unbekannte ID"
 
 #: inventory/templates/inventory/label_id/resolver.html:43
 #, python-format
-msgid "The ID <span class=\"code\">%(code)s</span> has not been issued."
-msgstr "Die ID <span class=\"code\">%(code)s</span> wurde nicht ausgegeben."
+msgid "The %(name)s <span class=\"code\">%(code)s</span> has not been issued."
+msgstr "Die %(name)s <span class=\"code\">%(code)s</span> wurde nicht ausgegeben."
 
 #: inventory/templates/inventory/label_id/resolver.html:45
 msgid "Label no longer in use"
@@ -1626,8 +1626,8 @@ msgstr "Etikett nicht mehr in Gebrauch"
 
 #: inventory/templates/inventory/label_id/resolver.html:46
 #, python-format
-msgid "The ID <span class=\"code\">%(code)s</span> has been retired."
-msgstr "Die ID <span class=\"code\">%(code)s</span> wurde stillgelegt."
+msgid "The %(name)s <span class=\"code\">%(code)s</span> has been retired."
+msgstr "Die %(name)s <span class=\"code\">%(code)s</span> wurde stillgelegt."
 
 #: inventory/templates/inventory/label_id/resolver.html:47
 msgid "It last belonged to:"
@@ -1640,10 +1640,10 @@ msgstr "Nicht mehr im Inventar"
 #: inventory/templates/inventory/label_id/resolver.html:50
 #, python-format
 msgid ""
-"What the ID <span class=\"code\">%(code)s</span> belongs to has been removed "
-"from the inventory."
+"What the %(name)s <span class=\"code\">%(code)s</span> belongs to has been "
+"removed from the inventory."
 msgstr ""
-"Wozu die ID <span class=\"code\">%(code)s</span> gehört, wurde aus dem "
+"Wozu die %(name)s <span class=\"code\">%(code)s</span> gehört, wurde aus dem "
 "Inventar entfernt."
 
 #: inventory/templates/inventory/label_id/resolver.html:52
@@ -1915,8 +1915,8 @@ msgstr "Scanne die ID auf dem Etikett oder gib sie ein."
 
 #: forms.py:1100
 #, python-format
-msgid "The ID %(code)s is already in use or retired."
-msgstr "Die ID %(code)s ist bereits vergeben oder stillgelegt."
+msgid "The %(name)s %(code)s is already in use or retired."
+msgstr "Die %(name)s %(code)s ist bereits vergeben oder stillgelegt."
 
 #: forms.py:1149
 msgid "First unique item"

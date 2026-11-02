@@ -24,7 +24,11 @@
 .tree-row { display: flex; flex: 1 1 auto; flex-wrap: wrap; align-items: center; gap: .15rem .5rem; min-width: 0;
     min-height: 44px; padding: .2rem 0; }
 .tree-icon { flex: 0 0 auto; color: #59636e; font-size: 1.15rem; }
-.tree-name { font-weight: 600; overflow-wrap: anywhere; }
+/* Names bold and underlined on hover, as in the result rows (docs/design-rules.md). */
+.tree-name, .tree-row > .loc-label > a { font-weight: 600; overflow-wrap: anywhere; }
+a.tree-name, .tree-row > .loc-label > a, .tree-row > .loc-label > a > .loc-title { text-decoration: none; }
+a.tree-name:hover, a.tree-name:focus-visible,
+.tree-row > .loc-label > a:hover > .loc-title, .tree-row > .loc-label > a:focus-visible > .loc-title { text-decoration: underline; }
 .tree-row > a { overflow-wrap: anywhere; }
 .tree-pills { display: flex; flex-wrap: wrap; gap: .3rem; margin-left: auto; }
 .tree-pill { display: inline-flex; align-items: center; gap: .3em; padding: 0 .5em; border-radius: 1em;

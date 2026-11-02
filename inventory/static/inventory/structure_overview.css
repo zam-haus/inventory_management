@@ -37,8 +37,9 @@
 .structure-table td.structure-void { background-image: repeating-linear-gradient(135deg, var(--location-border) 0 1px, transparent 1px 8px); }
 
 .structure-main { display: flex; flex-wrap: wrap; align-items: baseline; gap: .15rem .4rem; margin-bottom: .5rem; }
-/* Links read like the sub-location lists: title in text colour, then the code (locations.css), underlined on hover. */
-.structure-table a { color: inherit; text-decoration: none; }
+/* Names read like the result rows (docs/design-rules.md): blue and bold, then the code (locations.css), underlined
+   on hover. */
+.structure-table a { text-decoration: none; }
 .structure-table a:hover,
 .structure-table a:focus-visible { text-decoration: underline; }
 

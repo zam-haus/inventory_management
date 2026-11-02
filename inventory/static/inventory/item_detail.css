@@ -9,7 +9,6 @@
 .item-heading { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1.25rem; }
 .item-heading-text { min-width: 0; flex: 1 1 auto; }
 .item-heading h1 { margin: .2rem 0 .6rem; font-size: clamp(1.6rem, 4vw, 2.3rem); font-weight: 650; }
-.item-heading h1 .unique-item-of { color: inherit; text-decoration-thickness: 1px; text-underline-offset: .2em; }
 .item-eyebrow { color: var(--item-muted); font-size: .8rem; font-weight: 600; letter-spacing: .04em; margin: 0 0 .4rem; }
 .item-help { cursor: help; }
 .item-actions { display: flex; flex-wrap: wrap; gap: .5rem; flex: 0 0 auto; max-width: 100%; }
@@ -18,7 +17,7 @@
 .item-detail { padding-bottom: 2.5rem; }
 .item-overview { display: flex; flex-wrap: wrap; gap: 1rem 2.5rem; background: #f7f9fb; border: 1px solid var(--item-border); border-radius: .65rem; padding: 1.25rem; margin-bottom: 1.5rem; }
 .item-overview > div { min-width: 0; }
-.item-overview dt { color: var(--item-muted); font-size: .8rem; margin-bottom: .35rem; font-weight: 600; }
+.item-overview dt { font-size: .8rem; margin-bottom: .35rem; }
 .item-overview dd { margin: 0; }
 .item-unit-price { font-size: 1.15rem; font-weight: 600; font-variant-numeric: tabular-nums; }
 .item-muted { color: var(--item-muted); font-size: .875rem; }

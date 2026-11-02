@@ -1,4 +1,4 @@
-{% load i18n locations %}<!doctype html>
+{% load i18n locations static %}<!doctype html>
 {% get_current_language as LANGUAGE_CODE %}
 <html lang="{{ LANGUAGE_CODE }}">
 <head>
@@ -9,12 +9,16 @@
     <link rel="icon" href="/favicon.ico" sizes="48x48">
     <link rel="icon" href="/favicon.svg" type="image/svg+xml">
     <style>
-        :root { color-scheme: light dark; --fg: #1d1d1f; --bg: #fff; --muted: #6b6b70; --line: #d8d8dc; --accent: #0b5cad; }
-        @media (prefers-color-scheme: dark) { :root { --fg: #f2f2f4; --bg: #161618; --muted: #a0a0a8; --line: #3a3a40; --accent: #6aa8ff; } }
+        :root { color-scheme: light dark; --fg: #1d1d1f; --bg: #fff; --muted: #6b6b70; --line: #d8d8dc; --accent: #0d6efd; }
+        @media (prefers-color-scheme: dark) { :root { --fg: #f2f2f4; --bg: #161618; --muted: #a0a0a8; --line: #3a3a40; --accent: #6ea8fe; } }
         body { margin: 0; background: var(--bg); color: var(--fg); font: 16px/1.5 system-ui, sans-serif; }
         main { max-width: 32rem; margin: 0 auto; padding: 3rem 1rem; }
         h1 { font-size: 1.5rem; margin: 0 0 .5rem; }
-        .code { font-family: ui-monospace, "Roboto Mono", monospace; font-weight: 700; letter-spacing: .05em; }
+        /* The label ID as everywhere (text.css .zamid): bold Roboto Mono, the font of the label. */
+        @font-face { font-family: "Label Mono"; src: url("{% static 'inventory/fonts/roboto-mono-700.woff2' %}") format("woff2");
+                     font-weight: 700; font-display: swap; }
+        .code { font-family: "Label Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-weight: 700;
+                letter-spacing: .04em; white-space: nowrap; }
         p { margin: .5rem 0 1rem; }
         .muted { color: var(--muted); }
         a { color: var(--accent); }
@@ -43,14 +47,14 @@
         <p>{% blocktrans with q=q name=label_id_name %}“{{ q }}” is not a {{ name }}. IDs have six characters, for example K7R-4XD.{% endblocktrans %}</p>
     {% elif state == "unknown" %}
         <h1>{% trans "Unknown ID" %}</h1>
-        <p>{% blocktrans with code=code %}The ID <span class="code">{{ code }}</span> has not been issued.{% endblocktrans %}</p>
+        <p>{% blocktrans with code=code name=label_id_name %}The {{ name }} <span class="code">{{ code }}</span> has not been issued.{% endblocktrans %}</p>
     {% elif state == "retired" %}
         <h1>{% trans "Label no longer in use" %}</h1>
-        <p>{% blocktrans with code=code %}The ID <span class="code">{{ code }}</span> has been retired.{% endblocktrans %}</p>
+        <p>{% blocktrans with code=code name=label_id_name %}The {{ name }} <span class="code">{{ code }}</span> has been retired.{% endblocktrans %}</p>
         {% if target_url %}<p>{% trans "It last belonged to:" %} {% if target is not None %}{% object_label target url=target_url %}{% else %}<a href="{{ target_url }}">{{ target_label }}</a>{% endif %}</p>{% endif %}
     {% elif state == "deleted" %}
         <h1>{% trans "No longer in the inventory" %}</h1>
-        <p>{% blocktrans with code=code %}What the ID <span class="code">{{ code }}</span> belongs to has been removed from the inventory.{% endblocktrans %}</p>
+        <p>{% blocktrans with code=code name=label_id_name %}What the {{ name }} <span class="code">{{ code }}</span> belongs to has been removed from the inventory.{% endblocktrans %}</p>
     {% elif state == "throttled" %}
         <h1>{% trans "Too many requests" %}</h1>
         <p>{% trans "Too many unknown IDs were looked up from your network. Please try again later." %}</p>

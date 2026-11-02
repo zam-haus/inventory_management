@@ -2,6 +2,7 @@
 {% load i18n static actions label_printing locations %}
 
 {% block title %}{{ label_id_name }} {{ lid.display }}{% endblock %}
+{% block page_header %}<h1>{{ label_id_name }} {% zamid lid.display %}</h1>{% endblock %}
 {% block bootstrap5_extra_head %}
     {{ block.super }}
     <style>.label-id-label-preview { height: 160px; max-width: 100%; object-fit: contain; outline: 1px solid var(--bs-border-color); }</style>

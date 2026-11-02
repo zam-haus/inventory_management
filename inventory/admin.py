@@ -760,7 +760,8 @@ class UniqueItemAdmin(admin.ModelAdmin):
                 raw = None
         if not raw:
             lid = label_id_services.generate_and_claim(obj, request.user)
-        messages.success(request, _("The ID %(code)s now belongs to %(target)s.") % {"code": lid.display, "target": obj})
+        messages.success(request, _("The %(name)s %(code)s now belongs to %(target)s.") % {
+            "name": label_id_naming.name(), "code": lid.display, "target": obj})
 
     def has_delete_permission(self, request, obj=None):
         # Unique items leave the inventory by being disposed; their history stays.

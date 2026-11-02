@@ -59,7 +59,7 @@ class SearchTests(MediaMixin, TestCase):
         cls.label = services.claim(make_id("K7R4X").code, cls.unique, None)
 
     def test_one_list_of_locations_items_and_unique_items(self):
-        self.assertEqual(found("akku"), [("item", "Akkuschrauber"), ("unique", "Akkuschrauber")])
+        self.assertEqual(found("akku"), [("item", "Akkuschrauber"), ("unique", "Akkuschrauber blau")])
         self.assertEqual(found("regal"), [("location", "Regal 3")])
         self.assertIn(("item", "Schraubendreher"), found("schraubendreher"))
 
@@ -70,7 +70,7 @@ class SearchTests(MediaMixin, TestCase):
     def test_words_may_match_where_it_is_but_one_the_entry_itself(self):
         # Matching all words, itself or where it is, comes first; the others follow.
         self.assertEqual(found("schraubendreher holzwerkstatt"), [("item", "Schraubendreher"), ("location", "Holzwerkstatt")])
-        self.assertEqual(found("akkuschrauber blau holzwerkstatt")[0], ("unique", "Akkuschrauber"))
+        self.assertEqual(found("akkuschrauber blau holzwerkstatt")[0], ("unique", "Akkuschrauber blau"))
         self.assertEqual(found("werkstatt regal")[0], ("location", "Regal 3"))
         # A room alone finds the room, not everything stored in it.
         self.assertEqual(found("holzwerkstatt"), [("location", "Holzwerkstatt")])
@@ -151,14 +151,16 @@ class SearchTests(MediaMixin, TestCase):
 
     def test_unique_items_lead_there_directly(self):
         content = self.client.get(reverse("index"), {"q": "akkuschrauber"}).content.decode()
-        # Named as everywhere: the item, its own name if any, its label ID.
-        self.assertIn(f'<a href="{self.unique.get_absolute_url()}">Akkuschrauber blau '
-                      '<span class="unique-item-code">K7R-4XD</span>'
-                      '</a> · ', content)
-        # Its own result carries the label ID after the name; its place line only the location.
+        # Named as everywhere: the item and its own name if any as one name, the link; its label ID after it.
+        self.assertIn(f'<span class="item-label"><a href="{self.unique.get_absolute_url()}"><span class="item-title">'
+                      'Akkuschrauber blau</span></a> '
+                      '<span class="zamid">K7R-4XD</span></span> · ', content)
+        # Its own result carries the label ID after the name, outside the link; its place line only the location.
         heading = content[content.index(f'<a class="result-link" href="{self.unique.get_absolute_url()}">'):]
-        heading = heading[:heading.index("</a>")]
-        self.assertIn('<span class="unique-item-code">K7R-4XD</span>', heading)
+        link, after = heading[:heading.index("</a>")], heading[heading.index("</a>"):heading.index("</span>\n")]
+        self.assertIn('<span class="result-title"><mark>Akkuschrauber</mark> blau</span>', link)
+        self.assertNotIn("zamid", link)
+        self.assertIn('</a> <span class="zamid">K7R-4XD</span>', after)
 
     def test_the_kind_on_photos(self):
         ItemImage.objects.create(item=self.drill, image=png(), description="Packung")
@@ -341,7 +343,7 @@ class SearchTests(MediaMixin, TestCase):
         self.assertEqual(icons, {"Werkbankregal": "bookshelf", "Werkbankkiste": "eurobox-open"})
         icons = {(entry.kind, entry.title): entry.icon for entry in search.render.entries(search.search("akku").hits)}
         # A serialized item: several unique items.
-        self.assertEqual(icons, {("item", "Akkuschrauber"): "box-star-stack", ("unique", "Akkuschrauber"): "box-star"})
+        self.assertEqual(icons, {("item", "Akkuschrauber"): "box-star-stack", ("unique", "Akkuschrauber blau"): "box-star"})
         self.assertEqual(search.render.entries(search.search("bohrer").hits)[0].icon, "boxes")
         self.assertEqual(search.render.entries(search.search("holzwerkstatt").hits)[0].icon, "geo-alt")
         content = self.client.get(reverse("index"), {"q": "werkbank"}).content.decode()

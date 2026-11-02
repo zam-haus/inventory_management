@@ -41,9 +41,9 @@
             <div class="help-node">{% icon "box-star-stack" %} <span>Sewing machine A38</span></div>
             <div class="help-link-line">Unique items</div>
             <div class="help-entries">
-                <div class="help-entry help-entry-unique"><span class="help-entry-icon">{% icon "box-star" %}</span><span>Sewing machine A38 Paula <span class="help-zamid">K7R-4XD</span></span>
+                <div class="help-entry help-entry-unique"><span class="help-entry-icon">{% icon "box-star" %}</span><span>Sewing machine A38 Paula <span class="zamid">K7R-4XD</span></span>
                     <span class="help-where">{% icon "bookshelf" %} Fach b <span class="loc-code">S140.b</span></span></div>
-                <div class="help-entry help-entry-unique"><span class="help-entry-icon">{% icon "box-star" %}</span><span>Sewing machine A38 Pepe <span class="help-zamid">H3P-9TA</span></span>
+                <div class="help-entry help-entry-unique"><span class="help-entry-icon">{% icon "box-star" %}</span><span>Sewing machine A38 Pepe <span class="zamid">H3P-9TA</span></span>
                     <span class="help-where">{% icon "geo-alt" %} on loan <span class="loc-code">mobil</span></span></div>
             </div>
         </div>
@@ -72,7 +72,7 @@
                 <tr><th scope="row">For</th><td>Consumables and small parts: paint, brushes, thread, tape, tea lights, screws</td><td>Devices: sewing machine, kettle, vacuum cleaner, drill, fire extinguisher. In short: anything with a power cord and anything special or expensive</td></tr>
                 <tr><th scope="row">At the location</th><td>a stock entry with an amount, e.g. “12 pcs.”</td><td>the unique item itself</td></tr>
                 <tr><th scope="row">How many places</th><td>any number, one amount each</td><td>exactly one per unique item</td></tr>
-                <tr><th scope="row">Label</th><td>none per piece; the label is on the location</td><td>none for the serialized item; each unique item gets its own {{ label_id_name }}, e.g. <span class="help-zamid">K7R-4XD</span> (<a href="#zamid">more</a>)</td></tr>
+                <tr><th scope="row">Label</th><td>none per piece; the label is on the location</td><td>none for the serialized item; each unique item gets its own {{ label_id_name }}, e.g. <span class="zamid">K7R-4XD</span> (<a href="#zamid">more</a>)</td></tr>
                 <tr><th scope="row">Sale</th><td>possible, with a price per unit, e.g. white acrylic paint 500 ml for €4.50 / pc.</td><td>no, unique items are not sold</td></tr>
                 <tr><th scope="row">Own details</th><td>only the amount</td><td>name (“Paula”), notes, purchase and warranty, people in charge</td></tr>
             </tbody>
@@ -84,7 +84,7 @@
 <section id="zamid" aria-labelledby="h-zamid">
     <header>
         <h2 id="h-zamid">The {{ label_id_name }}</h2>
-        <p>Every unique item carries a small label with a QR code and its {{ label_id_name }}, a short ID like <span class="help-zamid">K7R-4XD</span>.</p>
+        <p>Every unique item carries a small label with a QR code and its {{ label_id_name }}, a short ID like <span class="zamid">K7R-4XD</span>.</p>
     </header>
     <div class="help-zam">
         {% include "inventory/help/_label_mockup.html" %}

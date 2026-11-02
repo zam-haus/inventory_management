@@ -1262,13 +1262,16 @@ class LabelIdChoiceForm(Form):
         try:
             code = label_id_parsing.code_from_scan(raw)
         except label_id_core.InvalidLabelId:
-            self.add_error("label_code", _("%(code)s is not a valid ID.") % {"code": raw})
+            self.add_error("label_code", _("%(code)s is not a valid %(name)s.") % {
+                "name": label_id_naming.name(), "code": raw})
             return cleaned
         lid = LabelId.objects.filter(pk=code).first()
         if lid is None:
-            self.add_error("label_code", _("The ID %(code)s does not exist.") % {"code": label_id_core.display(code)})
+            self.add_error("label_code", _("The %(name)s %(code)s does not exist.") % {
+                "name": label_id_naming.name(), "code": label_id_core.display(code)})
         elif lid.status != LabelId.Status.RESERVED:
-            self.add_error("label_code", _("The ID %(code)s is already in use or retired.") % {"code": lid.display})
+            self.add_error("label_code", _("The %(name)s %(code)s is already in use or retired.") % {
+                "name": label_id_naming.name(), "code": lid.display})
         else:
             cleaned["label_code"] = code
         return cleaned

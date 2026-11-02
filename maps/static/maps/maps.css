@@ -148,6 +148,10 @@
 .map-popup .loc-code {
     white-space: nowrap;
 }
+/* Links in the link colour of every page, not Leaflet's (docs/design-rules.md). */
+.leaflet-container .map-popup a:not(.map-popup-edit) {
+    color: var(--bs-link-color);
+}
 /* The pencil of a popup, for map editors (map_edit.js): at once into the edit mode, with it selected. Small as the
    popup's close button and below it, far enough from it for a finger. */
 .map-popup:has(.map-popup-edit) {

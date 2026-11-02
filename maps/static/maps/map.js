@@ -194,10 +194,12 @@
         var link = L.DomUtil.create('a', 'map-popup-title', heading);
         link.href = p.url;
         link.textContent = p.title;
-        // A unique item's own code is its ZAMid (its `code` is its location's).
+        // A unique item's own code is its ZAMid (its `code` is its location's), bold mono as everywhere, not a chip
+        // (docs/design-rules.md); "#12" while it has none.
         var code = p.category === 'item' ? p.lid : p.code;
         if (code) {
-            L.DomUtil.create('span', 'loc-code', box).textContent = code;
+            var codeClass = p.category !== 'item' ? 'loc-code' : code.charAt(0) === '#' ? 'unique-item-number' : 'zamid';
+            L.DomUtil.create('span', codeClass, box).textContent = code;
         }
         return box;
     }

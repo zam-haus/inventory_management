@@ -19,6 +19,7 @@ from django.utils.html import escape, format_html
 from django.utils.safestring import mark_safe
 
 from inventory import location_display
+from inventory.label_ids import naming as label_id_naming
 from inventory.models import Item, LabelId, Location, UniqueItem
 from . import label_urls, outcomes, selection
 from .label_urls import ItemAt
@@ -73,6 +74,8 @@ def title_html(subject_type, obj):
         return location_display.item_html(obj)
     if subject_type == "uniqueitem":
         return location_display.unique_item_html(obj)
+    if subject_type == "labelid":
+        return label_id_naming.html(obj.display)
     return escape(title(subject_type, obj))
 
 

@@ -24,7 +24,6 @@
 .help-page p { margin: 0; max-width: 65ch; }
 .help-page code { font-family: var(--help-mono); font-size: .88em; color: inherit; }
 .help-page .bi { flex: none; }
-.help-zamid { font-family: var(--help-mono); font-size: .85em; color: var(--help-unique); font-weight: 600; white-space: nowrap; }
 .help-muted { color: var(--help-muted); }
 .help-aside { font-size: .9rem; color: var(--help-muted); }
 
@@ -83,7 +82,7 @@
 .help-zam-label { display: inline-flex; gap: .55rem; align-items: center; padding: .6rem .9rem .6rem .6rem; background: #fff; color: #111; border: 1px solid var(--help-border); border-radius: .35rem; box-shadow: 0 1px 3px rgb(0 0 0 / .18); justify-self: start; }
 .help-qr .bi { width: 3.2rem; height: 3.2rem; display: block; }
 .help-zam-logo { writing-mode: vertical-rl; transform: rotate(180deg); font-size: .95rem; font-weight: 900; letter-spacing: .06em; line-height: 1; }
-.help-zam-code { display: grid; justify-items: center; align-content: space-between; height: 3.2rem; font-family: var(--help-mono); font-size: 1.2rem; font-weight: 700; letter-spacing: .04em; line-height: 1; }
+.help-zam-code { display: grid; justify-items: center; align-content: space-between; height: 3.2rem; font-family: "Label Mono", var(--help-mono); font-size: 1.2rem; font-weight: 700; letter-spacing: .04em; line-height: 1; }
 .help-zam-dash { width: .5em; height: .13em; background: #111; color: transparent; overflow: hidden; line-height: 0; }
 .help-zam-points { margin: 0; padding: 0; list-style: none; display: grid; gap: .55rem; }
 .help-zam-points li, .help-rules li { display: grid; grid-template-columns: 1.6rem 1fr; gap: .5rem; align-items: start; }

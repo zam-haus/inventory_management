@@ -31,11 +31,12 @@ class ClaimOnAddMixin:
         try:
             lid = services.claim(parsing.code_from_scan(raw), obj, request.user)
         except core.InvalidLabelId:
-            messages.error(request, gettext("%(code)s is not a valid ID.") % {"code": raw})
+            messages.error(request, gettext("%(code)s is not a valid %(name)s.") % {"name": naming.name(), "code": raw})
         except services.LabelIdError as e:
             messages.error(request, str(e))
         else:
-            messages.success(request, gettext("The ID %(code)s now belongs to %(target)s.") % {"code": lid.display, "target": obj})
+            messages.success(request, gettext("The %(name)s %(code)s now belongs to %(target)s.") % {
+                "name": naming.name(), "code": lid.display, "target": obj})
 
 
 def invalid_reason(code):

@@ -1,0 +1,23 @@
+/* Text, links and the ZAMid alike on every page (docs/design-rules.md). Blue means link: every text link in the
+   link colour, no other text. Names in lists (result rows, trees) are bold and underlined on hover (their CSS);
+   every other link is underlined, thicker on hover. Icons keep the text's colour, also in links. */
+a:hover { text-decoration-thickness: 2px; }
+a .type-icon { color: var(--bs-body-color, #212529); }
+/* Labels of values: grey and semibold (their size per page). */
+dt { color: #59636e; font-weight: 600; }
+
+/* The ZAMid (label ID): bold Roboto Mono, the font of the printed label, in the colour around it; no chip, which is
+   for location codes (locations.css). docs/branding/generate-web-fonts.sh makes the font. */
+@font-face {
+    font-family: "Label Mono";
+    src: url("fonts/roboto-mono-700.woff2") format("woff2");
+    font-weight: 700;
+    font-style: normal;
+    font-display: swap;
+}
+/* After a name it stands outside the name's link (UniqueItem.name_html); inline-block, so that a link around it (the
+   page itself in the breadcrumbs) does not underline it either, as the location code chips. */
+.zamid { display: inline-block; font-family: "Label Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono",
+    monospace; font-weight: 700; letter-spacing: .04em; white-space: nowrap; }
+/* A unique item without a ZAMid: its number instead, grey. */
+.unique-item-number { display: inline-block; color: #59636e; }

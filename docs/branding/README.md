@@ -26,3 +26,14 @@ variants, from the repository root (needs `rsvg-convert` and Pillow):
 ```sh
 docs/branding/generate-icons.sh
 ```
+
+## ZAMid web font
+
+Pages show ZAMids in Roboto Mono 700, the font the labels print them in ([design rules](../design-rules.md#the-zamid)).
+`inventory/static/inventory/fonts/roboto-mono-700.woff2` is that font from `label_printing/design/fonts`, at weight 700
+and cut down to ASCII. After a change to the label font, regenerate it from the repository root (needs fonttools and
+brotli):
+
+```sh
+docs/branding/generate-web-fonts.sh
+```

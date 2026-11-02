@@ -61,7 +61,7 @@
 .location-metadata-path { margin: 0 0 1.5rem; }
 .location-metadata-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1.5rem; align-items: start; }
 .location-metadata-field { min-width: 0; margin: 0; }
-.location-metadata-field dt { margin-bottom: .35rem; color: var(--location-muted); font-size: .875rem; font-weight: 600; }
+.location-metadata-field dt { margin-bottom: .35rem; font-size: .875rem; }
 .location-metadata-field dd { margin: 0; }
 .location-metadata-field .location-root { margin: .15rem 0 0; }
 .location-type-details { margin-top: 1.5rem; padding-top: 1.25rem; border-top: 1px solid var(--location-border); }
@@ -69,7 +69,6 @@
 .location-type-description { margin: 0 0 .5rem; max-width: 65ch; }
 .location-type-properties { margin: 0; }
 .location-type-properties > div { display: grid; grid-template-columns: 10rem minmax(0, 1fr); gap: .5rem 1rem; padding: .5rem 0; }
-.location-type-properties dt { font-weight: 600; }
 .location-type-properties dd { margin: 0; }
 .location-layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(15rem, .42fr); gap: 1.5rem; align-items: start; }
 .location-layout-single { grid-template-columns: minmax(0, 1fr); }
@@ -198,8 +197,8 @@ html:has(.location-stored-items) { scroll-padding-top: calc(var(--sticky-top) + 
     display: inline-flex; align-items: center; gap: .45rem; min-height: 44px; padding: .3rem .85rem;
     border: 1px solid var(--location-border); border-radius: 2rem; background: #f7f9fb; color: inherit; text-decoration: none;
 }
-.location-contents a:hover { border-color: #0d6efd; background: #eef4ff; }
-.location-contents a:focus-visible { outline: 3px solid #0d6efd; outline-offset: 2px; }
+.location-contents a:hover { border-color: var(--bs-link-color); background: #eef4ff; }
+.location-contents a:focus-visible { outline: 3px solid var(--bs-link-color); outline-offset: 2px; }
 .location-contents-count { font-weight: 700; font-variant-numeric: tabular-nums; }
 /* Searching its lists, and beside it how far below it they reach (views.LocationLists); on narrow screens below it. */
 .location-search { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: .9rem; }

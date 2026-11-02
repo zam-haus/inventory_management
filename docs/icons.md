@@ -108,6 +108,8 @@ called **Move** (German **Bewegen**: „Bewegen“, „Hierher bewegen“, „In
 
 ## Action buttons
 
+Text links (blue, underlined, bold) follow the [design rules](design-rules.md).
+
 Colours say what a button does. They follow Bootstrap's semantic button variants
 (the framework this app uses) rather than a scheme of our own; general design
 systems such as Material, Apple's guidelines or GOV.UK use one accent colour plus

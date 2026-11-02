@@ -8,9 +8,10 @@
     <title>{% trans "Printable inventory" %}</title>
     {% include 'app_head.html' %}
     {{ form.media.css }}
+    <link rel="stylesheet" href="{% static 'inventory/text.css' %}">
     <style>
         body { font: 14px/1.45 sans-serif; color: #111; margin: 2rem auto; padding: 0 1rem; max-width: 1100px; }
-        a { color: #174d85; }
+        a { color: #0d6efd; }
         .controls { padding: 1rem; border: 1px solid #aaa; margin-bottom: 2rem; }
         label { display: block; font-weight: bold; }
         select { display: block; max-width: 100%; width: 100%; margin: .5rem 0; }
@@ -126,7 +127,7 @@
                         <article class="item">
                             <h3>{% type_icon "box-star" %} {{ unique_item.item }}{% if unique_item.name %} {{ unique_item.name }}{% endif %}</h3>
                             <div class="facts">
-                                <span><strong>{{ label_id_name }}:</strong> {% if unique_item.label_code %}{{ unique_item.label_display }}{% else %}–{% endif %}</span>
+                                <span><strong>{{ label_id_name }}:</strong> {% if unique_item.label_code %}{% zamid unique_item.label_display %}{% else %}–{% endif %}</span>
                                 <span><strong>{% trans "Location identifier" %}:</strong> {{ unique_item.location.unique_identifier }}</span>
                                 {% if unique_item.effective_usage_level %}<span><strong>{% trans "Usage level" %}:</strong> {{ unique_item.get_effective_usage_level_display }}</span>{% endif %}
                             </div>

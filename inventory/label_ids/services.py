@@ -10,7 +10,7 @@ from django.utils.translation import gettext as _
 
 from .. import change_log
 from ..models import LabelId, Location, LocationFormerCode
-from . import core
+from . import core, naming
 from .targets import CLAIMABLE_FIELDS
 
 MAX_BATCH = 1000
@@ -50,14 +50,15 @@ def _lock(code):
     try:
         return LabelId.objects.select_for_update().get(pk=code)
     except LabelId.DoesNotExist:
-        raise LabelIdError(_("The ID %(code)s does not exist.") % {"code": core.display(code)})
+        raise LabelIdError(_("The %(name)s %(code)s does not exist.") % {
+            "name": naming.name(), "code": core.display(code)})
 
 
 def _require_reserved(lid):
     if lid.status == LabelId.Status.ASSIGNED:
-        raise LabelIdError(_("The ID %(code)s is already in use.") % {"code": lid.display})
+        raise LabelIdError(_("The %(name)s %(code)s is already in use.") % {"name": naming.name(), "code": lid.display})
     if lid.status == LabelId.Status.RETIRED:
-        raise LabelIdError(_("The ID %(code)s has been retired.") % {"code": lid.display})
+        raise LabelIdError(_("The %(name)s %(code)s has been retired.") % {"name": naming.name(), "code": lid.display})
 
 
 def _assign(lid, field, value, user):
@@ -89,8 +90,8 @@ def claim(code, target, user):
         _require_reserved(lid)
         current = LabelId.objects.assigned().filter(**{field: target}).first()
         if current:
-            raise LabelIdError(_("%(target)s already has the ID %(code)s. Retire it first.")
-                             % {"target": target, "code": current.display})
+            raise LabelIdError(_("%(target)s already has the %(name)s %(code)s. Retire it first.")
+                             % {"name": naming.name(), "target": target, "code": current.display})
         return _assign(lid, field, target, user)
 
 
@@ -118,7 +119,8 @@ def retire(code, user, note=""):
     with transaction.atomic():
         lid = _lock(code)
         if lid.status == LabelId.Status.RETIRED:
-            raise LabelIdError(_("The ID %(code)s has been retired.") % {"code": lid.display})
+            raise LabelIdError(_("The %(name)s %(code)s has been retired.") % {
+                "name": naming.name(), "code": lid.display})
         lid.status = LabelId.Status.RETIRED
         lid.retired_at = timezone.now()
         lid.retired_by = user

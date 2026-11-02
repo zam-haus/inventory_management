@@ -98,7 +98,7 @@ class LabelIdPrintingTests(SimulatedPrinters, TestCase):
         # ... the ID's page the label ID
         response = self.client.get(reverse("label_id_info", args=[self.lid.code]))
         self.assertContains(response, reverse("print_labels", args=["labelid", self.lid.code]))
-        self.assertContains(response, f'<span class="label-print-subject">{self.lid.display}</span>')
+        self.assertContains(response, f'<span class="label-print-subject"><span class="zamid">{self.lid.display}</span></span>')
 
     def test_dialog_prints_and_goes_back(self):
         url = reverse("print_labels", args=["labelid", self.lid.code])

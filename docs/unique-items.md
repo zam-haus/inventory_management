@@ -45,7 +45,9 @@ name (and its German label *Einzelobjekte*) with the objects.
 * **Name:** optional, to tell unique items of one item apart ("blue", "spare for the workshop").
   A unique item is always shown as the item's name, its own name if it has one, and its label ID:
   "Akkuschrauber blau K7R-4XD" (`UniqueItem.__str__`), in every list too, also under the item itself
-  (`UniqueItem.name_html`, the label ID in monospace; without one its number, "#12").
+  (`UniqueItem.name_html`): item and own name as one name, the label ID after it in bold monospace (without one its
+  number, "#12", grey). A link to it holds the name only, the label ID follows outside it; the heading of its page is
+  no link, the breadcrumb leads to the item ([design rules](design-rules.md#the-zamid)).
 * **Details:** briefing requirement (*Einweisungspflicht*; empty uses the item's):
   green (check mark) free to use, no briefing required; yellow (exclamation mark) use with care, ask if in
   doubt; red (cross) use only after a briefing. Lists show the coloured icon with

@@ -19,7 +19,6 @@
 .result-link:hover .result-title { text-decoration: underline; }
 /* The marked row shows where the keyboard is. */
 .result-list .result-link:focus-visible { outline: none; }
-.result-place { color: inherit; }
 .result-thumb { position: relative; display: flex; flex: 0 0 48px; align-items: center; justify-content: center;
     width: 48px; height: 48px; padding: 0; overflow: hidden; border: 0; border-radius: .35rem;
     background: #edf2f7; color: #59636e; font-size: 1.4rem; }

@@ -108,12 +108,17 @@ def item_html(item, url=None):
     return format_html('<span class="item-label">{} {}</span>', type_icon(item_icon(item)), name)
 
 
-def unique_item_html(unique_item, url=None):
-    """A unique item with its icon before its name (UniqueItem.name_html: item, own name, label ID), linked to url."""
-    name = unique_item.name_html
+def unique_item_html(unique_item, url=None, icon=True):
+    """A unique item with its icon before its name (UniqueItem.name_html: item and own name, then the label ID). With
+    url, the name is a link and the label ID follows outside it, as a location's code chip (icon=False: where a row
+    shows the icon already)."""
+    title = format_html('<span class="item-title">{}</span>', unique_item.title)
     if url:
-        name = format_html('<a href="{}">{}</a>', url, name)
-    return format_html('<span class="item-label">{} {}</span>', type_icon("box-star"), name)
+        title = format_html('<a href="{}">{}</a>', url, title)
+    name = format_html("{} {}", title, unique_item.code_html)
+    if icon:
+        name = format_html("{} {}", type_icon("box-star"), name)
+    return format_html('<span class="item-label">{}</span>', name)
 
 
 

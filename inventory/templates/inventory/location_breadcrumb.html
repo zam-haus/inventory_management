@@ -9,7 +9,7 @@ given. The last one is the page itself.{% endcomment %}
     <a href="{{ location.get_absolute_url }}"{% if not unique_item and not page %} aria-current="page"{% endif %}>{% icon location|icon_name %} {% location_label location code=location.short_name subtitle=False icon=False %}</a>
     {% if unique_item %}
         <span aria-hidden="true">/</span>
-        <a href="{{ unique_item.get_absolute_url }}" aria-current="page">{% icon "box-star" %} {{ unique_item }}</a>
+        <a href="{{ unique_item.get_absolute_url }}" aria-current="page">{% icon "box-star" %} {% unique_item_label unique_item icon=False %}</a>
     {% elif page %}
         <span aria-hidden="true">/</span>
         <span aria-current="page">{{ page }}</span>
