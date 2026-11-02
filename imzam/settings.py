@@ -194,7 +194,8 @@ MIDDLEWARE = [
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "django.middleware.locale.LocaleMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",
-    'mozilla_django_oidc.middleware.SessionRefresh',
+    # Renews the SSO login on page navigations (mozilla_django_oidc's SessionRefresh).
+    'accounts.auth.NavigationSessionRefresh',
     'imzam.local_network.LocalNetworkMiddleware',
 ]
 
@@ -302,6 +303,7 @@ LOGOUT_REDIRECT_URL = '/'
 OIDC_CLAIM_REFERENCE_KEY = os.getenv("OIDC_CLAIM_REFERENCE_KEY", 'ldap_id')
 OIDC_CLAIM_USERNAME_KEY = os.getenv("OIDC_CLAIM_USERNAME_KEY", 'preferred_username')
 LOGIN_URL = '/oidc/authenticate'
+OIDC_CALLBACK_CLASS = 'accounts.auth.TolerantCallbackView'
 
 OIDC_ADMIN_GROUPS = list(map(
     str.strip,
@@ -439,7 +441,7 @@ if OIDC_ENABLED is None:
     OIDC_ENABLED = bool(OIDC_RP_CLIENT_SECRET)
 if not OIDC_ENABLED:
     AUTHENTICATION_BACKENDS = tuple(b for b in AUTHENTICATION_BACKENDS if b != 'accounts.auth.CustomOidcAuthenticationBackend')
-    MIDDLEWARE = [m for m in MIDDLEWARE if m != 'mozilla_django_oidc.middleware.SessionRefresh']
+    MIDDLEWARE = [m for m in MIDDLEWARE if m != 'accounts.auth.NavigationSessionRefresh']
     LOGIN_URL = 'login'
 
 
