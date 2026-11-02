@@ -1,0 +1,75 @@
+{% load i18n icons actions %}{% comment %}
+The lists of the location page (location_detail.html): items, unique items, sub-locations; also alone (?partial=1), for
+searching as you type and choosing the depth (live_search.js, views.LocationLists). Then the overview and the jump
+buttons come with them (templates, location_detail.js), and the quick-items, which stay on the page while it is open,
+go into their slot.
+{% endcomment %}{% with children=object.children.all %}
+<div class="location-layout{% if object.type.no_sublocations and not children and not words %} location-layout-single{% endif %}" data-detailed-count="{{ detailed_count }}"
+     data-status="{% if words %}{% blocktrans count counter=items_count %}{{ counter }} bulk item found{% plural %}{{ counter }} bulk items found{% endblocktrans %}, {% blocktrans count counter=unique_count %}{{ counter }} unique item{% plural %}{{ counter }} unique items{% endblocktrans %}, {% blocktrans count counter=child_count|default:0 %}{{ counter }} sub-location{% plural %}{{ counter }} sub-locations{% endblocktrans %}{% endif %}">
+    <div class="location-main">
+        <section class="location-panel location-stored-items" id="location-items" aria-labelledby="location-items-heading">
+            <div class="location-panel-heading">
+                <div class="location-panel-title-row">
+                    <h2 id="location-items-heading" class="fs-4">{% icon "boxes" %} {% trans "Bulk items" %} <span class="location-count" data-items-count>{{ items_count }}{% if items_more %}+{% endif %}</span></h2>
+                    {% if perms.inventory.add_item and perms.inventory.add_itemlocation %}
+                    <a class="btn btn-success location-add-item" href="{% url 'create_item' %}?location_id={{ object.pk }}" data-bs-toggle="tooltip" title="{% trans 'Add an item at this location' %}" aria-label="{% trans 'Add an item at this location' %}">{% add_icon "boxes" %}</a>
+                    {% else %}
+                    {% add_icon "boxes" as plus_icon %}{% disabled_action plus_icon name=_("Add an item at this location") classes="btn btn-success location-add-item" %}
+                    {% endif %}
+                </div>
+            </div>
+            <p class="location-muted location-panel-note">{% if lists.depth_param == "all" %}{% trans "Bulk items stored here and in all locations below are shown." %}{% elif lists.depth %}{% blocktrans count counter=lists.depth %}Bulk items stored here and one level below are shown.{% plural %}Bulk items stored here and up to {{ counter }} levels below are shown.{% endblocktrans %}{% else %}{% trans "Only bulk items stored directly at this location are shown." %}{% endif %}</p>
+            {% if not words %}{% if partial %}<div data-quick-items-slot></div>{% else %}{% include 'inventory/location_quick_items.html' %}{% endif %}{% endif %}
+            {% if item_entries %}
+                {# The first rows, the next ones while scrolling (views.location_rows). #}
+                {% include 'inventory/results/list.html' with entries=item_entries here=object next_url=items_next_url row_aside="inventory/results/rows/stock.html" row_details="inventory/results/rows/item_details.html" %}
+            {% elif words %}
+                <div class="location-empty"><p>{% trans "Nothing found." %}</p></div>
+            {% elif not quick_entries %}
+                <div class="location-empty" data-items-empty>
+                    <p>{% trans "No bulk items located here." %}</p>
+                </div>
+            {% endif %}
+        </section>
+
+        <section class="location-panel location-stored-items" id="location-unique-items" aria-labelledby="location-unique-items-heading">
+            <div class="location-panel-heading">
+                <div class="location-panel-title-row">
+                    <h2 id="location-unique-items-heading" class="fs-4">{% icon "box-star" %} {% trans "Unique items" %} <span class="location-count">{{ unique_count }}{% if unique_more %}+{% endif %}</span></h2>
+                    {% if perms.inventory.add_uniqueitem and perms.inventory.claim_labelid %}
+                    <a class="btn btn-success location-add-item" href="{% url 'create_unique_item' %}?location={{ object.pk }}" data-bs-toggle="tooltip" title="{% trans 'Add a unique item at this location' %}" aria-label="{% trans 'Add a unique item at this location' %}">{% add_icon "box-star" %}</a>
+                    {% else %}
+                    {% add_icon "box-star" as plus_icon %}{% disabled_action plus_icon name=_("Add a unique item at this location") classes="btn btn-success location-add-item" %}
+                    {% endif %}
+                </div>
+            </div>
+            <p class="location-muted location-panel-note">{% blocktrans with name=label_id_name %}Single objects with their own {{ name }}, such as machines or fire extinguishers.{% endblocktrans %}</p>
+            {% if unique_entries %}
+                {% include 'inventory/results/list.html' with entries=unique_entries here=object next_url=unique_next_url row_aside="inventory/results/rows/usage_level.html" row_details="inventory/results/rows/notes.html" %}
+            {% else %}
+                <div class="location-empty">
+                    <p>{% if words %}{% trans "Nothing found." %}{% else %}{% trans "No unique items located here." %}{% endif %}</p>
+                </div>
+            {% endif %}
+        </section>
+    </div>
+
+    {% comment %}Types without sub-locations need no panel, unless older data still has some. Sub-locations of
+       several categories (spaces, storage units, containers) get one panel each; while searching, those found below
+       it one together.{% endcomment %}
+    {% if child_groups %}
+    <div class="location-children-groups">
+        {% for group in child_groups %}
+            {% include "inventory/location_children_panel.html" with anchor=group.anchor title=group.title children=group.children child_entries=group.entries child_next_url=group.next_url child_count=group.count child_more=group.more category=group.category %}
+        {% endfor %}
+    </div>
+    {% elif not object.type.no_sublocations or children or words %}
+        {% trans "Sub-Locations" as children_title %}
+        {% include "inventory/location_children_panel.html" with anchor="location-children" title=children_title %}
+    {% endif %}
+    {% if partial %}
+        <template data-location-contents-nav>{% include 'inventory/location_contents_nav.html' %}</template>
+        <template data-location-jump-links>{% include 'inventory/location_jump_links.html' %}</template>
+    {% endif %}
+</div>
+{% endwith %}

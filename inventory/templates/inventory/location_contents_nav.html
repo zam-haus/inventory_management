@@ -1,0 +1,7 @@
+{% load i18n icons locations %}{% comment %}The overview of the location page's lists (location_detail.html): how many of each, each with the
+icon of its kind, as the jump buttons (location_jump_links.html); anew with the lists (location_contents.html).{% endcomment %}{% with children=object.children.all %}
+<li><a href="#location-items">{% icon "boxes" %} <span class="location-contents-count" data-items-count>{{ items_count }}{% if items_more %}+{% endif %}</span> {% trans "Bulk items" %}</a></li>
+<li><a href="#location-unique-items">{% icon "box-star" %} <span class="location-contents-count">{{ unique_count }}{% if unique_more %}+{% endif %}</span> {% trans "Unique items" %}</a></li>
+{% if child_groups %}{% for group in child_groups %}<li><a href="#{{ group.anchor }}">{% icon group.category|category_icon %} <span class="location-contents-count">{{ group.count }}</span> {{ group.title }}</a></li>{% endfor %}
+{% elif not object.type.no_sublocations or children or words %}<li><a href="#location-children">{% icon "geo-alt" %} <span class="location-contents-count">{{ child_count }}{% if child_more %}+{% endif %}</span> {% trans "Sub-Locations" %}</a></li>{% endif %}
+{% endwith %}

@@ -841,6 +841,21 @@ class Location(SoftDeleteModel, ComputedFieldsModel):
 
         self._validate_codes()
 
+    def in_tree(self, field="location", depth=None, itself=True):
+        """Rows whose location (by `field`; "" for locations themselves) is this one or one below it, at most `depth`
+        levels down (None: all). By the path of short names (locatable_identifier), so in one query."""
+        if depth == 0:
+            return models.Q(**{field or "pk": self.pk}) if itself else models.Q(pk__in=[])
+        path = f"{field}__locatable_identifier" if field else "locatable_identifier"
+        below = models.Q(**{f"{path}__startswith": f"{self.locatable_identifier}."})
+        if depth is not None:
+            pattern = rf"^{re.escape(self.locatable_identifier)}(\.[^.]+){{1,{depth}}}$"
+            below &= models.Q(**{f"{path}__regex": pattern})
+        if not itself:
+            return below
+        # Itself by its path, too: both conditions on one column, which a prefix index could serve.
+        return models.Q(**{path: self.locatable_identifier}) | below
+
     @property
     def ancestors(self):
         """Parent locations from the top-level one down to the direct parent."""

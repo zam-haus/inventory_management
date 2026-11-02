@@ -201,5 +201,11 @@ html:has(.location-stored-items) { scroll-padding-top: calc(var(--sticky-top) + 
 .location-contents a:hover { border-color: #0d6efd; background: #eef4ff; }
 .location-contents a:focus-visible { outline: 3px solid #0d6efd; outline-offset: 2px; }
 .location-contents-count { font-weight: 700; font-variant-numeric: tabular-nums; }
+/* Searching its lists, and beside it how far below it they reach (views.LocationLists); on narrow screens below it. */
+.location-search { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: .9rem; }
+.location-search-field { flex: 1 1 16rem; width: auto; }
+.location-search .form-control, .location-search .form-select { min-height: 44px; }
+.location-search .location-depth { flex: 0 1 auto; width: auto; }
+.location-panel-heading .search-error { margin: .5rem 0 0; }
 /* Icon-only action buttons: the icon a little larger than the text, like the emojis were. */
 .location-print .bi, .location-edit-overview .bi { width: 1.25em; height: 1.25em; }

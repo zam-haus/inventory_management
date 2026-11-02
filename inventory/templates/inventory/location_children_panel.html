@@ -1,9 +1,9 @@
 {% load i18n icons actions locations %}{% comment %}Sub-locations of the location page as result rows: all of them, or those of one category (anchor, title,
-children, child_entries, category). Storage units and containers have a shortcut to the header's "add" and "move here" buttons, which stay.{% endcomment %}
+children, child_entries, child_next_url, child_count, child_more, category; words while searching). Storage units and containers have a shortcut to the header's "add" and "move here" buttons, which stay.{% endcomment %}
 <section class="location-panel location-children" id="{{ anchor }}" aria-labelledby="{{ anchor }}-heading">
     <div class="location-panel-heading">
         <div class="location-panel-title-row">
-            <h2 id="{{ anchor }}-heading" class="fs-4">{% icon category|category_icon %} {{ title }} <span class="location-count">{{ children|length }}</span></h2>
+            <h2 id="{{ anchor }}-heading" class="fs-4">{% icon category|category_icon %} {{ title }} <span class="location-count">{{ child_count }}{% if child_more %}+{% endif %}</span></h2>
             {% if category == "storage_unit" %}
                 {% if numbering_types %}{% with numbering_label=numbering_types|join:" / " %}{% blocktrans asvar add_title %}Add {{ numbering_label }}{% endblocktrans %}{% add_icon "storage_unit"|category_icon as numbering_icon %}
                     {% if perms.inventory.add_location %}
@@ -40,6 +40,6 @@ children, child_entries, category). Storage units and containers have a shortcut
         {# The first rows, the next ones while scrolling (views.location_rows). #}
         {% include 'inventory/results/list.html' with entries=child_entries here=object next_url=child_next_url row_aside="" row_details="" %}
     {% else %}
-        <p class="location-empty location-muted">{% trans "No sub-locations." %}</p>
+        <p class="location-empty location-muted">{% if words %}{% trans "Nothing found." %}{% else %}{% trans "No sub-locations." %}{% endif %}</p>
     {% endif %}
 </section>

@@ -202,7 +202,7 @@ class QuickItemTests(TestCase):
         response = self.client.get(self.location.get_absolute_url())
         content = response.content.decode()
         self.assertEqual(response.context["quick_entries"], [quick])
-        self.assertEqual([entry.item for entry in response.context["entries"]], [regular])
+        self.assertEqual([entry.row.item for entry in response.context["item_entries"]], [regular])
         self.assertLess(content.index('id="location-items-heading"'), content.index('id="location-quick-items"'))
         self.assertLess(content.index('id="location-quick-items"'), content.index("Screwdriver set"))
         self.assertNotContains(response, 'id="location-quick-items-heading"')

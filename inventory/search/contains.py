@@ -3,7 +3,8 @@ The search in the database (icontains), for development and small installations 
 service (docs/search.md). An entry is a hit when at least one word matches its own text (name, description,
 category, photos, …), so that searching a room does not list everything stored in it. It ranks by how many words
 match it, its own text or the path of where it is (the names of its location and of the locations above): the
-best match first, those matching all words at the top.
+best match first, those matching all words at the top. Its category's keywords count as well, but alone make a
+hit only within a scope (a category, a location): in the search of everything the category is that hit.
 """
 from dataclasses import dataclass
 from functools import reduce
@@ -26,6 +27,11 @@ class Source:
     model: type  # the model and field holding the text, checked by fields.searchable
     field: str
     match: Callable[[str], Q]  # one word, on the searched queryset
+    # False: a match only ranks the entry higher, unless searching within a scope (its category's keywords: alone
+    # they would list hundreds of items in the search of everything, where the category itself is the hit).
+    alone: bool = True
+    # The text on the searched rows, comma-separated, whose matching parts the result names ("keywords: Spax").
+    parts: str = ""
 
 
 def related(model, owner, *conditions, **lookups):
@@ -68,6 +74,8 @@ ITEM_SOURCES = [
     Source("name", Item, "name", lambda w: Q(name__icontains=w)),
     Source("description", Item, "description", lambda w: Q(description__icontains=w)),
     Source("category", Category, "full_name", lambda w: Q(category__full_name__icontains=w)),
+    Source("category_keywords", Category, "keywords", lambda w: Q(category__keywords__icontains=w),
+           alone=False, parts="category__keywords"),
     Source("barcode", ItemBarcode, "data", lambda w: related(ItemBarcode, "item", data__icontains=w)),
     Source("photo", ItemImage, "description", lambda w: related(ItemImage, "item", GENERAL, description__icontains=w)),
     Source("photo_text", ItemImage, "ocr_text", lambda w: related(ItemImage, "item", GENERAL, ocr_text__icontains=w)),
@@ -79,6 +87,8 @@ UNIQUE_SOURCES = [
     Source("name", Item, "name", lambda w: Q(item__name__icontains=w)),
     Source("name", UniqueItem, "name", lambda w: Q(name__icontains=w)),
     Source("category", Category, "full_name", lambda w: Q(item__category__full_name__icontains=w)),
+    Source("category_keywords", Category, "keywords", lambda w: Q(item__category__keywords__icontains=w),
+           alone=False, parts="item__category__keywords"),
     Source("notes", UniqueItem, "notes", lambda w: Q(notes__icontains=w)),
     Source("photo", ItemImage, "description", lambda w: related(ItemImage, "unique_item", description__icontains=w)),
     Source("photo_text", ItemImage, "ocr_text", lambda w: related(ItemImage, "unique_item", ocr_text__icontains=w)),
@@ -117,18 +127,18 @@ KINDS = [
 ]
 
 
-def find(kind, queryset, sources, path, sort_name, words, limit, exact=None):
+def find(kind, queryset, sources, path, sort_name, words, limit, exact=None, scoped=False):
     sources = [source for source in sources if searchable(source.model, source.field)]
     with_path = searchable(Location, "descriptive_identifier")
 
-    def own(word):
-        return any_of(source.match(word) for source in sources)
+    def own(word, ranking=True):
+        return any_of(source.match(word) for source in sources if ranking or source.alone or scoped)
 
     def counted(conditions):
         return reduce(add, (Case(When(condition, then=Value(1)), default=Value(0), output_field=IntegerField())
                             for condition in conditions))
 
-    queryset = queryset.filter(any_of(own(word) for word in words))
+    queryset = queryset.filter(any_of(own(word, ranking=False) for word in words))
     # How many of the words match it, itself or where it is: the best match first.
     matched = counted(own(word) | path(word) if with_path else own(word) for word in words)
 
@@ -141,11 +151,21 @@ def find(kind, queryset, sources, path, sort_name, words, limit, exact=None):
     named = hit((NAME_KEYS | {"label"}) & set(keys))
     exactly = (Case(When(any_of(exact(word) for word in words), then=Value(True)), default=Value(False),
                     output_field=BooleanField()) if exact else Value(False, output_field=BooleanField()))
+    parts = {source.key: source.parts for source in sources if source.parts}
     rows = (queryset.annotate(**hits, named=named, exactly=exactly, matched=matched, sort_name=Lower(sort_name))
             .order_by("-matched", "-exactly", "-named", "sort_name", "pk")
-            .values("pk", "named", "exactly", "matched", *hits)[:limit])
+            .values("pk", "named", "exactly", "matched", *hits, *parts.values())[:limit])
+
+    def snippets(row):
+        """The matching parts of a text, e.g. the keywords of its category: the row does not show them."""
+        found = {key: ", ".join(part.strip() for part in (row[text] or "").split(",")
+                                if part.strip() and any(word.casefold() in part.casefold() for word in words))
+                 for key, text in parts.items() if row[f"hit_{key}"]}
+        return {key: text for key, text in found.items() if text}
+
     return [Hit(kind, row["pk"], 3 if row["exactly"] else 2 if row["named"] else 1,
-                tuple(key for key in keys if row[f"hit_{key}"] and key not in NAME_KEYS), rank, matched=row["matched"])
+                tuple(key for key in keys if row[f"hit_{key}"] and key not in NAME_KEYS), rank, snippets(row),
+                matched=row["matched"])
             for rank, row in enumerate(rows)]
 
 
@@ -153,16 +173,44 @@ def find(kind, queryset, sources, path, sort_name, words, limit, exact=None):
 SCOPES = {"item": "category", "unique": "item__category"}
 
 
-def search(words, limit, scope=None):
+@dataclass(frozen=True)
+class Below:
+    """Within a location (a scope), at most `depth` levels below it (None: all; Location.in_tree): the locations
+    below it, the items stored there and the unique items there."""
+    location: Location
+    depth: int = None
+
+    def condition(self, kind):
+        if kind == "location":
+            return self.location.in_tree("", self.depth, itself=False)
+        if kind == "item":
+            return Exists(ItemLocation.objects.filter(self.location.in_tree("location", self.depth),
+                                                      item=OuterRef("pk"), **ACTIVE_LOCATION))
+        if kind == "unique":
+            return self.location.in_tree("location", self.depth)
+        return None
+
+
+def within(scope, kind):
+    """The condition for hits of this kind within the scope (a category or Below), None for kinds not in it."""
+    if isinstance(scope, Below):
+        return scope.condition(kind)
+    return scope.in_tree(SCOPES[kind]) if kind in SCOPES else None
+
+
+def search(words, limit, scope=None, kinds=None):
     """The first `limit` hits of each kind in their order (most words matched first, then hits on the name, then by
-    name), and one more where a kind has more. The caller merges and counts them. With `scope` (a category), only what is in it or
-    below it."""
+    name), and one more where a kind has more. The caller merges and counts them. With `scope` (a category or
+    Below), only what is in it or below it; with `kinds`, only those."""
     hits = []
     for kind, entries, sources, path, sort_name, exact in KINDS:
+        if kinds is not None and kind not in kinds:
+            continue
         queryset = entries()
         if scope is not None:
-            if kind not in SCOPES:
+            condition = within(scope, kind)
+            if condition is None:
                 continue
-            queryset = queryset.filter(scope.in_tree(SCOPES[kind]))
-        hits += find(kind, queryset, sources, path, sort_name, words, limit + 1, exact)
+            queryset = queryset.filter(condition)
+        hits += find(kind, queryset, sources, path, sort_name, words, limit + 1, exact, scoped=scope is not None)
     return hits

@@ -196,40 +196,107 @@ class PrintableInventoryView(PermissionRequiredMixin, View):
         return render(request, "inventory/inventory_print.html", context)
 
 
-def stock_order(entry):
-    """A location's items in the order of its page: by category (those without one last), then by name."""
-    category = entry.item.category
-    return (category is None, category.full_name.casefold() if category else "", (entry.item.name or "").casefold(),
-            entry.pk)
-
-
 # The lists of a location's page, by part: as result rows, with what each row shows beside and below it.
 LOCATION_LISTS = {
     "items": ("item", "inventory/results/rows/stock.html", "inventory/results/rows/item_details.html"),
     "unique": ("unique", "inventory/results/rows/usage_level.html", "inventory/results/rows/notes.html"),
     "children": ("location", "", ""),
 }
+# How far below a location its items and unique items reach (?depth=): right there, levels below, or all of them.
+LOCATION_DEPTHS = {"0": 0, "1": 1, "2": 2, "3": 3, "all": None}
+ACTIVE_PLACE = search.render.ACTIVE_PLACE
 
 
-def location_page_rows(request, location, part, objects, offset=0):
-    """A page of one of a location's lists (`part`: items, unique, children-<category>; `objects`: all of it, in its
-    order: stock entries, unique items or sub-locations) as result rows, and where the next page is (None at the end;
-    views.location_rows, loaded while scrolling)."""
-    page = objects[offset:offset + search.PAGE]
-    kind = LOCATION_LISTS[part.partition("-")[0]][0]
-    if kind == "item":
-        if request.user.has_perm("inventory.change_stock"):
-            mark_last_stock(page)
-        previous = objects[offset - 1].item.category if offset else False
-        entries = search.render.group_by_category(
-            search.render.listed("item", [row.item for row in page], here=location), previous=previous)
-        for row, entry in zip(page, entries):
+class LocationLists:
+    """The lists of a location's page (docs/locations.md) as result rows, a page at a time: its items (stock entries,
+    by category), its unique items and its sub-locations (one list per category of them). With ?depth=, the items and
+    unique items of the locations below it, too; with ?q=, what the search finds there (in its order, the
+    sub-locations below it in one list). The page shows the first rows of each, location_rows the next ones
+    (?offset=), loaded while scrolling."""
+
+    def __init__(self, request, location):
+        self.request, self.location = request, location
+        depth = request.GET.get("depth", "0")
+        self.depth_param = depth if depth in LOCATION_DEPTHS else "0"
+        self.depth = LOCATION_DEPTHS[self.depth_param]
+        self.query = request.GET.get("q", "").strip()
+        self.words = self.query.split()[:search.MAX_WORDS]
+        # Places within it are left out of an item's other places: the list shows them.
+        self.scope = location.in_tree("location", self.depth) if self.depth != 0 else None
+
+    def stock(self):
+        """The stock entries of its items list, in its order: by category (those without one last), then by name.
+        Its own quick-items not: the page lists them apart; those of the locations below it, yes."""
+        return (models.ItemLocation.objects
+                .filter(self.location.in_tree("location", self.depth), Q(amount__isnull=False) | ~Q(location=self.location),
+                        item__is_deleted=False, **ACTIVE_PLACE)
+                .select_related("item__measurement_unit", "item__category", "location__type")
+                .order_by(Lower("item__category__full_name").asc(nulls_last=True), Lower(Coalesce("item__name", Value(""))),
+                          "pk"))
+
+    def unique_items(self):
+        return (annotate_label_code(models.UniqueItem.active.filter(self.location.in_tree("location", self.depth),
+                                                                    **ACTIVE_PLACE)
+                                    .select_related("item", "location")).order_by("item__name", "pk"))
+
+    def children(self):
+        return models.Location.active.filter(parent_location=self.location).select_related("type")
+
+    def part(self, part, offset=0, objects=None):
+        """(entries, the link to the next rows or None, how many there are in all, whether there are more than that)
+        of one list; `objects`: a list of sub-locations, from the groups of them (location_children_groups)."""
+        kind = LOCATION_LISTS[part.partition("-")[0]][0]
+        if self.query:
+            return self.found(part, kind, offset)
+        if objects is None:
+            objects = self.stock() if kind == "item" else self.unique_items()
+        # One row more on both sides: the one before for its category, the one after for whether there are more.
+        rows = list(objects[max(offset - 1, 0):offset + search.PAGE + 1])
+        previous = rows.pop(0) if offset and rows else None
+        more = len(rows) > search.PAGE
+        rows = rows[:search.PAGE]
+        if kind == "item":
+            entries = self.stock_entries(rows)
+            search.render.group_by_category(entries, previous=previous.item.category if previous else False)
+        else:
+            entries = search.render.listed(kind, rows, here=self.location)
+        count = len(objects) if isinstance(objects, list) else objects.count()
+        return entries, self.next_url(part, offset) if more else None, count, False
+
+    def found(self, part, kind, offset):
+        """A page of what the search finds below it, of one kind; an item with its stock entries there."""
+        result = search.search(self.query, offset, location=self.location, depth=self.depth, kinds={kind})
+        if kind == "item":
+            hits = {hit.pk: hit for hit in result.hits}
+            order = {pk: position for position, pk in enumerate(hits)}
+            rows = sorted(models.ItemLocation.objects.filter(self.location.in_tree("location", self.depth),
+                                                             item__in=list(hits), **ACTIVE_PLACE)
+                          .select_related("item__measurement_unit", "item__category", "location__type"),
+                          key=lambda row: (order[row.item_id], row.location.locatable_identifier, row.pk))
+            entries = self.stock_entries(rows, hits)
+        else:
+            entries = search.render.entries(result.hits, here=self.location)
+        count = result.counts.get(kind, 0)
+        more = count > search.MAX_RESULTS
+        return (entries, self.next_url(part, offset) if result.next_offset else None,
+                min(count, search.MAX_RESULTS), more)
+
+    def stock_entries(self, rows, hits=None):
+        """Result rows of stock entries: the item with its amount there and the stock button; a place below the
+        location named in the row."""
+        if self.request.user.has_perm("inventory.change_stock"):
+            mark_last_stock(rows)
+        entries = search.render.listed("item", [row.item for row in rows], here=self.location, scope=self.scope,
+                                       hits=hits)
+        for row, entry in zip(rows, entries):
             entry.row = row
-    else:
-        entries = search.render.listed(kind, page, here=location)
-    more = len(objects) > offset + search.PAGE
-    return entries, page_url(reverse("location_rows", args=[location.pk, part]), offset=offset + search.PAGE) \
-        if more else None
+            if row.location_id != self.location.pk:
+                entry.at = row.location
+        return entries
+
+    def next_url(self, part, offset):
+        return page_url(reverse("location_rows", args=[self.location.pk, part]), q=self.query,
+                        depth="" if self.depth_param == "0" else self.depth_param, offset=offset + search.PAGE)
 
 
 def location_children_groups(location, children):
@@ -241,25 +308,24 @@ def location_children_groups(location, children):
 
 
 def location_rows(request, pk, part):
-    """Further rows of one of a location's lists (?offset=), as its page shows them (location_page_rows)."""
+    """Further rows of one of a location's lists (?offset=, with its ?depth= and ?q=), as its page shows them
+    (LocationLists)."""
     location = get_object_or_404(models.Location.active, pk=pk)
-    if part == "items":
-        objects = sorted(models.ItemLocation.objects.filter(location=location, item__is_deleted=False,
-                                                            amount__isnull=False)
-                         .select_related("item__measurement_unit", "item__category", "location"), key=stock_order)
-    elif part == "unique":
-        objects = list(annotate_label_code(location.unique_items.select_related("item", "location"))
-                       .order_by("item__name", "pk"))
-    else:
-        children = models.Location.active.filter(parent_location=location).select_related("type")
-        objects = next((nodes for key, _category, _title, nodes in location_children_groups(location, children)
+    lists = LocationLists(request, location)
+    name = part.partition("-")[0]
+    if name not in LOCATION_LISTS:
+        raise Http404
+    objects = None
+    if name == "children" and not lists.query:
+        objects = next((nodes for key, _category, _title, nodes in location_children_groups(location, lists.children())
                         if key == part), None)
         if objects is None:
             raise Http404
-    entries, next_url = location_page_rows(request, location, part, objects, request_offset(request))
-    _kind, aside, details = LOCATION_LISTS[part.partition("-")[0]]
+    entries, next_url, _count, _more = lists.part(part, request_offset(request), objects)
+    _kind, aside, details = LOCATION_LISTS[name]
     return render(request, "inventory/results/more.html", {
         "entries": entries, "next_url": next_url, "here": location, "row_aside": aside, "row_details": details,
+        "words": lists.words,
         "stock_change_form": forms.StockChangeForm() if request.user.has_perm("inventory.change_stock") else None})
 
 
@@ -268,22 +334,24 @@ class DetailLocationView(DetailView):
 
     queryset = models.Location.active.prefetch_related(
         Prefetch("children", queryset=models.Location.active.select_related("type")),
-        Prefetch("itemlocation_set", queryset=models.ItemLocation.objects.filter(item__is_deleted=False).select_related("item__measurement_unit", "item__category").prefetch_related("item__itemimage_set")),
     )
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context["link_preview"] = link_preview.for_location(self.object)
-        entries = list(self.object.itemlocation_set.all())
-        context["quick_entries"] = [entry for entry in entries if entry.is_quick_item]
+        lists = context["lists"] = LocationLists(self.request, self.object)
+        context["words"] = lists.words
+        # Its quick-items, edited in place: only those right here, and not while searching.
+        context["quick_entries"] = [] if lists.query else list(
+            models.ItemLocation.objects.filter(location=self.object, amount__isnull=True, item__is_deleted=False)
+            .select_related("item__measurement_unit", "item__category").prefetch_related("item__itemimage_set")
+            .order_by("pk"))
         # Each quick-item may become a unique item ("Make it a serialized item"), while it has no other place.
         prefetch_related_objects([entry.item for entry in context["quick_entries"]],
                                  Prefetch("itemlocation_set", queryset=models.ItemLocation.objects.select_related("location")))
         for entry in context["quick_entries"]:
             entry.serialize_denied = item_conversion_denied(self.request.user, entry.item)
         context["quick_serialize_denied"] = item_conversion_denied_by_permission(self.request.user)
-        # Its items by category (a heading each, search.render.group_by_category), those without one last; by name.
-        context["entries"] = sorted((entry for entry in entries if not entry.is_quick_item), key=stock_order)
         context["can_manage_quick_items"] = self.request.user.has_perms(QUICK_ITEM_PERMISSIONS)
         context["dissolve_denied"] = location_deletion_denied(self.request.user, self.object)
         context["edit_denied"] = location_edit_denied(self.request.user, self.object)
@@ -291,42 +359,38 @@ class DetailLocationView(DetailView):
         if not self.object.type.no_sublocations:
             context["numbering_types"] = [kind.name for kind, _source in self.object.numbering_types()]
             context["container_types"] = [kind.name for kind in self.object.container_types()]
-        # One panel per category of sub-locations; without any category a single one, as before.
-        # Where storage units or containers can be added, their panel (with its + shortcut) shows even
-        # while empty, but only to logged-in users, who see the shortcut at least disabled.
+        # One panel per category of sub-locations; without any category a single one, as before; while searching
+        # one of all those found below it. Where storage units or containers can be added, their panel (with its +
+        # shortcut) shows even while empty, but only to logged-in users, who see the shortcut at least disabled.
         Category = models.LocationType.Category
-        groups = models.LocationType.group_by_category(self.object.children.all())  # (category, title, children)
-        if self.request.user.is_authenticated:
+        groups = [] if lists.query else models.LocationType.group_by_category(self.object.children.all())
+        if self.request.user.is_authenticated and not lists.query:
             for category, addable, before in ((Category.STORAGE_UNIT, "numbering_types", {Category.SPACE}),
                                               (Category.CONTAINER, "container_types", {Category.SPACE, Category.STORAGE_UNIT})):
                 if context.get(addable) and category not in [group[0] for group in groups]:
                     groups.insert(sum(group[0] in before for group in groups),
                                   (category, models.LocationType.CATEGORY_PLURALS[category], []))
-        # The first rows of each list, further ones while scrolling (location_rows).
+        # The first rows of each list (results/entries.html), further ones while scrolling (location_rows).
         context["child_groups"] = [
             {"category": category, "anchor": f"location-children-{(category or 'other').replace('_', '-')}",
              "title": title, "children": children,
-             **dict(zip(("entries", "next_url"), location_page_rows(
-                 self.request, self.object, f"children-{category or 'other'}", list(children))))}
+             **dict(zip(("entries", "next_url", "count", "more"), lists.part(
+                 f"children-{category or 'other'}", objects=list(children))))}
             for category, title, children in groups
         ] if any(category for category, _title, _children in groups) else None
         if context["child_groups"] is None:
-            context["child_entries"], context["child_next_url"] = location_page_rows(
-                self.request, self.object, "children-all", list(self.object.children.all()))
+            context["child_entries"], context["child_next_url"], context["child_count"], context["child_more"] = \
+                lists.part("children-all", objects=None if lists.query else list(self.object.children.all()))
         context["can_add_quick_photos"] = self.request.user.has_perms((*QUICK_ITEM_PERMISSIONS, "inventory.add_itemimage"))
-        # Quick-items are listed with the items and counted with them.
-        context["items_count"] = len(entries)
-        context["unique_items"] = annotate_label_code(
-            self.object.unique_items.select_related("item", "location")
-        ).order_by("item__name", "pk")
         if self.request.user.has_perm("inventory.change_stock"):
             context["stock_change_form"] = forms.StockChangeForm()
-        # The lists as result rows (results/entries.html): an item with its amount here, places here left out; the
-        # first of them, the next ones while scrolling (location_rows).
-        context["item_entries"], context["items_next_url"] = location_page_rows(
-            self.request, self.object, "items", context["entries"])
-        context["unique_entries"], context["unique_next_url"] = location_page_rows(
-            self.request, self.object, "unique", list(context["unique_items"]))
+        # An item with its amount there, its places in the list left out.
+        context["item_entries"], context["items_next_url"], context["detailed_count"], context["items_more"] = \
+            lists.part("items")
+        # Quick-items are listed with the items and counted with them.
+        context["items_count"] = context["detailed_count"] + len(context["quick_entries"])
+        context["unique_entries"], context["unique_next_url"], context["unique_count"], context["unique_more"] = \
+            lists.part("unique")
         if not context["edit_denied"]:
             context.setdefault("overview_form", forms.LocationOverviewForm(instance=self.object))
             context.setdefault("description_form", forms.LocationDescriptionForm(instance=self.object))
@@ -357,6 +421,9 @@ class DetailLocationView(DetailView):
                 return redirect("container_activate", pk=reserved.pk)
             return location_gone(request, code)
         context = self.get_context_data(object=self.object)
+        if request.GET.get("partial"):
+            # Only its lists, for searching as you type and choosing the depth (live_search.js).
+            return render(request, "inventory/location_contents.html", {**context, "partial": True})
         return self.render_to_response(context)
 
 

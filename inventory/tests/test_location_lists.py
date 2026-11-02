@@ -4,7 +4,7 @@ from django.template import Context, Template
 from django.test import TestCase
 from django.urls import reverse
 
-from ..models import Category, Item, ItemLocation, Location, LocationType, MeasurementUnit
+from ..models import Category, Item, ItemLocation, Location, LocationType, MeasurementUnit, UniqueItem
 
 
 class LocationListTests(TestCase):
@@ -134,3 +134,144 @@ class SubLocationCategoryTests(TestCase):
         kind = LocationType(name="Fach", category=LocationType.Category.CONTAINER, structure="area")
         with self.assertRaises(ValidationError):
             kind.full_clean()
+
+
+class SubtreeTests(TestCase):
+    """The lists of a location's page reach down to the depth chosen (?depth=) and are searched (?q=, live_search.js),
+    views.LocationLists."""
+
+    @classmethod
+    def setUpTestData(cls):
+        MeasurementUnit.objects.create(pk=1, name="Piece", short="pc")
+        room = LocationType.objects.create(name="Room", unique=True, moveable=True)
+        shelf = LocationType.objects.create(name="Shelf", moveable=True, category=LocationType.Category.STORAGE_UNIT)
+        cls.store = Location.objects.create(type=room, name="Store", short_name="ST")
+        cls.shelf = Location.objects.create(type=shelf, name="Shelf", short_name="S1", parent_location=cls.store)
+        cls.compartment = Location.objects.create(type=shelf, name="Compartment", short_name="a", parent_location=cls.shelf)
+        # Its code starts as the store's, but it is not below it.
+        cls.other = Location.objects.create(type=room, name="Store annex", short_name="ST1")
+        cls.gone = Location.objects.create(type=shelf, name="Old shelf", short_name="S9", parent_location=cls.store,
+                                           is_deleted=True)
+        tools = Category.objects.create(name="Tools")
+        cls.hammer = Item.objects.create(name="Hammer", category=tools)
+        cls.drill = Item.objects.create(name="Drill", category=tools)
+        cls.saw = Item.objects.create(name="Saw")
+        ItemLocation.objects.create(item=cls.hammer, location=cls.store, amount=1)
+        ItemLocation.objects.create(item=cls.drill, location=cls.shelf, amount=2)
+        ItemLocation.objects.create(item=cls.saw, location=cls.compartment, amount=3)
+        ItemLocation.objects.create(item=cls.hammer, location=cls.compartment, amount=4)
+        ItemLocation.objects.create(item=Item.objects.create(name="Glue"), location=cls.other, amount=1)
+        ItemLocation.objects.create(item=Item.objects.create(name="Lost drill"), location=cls.gone, amount=1)
+        lathe = Item.objects.create(name="Lathe", kind=Item.Kind.SERIALIZED, measurement_unit_id=1)
+        cls.lathe = UniqueItem.objects.create(item=lathe, name="big", location=cls.compartment)
+
+    def page(self, location=None, **params):
+        return self.client.get((location or self.store).get_absolute_url(), params)
+
+    def rows(self, response):
+        return [(entry.row.item.name, entry.row.location.short_name) for entry in response.context["item_entries"]]
+
+    def test_in_tree(self):
+        def below(depth, itself=True):
+            return set(Location.objects.filter(self.store.in_tree("", depth, itself)).values_list("short_name", flat=True))
+        self.assertEqual(below(0), {"ST"})
+        self.assertEqual(below(1), {"ST", "S1", "S9"})
+        self.assertEqual(below(2), {"ST", "S1", "S9", "a"})
+        self.assertEqual(below(None), {"ST", "S1", "S9", "a"})
+        self.assertEqual(below(1, itself=False), {"S1", "S9"})
+
+    def test_only_here_at_first(self):
+        response = self.page()
+        self.assertEqual(self.rows(response), [("Hammer", "ST")])
+        self.assertEqual(response.context["unique_entries"], [])
+        self.assertContains(response, "Nur hier")
+        self.assertIsNone(response.context["item_entries"][0].at)
+
+    def test_levels_below(self):
+        response = self.page(depth="1")
+        # By category, then by name; the places below named in the row, the deleted shelf left out.
+        self.assertEqual(self.rows(response), [("Drill", "S1"), ("Hammer", "ST")])
+        self.assertEqual(response.context["item_entries"][0].at, self.shelf)
+        self.assertEqual(response.context["items_count"], 2)
+        response = self.page(depth="all")
+        self.assertEqual(self.rows(response), [("Drill", "S1"), ("Hammer", "ST"), ("Hammer", "a"), ("Saw", "a")])
+        self.assertEqual([entry.obj for entry in response.context["unique_entries"]], [self.lathe])
+        self.assertContains(response, self.compartment.get_absolute_url())
+        # The hammer's places in the list are not named again as its other places.
+        self.assertEqual(response.context["item_entries"][1].places, [])
+        # Anything else is only here.
+        self.assertEqual(self.rows(self.page(depth="9")), [("Hammer", "ST")])
+
+    def test_further_rows_keep_the_depth(self):
+        tools = Category.objects.get(name="Tools")
+        for index in range(55):
+            ItemLocation.objects.create(item=Item.objects.create(name=f"Part {index:02}", category=tools),
+                                        location=self.shelf, amount=1)
+        response = self.page(depth="2")
+        items = reverse("location_rows", args=[self.store.pk, "items"])
+        self.assertContains(response, f'data-result-next="{items}?depth=2&amp;offset=50"')
+        more = self.client.get(items, {"depth": "2", "offset": 50, "partial": "1"})
+        self.assertEqual([entry.row.item.name for entry in more.context["entries"]],
+                         [*(f"Part {index}" for index in range(47, 55)), "Saw"])
+        self.assertEqual([entry.group for entry in more.context["entries"]][-1:], [("Ohne Kategorie", "")])
+
+    def test_search_filters_every_list(self):
+        response = self.page(q="hammer")
+        self.assertEqual(self.rows(response), [("Hammer", "ST")])
+        response = self.page(q="hammer", depth="all")
+        self.assertEqual(self.rows(response), [("Hammer", "ST"), ("Hammer", "a")])
+        self.assertEqual(response.context["unique_entries"], [])
+        self.assertEqual(response.context["child_entries"], [])
+        self.assertContains(response, "Nichts gefunden.", count=2)
+        response = self.page(q="big lathe", depth="2")
+        self.assertEqual([entry.obj for entry in response.context["unique_entries"]], [self.lathe])
+        response = self.page(q="compartment", depth="all")
+        self.assertEqual([entry.obj for entry in response.context["child_entries"]], [self.compartment])
+        # Its category's keywords find items and unique items here, as no category is a hit.
+        tools = Category.objects.get(name="Tools")
+        tools.keywords = "Werkzeug, Tool"
+        tools.save()
+        self.assertEqual(self.rows(self.page(q="werkzeug", depth="1")), [("Drill", "S1"), ("Hammer", "ST")])
+        # Not what is elsewhere, nor the location itself.
+        self.assertEqual(self.rows(self.page(q="glue", depth="all")), [])
+        self.assertEqual(self.page(q="store", depth="all").context["child_entries"], [])
+
+    def test_partial_is_only_the_lists(self):
+        response = self.page(q="saw", depth="all", partial="1")
+        content = response.content.decode()
+        self.assertTrue(content.lstrip().startswith('<div class="location-layout'))
+        self.assertIn("data-location-contents-nav", content)
+        self.assertIn("data-location-jump-links", content)
+        self.assertIn('data-status="1 Mengenartikel gefunden', content)
+        self.assertNotIn("<html", content)
+        self.assertNotIn('id="location-quick-items"', content)
+        self.assertNotIn("data-quick-items-slot", content)
+        # Without words the quick-items keep their place on the page.
+        self.assertIn("data-quick-items-slot", self.page(partial="1").content.decode())
+
+    def test_search_field_and_depth(self):
+        response = self.page(q="saw", depth="2")
+        self.assertContains(response, 'aria-controls="location-lists"')
+        self.assertContains(response, 'name="q" value="saw"')
+        self.assertContains(response, '<option value="2" selected>')
+        self.assertContains(response, 'href="#location-search"')
+        self.assertContains(response, "live_search.js")
+        # The magnifier's texts, for the hint after going to the field (navbar.js).
+        self.assertContains(response, 'data-text-again="Noch einmal klicken oder {keys} drücken, um alles zu durchsuchen"')
+
+    def test_queries_do_not_grow_with_the_rows(self):
+        from django.db import connection
+        from django.test.utils import CaptureQueriesContext
+
+        def queries(**params):
+            with CaptureQueriesContext(connection) as captured:
+                self.assertEqual(self.page(**params).status_code, 200)
+            return len(captured)
+        lathe = self.lathe.item
+        ItemLocation.objects.create(item=Item.objects.create(name="Part"), location=self.compartment, amount=1)
+        UniqueItem.objects.create(item=lathe, name="part", location=self.shelf)
+        before = [queries(depth="all"), queries(depth="all", q="part")]
+        for index in range(5):
+            ItemLocation.objects.create(item=Item.objects.create(name=f"Part {index}"), location=self.compartment, amount=1)
+            UniqueItem.objects.create(item=lathe, name=f"part {index}", location=self.shelf)
+        self.assertEqual([queries(depth="all"), queries(depth="all", q="part")], before)

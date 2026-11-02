@@ -6,8 +6,13 @@ type on. The magnifier beside the QR scan button in the navbar (on every page, a
 there (`navbar.js`): with a mouse and keyboard it goes straight to the search page, which Chrome loads already
 while the pointer rests on the magnifier (speculation rules), so that it opens at once. On touch screens it
 opens a search field right of it, over the navbar's other items, and Enter shows the results: phones open the
-keyboard only for a field tapped on the same page, so a new page would need a second tap. On the search page
-the magnifier goes to the page's field. To browse instead, *Items* and *Locations* in the navbar show
+keyboard only for a field tapped on the same page, so a new page would need a second tap. On a page with a
+search field of its own (the search page, a category's or a location's page) the magnifier goes to that field
+first, just below the navbar; clicked again with nothing typed in between, it goes on to the search of everything,
+with the words of the field (on touch screens into the field beside it). Ctrl+F (⌘F on a Mac) does the same, and
+on a page without a field goes to the search at once; on the search page a second Ctrl+F is left to the browser,
+to find on the page. Elsewhere the browser's own find stays in its menu; in an open dialog or photo Ctrl+F is the
+browser's. The magnifier's tooltip says what the next click does; going to the field (scrolling to it where it is further down), the navbar stays, so that the magnifier can be clicked again, and a hint below the magnifier says that once more goes on to everything, until typing, a click elsewhere, scrolling on one's own, or six seconds (the hint; the navbar until then). The hint shows at most once a week in a browser (`localStorage`), the tooltip each time. To browse instead, *Items* and *Locations* in the navbar show
 [trees](trees.md); an old link with a search there (`/item/?q=`, `/loc/?q=`, `/location/?q=`) comes here.
 
 ## Using it
@@ -44,7 +49,8 @@ the magnifier goes to the page's field. To browse instead, *Items* and *Location
   choice stays for the next words and on Enter (`?kinds=item,unique`); a chosen kind without hits stays in the
   summary to leave it out again. All kinds are counted up to the cap whatever is shown (the backend fetches up to 500 of each;
   scanning the table costs the same). The same on a category's page, without locations. Without JavaScript the
-  kinds are links.
+  kinds are links. A location's page searches below it (`search(location=, depth=)`, `contains.Below`): only the
+  kinds asked for, each list on its own, without categories ([locations](locations.md)).
 * **Copying:** only the title, the places and the code chips can be clicked, so the text can be selected and
   copied. A click elsewhere in a row opens the result, unless text was selected.
 * **Words:** not every word must match; the more words match an entry, the higher it ranks, so those matching
@@ -70,13 +76,16 @@ the magnifier goes to the page's field. To browse instead, *Items* and *Location
 | Entry | Searched |
 |---|---|
 | Location | name, purpose, code (short name, unique and locatable identifier, whole), description |
-| Item | name, description, category (with the categories above it), barcodes, its photos (description, recognized text), its documents (description) |
-| Unique item | the item's name and category (with the categories above it), its own name, notes, its own photos and documents |
+| Item | name, description, category (with the categories above it) and its keywords (see below), barcodes, its photos (description, recognized text), its documents (description) |
+| Unique item | the item's name and category (with the categories above it) and its keywords, its own name, notes, its own photos and documents |
 | Category | its name, its keywords (synonyms, so they rank like the name; the matching ones are named: "Found in keywords: Spax") and the first line of its description (the next lines say what belongs elsewhere, "Nicht hier: …", and are not searched) |
 | Where it is | the path of a location, of an item's places and of a unique item's location, the categories above a category (*words* above) |
 
-Items are found by their category's name (and those above it), not by its keywords: a keyword such as *Akku*
-would list hundreds of items; the category itself is the hit, and its page lists them.
+Items are found by their category's name (and those above it). Its keywords, in the search of everything, only
+rank them: a keyword alone such as *Akku* would list hundreds of items, so there the category itself is the hit,
+and its page lists them; *Spax 4x40* puts the wood screw 4x40 first. Within a category's page or a location's page,
+where no category is a hit, a keyword alone finds its items and unique items, too. The matching keywords are
+named: "Found in keywords of its category: Spax" (`Source.alone`, `Source.parts` in `contains.py`).
 
 Deleted entries, reserved containers and unique items removed from the inventory (with their photos
 and documents) are not found.

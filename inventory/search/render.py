@@ -18,6 +18,7 @@ from ..models import Category, Item, ItemImage, ItemLocation, Location, UniqueIt
 SOURCE_LABELS = {
     "description": _("description"),
     "keywords": pgettext_lazy("found in", "keywords"),  # "Found in keywords: Spax"
+    "category_keywords": pgettext_lazy("found in", "keywords of its category"),  # of an item or unique item
     "category": _("category"),
     "barcode": _("barcode"),
     "photo": _("photo description"),
@@ -96,6 +97,7 @@ class Entry:
     # the category's pk, "none" without one; its heading shows the folder, a category's page folds it) and its
     # aria-current (the location an item label leads to).
     row: object = None
+    at: object = None  # where the row is, in a list of a location's subtree (its items at a location below it)
     group: tuple = None
     group_key: str = ""
     group_sticky: bool = True  # False for a heading the breadcrumbs name already (a category's own items)
@@ -108,6 +110,10 @@ class Entry:
         if self.kind == "item" and self.obj.kind == Item.Kind.SERIALIZED:
             return SERIALIZED_ICON
         return KINDS[self.kind][0]
+
+    @property
+    def at_icon(self):
+        return icon_name(self.at) if self.at else ""
 
     @property
     def where_icon(self):
@@ -181,10 +187,11 @@ def count_of(rows):
     return Coalesce(Subquery(rows.values("item").annotate(n=Count("pk")).values("n")), 0)
 
 
-def prepare(kind, objects, here=None, item_photos=True):
+def prepare(kind, objects, here=None, item_photos=True, scope=None):
     """Loads what the entries of these objects show, in a fixed number of queries. With `here` (a location),
-    places there are left out: the list is that location's. item_photos=False leaves the item's general photos out
-    of its unique items (on the item's page, which shows them above)."""
+    places there are left out: the list is that location's; with `scope` (a condition on the place's location,
+    Location.in_tree), those within it. item_photos=False leaves the item's general photos out of its unique items
+    (on the item's page, which shows them above)."""
     objects = list(objects)
     if not objects:
         return
@@ -202,7 +209,9 @@ def prepare(kind, objects, here=None, item_photos=True):
     elif kind == "item":
         places = ItemLocation.objects.filter(**ACTIVE_PLACE)
         unique_items = UniqueItem.active.all()
-        if here is not None:
+        if scope is not None:
+            places, unique_items = places.exclude(scope), unique_items.exclude(scope)
+        elif here is not None:
             places, unique_items = places.exclude(location=here), unique_items.exclude(location=here)
         # A few places each (items may be in hundreds), and how many there are in all.
         prefetch_related_objects(
@@ -294,10 +303,11 @@ def entry(kind, obj, hit=None, here=None):
                  category=obj.item.category, **common)
 
 
-def entries(hits):
-    """The entries of the hits, in their order; hits whose object is gone (e.g. deleted since) are left out."""
+def entries(hits, here=None):
+    """The entries of the hits, in their order; hits whose object is gone (e.g. deleted since) are left out. With
+    `here`, as in that location's lists."""
     found = load(hits)
-    return [entry(hit.kind, found[hit.kind, hit.pk], hit) for hit in hits if (hit.kind, hit.pk) in found]
+    return [entry(hit.kind, found[hit.kind, hit.pk], hit, here=here) for hit in hits if (hit.kind, hit.pk) in found]
 
 
 def group_by_category(entries, previous=False):
@@ -314,8 +324,9 @@ def group_by_category(entries, previous=False):
     return entries
 
 
-def listed(kind, objects, here=None, item_photos=True):
-    """The entries of a list that is no search (a location's items, an item's places, …), in the objects' order."""
+def listed(kind, objects, here=None, item_photos=True, scope=None, hits=None):
+    """The entries of a list that is no search (a location's items, an item's places, …), in the objects' order;
+    with `hits` ({pk: Hit}), where the search found them, too."""
     objects = list(objects)
-    prepare(kind, objects, here=here, item_photos=item_photos)
-    return [entry(kind, obj, here=here) for obj in objects]
+    prepare(kind, objects, here=here, item_photos=item_photos, scope=scope)
+    return [entry(kind, obj, (hits or {}).get(obj.pk), here=here) for obj in objects]

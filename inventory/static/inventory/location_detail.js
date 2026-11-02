@@ -20,11 +20,42 @@
     window.setupLocationPhotoLink = link => setup([link]);
 })();
 
-// The headings of the lists stay at the top (location_detail.css): the category headings of the items go below
-// them (--panel-heading-height), and a row the keys move to below both (--location-sticky).
+// The lists come anew with the words searched for and the depth chosen (location_contents.html, live_search.js):
+// with them the overview's counts and the jump buttons (from templates in them); the quick-items stay on the page,
+// edited in place (location_quick_items.js), and go into their slot.
 (() => {
-    const headings = [...document.querySelectorAll('.location-stored-items > .location-panel-heading, .location-children > .location-panel-heading')];
-    if (!headings.length) return;
+    const lists = document.getElementById('location-lists');
+    if (!lists) return;
+    const quick = document.querySelector('[data-quick-items]');
+    lists.addEventListener('results:replaced', () => {
+        const layout = lists.querySelector('.location-layout');
+        const slot = lists.querySelector('[data-quick-items-slot]');
+        if (quick) {
+            if (slot) slot.replaceWith(quick);
+            else quick.remove();
+            if (layout) quick.dataset.detailedCount = layout.dataset.detailedCount;
+        }
+        const nav = lists.querySelector('template[data-location-contents-nav]');
+        if (nav) {
+            document.querySelector('ul[data-location-contents-nav]')?.replaceChildren(nav.content);
+            nav.remove();
+        }
+        const links = lists.querySelector('template[data-location-jump-links]');
+        const jump = document.querySelector('[data-page-jump]');
+        if (links && jump) {
+            jump.querySelectorAll('a:not([data-page-jump-top])').forEach(link => link.remove());
+            jump.append(links.content);
+            links.remove();
+        }
+        document.dispatchEvent(new CustomEvent('location:lists'));
+    });
+})();
+
+// The headings of the lists stay at the top (location_detail.css): the category headings of the items go below
+// them (--panel-heading-height), and a row the keys move to below both (--location-sticky). Measured anew with
+// the lists.
+(() => {
+    let headings = [];
     const measure = () => {
         let highest = 0;
         headings.forEach(heading => {
@@ -36,13 +67,16 @@
         const group = document.querySelector('.location-panel .result-group');
         document.documentElement.style.setProperty('--location-sticky', `${highest + (group ? group.offsetHeight : 0) + 8}px`);
     };
-    measure();
-    if (window.ResizeObserver) {
-        const observer = new ResizeObserver(measure);
-        headings.forEach(heading => observer.observe(heading));
-    } else {
-        window.addEventListener('resize', measure);
-    }
+    const observer = window.ResizeObserver ? new ResizeObserver(measure) : null;
+    const watch = () => {
+        observer?.disconnect();
+        headings = [...document.querySelectorAll('.location-stored-items > .location-panel-heading, .location-children > .location-panel-heading')];
+        headings.forEach(heading => observer?.observe(heading));
+        measure();
+    };
+    if (!observer) window.addEventListener('resize', measure);
+    document.addEventListener('location:lists', watch);
+    watch();
 })();
 
 // The jump buttons to the sections (base.html, page_jump.js): the one of the section being read marked.
@@ -50,15 +84,19 @@
 // Going to a section (a jump button, the overview's counts, a link with its #anchor) goes straight there, as smooth
 // scrolling past a list would load its further rows (results.js) on the way. Rows that load above it still push it
 // down, so it is held in place until the reader scrolls or a few seconds have passed.
+//
+// The search field's button (and its panel at the top) gives the field the focus, too.
 (() => {
-    const sections = [...document.querySelectorAll('.location-panel[id]')];
+    const allSections = () => [...document.querySelectorAll('.location-panel[id]')];
+    let sections = allSections();
     const navbar = document.querySelector('.app-navbar');
     const breadcrumbs = document.querySelector('[data-page-breadcrumbs]');
     // Sections go just below the navbar and the breadcrumbs, also while the navbar is hidden, so that the one gone
     // to is the one marked.
     const top = () => (navbar ? navbar.offsetHeight : 0) + (breadcrumbs ? breadcrumbs.offsetHeight : 0);
 
-    const buttons = [...document.querySelectorAll('[data-page-jump] a[href^="#"]:not([data-page-jump-top])')];
+    const jumpButtons = () => [...document.querySelectorAll('[data-page-jump] a[href^="#"]:not([data-page-jump-top])')];
+    let buttons = jumpButtons();
     // The sections at the top of the page: one per column on wide screens (items beside the sub-locations). At the
     // end of the page, the last one that has come into view, even if it is too short to reach the top.
     function current() {
@@ -79,11 +117,14 @@
             else button.removeAttribute('aria-current');
         });
     }
-    if (buttons.length) {
-        window.addEventListener('scroll', () => { if (!pending) { pending = true; requestAnimationFrame(update); } }, {passive: true});
-        document.addEventListener('results:loaded', update);
+    window.addEventListener('scroll', () => { if (!pending) { pending = true; requestAnimationFrame(update); } }, {passive: true});
+    document.addEventListener('results:loaded', update);
+    document.addEventListener('location:lists', () => {
+        sections = allSections();
+        buttons = jumpButtons();
         update();
-    }
+    });
+    update();
 
     let held = null;
     let until = 0;
@@ -100,6 +141,11 @@
         history.pushState(null, '', link.hash);
         hold(target);
         place();
+        const field = target.querySelector('[data-live-search] input[name="q"]');
+        if (field) {
+            field.focus({preventScroll: true});
+            field.setSelectionRange(field.value.length, field.value.length);
+        }
     });
     document.addEventListener('results:loaded', place);
     ['wheel', 'touchstart', 'keydown', 'pointerdown'].forEach(type => window.addEventListener(type, () => { held = null; }, {passive: true}));

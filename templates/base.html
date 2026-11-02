@@ -37,7 +37,10 @@
           <a class="navbar-brand py-0 me-0" href="{% url 'index' %}"><img src="{% static favicon_dir|add:'/favicon.svg' %}" alt="{% trans 'ZAM inventory' %}" width="40" height="40"></a>
           {% include 'inventory/scan_link_button.html' with classes="btn btn-sm btn-secondary navbar-scan" icon_only=True %}
           {# Opens the search field below (navbar.js); without JavaScript it leads to the search, the home page. #}
-          <a class="btn btn-sm btn-secondary navbar-scan" href="{% url 'index' %}" aria-label="{% trans 'Search' %}" data-navbar-search aria-controls="navbar-search" aria-expanded="false">{% icon "search" %}</a>
+          {# A page's own search field first, once more everything; so does Ctrl+F (navbar.js). #}
+          <a class="btn btn-sm btn-secondary navbar-scan" href="{% url 'index' %}" aria-label="{% trans 'Search' %}" data-navbar-search aria-controls="navbar-search" aria-expanded="false"
+             data-text-page="{% trans 'Search on this page' %}" data-text-all="{% trans 'Search everything' %}" data-shortcut="{% trans 'Ctrl+F' %}"
+             data-text-again="{% blocktrans with keys='{keys}' %}Click again or press {{ keys }} to search everything{% endblocktrans %}">{% icon "search" %}</a>
         </div>
         <ul class="navbar-nav app-nav">
           {# The section the page belongs to is marked (in_section, by address). #}

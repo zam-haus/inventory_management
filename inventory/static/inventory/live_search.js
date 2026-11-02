@@ -4,7 +4,9 @@
 // usual, so that on the search page a typed or scanned code opens its page. Below two characters the results go
 // away, or, with data-live-search-listing, the list without words comes back (a category's items). Above the
 // results, how many there are of each kind; each chooses that kind or not, none chosen shows all (?kinds=, kept in a
-// hidden field of the form for the next words and for Enter). The rows themselves are results.js's.
+// hidden field of the form for the next words and for Enter). Other fields of the form (a location's depth) go along
+// unless at their first choice, and choosing in them shows anew at once. Once replaced, the results announce
+// results:replaced. The rows themselves are results.js's.
 (() => {
     const MIN_LENGTH = 2;
     const DELAY = 200;  // ms after the last key
@@ -42,6 +44,9 @@
             const target = new URL(form.action, window.location.href);
             if (query) target.searchParams.set('q', query);
             if (query && form.elements.kinds?.value) target.searchParams.set('kinds', form.elements.kinds.value);
+            [...form.elements].filter(field => field.name && field.name !== 'q' && field.name !== 'kinds'
+                && field.matches('select') && field.value !== field.options[0]?.value)
+                .forEach(field => target.searchParams.set(field.name, field.value));
             if (partial) target.searchParams.set('partial', '1');
             target.search = target.search.replaceAll('%2C', ',');  // ?kinds=location,item, as the server's links
             return target;
@@ -103,6 +108,7 @@
                 status.textContent = results.firstElementChild?.dataset.status || '';
                 error.hidden = true;
                 shown()?.watch(results);
+                results.dispatchEvent(new CustomEvent('results:replaced', {bubbles: true}));
             } catch (failure) {
                 if (failure.name === 'AbortError') return;
                 error.hidden = false;
@@ -112,6 +118,11 @@
         input.addEventListener('input', () => {
             window.clearTimeout(timer);
             timer = window.setTimeout(() => show(input.value.trim()), DELAY);
+        });
+        form.addEventListener('change', event => {
+            if (!event.target.matches('select')) return;
+            window.clearTimeout(timer);
+            show(input.value.trim());
         });
         form.addEventListener('submit', () => {
             window.clearTimeout(timer);

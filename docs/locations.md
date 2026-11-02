@@ -103,6 +103,19 @@ kind and linking to its panel; the panel's heading shows the same icon. Lists co
 rows load while scrolling towards the end of the list (`location_rows`, `/location/<id>/rows/<part>/`, as the
 search's further pages, `results.js`). Quick-items all show at once, as their list is edited in place.
 
+**Searching and the locations below.** Below the overview a field searches the location's lists as you type
+(`live_search.js`), with the [search](search.md) of everything, but only within the location: each list shows what
+it finds of its kind, the best match first (items without category headings, each with its stock entries there;
+the sub-locations found in one list), and emptied, all of them again. Beside the field the lists reach further down:
+*Only here* (the default), one, two or three levels below, or all of them (`?depth=`, in the address only, so a
+link keeps it). The items and unique items of the locations below then come with those right here, the items still
+by category; a row at a location below names it, with its code. The sub-location panels stay those right below,
+unless searching. The overview, the counts and the jump buttons follow (`location_contents.html`, alone with
+`?partial=1`; `location_detail.js` puts the quick-items, which only show those right here and not while searching,
+back in their place). `LocationLists` (`views.py`) makes all lists, a page at a time, cut in the database: the
+locations below by their code path (`Location.in_tree`, `locatable_identifier`). The magnifier in the navbar and
+Ctrl+F go to the field, a jump button at the bottom right too ([search](search.md)).
+
 Once scrolled down at all, a column of round buttons at the bottom right leads back
 to the top and to each panel, with the icons of the overview (`page_jump_links` in `location_detail.html`); the buttons of the
 panels at the top of the page are marked, one per column on wide screens. The top button is on every page

@@ -5296,3 +5296,77 @@ msgstr "Details von „%(name)s“ bearbeiten"
 
 msgid "More actions"
 msgstr "Weitere Aktionen"
+
+#: templates/inventory/location_detail.html
+msgid "Locations below it"
+msgstr "Unterstandorte einbeziehen"
+
+msgid "Only here"
+msgstr "Nur hier"
+
+msgid "1 level below"
+msgstr "1 Ebene darunter"
+
+msgid "2 levels below"
+msgstr "2 Ebenen darunter"
+
+msgid "3 levels below"
+msgstr "3 Ebenen darunter"
+
+msgid "All below"
+msgstr "Alle darunter"
+
+msgid "Show results"
+msgstr "Ergebnisse anzeigen"
+
+#: templates/inventory/location_contents.html
+msgid "Bulk items stored here and in all locations below are shown."
+msgstr "Angezeigt werden die Mengenartikel hier und in allen Standorten darunter."
+
+#, python-format
+msgid "Bulk items stored here and one level below are shown."
+msgid_plural "Bulk items stored here and up to %(counter)s levels below are shown."
+msgstr[0] "Angezeigt werden die Mengenartikel hier und eine Ebene darunter."
+msgstr[1] "Angezeigt werden die Mengenartikel hier und bis zu %(counter)s Ebenen darunter."
+
+#, python-format
+msgid "%(counter)s bulk item found"
+msgid_plural "%(counter)s bulk items found"
+msgstr[0] "%(counter)s Mengenartikel gefunden"
+msgstr[1] "%(counter)s Mengenartikel gefunden"
+
+#, python-format
+msgid "%(counter)s unique item"
+msgid_plural "%(counter)s unique items"
+msgstr[0] "%(counter)s Einzelobjekt"
+msgstr[1] "%(counter)s Einzelobjekte"
+
+#, python-format
+msgid "%(counter)s sub-location"
+msgid_plural "%(counter)s sub-locations"
+msgstr[0] "%(counter)s Unterstandort"
+msgstr[1] "%(counter)s Unterstandorte"
+
+#: templates/inventory/location_jump_links.html
+msgid "Go to the search field"
+msgstr "Zum Suchfeld springen"
+
+#: ../templates/base.html
+msgid "Search on this page"
+msgstr "Auf dieser Seite suchen"
+
+msgid "Search everything"
+msgstr "Alles durchsuchen"
+
+msgid "Ctrl+F"
+msgstr "Strg+F"
+
+#: search/render.py
+msgctxt "found in"
+msgid "keywords of its category"
+msgstr "den Stichwörtern der Kategorie"
+
+#: ../templates/base.html
+#, python-format
+msgid "Click again or press %(keys)s to search everything"
+msgstr "Noch einmal klicken oder %(keys)s drücken, um alles zu durchsuchen"

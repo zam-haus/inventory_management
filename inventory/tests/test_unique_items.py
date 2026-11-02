@@ -407,7 +407,7 @@ class UniqueItemViewTests(UniqueItemFixture, TestCase):
         self.client.force_login(self.insider)
         response = self.client.post(url, {"reason": "scrapped", "note": "empty"})
         self.assertRedirects(response, self.location.get_absolute_url(), fetch_redirect_response=False)
-        self.assertEqual(list(self.client.get(self.location.get_absolute_url()).context["unique_items"]), [])
+        self.assertEqual(self.client.get(self.location.get_absolute_url()).context["unique_entries"], [])
         # The old label still leads to the unique item's page, which explains what happened.
         response = self.client.get(reverse("label_id_resolve", args=[self.lid.code]))
         self.assertRedirects(response, self.unique_item.get_absolute_url(), fetch_redirect_response=False)

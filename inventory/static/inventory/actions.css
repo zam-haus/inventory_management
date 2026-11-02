@@ -115,6 +115,15 @@
     animation: navbar-search-open .15s ease-out; }
 .navbar-search .form-control { height: 100%; }
 @keyframes navbar-search-open { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0); } }
+/* After the magnifier or Ctrl+F went to a page's own search field: once more goes on to everything (navbar.js).
+   Looks like a Bootstrap tooltip, with its arrow at the magnifier (--hint-arrow). */
+.navbar-search-hint { position: fixed; z-index: 1080; max-width: min(20rem, calc(100vw - 1rem)); padding: .35rem .6rem;
+    border-radius: .375rem; background: #212529; color: #fff; font-size: .875rem; line-height: 1.35;
+    box-shadow: 0 .25rem .75rem rgba(0, 0, 0, .2); pointer-events: none; animation: navbar-search-hint .15s ease-out; }
+.navbar-search-hint::before { content: ""; position: absolute; top: -5px; left: calc(var(--hint-arrow, 50%) - 5px);
+    border: 5px solid transparent; border-top: 0; border-bottom-color: #212529; }
+@keyframes navbar-search-hint { from { opacity: 0; } to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .navbar-search-hint { animation: none; } }
 @media (prefers-reduced-motion: reduce) { .navbar-search { animation: none; } }
 
 /* Inline Bootstrap Icons ({% icon %}, inventory/icons.py) sit on the text baseline like a glyph. */

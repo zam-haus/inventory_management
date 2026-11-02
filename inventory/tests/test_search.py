@@ -399,14 +399,26 @@ class CategorySearchTests(TestCase):
     def test_not_found_by_what_belongs_elsewhere(self):
         self.assertEqual(found("maschinenschrauben"), [])
 
-    def test_items_are_found_by_the_category_name_not_its_keywords(self):
+    def test_items_are_found_by_the_category_name_and_ranked_by_its_keywords(self):
         self.assertEqual(found("holzschrauben"), [
             ("category", "Holzschrauben"), ("item", "Senkkopf 4x40"), ("item", "Senkkopf 5x60")])
+        # A keyword alone finds the category, not its items; with another word it ranks them.
         self.assertEqual(found("spax"), [("category", "Holzschrauben")])
+        self.assertEqual(found("spax 4x40")[:2], [("item", "Senkkopf 4x40"), ("category", "Holzschrauben")])
+        hit = search.search("spax 4x40").hits[0]
+        self.assertEqual((hit.sources, hit.snippets), (("category_keywords",), {"category_keywords": "Spax"}))
+        entry, = search.render.entries([hit])
+        self.assertEqual(entry.sources, ["keywords of its category: Spax"])
+        # Within the category, the keyword alone finds its items.
+        within = search.search("spax", category=self.fixing).hits
+        self.assertEqual([(hit.kind, hit.pk) for hit in within if hit.kind == "item"],
+                         [("item", self.spax.pk), ("item", Item.objects.get(name="Senkkopf 5x60").pk)])
 
     def test_the_categories_above_are_its_path(self):
-        # Both words (one in its path) first, then what matches one of them.
-        self.assertEqual(found("befestigung spax")[:2], [("category", "Holzschrauben"), ("category", "Befestigung")])
+        # Both words (one in its path) first, its items by its path and keyword, too; then what matches one of them.
+        self.assertEqual(found("befestigung spax"), [
+            ("category", "Holzschrauben"), ("item", "Senkkopf 4x40"), ("item", "Senkkopf 5x60"),
+            ("category", "Befestigung"), ("item", "Mutter M6")])
         # The category above alone finds only itself (and its items), not those below it.
         self.assertEqual([title for kind, title in found("befestigung") if kind == "category"], ["Befestigung"])
 

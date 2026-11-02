@@ -24,17 +24,22 @@ class SearchResult:
     counts: dict = field(default_factory=dict)
 
 
-def search(query, offset=0, limit=PAGE, category=None, kinds=None):
+def search(query, offset=0, limit=PAGE, category=None, kinds=None, location=None, depth=None):
     """A page of hits: locations, categories, items and unique items mixed, those matching the most words first, then
     hits on the name. Each kind keeps the backend's order, so that pages neither repeat nor skip a hit. With a category, only what is in it or
-    below it (its page); with kinds, only those (the others are still counted)."""
+    below it (its page); with kinds, only those (the others are still counted). With a location, only what is below
+    it, at most `depth` levels (None: all; its page, each list on its own): only the kinds asked for are searched,
+    and counted."""
     words = query.split()[:MAX_WORDS]
     offset = max(0, min(offset, MAX_RESULTS))
     limit = max(0, min(limit, MAX_RESULTS - offset))
     if not words or not limit:
         return SearchResult(words, capped=bool(words) and offset >= MAX_RESULTS)
     # Every kind up to the cap, so that the summary counts them all; the scan of the table costs the same.
-    found = contains.search(words, MAX_RESULTS, scope=category) + categories.search(words, MAX_RESULTS, scope=category)
+    if location is not None:
+        found = contains.search(words, MAX_RESULTS, scope=contains.Below(location, depth), kinds=kinds)
+    else:
+        found = contains.search(words, MAX_RESULTS, scope=category) + categories.search(words, MAX_RESULTS, scope=category)
     counts = dict(Counter(hit.kind for hit in found))
     shown = sorted((hit for hit in found if hit.rank < MAX_RESULTS and (kinds is None or hit.kind in kinds)),
                    key=lambda hit: (-hit.matched, -hit.score, KIND_ORDER[hit.kind], hit.rank))
