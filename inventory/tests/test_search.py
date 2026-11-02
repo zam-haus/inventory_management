@@ -67,12 +67,14 @@ class SearchTests(MediaMixin, TestCase):
         self.assertEqual(found("holz"), [("location", "Holzwerkstatt"), ("item", "Bohrer")])
 
     def test_words_may_match_where_it_is_but_one_the_entry_itself(self):
-        self.assertEqual(found("schraubendreher holzwerkstatt"), [("item", "Schraubendreher")])
-        self.assertEqual(found("akkuschrauber blau holzwerkstatt"), [("unique", "Akkuschrauber")])
-        self.assertEqual(found("werkstatt regal"), [("location", "Regal 3")])
+        # Matching all words, itself or where it is, comes first; the others follow.
+        self.assertEqual(found("schraubendreher holzwerkstatt"), [("item", "Schraubendreher"), ("location", "Holzwerkstatt")])
+        self.assertEqual(found("akkuschrauber blau holzwerkstatt")[0], ("unique", "Akkuschrauber"))
+        self.assertEqual(found("werkstatt regal")[0], ("location", "Regal 3"))
         # A room alone finds the room, not everything stored in it.
         self.assertEqual(found("holzwerkstatt"), [("location", "Holzwerkstatt")])
-        self.assertEqual(found("schraubendreher kueche"), [])
+        # Not every word needs to match: the best match first.
+        self.assertEqual(found("schraubendreher kueche"), [("item", "Schraubendreher")])
 
     def test_where_the_words_were_found(self):
         ItemImage.objects.create(item=self.drill, image=png(), description="Packung", ocr_text="HSS 6mm DIN 338")
@@ -120,7 +122,7 @@ class SearchTests(MediaMixin, TestCase):
         old.disposed_at, old.location = timezone.now(), None
         old.save()
         self.assertEqual(found("4711"), [])
-        self.assertEqual(found("akkuschrauber alt"), [])
+        self.assertNotIn(old.pk, [hit.pk for hit in search.search("akkuschrauber alt").hits if hit.kind == "unique"])
         self.drill.delete()
         self.assertEqual(found("bohrer"), [])
         Location.objects.create(type=self.wood.type, name="Lager", short_name="LG", is_reserved=True)
@@ -232,7 +234,7 @@ class SearchTests(MediaMixin, TestCase):
         self.assertIn('data-status="More than 50 results"', content)
         more = self.client.get(url, {"q": "zwinge", "offset": search.PAGE, "partial": "1"}).content.decode()
         self.assertTrue(more.lstrip().startswith("<template data-result-entries>"))
-        self.assertEqual(more.count('class="result-entry"'), 6)
+        self.assertEqual(more.count(' data-result-entry'), 6)
         self.assertNotIn("data-result-next", more)
 
     def test_at_most_max_results(self):
@@ -270,7 +272,7 @@ class SearchTests(MediaMixin, TestCase):
         self.assertEqual([f["chosen"] for f in every.context["kind_filters"]], [False, False])
         self.assertEqual(len(every.context["entries"]), 2)
         # A chosen kind without hits stays, to leave it out again.
-        none = self.client.get(url, {"q": "akkuschrauber blau", "kinds": "item"})  # only the unique item matches
+        none = self.client.get(url, {"q": "blau", "kinds": "item"})  # only the unique item matches
         self.assertContains(none, "Only kinds not chosen above have results.")
         self.assertEqual([(f["kind"], f["chosen"]) for f in none.context["kind_filters"]],
                          [("item", True), ("unique", False)])
@@ -312,14 +314,14 @@ class SearchTests(MediaMixin, TestCase):
 
     def test_queries_do_not_grow_with_the_hits(self):
         for n in range(10):
-            item = Item.objects.create(name=f"Zange {n}", measurement_unit_id=1)
+            item = Item.objects.create(name=f"Zange zz{n}", measurement_unit_id=1)
             ItemLocation.objects.create(item=item, location=self.metal, amount=n)
             ItemImage.objects.create(item=item, image=png())
         url = reverse("index")
         self.client.get(url, {"q": "zange", "partial": "1"})  # thumbnails made once
-        self.client.get(url, {"q": "zange 3", "partial": "1"})
+        self.client.get(url, {"q": "zz3", "partial": "1"})
         with CaptureQueriesContext(connection) as one:
-            self.client.get(url, {"q": "zange 3", "partial": "1"})
+            self.client.get(url, {"q": "zz3", "partial": "1"})
         with CaptureQueriesContext(connection) as ten:
             self.client.get(url, {"q": "zange", "partial": "1"})
         self.assertEqual(len(one), len(ten))
@@ -380,6 +382,20 @@ class CategorySearchTests(TestCase):
         hit, = search.search("selbstschneidend").hits
         self.assertEqual((hit.pk, hit.score, hit.sources), (self.screws.pk, 1, ("description",)))
 
+    def test_the_best_match_first(self):
+        # The norm in the category, the size in the name: those matching most of the words come first; a word that
+        # matches nothing ("mm") does not hide them.
+        unit = MeasurementUnit.objects.get(pk=1)
+        din = Category.objects.create(name="DIN 993 Querkopfschrauben", parent_category=self.fixing)
+        Item.objects.create(name="Querkopfschraube M8x80", measurement_unit=unit, category=din)
+        Item.objects.create(name="Querkopfschraube M8x90", measurement_unit=unit, category=din)
+        Item.objects.create(name="Gewindestange 8x90", measurement_unit=unit, category=self.metric)
+        Item.objects.create(name="Hammer", measurement_unit=unit)
+        self.assertEqual(found("DIN 993 8x90 mm"), [
+            ("item", "Querkopfschraube M8x90"),  # DIN, 993 (its category), 8x90
+            ("category", "DIN 993 Querkopfschrauben"), ("item", "Querkopfschraube M8x80"),  # DIN, 993
+            ("item", "Gewindestange 8x90"), ("item", "Hammer")])  # 8x90; mm
+
     def test_not_found_by_what_belongs_elsewhere(self):
         self.assertEqual(found("maschinenschrauben"), [])
 
@@ -389,7 +405,8 @@ class CategorySearchTests(TestCase):
         self.assertEqual(found("spax"), [("category", "Holzschrauben")])
 
     def test_the_categories_above_are_its_path(self):
-        self.assertEqual(found("befestigung spax"), [("category", "Holzschrauben")])
+        # Both words (one in its path) first, then what matches one of them.
+        self.assertEqual(found("befestigung spax")[:2], [("category", "Holzschrauben"), ("category", "Befestigung")])
         # The category above alone finds only itself (and its items), not those below it.
         self.assertEqual([title for kind, title in found("befestigung") if kind == "category"], ["Befestigung"])
 

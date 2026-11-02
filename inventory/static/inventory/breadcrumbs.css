@@ -1,0 +1,31 @@
+/* The breadcrumbs (base.html; category_breadcrumb.html, location_breadcrumb.html): the path down to the page, the
+   page itself last. They stay below the navbar, at the top while it is hidden; what else stays at the top goes
+   below both, at --sticky-top (navbar.js measures the breadcrumbs, which may wrap). */
+:root { --breadcrumbs-height: 0px; --sticky-top: calc(var(--app-navbar-height) + var(--breadcrumbs-height)); }
+:root:has(.page-breadcrumbs:not(:empty)) { --breadcrumbs-height: 2.5rem; }
+:root:has(.app-navbar.is-hidden) { --sticky-top: var(--breadcrumbs-height); }
+/* What an address or a key goes to comes to rest below them (pages with more at the top add to it). */
+html { scroll-padding-top: calc(var(--sticky-top) + .5rem); }
+
+.page-breadcrumbs { position: sticky; top: var(--app-navbar-height); z-index: 1015; margin: -.5rem 0 .75rem;
+    padding-block: .3rem; background: var(--bs-body-bg, #fff); transition: top .2s ease-out; }
+.page-breadcrumbs:empty { display: none; }
+:root:has(.app-navbar.is-hidden) .page-breadcrumbs { top: 0; }
+@media (prefers-reduced-motion: reduce) {
+    .page-breadcrumbs { transition: none; }
+}
+
+.breadcrumb-row { display: flex; flex-wrap: wrap; gap: 0 .5rem; align-items: baseline; font-size: .9rem; }
+.breadcrumb-row > a, .breadcrumb-row > [aria-current] { display: inline-flex; align-items: baseline; gap: .3rem; padding: .2rem 0; }
+/* The icons keep the text's colour, also in the links. */
+.breadcrumb-row .bi { flex: none; align-self: center; color: var(--bs-body-color, #212529); }
+/* The page itself: dark and bold, still underlined where it is a link (as the other crumbs). */
+.breadcrumb-row [aria-current] { color: inherit; font-weight: 600; }
+.breadcrumb-row a[aria-current] { text-decoration: underline; }
+.breadcrumb-row > [aria-hidden] { color: #8a939c; }
+.breadcrumb-row .loc-code { font-size: .75em; }
+/* Narrow screens: each path on one line, which scrolls sideways; it starts scrolled to its end (navbar.js). */
+@media (max-width: 575.98px) {
+    .breadcrumb-row { flex-wrap: nowrap; white-space: nowrap; overflow-x: auto; scrollbar-width: none; }
+    .breadcrumb-row::-webkit-scrollbar { display: none; }
+}

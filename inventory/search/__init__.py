@@ -25,8 +25,8 @@ class SearchResult:
 
 
 def search(query, offset=0, limit=PAGE, category=None, kinds=None):
-    """A page of hits: locations, categories, items and unique items mixed, hits on the name first. Each kind keeps
-    the backend's order, so that pages neither repeat nor skip a hit. With a category, only what is in it or
+    """A page of hits: locations, categories, items and unique items mixed, those matching the most words first, then
+    hits on the name. Each kind keeps the backend's order, so that pages neither repeat nor skip a hit. With a category, only what is in it or
     below it (its page); with kinds, only those (the others are still counted)."""
     words = query.split()[:MAX_WORDS]
     offset = max(0, min(offset, MAX_RESULTS))
@@ -37,7 +37,7 @@ def search(query, offset=0, limit=PAGE, category=None, kinds=None):
     found = contains.search(words, MAX_RESULTS, scope=category) + categories.search(words, MAX_RESULTS, scope=category)
     counts = dict(Counter(hit.kind for hit in found))
     shown = sorted((hit for hit in found if hit.rank < MAX_RESULTS and (kinds is None or hit.kind in kinds)),
-                   key=lambda hit: (-hit.score, KIND_ORDER[hit.kind], hit.rank))
+                   key=lambda hit: (-hit.matched, -hit.score, KIND_ORDER[hit.kind], hit.rank))
     more = len(shown) > MAX_RESULTS or any(
         n > MAX_RESULTS for kind, n in counts.items() if kinds is None or kind in kinds)
     shown = shown[:MAX_RESULTS]

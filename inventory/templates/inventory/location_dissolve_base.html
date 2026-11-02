@@ -7,9 +7,10 @@
     <link rel="stylesheet" href="{% static 'inventory/location_detail.css' %}">
 {% endblock %}
 {% block title %}{% if delete_root %}{% trans "Dissolve location" %}{% else %}{% trans "Move contents" %}{% endif %}: {{ object.title_with_code }}{% endblock %}
+{% block breadcrumbs %}{% if delete_root %}{% trans "Dissolve location" as page %}{% include "inventory/location_breadcrumb.html" with location=object page=page %}{% else %}{% trans "Move contents" as page %}{% include "inventory/location_breadcrumb.html" with location=object page=page %}{% endif %}{% endblock %}
+
 {% block page_header %}
     <header class="location-header">
-        {% include "inventory/location_breadcrumb.html" with location=object %}
         <div class="location-heading">
             <div class="location-heading-text">
                 <p class="location-eyebrow">{% if delete_root %}{% trans "Dissolve location" %}{% else %}{% trans "Move contents" %}{% endif %}</p>

@@ -97,22 +97,35 @@ codes stay blocked for good (`LocationFormerCode`), so a link never leads to ano
 
 The location page shows a panel per kind of entry: **At this location …** with
 the overview of its contents and the photo, then quick-items, items, unique items and
-sub-locations. The overview lists how many of each the location has ("12 items"),
-each as a chip linking to its panel. Lists with
-more than 10 entries show only the first 5 at first. Clicking the section heading
-(marked with a triangle) or **Show all** below the list shows all entries;
-clicking the heading again collapses it. This works without JavaScript
-(`inventory/static/inventory/list_collapse.css`). Where the browser supports
-`hidden="until-found"`, `list_collapse.js` hides the entries that way instead:
-find-in-page (and links to a text fragment) then also finds collapsed entries,
-and revealing one expands the list; so do the arrow keys moving onto one. Quick-items are never collapsed, because
-their list is edited in place.
+sub-locations; the items panel is called **Bulk items** there, as serialized items are listed as their unique
+items. The overview lists how many of each the location has ("12 bulk items"), each with the icon of its
+kind and linking to its panel; the panel's heading shows the same icon. Lists come 50 rows at a time: the next
+rows load while scrolling towards the end of the list (`location_rows`, `/location/<id>/rows/<part>/`, as the
+search's further pages, `results.js`). Quick-items all show at once, as their list is edited in place.
+
+Once scrolled down at all, a column of round buttons at the bottom right leads back
+to the top and to each panel, with the icons of the overview (`page_jump_links` in `location_detail.html`); the buttons of the
+panels at the top of the page are marked, one per column on wide screens. The top button is on every page
+(`base.html`, `page_jump.js`); the map leaves it out. Going to a panel, by
+these buttons, the overview or a link with its `#anchor`, jumps there without smooth scrolling, so that the lists
+on the way do not load their further rows, and holds the panel in place while rows above it still load, until
+the reader scrolls (`location_detail.js`).
+
+The headings of the items, unique items and sub-locations stay at the top while their rows scroll past. Hovering
+over a row marks it, as the arrow keys do; the keys go on from the end of one list into the next.
 
 Items, unique items and sub-locations are [result rows](search.md#result-rows), as in the search: an
 item with its amount here and the stock button beside it, its description and price below it, and its other
 places; a unique item with its usage level and notes; a sub-location with its code chip and its counts as in the
 [location tree](trees.md). Their photos open below
 the row.
+
+The items are grouped by category, sorted by its path and within it by name, those without one last ("Without
+category"); a heading names each category (`search.render.group_by_category`), so the rows do not repeat it. The
+headings stay at the top while their rows scroll past (`results.css` `.result-group`, as on a category's page,
+there below the search field), below the panel's heading. A further page of rows goes on with the category of
+the row before it: a heading only where the category changes. Unique items are not grouped; each names its
+category.
 
 ## Moving contents and dissolving
 

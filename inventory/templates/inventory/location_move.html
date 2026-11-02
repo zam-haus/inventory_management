@@ -9,9 +9,10 @@
 
 {% block title %}{% trans "Move Location" %}: {{ object.title_with_code }}{% endblock %}
 
+{% block breadcrumbs %}{% trans "Move Location" as page %}{% include "inventory/location_breadcrumb.html" with location=object page=page %}{% endblock %}
+
 {% block page_header %}
     <header class="location-header">
-        {% include "inventory/location_breadcrumb.html" with location=object %}
         <div class="location-heading">
             <div class="location-heading-text">
                 <p class="location-eyebrow">{% trans "Move Location" %} · {{ object.type.name }}</p>

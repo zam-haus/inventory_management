@@ -72,7 +72,7 @@
 
     function setLabels(row, name) {
         row.menu.setAttribute('aria-label', format(texts.actions, name));
-        row.details.setAttribute('aria-label', format(texts.details, name));
+        row.details.forEach(link => link.setAttribute('aria-label', format(texts.details, name)));
         row.deleteButton.setAttribute('aria-label', format(texts.delete, name));
         if (row.photoInput) row.photoInput.setAttribute('aria-label', format(texts.photo, name));
         if (row.photoLink.getAttribute('href')) row.photoImage.alt = format(texts.photoOf, name);
@@ -114,9 +114,16 @@
         row.saved = entry.name;
         row.nameForm.action = entry.update_url;
         row.deleteForm.action = entry.delete_url;
-        row.details.href = entry.item_url;
-        row.details.classList.remove('disabled');
-        row.details.removeAttribute('aria-disabled');
+        row.details.forEach(link => {
+            link.href = entry.edit_url;
+            link.classList.remove('disabled');
+            link.removeAttribute('aria-disabled');
+        });
+        row.li.querySelectorAll('a[data-quick-serialize]').forEach(link => {
+            link.href = entry.serialize_url;
+            link.classList.remove('disabled');
+            link.removeAttribute('aria-disabled');
+        });
         row.photoUrl = entry.photo_url;
         if (row.photoForm) {
             row.photoForm.action = entry.photo_url;
@@ -241,7 +248,7 @@
             photoImage: li.querySelector('[data-quick-photo-link] img'),
             photoUrl: photoForm ? photoForm.getAttribute('action') : null,
             input: li.querySelector('input[name="name"]'),
-            details: li.querySelector('[data-quick-details]'),
+            details: [...li.querySelectorAll('a[data-quick-details]')],  // the pencil and the menu's entry
             menu: li.querySelector('[data-quick-menu]'),
             deleteButton: li.querySelector('[data-quick-delete]'),
             undoButton: li.querySelector('[data-quick-undo]'),
@@ -328,4 +335,45 @@
     window.addEventListener('pageshow', event => {
         if (event.persisted && deletedOnLeave) window.location.reload();
     });
+})();
+
+// What stays in each row beside the name, by the room the list has: the name keeps at least 16.5rem, enough for
+// "VW Käfer (new beatle) foo bar" (location_quick_items.css, data-room):
+//   1. camera, "Edit details" with its words, menu (converting), cross
+//   2. camera, pencil, menu (editing, converting), cross
+//   3. camera, menu (editing, converting), cross
+//   4. menu (photo, editing, converting), cross
+// The photo form moves into the menu and back, as there is only one of it (with its file input) per row.
+(() => {
+    const list = document.querySelector('[data-quick-items-list]');
+    if (!list) return;
+    const ROOM_REM = [43, 32.5, 29.5];  // the content width each of the first three needs
+    const photoOf = li => li.querySelector('.location-quick-photo-form, .disabled-action:has(.location-quick-photo-button)');
+    function place(li, room) {
+        const photo = photoOf(li);
+        const menu = li.querySelector('.location-quick-actions');
+        if (!photo || !menu) return;
+        if (room === 4) {
+            if (photo.parentElement !== menu) menu.prepend(photo);
+        } else if (photo.parentElement === menu) {
+            li.querySelector(':scope > .location-quick-pen, :scope > .disabled-action:has(.location-quick-pen), :scope > .location-quick-menu').before(photo);
+        }
+    }
+    let room = 0;
+    function measure() {
+        const rem = parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
+        const style = getComputedStyle(list);
+        const width = list.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
+        const found = ROOM_REM.findIndex(needed => width >= needed * rem);
+        room = found === -1 ? 4 : found + 1;
+        list.dataset.room = room;
+        list.querySelectorAll(':scope > [data-quick-item]').forEach(li => place(li, room));
+    }
+    measure();
+    if (window.ResizeObserver) new ResizeObserver(measure).observe(list);
+    else window.addEventListener('resize', measure);
+    // New rows (location_quick_items.js above) come from the template, with the photo in the row.
+    new MutationObserver(records => records.forEach(record => record.addedNodes.forEach(node => {
+        if (node.matches?.('[data-quick-item]')) place(node, room);
+    }))).observe(list, {childList: true});
 })();

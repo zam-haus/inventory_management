@@ -89,6 +89,21 @@
 .location-panel-heading h3 { font-size: 1.25rem; }
 .location-photo-panel > .location-panel-heading { padding-top: 0; }
 .location-panel-heading p { margin: .65rem 0 0; }
+/* What a list holds, below its heading (which stays at the top without it). */
+.location-panel-heading:has(+ .location-panel-note) { padding-bottom: .4rem; }
+.location-panel-note { margin: 0; padding: 0 1.2rem 1.2rem; }
+/* The heading of a list stays at the top while its rows scroll past, below the navbar (at the very top while it is
+   hidden, navbar.js); the category headings of the items below it (--panel-heading-height: location_detail.js). A
+   row the keys move to comes to rest below both (--location-sticky). */
+.location-stored-items > .location-panel-heading, .location-children > .location-panel-heading {
+    position: sticky; top: var(--sticky-top); z-index: 3; background: #fff; border-radius: .65rem .65rem 0 0;
+    transition: top .2s ease-out; }
+.location-panel .result-group,
+body:has(.app-navbar.is-hidden) .location-panel .result-group { top: calc(var(--sticky-top) + var(--panel-heading-height, 0px)); }
+html:has(.location-stored-items) { scroll-padding-top: calc(var(--sticky-top) + var(--location-sticky, 7rem)); }
+@media (prefers-reduced-motion: reduce) {
+    .location-stored-items > .location-panel-heading, .location-children > .location-panel-heading { transition: none; }
+}
 .location-panel-heading p a { display: inline-block; }
 .location-count { padding: .2rem .5rem; border-radius: 1rem; background: #edf2f7; color: #485460; font-size: .8rem; font-weight: 600; }
 .location-photos { display: flex; flex-wrap: wrap; gap: .5rem; min-width: 0; }
@@ -170,9 +185,9 @@
     .location-children-groups { gap: 1rem; }
     .location-detail > .location-stored { margin-bottom: 1rem; }
     .location-panel-heading { padding: 1rem; }
+    .location-panel-note { padding-inline: 1rem; }
     .location-move-form { padding: 0 1rem 1rem; }
     .location-photos { grid-column: 1 / -1; }
-    .location-panel .list-collapse-more { padding-inline: 1rem; }
 }
 .location-scan-button { min-height: 44px; margin-top: .25rem; }
 

@@ -7,6 +7,7 @@ from django.utils import timezone
 from .. import trees
 from ..label_ids.testing import SETTINGS
 from ..models import Category, Item, ItemLocation, Location, LocationType, MeasurementUnit, UniqueItem
+from .helpers import breadcrumbs
 
 
 @override_settings(**SETTINGS)
@@ -101,44 +102,61 @@ class TreeTests(TestCase):
                          ["HH-2", "HH-1", "HH+0", "WH-1", "WH+0", "WH+1"])
 
     def test_items_by_category(self):
-        roots, uncategorized = trees.item_nodes()
+        roots, none = trees.item_nodes()
         names = [node.obj.name for node in roots]  # with those the migrations create
         self.assertLess(names.index("Empty"), names.index("Tools"))
         tools = roots[names.index("Tools")]
-        self.assertEqual((tools.bulk, tools.unique, [node.obj.name for node in tools.children], tools.leaves),
-                         (1, 1, ["Hand tools"], [self.drill]))
-        self.assertEqual(tools.children[0].leaves, [self.pliers])  # the deleted item is gone
-        self.assertEqual(uncategorized, [self.loose])
+        self.assertEqual((tools.bulk, tools.unique, [node.obj.name for node in tools.children], tools.own),
+                         (1, 1, ["Hand tools"], 1))
+        self.assertEqual(tools.children[0].own, 1)  # the deleted item is gone
+        self.assertEqual(none.own, 1)
 
     def test_item_page(self):
         content = self.client.get(reverse("index_items")).content.decode()
         tools = Category.objects.get(name="Tools")
         self.assertIn(f'<li id="cat-{tools.pk}"><details>', content)
         self.assertIn(f'<a class="tree-name" href="{tools.get_absolute_url()}">Tools</a>', content)
-        self.assertLess(content.index("Hand tools"), content.index(">drill<"))  # subcategories first
+        # Its items come when it is opened (tree.js), below its subcategories; a link to them until then.
+        rows = f'{reverse("item_tree_rows")}?category={tools.pk}'
+        self.assertIn(f'<li class="tree-items" data-tree-items="{rows}"><a class="tree-items-load" '
+                      f'href="{tools.get_absolute_url()}" data-tree-items-load>Show 1 item</a></li>', content)
+        self.assertLess(content.index("Hand tools"), content.index(f'data-tree-items="{rows}"'))
         self.assertIn('<li id="cat-none"><details>', content)
-        self.assertGreater(content.index('id="cat-none"'), content.index(">Pliers<"))  # at the end
-        self.assertIn('<use href="#tree-icon-box-star"/>', content)
-        self.assertIn(f'href="{self.pliers.get_absolute_url()}"', content)
+        self.assertIn(f'data-tree-items="{reverse("item_tree_rows")}?category=none"', content)
+        self.assertNotIn(">drill<", content)
+        # The rows: as in the search, without the category the tree names.
+        drill = self.client.get(rows).content.decode()
+        self.assertIn(f'href="{self.drill.get_absolute_url()}"', drill)
+        self.assertNotIn("result-category", drill)
+        hand = Category.objects.get(name="Hand tools")
+        self.assertIn(f'href="{self.pliers.get_absolute_url()}"',
+                      self.client.get(reverse("item_tree_rows"), {"category": hand.pk}).content.decode())
+        self.assertIn(f'href="{self.loose.get_absolute_url()}"',
+                      self.client.get(reverse("item_tree_rows"), {"category": "none"}).content.decode())
+        self.assertEqual(self.client.get(reverse("item_tree_rows"), {"category": "x"}).status_code, 404)
         self.assertNotIn(">Old<", content)
+
+    def test_item_rows_in_pages_of_fifty(self):
+        tools = Category.objects.get(name="Tools")
+        Item.objects.bulk_create([Item(name=f"Saw {n:02}", category=tools, measurement_unit_id=1) for n in range(55)])
+        url = reverse("item_tree_rows")
+        first = self.client.get(url, {"category": tools.pk})
+        self.assertEqual(len(first.context["entries"]), 50)
+        self.assertContains(first, f'data-result-next="{url}?category={tools.pk}&amp;offset=50"')
+        more = self.client.get(url, {"category": tools.pk, "offset": 50, "partial": "1"})
+        self.assertEqual(len(more.context["entries"]), 6)
+        self.assertTrue(more.content.decode().lstrip().startswith("<template data-result-entries>"))
 
     def test_unique_items_in_the_item_tree(self):
         first = UniqueItem.objects.get(item=self.drill, disposed_at__isnull=True)
         red = UniqueItem.objects.create(item=self.drill, name="red", location=self.crate)
-        roots, _uncategorized = trees.item_nodes()
+        roots, _none = trees.item_nodes()
         tools = next(node for node in roots if node.obj.name == "Tools")
-        self.assertEqual(tools.leaves[0].units, [first, red])  # still in the inventory, by name
         self.assertEqual((tools.bulk, tools.unique), (1, 2))  # unique items, not the items tracked as them
-        content = self.client.get(reverse("index_items")).content.decode()
-        drill = content[content.index(f'href="{self.drill.get_absolute_url()}"'):]
-        drill = drill[:drill.index("</details>")]
-        # Each named as everywhere: the item, its own name if any, its label ID (here none: its number).
-        self.assertIn(f'<a href="{first.get_absolute_url()}">drill #{first.pk}</a>', drill)
-        self.assertIn(f'<a href="{red.get_absolute_url()}">drill red #{red.pk}</a>', drill)
-        self.assertEqual(drill.count("/item/unique/"), 2)
-        self.assertEqual(drill.count('<use href="#tree-icon-box-star"/>'), 3)  # its count and the two unique items
-        self.assertIn('<symbol id="tree-icon-box-star-stack"', content)
-        self.assertIn('<use href="#tree-icon-box-star-stack"/>', content[:content.index(f'href="{self.drill.get_absolute_url()}"')][-200:])
+        # Its row names its unique items still in the inventory, as everywhere.
+        rows = self.client.get(reverse("item_tree_rows"), {"category": tools.obj.pk}).content.decode()
+        self.assertIn(f'href="{first.get_absolute_url()}"', rows)
+        self.assertIn(f'href="{red.get_absolute_url()}"', rows)
         # The list on the item's page names them the same way (as result rows).
         page = self.client.get(self.drill.get_absolute_url())
         self.assertContains(page, f'<a class="result-link" href="{red.get_absolute_url()}"><span class="visually-hidden">'
@@ -179,15 +197,18 @@ class TreeTests(TestCase):
         response = self.client.get(tools.get_absolute_url())
         # The items right in it first, then those of its subcategories, each group by name under its heading.
         self.assertEqual([(entry.group, entry.obj) for entry in response.context["entries"]],
-                         [(("In this category", ""), self.drill), (("Hand tools", hand.get_absolute_url()), self.pliers)])
+                         [(("Tools", ""), self.drill), (("Hand tools", hand.get_absolute_url()), self.pliers)])
         content = response.content.decode()
         self.assertIn(f'href="{reverse("index_items")}#cat-{tools.pk}"', content)  # back to the tree
         self.assertIn(f'href="{hand.get_absolute_url()}"', content)
         self.assertIn('data-live-search data-live-search-listing', content)
+        self.assertEqual(content.count("data-group-toggle"), 2)  # each group folds away
         self.assertNotIn(">Old<", content)
-        # Only its own items: no heading.
-        self.assertEqual([(entry.group, entry.obj) for entry in self.client.get(hand.get_absolute_url()).context["entries"]],
-                         [(None, self.pliers)])
+        # Only its own items: under its name all the same, which does not stay at the top (the breadcrumbs do).
+        response = self.client.get(hand.get_absolute_url())
+        self.assertEqual([(entry.group, entry.group_sticky, entry.obj) for entry in response.context["entries"]],
+                         [(("Hand tools", ""), False, self.pliers)])
+        self.assertContains(response, '<li class="result-group is-static"')
 
     def test_category_pages_of_fifty(self):
         tools = Category.objects.get(name="Tools")
@@ -205,7 +226,7 @@ class TreeTests(TestCase):
         self.assertNotIn("data-result-next", content)
         # A page opened there (without JavaScript) starts with the heading.
         self.assertEqual(self.client.get(tools.get_absolute_url(), {"offset": 50}).context["entries"][0].group,
-                         ("In this category", ""))
+                         ("Tools", ""))
 
     def test_searching_within_a_category(self):
         tools = Category.objects.get(name="Tools")
@@ -229,18 +250,20 @@ class TreeTests(TestCase):
         items = reverse("index_items")
 
         def path(url):
-            content = self.client.get(url).content.decode()
-            nav = content[content.index('class="item-breadcrumb"'):]
-            return nav[:nav.index("</nav>")]
-        pliers = path(self.pliers.get_absolute_url())
-        self.assertIn(f'<a href="{items}#cat-{hand.pk}">Items</a>', pliers)  # the tree, opened at the category
-        self.assertLess(pliers.index(f'<a href="{tools.get_absolute_url()}">Tools</a>'),
-                        pliers.index(f'<a href="{hand.get_absolute_url()}">Hand tools</a>'))
-        unique = UniqueItem.objects.filter(item=self.drill).first()
-        self.assertIn(f'<a href="{tools.get_absolute_url()}">Tools</a>', path(unique.get_absolute_url()))
-        loose = path(self.loose.get_absolute_url())
-        self.assertIn(f'<a href="{items}#cat-none">Items</a>', loose)
-        self.assertEqual(loose.count("<a "), 1)
+            return breadcrumbs(self.client.get(url))[0]
+        # The tree, opened at the category, the categories down from the top, the page itself last.
+        self.assertEqual(path(self.pliers.get_absolute_url()), [
+            (f"{items}#cat-{hand.pk}", "Items", False), (tools.get_absolute_url(), "Tools", False),
+            (hand.get_absolute_url(), "Hand tools", False), (self.pliers.get_absolute_url(), "Pliers", True)])
+        self.assertEqual(path(hand.get_absolute_url()), [
+            (f"{items}#cat-{hand.pk}", "Items", False), (tools.get_absolute_url(), "Tools", False),
+            (hand.get_absolute_url(), "Hand tools", True)])
+        unique = UniqueItem.objects.filter(item=self.drill, disposed_at=None).first()
+        self.assertEqual(path(unique.get_absolute_url())[1:], [
+            (tools.get_absolute_url(), "Tools", False), (self.drill.get_absolute_url(), "drill", False),
+            (unique.get_absolute_url(), f"#{unique.pk}", True)])
+        self.assertEqual(path(self.loose.get_absolute_url()), [
+            (f"{items}#cat-none", "Items", False), (self.loose.get_absolute_url(), "Loose thing", True)])
 
 
 @override_settings(**SETTINGS)

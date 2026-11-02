@@ -1,3 +1,5 @@
+import re
+
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Permission
 from django.db import connection
@@ -89,9 +91,10 @@ class ResultListTests(MediaMixin, TestCase):
                 self.assertEqual(content.count('id="result-viewer"'), 1)
                 self.assertEqual(content.count('class="result-sprite"'), 1)
                 self.assertIn("results.js", content)
-        content = self.client.get(reverse("index_items")).content.decode()
+        content = self.client.get(reverse("index_locations")).content.decode()
         self.assertNotIn('id="result-viewer"', content)
         self.assertNotIn("results.js", content)
+        self.assertIn("results.js", self.client.get(reverse("index_items")).content.decode())  # rows when opened
 
     def test_queries_do_not_grow_with_the_rows(self):
         tools = Category.objects.create(name="Tools")
@@ -121,3 +124,48 @@ class ResultListTests(MediaMixin, TestCase):
         for n in range(1, 10):
             add(n)
         self.assertEqual({url: queries(url) for url in urls}, before)
+
+
+@override_settings(LANGUAGE_CODE="en")
+class CategoryInRowsTests(MediaMixin, TestCase):
+    """A location's items are grouped by category, a heading each; elsewhere every item names its category."""
+
+    @classmethod
+    def setUpTestData(cls):
+        Category.objects.all().delete()  # the migrated tree; this test has its own
+        MeasurementUnit.objects.create(pk=1, name="Piece", short="pc")
+        room = LocationType.objects.create(name="Room", unique=True, moveable=True)
+        cls.room = Location.objects.create(type=room, name="Store", short_name="ST")
+        fixing = Category.objects.create(name="Fixing")
+        cls.din = Category.objects.create(name="DIN 933 Hex bolts", parent_category=fixing)
+        cls.glue_category = Category.objects.create(name="Glue")
+        for name, category in [("Hex bolt M8x90", cls.din), ("Wood glue", cls.glue_category), ("Hex bolt M6x40", cls.din),
+                               ("Odd thing", None)] + [(f"Glue {n}", cls.glue_category) for n in range(4)]:
+            item = Item.objects.create(name=name, category=category, measurement_unit_id=1)
+            ItemLocation.objects.create(item=item, location=cls.room, amount=1)
+        cls.drill = Item.objects.create(name="Drill", kind=Item.Kind.SERIALIZED, measurement_unit_id=1,
+                                        category=cls.din)
+        UniqueItem.objects.create(item=cls.drill, location=cls.room)
+
+    def items_section(self, content):
+        return content[content.index('id="location-items"'):content.index('id="location-unique-items"')]
+
+    def test_a_locations_items_by_category(self):
+        items = self.items_section(self.client.get(self.room.get_absolute_url()).content.decode())
+        order = re.findall(r'class="result-group-title">(.*?)</h2>|class="result-title">([^<]+)<', items)
+        self.assertEqual([re.sub(r"<[^>]+>", "", group).strip() or title for group, title in order], [
+            "DIN 933 Hex bolts", "Hex bolt M6x40", "Hex bolt M8x90",
+            "Glue", "Glue 0", "Glue 1", "Glue 2", "Glue 3", "Wood glue",
+            "Without category", "Odd thing"])
+        self.assertNotIn("result-category", items)  # the headings name it
+        self.assertNotIn("data-group-toggle", items)  # only a category's page folds its groups
+        self.assertEqual(items.count('class="result-group-title"><svg'), 2)  # the folder, not "Without category"
+
+    def test_other_lists_name_the_category(self):
+        unique = self.client.get(self.room.get_absolute_url()).content.decode()
+        unique = unique[unique.index('id="location-unique-items"'):]
+        self.assertIn(f'href="{self.din.get_absolute_url()}" title="Fixing › DIN 933 Hex bolts">DIN 933 Hex bolts</a>',
+                      unique)
+        found = self.client.get(reverse("index"), {"q": "M8x90"}).content.decode()
+        self.assertIn('class="result-category"', found)
+        self.assertIn("DIN 933 Hex bolts", found)

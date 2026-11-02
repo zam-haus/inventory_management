@@ -360,6 +360,7 @@ class MapViewTests(Building, TestCase):
         self.assertIn(f'href="/map/-1/?p=loc:{self.pallet.pk}"', page)  # the saw is on the pallet
         self.assertNotIn("?focus=", page)
         self.assertEqual(self.client.get(reverse("maps:map") + "?focus=x").context["number"], -1)  # ignored
+        self.assertNotContains(self.client.get(reverse("maps:map")), "data-page-jump")  # the map does not scroll
 
     def test_containers_are_not_placed_for_now_unique_items_are(self):
         self.client.force_login(self.member)

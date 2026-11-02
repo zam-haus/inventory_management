@@ -97,10 +97,20 @@ are in [Standortregeln](standortregeln.md) (German).
   asks for the purpose and the description. The description of everything but the
   building structure can be changed later on the location page like the purpose
   (`LocationDescriptionUpdateView`, `location_field_editor.js`).
-* **Breadcrumbs** of location pages (the location and its sub-pages: move, dissolve, adding
-  shelves, containers or compartments) show the location's full path from its top-level location,
-  without a “Locations” root (`inventory/location_breadcrumb.html`). Item pages have none for now:
-  theirs would follow the categories. A unique item's heading links to its item.
+* **Breadcrumbs** (`base.html`, block `breadcrumbs`; `breadcrumbs.css`): the full path down to the page, each
+  crumb with the icon of its kind, and the page itself last (dark and bold, still underlined where it is a link).
+  They stay at the top below the navbar, at the very top while it is hidden, and what else stays at the top
+  (the search field of a category, headings of lists, open categories of the tree) goes below them
+  (`--sticky-top`; `navbar.js` measures them). On narrow screens each path stays on one line, which scrolls
+  sideways and shows its end.
+  * Location pages: the location's path from its top-level location, without a “Locations” root
+    (`inventory/location_breadcrumb.html`); on its sub-pages (move, dissolve, adding shelves, containers or
+    compartments) the page's name follows the location.
+  * Categories, items and unique items: *Items* (the tree, opened at the category), each category down to its
+    own, then the item, then the unique item (`inventory/category_breadcrumb.html`). A unique item has a second
+    row, the path of where it is, ending in the unique item as well. A unique item's heading links to its item.
+  * The trees (`/item/`, `/location/`): the path to the open node at the top of the view while scrolling, each
+    crumb leading to its node in the tree (`tree.js`).
 * **Sub-locations** (`LocationType.sublocation_type`, e.g. *Fach/Schub* for shelves and
   cabinets): creating such a location asks how many to add inside it and creates them with the
   sub type's naming, with the shelf's or cabinet's name first (`Regal 301 Fach a`, `a`;

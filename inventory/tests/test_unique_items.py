@@ -22,6 +22,7 @@ from ..models import (
 from ..label_ids import services
 from ..label_ids.views import label_preview_url
 from ..label_ids.testing import SETTINGS, InventoryFixture, make_id, local_group
+from .helpers import breadcrumbs
 
 
 def grant(user, *codenames):
@@ -515,23 +516,27 @@ class UniqueItemViewTests(UniqueItemFixture, TestCase):
         self.assertFalse(Item.objects.filter(name="Ladder").exists())
 
     def test_breadcrumbs(self):
-        # Items follow their categories (test_trees); the heading leads to the item.
+        # Items follow their categories (test_trees); the heading leads to the item. The last crumb of each row is
+        # the page itself: the item's path ends in the item and the unique item, its place's path in the unique item.
         response = self.client.get(self.unique_item.get_absolute_url())
-        self.assertContains(response, f'<a href="{reverse("index_items")}#cat-none">Items</a>', html=True)
+        code = self.unique_item.label_display
+        here = (self.unique_item.get_absolute_url(), f"Fire extinguisher {code}", True)
+        self.assertEqual(breadcrumbs(response), [
+            [(f'{reverse("index_items")}#cat-none', "Items", False),
+             (self.extinguisher.get_absolute_url(), "Fire extinguisher", False),
+             (self.unique_item.get_absolute_url(), code, True)],
+            [(self.location.get_absolute_url(), f"{self.location.title} {self.location.short_name}", False), here]])
         self.assertContains(response, f'<a class="unique-item-of" href="{self.extinguisher.get_absolute_url()}">'
                                       'Fire extinguisher</a>', html=True)
         drawer = Location.objects.create(name="Drawer", short_name="D2", type=self.kind, parent_location=self.shelf)
         response = self.client.get(drawer.get_absolute_url())
-        content = response.content.decode()
-        def crumb(location):
-            return (f'<span class="loc-label"><span class="loc-title">{location.title}</span> '
-                    f'<span class="loc-code" data-location-info="{location.pk}" role="button" tabindex="0" '
-                    f'title="Location in brief">{location.short_name}</span></span>')
-        for location in (self.location, self.shelf):
-            self.assertInHTML(f'<a href="{location.get_absolute_url()}">{crumb(location)}</a>', content)
-        self.assertInHTML(f'<a href="{drawer.get_absolute_url()}" aria-current="page">{crumb(drawer)}</a>', content)
-        self.assertLess(content.index(crumb(self.location)), content.index(crumb(self.shelf)))
-        self.assertNotIn(f">{drawer.locatable_identifier}</a>", content)
+        self.assertEqual(breadcrumbs(response), [[
+            (location.get_absolute_url(), f"{location.title} {location.short_name}", location == drawer)
+            for location in (self.location, self.shelf, drawer)]])
+        self.assertInHTML(f'<span class="loc-label"><span class="loc-title">{drawer.title}</span> '
+                          f'<span class="loc-code" data-location-info="{drawer.pk}" role="button" tabindex="0" '
+                          f'title="Location in brief">{drawer.short_name}</span></span>', response.content.decode())
+        self.assertNotIn(f">{drawer.locatable_identifier}</a>", response.content.decode())
 
     def test_search_by_id_opens_the_unique_item(self):
         response = self.client.get(reverse("index_items"), {"q": "k7r-4xd"}, follow=True)
@@ -958,15 +963,37 @@ class SerializeItemTests(UniqueItemFixture, TestCase):
 
     def test_only_one_piece_at_one_location(self):
         self.client.force_login(self.member)
-        for amount in (Decimal("2"), Decimal("-1"), None):  # two, an estimate ("a few"), a quick-item
+        for amount in (Decimal("2"), Decimal("-1")):  # two, an estimate ("a few")
             ItemLocation.objects.filter(pk=self.entry.pk).update(amount=amount)
             page = self.client.get(self.item.get_absolute_url())
-            self.assertContains(page, "Only an item with exactly one piece at exactly one location")
+            self.assertContains(page, "Only an item with exactly one piece, or an unknown amount, at exactly one location")
             self.assertEqual(self.client.post(self.url, {"label_choice": "generate"}).status_code, 403)
         ItemLocation.objects.filter(pk=self.entry.pk).update(amount=1)
         ItemLocation.objects.create(item=self.item, location=self.location, amount=0)
         self.assertEqual(self.client.get(self.url).status_code, 403)  # a second place, even empty
         self.assertEqual(Item.objects.get(pk=self.item.pk).kind, Item.Kind.BULK)
+
+    def test_a_quick_item_becomes_one_from_its_location(self):
+        # A quick-item (unknown amount at its one place) may become a unique item, from its row on the location's
+        # page; cancelling goes back there.
+        ItemLocation.objects.filter(pk=self.entry.pk).update(amount=None)
+        grant(self.member, "add_item", "add_itemlocation")
+        self.client.force_login(self.member)
+        location = self.client.get(self.shelf.get_absolute_url())
+        link = f'{self.url}?next={self.shelf.get_absolute_url()}'
+        self.assertContains(location, f'href="{link}"')
+        self.assertContains(self.client.get(link), f'href="{self.shelf.get_absolute_url()}">Cancel</a>')
+        response = self.client.post(self.url, {"label_choice": "generate", "next": self.shelf.get_absolute_url()})
+        unique_item = UniqueItem.objects.get(item=self.item)
+        self.assertRedirects(response, unique_item.get_absolute_url(), fetch_redirect_response=False)
+        self.assertEqual(unique_item.location, self.shelf)
+        self.assertFalse(ItemLocation.objects.filter(item=self.item).exists())
+        # With a second place it stays a quick-item here; the button says why.
+        other = Item.objects.create(name="Glue gun", measurement_unit=self.item.measurement_unit)
+        ItemLocation.objects.create(item=other, location=self.shelf, amount=None)
+        ItemLocation.objects.create(item=other, location=self.location, amount=None)
+        self.assertNotContains(self.client.get(self.shelf.get_absolute_url()),
+                               f'href="{reverse("serialize_item", args=[other.pk])}')
 
     def test_only_with_the_permissions(self):
         self.client.force_login(get_user_model().objects.create_user(username="visitor"))

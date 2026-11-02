@@ -1,10 +1,9 @@
 {% load i18n icons actions locations %}{% comment %}Sub-locations of the location page as result rows: all of them, or those of one category (anchor, title,
 children, child_entries, category). Storage units and containers have a shortcut to the header's "add" and "move here" buttons, which stay.{% endcomment %}
 <section class="location-panel location-children" id="{{ anchor }}" aria-labelledby="{{ anchor }}-heading">
-    {% if children|length > 10 %}<input type="checkbox" class="list-collapse-state visually-hidden" id="{{ anchor }}-expanded">{% endif %}
     <div class="location-panel-heading">
         <div class="location-panel-title-row">
-            <h2 id="{{ anchor }}-heading" class="fs-4">{% if children|length > 10 %}<label class="list-collapse-toggle" for="{{ anchor }}-expanded">{% endif %}<span class="list-collapse-title">{{ title }} <span class="location-count">{{ children|length }}</span></span>{% if children|length > 10 %}</label>{% endif %}</h2>
+            <h2 id="{{ anchor }}-heading" class="fs-4">{% icon category|category_icon %} {{ title }} <span class="location-count">{{ children|length }}</span></h2>
             {% if category == "storage_unit" %}
                 {% if numbering_types %}{% with numbering_label=numbering_types|join:" / " %}{% blocktrans asvar add_title %}Add {{ numbering_label }}{% endblocktrans %}{% add_icon "storage_unit"|category_icon as numbering_icon %}
                     {% if perms.inventory.add_location %}
@@ -38,9 +37,9 @@ children, child_entries, category). Storage units and containers have a shortcut
         </div>
     </div>
     {% if child_entries %}
-        {% include 'inventory/results/list.html' with entries=child_entries here=object list_classes="list-collapse-list" row_aside="" row_details="" %}
+        {# The first rows, the next ones while scrolling (views.location_rows). #}
+        {% include 'inventory/results/list.html' with entries=child_entries here=object next_url=child_next_url row_aside="" row_details="" %}
     {% else %}
         <p class="location-empty location-muted">{% trans "No sub-locations." %}</p>
     {% endif %}
-    {% if children|length > 10 %}<label class="list-collapse-more" for="{{ anchor }}-expanded">{% blocktrans with counter=children|length %}Show all {{ counter }}{% endblocktrans %}</label>{% endif %}
 </section>

@@ -8,30 +8,39 @@
     <a class="location-quick-photo" data-quick-photo-link{% if photo %} href="{{ photo.image.url }}"{% else %} hidden{% endif %}>
         {% if photo %}{% thumbnail photo.image "88x88" crop="center" as im %}<img src="{{ im.url }}" width="44" height="44" alt="{% blocktrans with name=entry.item.name %}Photo of “{{ name }}”{% endblocktrans %}">{% endthumbnail %}{% else %}<img width="44" height="44" alt="">{% endif %}
     </a>
-    {# Wide screens show the actions in the row; narrow ones put them behind a menu (location_quick_items.css). #}
+    {# The photo, editing (a pencil where there is room) and the menu with what is seldom needed, so that the name #}
+    {# keeps its width (location_quick_items.css). #}
+    {% if can_add_quick_photos %}
+        <form class="location-quick-photo-form" method="post" enctype="multipart/form-data"{% if entry %} action="{% url 'quick_item_set_photo' entry.pk %}"{% endif %}>
+            {% if entry %}{% csrf_token %}{% endif %}
+            <label class="btn btn-warning location-quick-photo-button{% if not entry %} disabled{% endif %}" title="{% if photo %}{% trans 'Replace photo' %}{% else %}{% trans 'Add a photo' %}{% endif %}">
+                {% icon "camera" %}
+                <span class="location-quick-action-label" aria-hidden="true" data-quick-photo-label>{% if photo %}{% trans 'Replace photo' %}{% else %}{% trans 'Add a photo' %}{% endif %}</span>
+                <input type="file" name="image" accept="image/*" class="visually-hidden" data-quick-photo-input{% if entry %} aria-label="{% blocktrans with name=entry.item.name %}Photo for “{{ name }}”{% endblocktrans %}"{% else %} disabled{% endif %}>
+            </label>
+            <button type="submit" class="btn btn-warning location-quick-photo-submit" data-quick-photo-submit>{% trans "Upload" %}</button>
+        </form>
+    {% else %}
+        {% icon "camera" as camera_icon %}{% disabled_action camera_icon label=_("Add a photo") classes="btn btn-warning location-quick-photo-button" %}
+    {% endif %}
+    {# Its form, where an amount makes it a regular item; there it can also become a unique item. In the row with #}
+    {# its words or as a pencil where there is room, an entry in the menu as well or else (location_quick_items.js). #}
+    {% if perms.inventory.change_item %}<a class="btn btn-warning location-quick-details location-quick-pen{% if not entry %} disabled{% endif %}" data-quick-details{% if entry %} href="{% url 'update_item' entry.item_id %}" aria-label="{% blocktrans with name=entry.item.name %}Edit details of “{{ name }}”{% endblocktrans %}"{% else %} aria-disabled="true"{% endif %} title="{% trans 'Edit details' %}">{% icon "pencil" %} <span class="action-label">{% trans "Edit details" %}</span></a>
+    {% else %}{% icon "pencil" as edit_icon %}{% disabled_action edit_icon label=_("Edit details") classes="btn btn-warning location-quick-details location-quick-pen" %}{% endif %}
     <div class="dropdown location-quick-menu">
         <button type="button" class="btn btn-secondary location-quick-menu-toggle" data-bs-toggle="dropdown" aria-expanded="false" data-quick-menu{% if entry %} aria-label="{% blocktrans with name=entry.item.name %}Actions for “{{ name }}”{% endblocktrans %}"{% endif %} title="{% trans 'Actions' %}">{% icon "three-dots-vertical" %}</button>
         <div class="dropdown-menu dropdown-menu-end location-quick-actions">
-            {% if can_add_quick_photos %}
-                <form class="location-quick-photo-form" method="post" enctype="multipart/form-data"{% if entry %} action="{% url 'quick_item_set_photo' entry.pk %}"{% endif %}>
-                    {% if entry %}{% csrf_token %}{% endif %}
-                    <label class="btn btn-warning location-quick-photo-button{% if not entry %} disabled{% endif %}" title="{% if photo %}{% trans 'Replace photo' %}{% else %}{% trans 'Add a photo' %}{% endif %}">
-                        {% icon "camera" %}
-                        <span class="location-quick-action-label" aria-hidden="true" data-quick-photo-label>{% if photo %}{% trans 'Replace photo' %}{% else %}{% trans 'Add a photo' %}{% endif %}</span>
-                        <input type="file" name="image" accept="image/*" class="visually-hidden" data-quick-photo-input{% if entry %} aria-label="{% blocktrans with name=entry.item.name %}Photo for “{{ name }}”{% endblocktrans %}"{% else %} disabled{% endif %}>
-                    </label>
-                    <button type="submit" class="btn btn-warning location-quick-photo-submit" data-quick-photo-submit>{% trans "Upload" %}</button>
-                </form>
-            {% else %}
-                {% icon "camera" as camera_icon %}{% disabled_action camera_icon name=_("Add a photo") classes="btn btn-warning location-quick-photo-button" %}
-            {% endif %}
-            <a class="btn btn-info location-quick-details{% if not entry %} disabled{% endif %}" data-quick-details{% if entry %} href="{{ entry.item.get_absolute_url }}" aria-label="{% blocktrans with name=entry.item.name %}Details for “{{ name }}”{% endblocktrans %}"{% else %} aria-disabled="true"{% endif %} title="{% trans 'Show details' %}">{% icon "chevron-right" %}<span class="location-quick-action-label location-quick-details-label" aria-hidden="true">{% trans "Show details" %}</span></a>
-            <form class="location-quick-delete-form" method="post"{% if entry %} action="{% url 'quick_item_delete' entry.pk %}"{% endif %}>
-                {% if entry %}{% csrf_token %}{% endif %}
-                <button type="submit" class="btn btn-danger location-quick-delete" data-quick-delete{% if entry %} aria-label="{% blocktrans with name=entry.item.name %}Delete “{{ name }}”{% endblocktrans %}"{% endif %} title="{% trans 'Delete' %}">{% icon "x-lg" %}<span class="location-quick-action-label" aria-hidden="true">{% trans "Delete" %}</span></button>
-            </form>
+            {# Unless the row has room for it with its words. #}
+            {% if perms.inventory.change_item %}<a class="btn btn-warning location-quick-details{% if not entry %} disabled{% endif %}" data-quick-details{% if entry %} href="{% url 'update_item' entry.item_id %}" aria-label="{% blocktrans with name=entry.item.name %}Edit details of “{{ name }}”{% endblocktrans %}"{% else %} aria-disabled="true"{% endif %} title="{% trans 'Edit details' %}">{% icon "pencil" %}<span class="location-quick-action-label location-quick-details-label" aria-hidden="true">{% trans "Edit details" %}</span></a>
+            {% else %}{% icon "pencil" as edit_icon %}{% disabled_action edit_icon label=_("Edit details") classes="btn btn-warning location-quick-details" %}{% endif %}
+            {% include 'inventory/location_quick_serialize.html' %}
         </div>
     </div>
+    {# Deleting stays in the row, after the menu. #}
+    <form class="location-quick-delete-form" method="post"{% if entry %} action="{% url 'quick_item_delete' entry.pk %}"{% endif %}>
+        {% if entry %}{% csrf_token %}{% endif %}
+        <button type="submit" class="btn btn-danger location-quick-delete" data-quick-delete{% if entry %} aria-label="{% blocktrans with name=entry.item.name %}Delete “{{ name }}”{% endblocktrans %}"{% endif %} title="{% trans 'Delete' %}">{% icon "x-lg" %}</button>
+    </form>
     <button type="button" class="btn btn-secondary location-quick-undo" data-quick-undo hidden>{% trans "Undo" %}</button>
 </li>
 {% endwith %}

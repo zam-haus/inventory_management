@@ -14,3 +14,4 @@ class Hit:
     sources: tuple  # where else the words were found (render.SOURCE_LABELS)
     rank: int = 0  # place among the hits of its kind, in the backend's order
     snippets: dict = field(default_factory=dict)  # source → what matched there (a category's keywords, excerpts)
+    matched: int = 1  # how many of the words it matches itself: the more, the higher it ranks

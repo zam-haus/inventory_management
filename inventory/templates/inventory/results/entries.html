@@ -3,12 +3,13 @@ One row per entry (search/render.py Entry), in every list of locations, categori
 search results, a category's items, a location's items and sub-locations, an item's places (docs/search.md).
 results.js opens a row on a click outside its links, moves between rows with the arrow keys and shows the photos
 below a row. Per list: `here` (the location whose lists these are), `row_aside` and `row_details` (templates for each
-row, given `entry`), `words` (marked).
+row, given `entry`), `words` (marked), `collapsible_groups` (a toggle in each heading folds its rows: a category's
+page, results.js).
 {% endcomment %}{% result_rows %}{% slot "result_entries.start" %}
 {# Lists that are no search have no words: as filter argument, a missing one would be an error. #}{% with words=words|default:"" %}
 {% for entry in entries %}
-    {% if entry.group %}<li class="result-group"><h2 class="result-group-title">{% if entry.group.1 %}<a href="{{ entry.group.1 }}">{{ entry.group.0 }}</a>{% else %}{{ entry.group.0 }}{% endif %}</h2></li>{% endif %}
-    <li class="result-entry{% if entry.current %} result-entry-current{% endif %}" data-result-entry{% if entry.current %} aria-current="{{ entry.current }}"{% endif %}{% if entry.photos %} data-photos="{{ entry.photos_json }}"{% endif %}>
+    {% if entry.group %}<li class="result-group{% if not entry.group_sticky %} is-static{% endif %}"{% if entry.group_key %} data-group="{{ entry.group_key }}"{% endif %}><h2 class="result-group-title">{% if collapsible_groups and entry.group_key %}<button type="button" class="result-group-toggle" data-group-toggle aria-expanded="true" title="{% trans 'Fold or unfold its items' %}" aria-label="{% trans 'Fold or unfold its items' %}"></button>{% endif %}{% if entry.group_key and entry.group_key != "none" %}{% result_icon "folder" %} {% endif %}{% if entry.group.1 %}<a href="{{ entry.group.1 }}">{{ entry.group.0 }}</a>{% else %}{{ entry.group.0 }}{% endif %}</h2></li>{% endif %}
+    <li class="result-entry{% if entry.current %} result-entry-current{% endif %}" data-result-entry{% if entry.group_key %} data-group="{{ entry.group_key }}"{% endif %}{% if entry.current %} aria-current="{{ entry.current }}"{% endif %}{% if entry.photos %} data-photos="{{ entry.photos_json }}"{% endif %}>
         {% if entry.thumbnail %}
             <button type="button" class="result-thumb" data-result-photos aria-expanded="false"
                     aria-label="{% blocktrans with name=entry.title count count=entry.photos|length %}Show the photo of {{ name }}{% plural %}Show the {{ count }} photos of {{ name }}{% endblocktrans %}">
@@ -22,6 +23,8 @@ row, given `entry`), `words` (marked).
         <div class="result-text">
             <span class="result-heading"><span class="result-kind" aria-hidden="true">{% result_icon entry.icon %}</span><a class="result-link" href="{{ entry.url }}"><span class="visually-hidden">{{ entry.kind_label }}: </span><span class="result-title">{{ entry.title|highlight:words }}</span>{% if entry.subtitle %} <span class="result-subtitle">{{ entry.subtitle|highlight:words }}</span>{% endif %}{% if entry.label %} <span class="unique-item-code">{{ entry.label|highlight:words }}</span>{% endif %}</a>{% if entry.code %} {% location_code entry.code location=entry.obj %}{% endif %}</span>
             {% if entry.where %}<span class="result-meta">{% result_icon entry.where_icon %} {{ entry.where|highlight:words }}</span>{% endif %}
+            {# An item's category: its name, the path above it as tooltip (not in lists grouped by it). #}
+            {% if entry.category %}<span class="result-meta">{% result_icon "folder" %} <a class="result-category" href="{{ entry.category.get_absolute_url }}" title="{{ entry.category_path }}">{{ entry.category.name|highlight:words }}</a></span>{% endif %}
             {% if entry.excerpt %}<span class="result-meta">{{ entry.excerpt|highlight:words }}</span>{% endif %}
             {% for place in entry.places %}
                 <span class="result-meta">{% if place.amount %}{{ place.amount }} · {% elif place.label %}{% if place.url %}<a href="{{ place.url }}">{{ place.label }}</a>{% else %}{{ place.label }}{% endif %} · {% endif %}<a class="result-place" href="{{ place.location.get_absolute_url }}">{{ place.location.title|highlight:words }}</a> {% location_code place.location.unique_identifier location=place.location %}</span>

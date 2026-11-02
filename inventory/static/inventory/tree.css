@@ -30,11 +30,33 @@
 .tree-pill { display: inline-flex; align-items: center; gap: .3em; padding: 0 .5em; border-radius: 1em;
     background: #edf2f7; color: #59636e; font-size: .78rem; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .tree-pill .tree-icon { font-size: 1.1em; }
+/* The item tree: the open categories above what is in view stay at the top, one below the other by level (rows
+   44px high), below the navbar or, while it is hidden (navbar.js), at the very top. */
+.tree-sticky { --tree-top: var(--sticky-top); }
+.tree-sticky details[open] > summary { position: sticky; top: var(--tree-top); z-index: 5; background: var(--bs-body-bg, #fff);
+    transition: top .2s ease-out; }
+.tree-sticky details details[open] > summary { top: calc(var(--tree-top) + 44px); z-index: 4; }
+.tree-sticky details details details[open] > summary { top: calc(var(--tree-top) + 88px); z-index: 3; }
+.tree-sticky details details details details[open] > summary { top: calc(var(--tree-top) + 132px); z-index: 2; }
+@media (prefers-reduced-motion: reduce) { .tree-sticky details[open] > summary { transition: none; } }
+/* A row the keys move to (or find-in-page shows) comes to rest below them, not under them: the navbar and up to
+   three levels of categories. */
+html:has(.tree-sticky) { scroll-padding-top: calc(var(--sticky-top) + 3 * 44px + .5rem); }
+/* Marked as everywhere in the tree, also while it stays at the top: the focused row, the one an address names. */
+.tree-sticky details[open] > summary.is-current { background: #eef3f9; }
+.tree-sticky [aria-current] > details[open] > summary { background: #e7f0fb; }
+/* The items right in a category (item tree, tree.js): result rows as in the search, below its subcategories; until
+   loaded, a link to them. */
+.tree-items { padding-left: 1.2rem; }
+.tree .tree-items .result-list { margin-left: 0; padding-left: 0; border-left: 0; }
+.tree-items-load { display: inline-flex; align-items: center; min-height: 44px; }
+.tree-items-load[aria-busy="true"] { opacity: .6; pointer-events: none; }
 /* The storage units and the containers of a location, each as one node. */
 .tree-group > details > summary .tree-name { color: #59636e; }
 
 /* A category's page (category_detail.html): its path, a search within it, subcategories, then its items by
    subcategory (results.css). */
-.category-path { color: #59636e; font-size: .9rem; }
 .category-description { max-width: 65ch; color: #59636e; }
+/* On its page above its items, as wide as their list. */
+.category-page .category-description { max-width: none; }
 .category-children { display: flex; flex-wrap: wrap; gap: .4rem; margin-bottom: 1rem; }

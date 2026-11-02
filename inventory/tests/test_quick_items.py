@@ -76,10 +76,11 @@ class QuickItemTests(TestCase):
         self.assertEqual(entry.location, self.location)
         self.assertTrue(entry.is_quick_item)
         self.assertEqual(response.json(), {"ok": True, "entry": {
-            "id": entry.pk, "name": "Hot glue gun", "item_url": entry.item.get_absolute_url(),
+            "id": entry.pk, "name": "Hot glue gun", "edit_url": reverse("update_item", args=[entry.item_id]),
             "update_url": reverse("quick_item_update", args=[entry.pk]),
             "delete_url": reverse("quick_item_delete", args=[entry.pk]),
             "photo_url": reverse("quick_item_set_photo", args=[entry.pk]), "photo": None,
+        "serialize_url": f'{reverse("serialize_item", args=[entry.item_id])}?next=%2Flocation%2F{entry.location.short_name}',
         }})
 
     def test_creating_without_javascript_returns_to_the_quick_item_list(self):

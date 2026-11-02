@@ -2,7 +2,8 @@
 Categories as hits (docs/search.md). There are only a few hundred, so they are matched here in Python, whatever
 finds the other hits. A category is found by its name, its keywords (synonyms, so they count like the name) and
 the first line of its description (Category.summary); the categories above it are its path, as a location's.
-Every word must match the category or its path, at least one the category itself, as in contains.py.
+A category is a hit when at least one word matches the category itself; it ranks by how many words match it or its
+path, as in contains.py.
 """
 from ..models import Category
 from .base import Hit
@@ -22,7 +23,8 @@ def texts(category):
 
 
 def search(words, limit, scope=None):
-    """The first `limit` hits (on the name or a keyword first, then by path), and one more if there are more. With
+    """The first `limit` hits (most words matched first, then on the name or a keyword, then by path), and one more
+    if there are more. With
     `scope`, only the categories below that one."""
     words = [word.casefold() for word in words]
     with_path = searchable(Category, "full_name")
@@ -35,17 +37,18 @@ def search(words, limit, scope=None):
         matched = {key: {word for word in words if any(word in text.casefold() for text in values)}
                    for key, values in own.items()}
         hit_words = set().union(*matched.values())
-        path = category.full_name.rpartition("/")[0].casefold() if with_path else ""
-        if not hit_words or not all(word in hit_words or word in path for word in words):
+        if not hit_words:
             continue
+        path = category.full_name.rpartition("/")[0].casefold() if with_path else ""
+        count = len(hit_words | {word for word in words if word in path})
         named = bool(matched.get("name") or matched.get("keywords"))
         sources = tuple(key for key in ("keywords", "description") if matched.get(key))
         # The keywords that matched, named in the result ("Found in keywords: Spax"): the title does not show them.
         keywords = [keyword for keyword in own.get("keywords", [])
                     if any(word in keyword.casefold() for word in matched.get("keywords", ()))]
         snippets = {"keywords": ", ".join(keywords)} if keywords else {}
-        found.append((not named, category.full_name.casefold(), category.pk, sources, snippets))
-    found.sort(key=lambda row: row[:3])
-    hits = [Hit("category", pk, 1 if unnamed else 2, sources, rank, snippets)
-            for rank, (unnamed, _path, pk, sources, snippets) in enumerate(found[:limit + 1])]
+        found.append((-count, not named, category.full_name.casefold(), category.pk, sources, snippets))
+    found.sort(key=lambda row: row[:4])
+    hits = [Hit("category", pk, 1 if unnamed else 2, sources, rank, snippets, matched=-minus_count)
+            for rank, (minus_count, unnamed, _path, pk, sources, snippets) in enumerate(found[:limit + 1])]
     return hits

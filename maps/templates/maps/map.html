@@ -12,6 +12,9 @@
 
 {% block page_header %}<h1 class="visually-hidden" data-map-heading>{% blocktrans %}Map, level {{ label }}{% endblocktrans %}</h1>{% endblock %}
 
+{# The map fills the screen: nothing to scroll back up. #}
+{% block page_jump %}{% endblock %}
+
 {% block content %}
     {# On the map (map.js): the levels at the left below the zoom buttons; levels with the same number share one map. #}
     <nav class="map-levels leaflet-bar" aria-label="{% trans 'Levels' %}" data-map-levels hidden>

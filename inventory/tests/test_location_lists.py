@@ -1,12 +1,13 @@
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
+from django.template import Context, Template
 from django.test import TestCase
 from django.urls import reverse
 
-from ..models import Item, ItemLocation, Location, LocationType, MeasurementUnit
+from ..models import Category, Item, ItemLocation, Location, LocationType, MeasurementUnit
 
 
-class LocationListCollapseTests(TestCase):
+class LocationListTests(TestCase):
     @classmethod
     def setUpTestData(cls):
         MeasurementUnit.objects.create(pk=1, name="Piece", short="pc")
@@ -21,20 +22,41 @@ class LocationListCollapseTests(TestCase):
     def test_overview_links_to_sections_with_counts(self):
         response = self.client.get(self.room.get_absolute_url())
         self.assertContains(response, "Hier befinden sich …")
-        self.assertContains(response, '<a href="#location-items"><span class="location-contents-count" data-items-count>3</span> Sachen</a>', html=True)
-        self.assertContains(response, '<a href="#location-children"><span class="location-contents-count">11</span> Unterstandorte</a>', html=True)
+        icon = lambda name: Template(f'{{% load icons %}}{{% icon "{name}" %}}').render(Context())
+        self.assertContains(response, f'<a href="#location-items">{icon("boxes")} <span class="location-contents-count" data-items-count>3</span> Mengenartikel</a>', html=True)
+        self.assertContains(response, f'<a href="#location-children">{icon("geo-alt")} <span class="location-contents-count">11</span> Unterstandorte</a>', html=True)
         for anchor in ("location-items", "location-unique-items", "location-children"):
             self.assertContains(response, f'id="{anchor}"')
+            # The same section, with the same icon, in the jump buttons for further down the page.
+            self.assertContains(response, f'<a class="btn btn-light" href="#{anchor}"', count=1)
+        # Back to the top: on every page with the base layout, once scrolled down at all.
+        self.assertContains(response, 'title="Zum Seitenanfang springen"')
+        self.assertContains(self.client.get(reverse("index_items")), '<nav class="page-jump" aria-label="Springen zu" data-page-jump hidden>')
 
-    def test_only_lists_with_more_than_ten_entries_collapse(self):
+    def test_long_lists_come_in_pages_while_scrolling(self):
+        box = Location.objects.get(short_name="B0").type
+        for index in range(11, 55):
+            Location.objects.create(type=box, name=f"Box {index}", short_name=f"B{index}", parent_location=self.room)
+        tools = Category.objects.create(name="Tools")
+        for index in range(3, 55):
+            ItemLocation.objects.create(item=Item.objects.create(name=f"Part {index:02}", category=tools),
+                                        location=self.room, amount=1)
         response = self.client.get(self.room.get_absolute_url())
-        self.assertContains(response, '<input type="checkbox" class="list-collapse-state visually-hidden" id="location-children-expanded">', html=True)
-        self.assertContains(response, '<label class="list-collapse-toggle" for="location-children-expanded">')
-        self.assertContains(response, "Alle 11 anzeigen")
-        self.assertNotContains(response, 'id="location-items-expanded"')
-        self.assertNotContains(response, 'id="location-unique-items-expanded"')
-        # Keeps collapsed entries findable with the browser's find-in-page (hidden="until-found").
-        self.assertContains(response, "inventory/list_collapse.js")
+        self.assertEqual((len(response.context["item_entries"]), len(response.context["child_entries"])), (50, 50))
+        items = reverse("location_rows", args=[self.room.pk, "items"])
+        self.assertContains(response, f'data-result-next="{items}?offset=50"')
+        self.assertContains(response, f'data-result-next="{reverse("location_rows", args=[self.room.pk, "children-all"])}?offset=50"')
+        self.assertNotContains(response, "list-collapse")
+        more = self.client.get(items, {"offset": 50, "partial": "1"})
+        self.assertEqual([entry.obj.name for entry in more.context["entries"]],
+                         ["Part 53", "Part 54", "Part 0", "Part 1", "Part 2"])
+        # The category goes on from the page before: a heading only where it changes.
+        self.assertEqual([entry.group for entry in more.context["entries"]][:3], [None, None, ("Ohne Kategorie", "")])
+        self.assertTrue(more.content.decode().lstrip().startswith("<template data-result-entries>"))
+        self.assertNotIn("data-result-next", more.content.decode())
+        boxes = self.client.get(reverse("location_rows", args=[self.room.pk, "children-all"]), {"offset": 50})
+        self.assertEqual(len(boxes.context["entries"]), 5)
+        self.assertEqual(self.client.get(reverse("location_rows", args=[self.room.pk, "children-space"])).status_code, 404)
 
 
 class SubLocationCategoryTests(TestCase):

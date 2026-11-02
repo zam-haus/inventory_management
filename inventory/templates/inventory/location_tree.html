@@ -8,6 +8,9 @@
     <link rel="stylesheet" href="{% static 'inventory/tree.css' %}">
 {% endblock %}
 
+{# The path to the open node at the top of the view, while scrolling (tree.js); the tree's own page at first. #}
+{% block breadcrumbs %}<nav aria-label="{% trans 'Tree path' %}" class="breadcrumb-row" data-tree-breadcrumb><a href="#" aria-current="page">{% icon "geo-alt" %} {% trans "Locations" %}</a></nav>{% endblock %}
+
 {% block content %}
 <div class="tree-page">
     <div class="tree-actions">

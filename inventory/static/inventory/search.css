@@ -4,9 +4,10 @@
 .search-bar { display: flex; gap: .5rem; margin-bottom: 1rem; }
 /* The field stays at hand: below the navbar, it slides away with it while scrolling down and comes back with it
    on scrolling up (navbar.js); while it has the focus, it stays at the top. */
-.search-bar { position: sticky; top: var(--app-navbar-height); z-index: 1010; margin-top: -.5rem; padding-block: .5rem;
+.search-bar { position: sticky; top: var(--sticky-top); z-index: 1010; margin-top: -.5rem; padding-block: .5rem;
     background: var(--bs-body-bg, #fff); transition: top .2s ease-out, transform .2s ease-out; }
-body:has(.app-navbar.is-hidden) .search-bar { top: 0; transform: translateY(-110%); }
+/* By its own height, as much as the headings below it move up (--search-bar-height): no gap opens between them. */
+body:has(.app-navbar.is-hidden) .search-bar { transform: translateY(-100%); }
 body:has(.app-navbar.is-hidden) .search-bar:focus-within { transform: none; }
 @media (prefers-reduced-motion: reduce) { .search-bar { transition: none; } }
 .search-bar .input-group { flex: 1 1 auto; min-width: 0; }

@@ -15,9 +15,10 @@
 </ul>
 <form method="post" class="mb-3">
     {% csrf_token %}
+    {% if next %}<input type="hidden" name="next" value="{{ next }}">{% endif %}
     {{ form|crispy }}
     <button type="submit" class="btn btn-warning">{% trans "Make it a serialized item" %}</button>
-    <a class="btn btn-secondary" href="{{ object.get_absolute_url }}">{% trans "Cancel" %}</a>
+    <a class="btn btn-secondary" href="{{ next|default:object.get_absolute_url }}">{% trans "Cancel" %}</a>
 </form>
 {% endblock %}
 

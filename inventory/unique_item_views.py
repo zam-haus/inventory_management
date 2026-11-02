@@ -16,6 +16,7 @@ from django.db import transaction
 from django.db.models import Q
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
+from django.utils.http import url_has_allowed_host_and_scheme
 from django.utils.translation import gettext as _
 from django.views import View
 from django.views.generic import DetailView
@@ -277,7 +278,8 @@ def serialize(item, *, actor, label_code=None):
 
 
 class SerializeItemView(PermissionRequiredMixin, View):
-    """"Make it a serialized item" on a bulk item's page: what happens, the label ID as for a new unique item."""
+    """"Make it a serialized item" on a bulk item's page and on a quick-item of a location: what happens, the label
+    ID as for a new unique item. Cancelling goes back to `next` (the location of the quick-item), else the item."""
     permission_required = ITEM_CONVERSION_PERMISSIONS
     template_name = "inventory/item_serialize.html"
 
@@ -290,10 +292,16 @@ class SerializeItemView(PermissionRequiredMixin, View):
             raise PermissionDenied(item_conversion_unavailable(item))
         return item
 
+    def next_url(self, request):
+        url = request.POST.get("next") or request.GET.get("next")
+        if url and url_has_allowed_host_and_scheme(url, {request.get_host()}, require_https=request.is_secure()):
+            return url
+        return None
+
     def render_form(self, request, item, form, status=200):
         entry = item.itemlocation_set.select_related("location").get()
         return render(request, self.template_name, {
-            "object": item, "form": form, "location": entry.location,
+            "object": item, "form": form, "location": entry.location, "next": self.next_url(request),
             "general_images": len(item.general_images),
             "general_files": item.itemfile_set.filter(unique_item__isnull=True).count(),
         }, status=status)

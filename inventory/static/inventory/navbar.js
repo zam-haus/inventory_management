@@ -106,3 +106,18 @@
         if (!input.value.trim()) close();
     });
 })();
+
+// The breadcrumbs below it (base.html, breadcrumbs.css) stay at the top as well: what else stays there goes below
+// them, by their height (--breadcrumbs-height), which grows where a path wraps. Where a path scrolls sideways
+// (narrow screens), it shows its end, the page itself.
+(() => {
+    const breadcrumbs = document.querySelector('[data-page-breadcrumbs]');
+    if (!breadcrumbs || !breadcrumbs.children.length) return;
+    const measure = () => {
+        document.documentElement.style.setProperty('--breadcrumbs-height', `${Math.floor(breadcrumbs.getBoundingClientRect().height)}px`);
+        breadcrumbs.querySelectorAll('.breadcrumb-row').forEach(row => { row.scrollLeft = row.scrollWidth; });
+    };
+    measure();
+    if (window.ResizeObserver) new ResizeObserver(measure).observe(breadcrumbs);
+    else window.addEventListener('resize', measure);
+})();

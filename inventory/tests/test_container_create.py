@@ -8,6 +8,7 @@ from django.test import TestCase, override_settings
 from django.urls import reverse
 
 from ..models import ChangeLog, Location, LocationFormerCode, LocationNumberRange, LocationType
+from .helpers import breadcrumbs
 
 
 @override_settings(LANGUAGE_CODE="en")
@@ -107,13 +108,16 @@ class ContainerCreateTests(TestCase):
         pallet = Location.objects.create(type=self.pallet_type, name="Palette 1", short_name="P0001",
                                          parent_location=self.hall)
         self.client.force_login(self.member)
-        page = self.client.get(self.url(pallet)).content.decode()
+        response = self.client.get(self.url(pallet))
+        page = response.content.decode()
         for location in (self.hall, pallet):  # title and short name as a code chip (docs/locations.md)
-            self.assertInHTML(f'<a href="{location.get_absolute_url()}"><span class="loc-label"><span class="loc-title">'
+            self.assertInHTML(f'<span class="loc-label"><span class="loc-title">'
                               f'{location.name}</span> <span class="loc-code" data-location-info="{location.pk}" '
-                              f'role="button" tabindex="0" title="Location in brief">{location.short_name}</span></span></a>', page)
-        breadcrumb = page[page.index('class="location-breadcrumb"'):page.index("</nav>", page.index("location-breadcrumb"))]
-        self.assertNotIn(f'href="{reverse("index_locations")}"', breadcrumb)  # no "Locations" at the root
+                              f'role="button" tabindex="0" title="Location in brief">{location.short_name}</span></span>', page)
+        # No "Locations" at the root; the page itself, adding a container, last.
+        self.assertEqual(breadcrumbs(response), [[(self.hall.get_absolute_url(), "Halle HAL", False),
+                                                  (pallet.get_absolute_url(), "Palette 1 P0001", False),
+                                                  (None, "Add container", True)]])
 
     def test_boxes_take_no_containers(self):
         self.client.force_login(self.member)

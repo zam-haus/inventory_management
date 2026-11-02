@@ -1,8 +1,17 @@
-{% load i18n locations %}{# The path of `location` from its top-level location down; with current it is this page's location. #}
-<nav aria-label="{% trans 'Location navigation' %}" class="location-breadcrumb">
+{% load i18n icons locations %}{% comment %}The path of `location`, a row of the breadcrumbs (base.html): from its top-level location down, each
+with the icon of its kind; then `unique_item` there, or the `page` of the location this is (as "Move"), where
+given. The last one is the page itself.{% endcomment %}
+<nav aria-label="{% trans 'Location navigation' %}" class="location-breadcrumb breadcrumb-row">
     {% for ancestor in location.ancestors %}
-        <a href="{{ ancestor.get_absolute_url }}">{% location_label ancestor code=ancestor.short_name subtitle=False %}</a>
+        <a href="{{ ancestor.get_absolute_url }}">{% icon ancestor|icon_name %} {% location_label ancestor code=ancestor.short_name subtitle=False %}</a>
         <span aria-hidden="true">/</span>
     {% endfor %}
-    <a href="{{ location.get_absolute_url }}"{% if current %} aria-current="page"{% endif %}>{% location_label location code=location.short_name subtitle=False %}</a>
+    <a href="{{ location.get_absolute_url }}"{% if not unique_item and not page %} aria-current="page"{% endif %}>{% icon location|icon_name %} {% location_label location code=location.short_name subtitle=False %}</a>
+    {% if unique_item %}
+        <span aria-hidden="true">/</span>
+        <a href="{{ unique_item.get_absolute_url }}" aria-current="page">{% icon "box-star" %} {{ unique_item }}</a>
+    {% elif page %}
+        <span aria-hidden="true">/</span>
+        <span aria-current="page">{{ page }}</span>
+    {% endif %}
 </nav>

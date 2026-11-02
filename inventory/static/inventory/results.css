@@ -4,7 +4,7 @@
 .result-sprite { position: absolute; width: 0; height: 0; overflow: hidden; }
 .result-list { margin: 0; padding: 0; list-style: none; border-top: 1px solid #dee2e6; }
 .result-entry { display: flex; gap: .75rem; align-items: flex-start; padding: .6rem .25rem; border-bottom: 1px solid #dee2e6;
-    scroll-margin-top: calc(var(--app-navbar-height) + .5rem); }
+    scroll-margin-top: calc(var(--sticky-top) + .5rem); }
 .result-entry:last-child { border-bottom: 0; }
 /* The row the keyboard is on (results.js). */
 .result-entry.is-marked { background: #e7f0fb; }
@@ -36,6 +36,8 @@ button.result-thumb[aria-expanded="true"] { outline: 2px solid var(--bs-link-col
 .result-list mark { padding: 0; border-radius: .15em; background: #fff3bf; color: inherit; }
 /* Beside the text: an amount, a usage level, a count, a button. */
 .result-aside { display: flex; flex: 0 0 auto; flex-direction: column; align-items: flex-end; gap: .4rem; max-width: 45%; }
+/* An item's amount here with the stock button right of it (results/rows/stock.html). */
+.result-stock { display: inline-flex; align-items: center; gap: .5rem; }
 .result-amount { max-width: 100%; padding: .25rem .5rem; border-radius: .35rem; background: #edf2f7;
     font-size: .9rem; font-variant-numeric: tabular-nums; text-align: right; }
 /* What is in a location or category: like the counts of the trees (tree.css). */
@@ -50,12 +52,29 @@ button.result-thumb[aria-expanded="true"] { outline: 2px solid var(--bs-link-col
     font-variant-numeric: tabular-nums; }
 a.result-kind-filter:hover { border-color: var(--bs-link-color); color: var(--bs-link-color); }
 .result-kind-filter.is-chosen { border-color: #9ec5fe; background: #e7f0fb; color: #0a3a7a; }
-/* A heading in the list, e.g. a subcategory on a category's page. */
-.result-group { padding: 1.25rem .25rem .4rem; border-bottom: 1px solid #dee2e6; }
-.result-group-title { margin: 0; font-size: 1.1rem; }
+/* A heading in the list, e.g. a subcategory on a category's page or a category among a location's items. It stays
+   at the top while its rows scroll past: below the navbar (and on search pages the field, --search-bar-height:
+   results.js), at the very top while the navbar is hidden (navbar.js). */
+.result-group { padding: 1.25rem .25rem .4rem; border-bottom: 1px solid #dee2e6;
+    position: sticky; top: calc(var(--sticky-top) + var(--search-bar-height, 0px)); z-index: 2;
+    background: var(--bs-body-bg, #fff); transition: top .2s ease-out; }
+body:has(.app-navbar.is-hidden) .result-group { top: var(--sticky-top); }
+/* Named by the breadcrumbs already, which stay at the top: a category's own items on its page. */
+.result-group.is-static { position: static; }
+@media (prefers-reduced-motion: reduce) { .result-group { transition: none; } }
+.result-group-title { display: flex; align-items: center; gap: .35rem; margin: 0; font-size: 1.1rem; }
+/* Folds its rows on a category's page (results.js): a triangle, turned while they are shown. */
+.result-group-toggle { display: inline-flex; align-items: center; justify-content: center; width: 1.6rem; height: 1.6rem;
+    margin-left: -.35rem; padding: 0; border: 0; border-radius: .25rem; background: transparent; color: inherit; }
+.result-group-toggle::before { content: ""; border-block: .35em solid transparent; border-left: .5em solid currentColor;
+    transform: rotate(90deg); transition: transform .15s ease-out; }
+.result-group.is-folded .result-group-toggle::before { transform: none; }
+.result-group-toggle:hover { background: #e9edf1; }
+@media (prefers-reduced-motion: reduce) { .result-group-toggle::before { transition: none; } }
 .result-list > .result-group:first-child { padding-top: .5rem; }
 /* In the panels of the location and item pages: as wide as the panel's heading. */
 .location-panel .result-entry, .item-panel .result-entry { padding: .75rem 1.2rem; }
+.location-panel .result-group, .item-panel .result-group { padding-inline: 1.2rem; }
 .location-panel .result-list, .item-panel .result-list { border-top: 1px solid #dee2e6; }
 @media (max-width: 575.98px) {
     .location-panel .result-entry, .item-panel .result-entry { padding-inline: 1rem; }

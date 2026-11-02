@@ -312,8 +312,8 @@ msgid "Move"
 msgstr "Bewegen"
 
 #: inventory/templates/inventory/location_detail.html:42
-msgid "No items located here."
-msgstr "Hier sind keine Sachen gelagert."
+msgid "No bulk items located here."
+msgstr "Hier sind keine Mengenartikel gelagert."
 
 #: inventory/templates/inventory/location_detail.html:45
 msgid "Items at sub-locations are not included!"
@@ -421,8 +421,8 @@ msgstr "Etikettenvorschau"
 msgid "Label for %(identifier)s"
 msgstr "Etikett für %(identifier)s"
 
-msgid "Only items stored directly at this location are shown."
-msgstr "Hier werden nur direkt an diesem Standort gelagerte Sachen angezeigt."
+msgid "Only bulk items stored directly at this location are shown."
+msgstr "Hier werden nur direkt an diesem Standort gelagerte Mengenartikel angezeigt."
 
 msgid "Include child locations in a printable list"
 msgstr "Druckbare Liste einschließlich Unterstandorten anzeigen"
@@ -5168,8 +5168,8 @@ msgid "It is a serialized item already."
 msgstr "Es ist schon ein Einzelartikel."
 
 #: permissions.py
-msgid "Only an item with exactly one piece at exactly one location can become a serialized item."
-msgstr "Nur eine Sache mit genau einem Stück an genau einem Standort kann zum Einzelartikel werden."
+msgid "Only an item with exactly one piece, or an unknown amount, at exactly one location can become a serialized item."
+msgstr "Nur eine Sache mit genau einem Stück oder unbekannter Menge an genau einem Standort kann zum Einzelartikel werden."
 
 #: permissions.py
 msgid "You do not have permission to turn items into serialized items."
@@ -5245,3 +5245,54 @@ msgstr "Abmelden"
 #: templates/admin/inventory/cleanup/review.html
 msgid "Show all on one page"
 msgstr "Alle auf einer Seite anzeigen"
+
+#: templates/inventory/results/entries.html
+msgid "Fold or unfold its items"
+msgstr "Ihre Sachen ein- oder ausklappen"
+
+#: trees.py
+#, python-format
+msgid "Show %(count)s item"
+msgid_plural "Show %(count)s items"
+msgstr[0] "%(count)s Sache anzeigen"
+msgstr[1] "%(count)s Sachen anzeigen"
+
+#: templates/inventory/location_detail.html
+msgid "Jump to"
+msgstr "Springen zu"
+
+#: templates/inventory/location_detail.html
+msgid "Go to the top of the page"
+msgstr "Zum Seitenanfang springen"
+
+#: templates/inventory/location_detail.html
+msgid "Go to the bulk items"
+msgstr "Zu den Mengenartikeln springen"
+
+#: templates/inventory/location_detail.html
+msgid "Go to the unique items"
+msgstr "Zu den Einzelobjekten springen"
+
+#: templates/inventory/location_detail.html
+msgid "Go to the sub-locations"
+msgstr "Zu den Unterstandorten springen"
+
+#: templates/inventory/location_detail.html
+#, python-format
+msgid "Go to the %(title)s"
+msgstr "Springen zu: %(title)s"
+
+msgid "Bulk items"
+msgstr "Mengenartikel"
+
+msgid "Tree path"
+msgstr "Pfad im Baum"
+
+msgid "Edit details"
+msgstr "Details bearbeiten"
+
+msgid "Edit details of “%(name)s”"
+msgstr "Details von „%(name)s“ bearbeiten"
+
+msgid "More actions"
+msgstr "Weitere Aktionen"

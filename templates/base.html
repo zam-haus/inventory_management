@@ -20,6 +20,8 @@
     <link rel="stylesheet" href="{% static 'inventory/barcode_scanner.css' %}">
     <link rel="stylesheet" href="{% static 'inventory/locations.css' %}">
     <link rel="stylesheet" href="{% static 'inventory/results.css' %}">
+    <link rel="stylesheet" href="{% static 'inventory/page_jump.css' %}">
+    <link rel="stylesheet" href="{% static 'inventory/breadcrumbs.css' %}">
     {# On every page: the help also opens as a layer over the page (help_overlay.js). #}
     <link rel="stylesheet" href="{% static 'inventory/help.css' %}">
 {% endblock %}
@@ -96,11 +98,22 @@
     </nav>
 
     <div class="container mt-3">
+      {# Where the page is: the path down to it, the page itself last; it stays below the navbar (navbar.js). #}
+      <div class="page-breadcrumbs" data-page-breadcrumbs>{% block breadcrumbs %}{% endblock %}</div>
       {% block item_nav %}{% endblock %}
       {% block page_header %}<h1>{% block title %}{% trans "(no title)" %}{% endblock %}</h1>{% endblock %}
       {% autoescape off %}{% bootstrap_messages %}{% endautoescape %}
       {% block content %}{% trans "(no content)" %}{% endblock %}
     </div>
+
+    {# Once scrolled down at all: back to the top, and to the page's sections it adds (page_jump.js). Pages without #}
+    {# scrolling, as the map, leave it out. #}
+    {% block page_jump %}
+    <nav class="page-jump" aria-label="{% trans 'Jump to' %}" data-page-jump hidden>
+        <a class="btn btn-light" href="#" title="{% trans 'Go to the top of the page' %}" aria-label="{% trans 'Go to the top of the page' %}" data-page-jump-top>{% icon "arrow-up" %}</a>
+        {% block page_jump_links %}{% endblock %}
+    </nav>
+    {% endblock %}
 
 {% endblock %}
 
@@ -109,6 +122,7 @@
     {% include 'script_templates.html' %}
     <script src="{% static 'inventory/actions.js' %}"></script>
     <script src="{% static 'inventory/navbar.js' %}"></script>
+    <script src="{% static 'inventory/page_jump.js' %}"></script>
     <script src="{% static 'inventory/modals.js' %}"></script>
     {% include 'inventory/location_info_modal.html' %}
     <script src="{% static 'inventory/location_info.js' %}"></script>

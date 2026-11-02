@@ -1,0 +1,6 @@
+{% load i18n actions icons %}{% comment %}"Convert into a unique item" for a quick-item row (location_quick_item_row.html), a menu entry: while it
+has no other place (unique_item_views.SerializeItemView), back to the location when cancelled. Without `entry`
+the blank row location_quick_items.js fills in.{% endcomment %}
+{% firstof entry.serialize_denied quick_serialize_denied as serialize_denied %}{% icon "box-star" as serialize_icon %}
+{% if serialize_denied %}{% disabled_action serialize_icon label=_("Convert into a unique item") name=_("Make it a serialized item") reason=serialize_denied classes="btn btn-warning location-quick-serialize" %}
+{% else %}<a class="btn btn-warning location-quick-serialize{% if not entry %} disabled{% endif %}" data-quick-serialize{% if entry %} href="{% url 'serialize_item' entry.item_id %}?next={{ object.get_absolute_url|urlencode }}"{% else %} aria-disabled="true"{% endif %}>{{ serialize_icon }} <span class="action-label">{% trans "Convert into a unique item" %}</span></a>{% endif %}

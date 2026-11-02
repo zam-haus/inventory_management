@@ -1,15 +1,16 @@
 """
 The search in the database (icontains), for development and small installations without a search
-service (docs/search.md). Every word must match an entry: its own text (name, description, photos, …)
-or the path of where it is (the names of its location and of the locations above). At least one word
-must match the entry itself, so that searching a room does not list everything stored in it.
+service (docs/search.md). An entry is a hit when at least one word matches its own text (name, description,
+category, photos, …), so that searching a room does not list everything stored in it. It ranks by how many words
+match it, its own text or the path of where it is (the names of its location and of the locations above): the
+best match first, those matching all words at the top.
 """
 from dataclasses import dataclass
 from functools import reduce
-from operator import or_
+from operator import add, or_
 from typing import Callable
 
-from django.db.models import BooleanField, Case, CharField, Exists, F, OuterRef, Q, Value, When
+from django.db.models import BooleanField, Case, CharField, Exists, F, IntegerField, OuterRef, Q, Value, When
 from django.db.models.functions import Cast, Coalesce, Lower
 
 from ..label_ids import core
@@ -123,9 +124,13 @@ def find(kind, queryset, sources, path, sort_name, words, limit, exact=None):
     def own(word):
         return any_of(source.match(word) for source in sources)
 
-    for word in words:
-        queryset = queryset.filter(own(word) | path(word) if with_path else own(word))
+    def counted(conditions):
+        return reduce(add, (Case(When(condition, then=Value(1)), default=Value(0), output_field=IntegerField())
+                            for condition in conditions))
+
     queryset = queryset.filter(any_of(own(word) for word in words))
+    # How many of the words match it, itself or where it is: the best match first.
+    matched = counted(own(word) | path(word) if with_path else own(word) for word in words)
 
     def hit(keys):
         return Case(When(any_of(source.match(word) for source in sources if source.key in keys for word in words),
@@ -136,10 +141,11 @@ def find(kind, queryset, sources, path, sort_name, words, limit, exact=None):
     named = hit((NAME_KEYS | {"label"}) & set(keys))
     exactly = (Case(When(any_of(exact(word) for word in words), then=Value(True)), default=Value(False),
                     output_field=BooleanField()) if exact else Value(False, output_field=BooleanField()))
-    rows = (queryset.annotate(**hits, named=named, exactly=exactly, sort_name=Lower(sort_name))
-            .order_by("-exactly", "-named", "sort_name", "pk").values("pk", "named", "exactly", *hits)[:limit])
+    rows = (queryset.annotate(**hits, named=named, exactly=exactly, matched=matched, sort_name=Lower(sort_name))
+            .order_by("-matched", "-exactly", "-named", "sort_name", "pk")
+            .values("pk", "named", "exactly", "matched", *hits)[:limit])
     return [Hit(kind, row["pk"], 3 if row["exactly"] else 2 if row["named"] else 1,
-                tuple(key for key in keys if row[f"hit_{key}"] and key not in NAME_KEYS), rank)
+                tuple(key for key in keys if row[f"hit_{key}"] and key not in NAME_KEYS), rank, matched=row["matched"])
             for rank, row in enumerate(rows)]
 
 
@@ -148,8 +154,8 @@ SCOPES = {"item": "category", "unique": "item__category"}
 
 
 def search(words, limit, scope=None):
-    """The first `limit` hits of each kind in their order (hits on the name first, then by name), and one more
-    where a kind has more. The caller merges and counts them. With `scope` (a category), only what is in it or
+    """The first `limit` hits of each kind in their order (most words matched first, then hits on the name, then by
+    name), and one more where a kind has more. The caller merges and counts them. With `scope` (a category), only what is in it or
     below it."""
     hits = []
     for kind, entries, sources, path, sort_name, exact in KINDS:

@@ -6,6 +6,8 @@ and give it a single photo; once it has an amount or other details, the regular
 item views apply.
 """
 
+from urllib.parse import urlencode
+
 from django import forms
 from django.contrib import messages
 from django.contrib.auth.mixins import PermissionRequiredMixin
@@ -89,12 +91,18 @@ class QuickItemView(PermissionRequiredMixin, View):
         return {
             "id": entry.pk,
             "name": entry.item.name,
-            "item_url": entry.item.get_absolute_url(),
+            "edit_url": reverse("update_item", args=[entry.item_id]),
             "update_url": reverse("quick_item_update", args=[entry.pk]),
             "delete_url": reverse("quick_item_delete", args=[entry.pk]),
             "photo_url": reverse("quick_item_set_photo", args=[entry.pk]),
+            "serialize_url": serialize_url(entry),
             "photo": image and {"url": image.image.url, "thumbnail": get_thumbnail(image.image, "88x88", crop="center").url},
         }
+
+
+def serialize_url(entry):
+    """Making the quick-item a unique item (unique_item_views.SerializeItemView), cancelled back to its location."""
+    return f'{reverse("serialize_item", args=[entry.item_id])}?{urlencode({"next": entry.location.get_absolute_url()})}'
 
 
 def hard_delete(entry):

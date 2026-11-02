@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% load i18n static actions %}
+{% load i18n static actions icons search_tags %}
 
 {% block title %}{% trans "Items" %}{% endblock %}
 
@@ -7,6 +7,9 @@
     {{ block.super }}
     <link rel="stylesheet" href="{% static 'inventory/tree.css' %}">
 {% endblock %}
+
+{# The path to the open node at the top of the view, while scrolling (tree.js); the tree's own page at first. #}
+{% block breadcrumbs %}<nav aria-label="{% trans 'Tree path' %}" class="breadcrumb-row" data-tree-breadcrumb><a href="#" aria-current="page">{% icon "boxes" %} {% trans "Items" %}</a></nav>{% endblock %}
 
 {% block content %}
 <div class="tree-page">
@@ -18,9 +21,10 @@
             <span class="tree-actions-end">{% disabled_action _("Create New Item") classes="btn btn-success" %}</span>
         {% endif %}
     </div>
-    {# The items by category, those without one at the end (inventory/trees.py, docs/trees.md). #}
+    {# The categories, those without one at the end; opened, each loads its items as result rows (inventory/trees.py, #}
+    {# tree.js, docs/trees.md). #}{% result_rows %}
     {{ sprite }}
-    <ul class="tree" data-tree>{{ tree }}</ul>
+    <ul class="tree tree-sticky" data-tree>{{ tree }}</ul>
 </div>
 {% endblock %}
 

@@ -25,9 +25,11 @@ the magnifier goes to the page's field. To browse instead, *Items* and *Location
 * **Location codes from their start:** a word finds the codes that start with it, or one of whose parts does
   (after a dot): *R006* finds R006, R006.a, R006.b, *R00* finds R000 to R009 with their compartments, *R3*
   also HW.R3. The location with exactly that code comes first. A single symbol matches a code only whole.
-* **One list:** locations, categories, items and unique items mixed, those whose name (or purpose, or code,
-  or label ID, or a category's keyword) matches first; at the same rank locations first, then categories, then
-  items and unique items; locations by code. Each shows the icon of its kind before its name (a serialized
+* **One list:** locations, categories, items and unique items mixed, the best match first: those matching the
+  most words; among those, the one with exactly that code, then those whose name (or purpose, or code, or label
+  ID, or a category's keyword) matches; at the same rank locations first, then categories, then items and unique
+  items; locations by code. Items and unique items name their category below the title (its name, the path
+  above it as tooltip). Each shows the icon of its kind before its name (a serialized
   item `box-star-stack`, a category `folder`, [icons](icons.md)). A category shows the categories above it,
   what belongs there (the first line of its description) and, as in the item tree, its counted and unique items,
   those below it included; it leads to its page, where the search goes on within it ([trees](trees.md)). An item shows where it is stored with its stock or its unique items (named as
@@ -45,14 +47,19 @@ the magnifier goes to the page's field. To browse instead, *Items* and *Location
   kinds are links.
 * **Copying:** only the title, the places and the code chips can be clicked, so the text can be selected and
   copied. A click elsewhere in a row opens the result, unless text was selected.
-* **Words:** every word must match. A word may match where an entry is, so that *Schraubendreher
-  Holzwerkstatt* finds the screwdrivers in the wood workshop and its shelves, but at least one word must
-  match the entry itself: *Holzwerkstatt* alone finds the workshop, not everything stored in it.
+* **Words:** not every word must match; the more words match an entry, the higher it ranks, so those matching
+  all of them come first. A word counts once wherever it matches: the entry's own texts (an item's category
+  among them) or where it is, so that *Schraubendreher Holzwerkstatt* puts the screwdrivers in the wood workshop
+  first. At least one word must match the entry itself: *Holzwerkstatt* alone finds the workshop, not
+  everything stored in it. *DIN 993 8x90 mm* puts the items of the category "DIN 993 Querkopfschrauben" with
+  8x90 in their name first (three words), then that category and its other items (two), then other 8x90 items;
+  "mm", matching none of them, does not hide them.
 * **More results while scrolling:** 50 at a time, loaded when the end of the list comes near (without
   JavaScript a "More results" link). After 500 results, more words narrow the search.
 * **Keyboard:** the up and down arrow keys move between the results (down from the field to the first, up
-  from the first back to it). The current result is marked and its photos open large below it; left and
-  right go through them, Escape closes them. Enter and space open the result.
+  from the first back to it). The current result is marked. Space switches the large photos on or off (off at
+  first): while on, those of the current result open below it, also as the keys move on; left and right go
+  through them, Escape closes them and switches them off. Enter opens the result.
 * **Photos:** the photo of a result (with the number of photos when there are more) opens them large below
   it. Swipe sideways through them, up or down to the photos of the next or previous result with photos.
   Items show their own photos, then those of their unique items; locations their overview photo. The
@@ -89,8 +96,9 @@ in `fields.py`. Tests: `inventory/tests/test_search.py`.
 * `contains.py` finds the hits in the database (`icontains`), for development and small installations
   without a search service. `categories.py` finds the categories: a few hundred, matched in Python, whatever
   finds the rest. Production will use Meilisearch (planned), with this as fallback. Each kind
-  keeps its order (hits on the name first, then by name); `search()` merges them by that, so pages of
-  results neither repeat nor skip a hit.
+  keeps its order (most words matched first, then exactly its code, then hits on the name, then by name);
+  `search()` merges them by the same keys (`Hit.matched`, `Hit.score`), so pages of results neither repeat nor
+  skip a hit.
 * `render.py` loads what the results show from the database, in a fixed number of queries; a search
   index that is behind never shows what is gone. `listed()` makes the same rows for lists that are no search.
 * `SearchView` (`inventory/views.py`), templates `search.html`, `search_results.html` (alone with
@@ -110,11 +118,13 @@ is "On the map".
 * A click on a row outside its links, buttons and chips opens it, unless text was selected there.
 * The photo opens the row's photos large below it; swipe sideways through them, up or down to the photos of
   the next or previous row with photos in the same list.
-* The up and down arrow keys move between the rows of one list (Tab goes on to the next list); from a search
-  field down to the first row and back up. Left and right go through the open photos, Escape closes them,
-  Enter or space opens the row. A row in a collapsed list ([locations](locations.md#long-lists)) opens the list.
-* Long lists that come in pages (search, a category's items) load the next rows when their end comes near;
-  without JavaScript a link leads there.
+* The up and down arrow keys move between the rows; past the end of a list they go on into the next list of the
+  page (on a location's page from the items to the unique items to the sub-locations), from a search field
+  down to the first row and back up. Hovering over a row marks it the same way, unless a field has the focus.
+  Space switches the large photos of the current row on or off (off at first, then for the next rows, too); left
+  and right go through them, Escape closes them. Enter opens the row.
+* Long lists that come in pages (search, a category's items, a location's lists) load the next rows when their
+  end comes near; without JavaScript a link leads there.
 
 `search/render.py` (`Entry`), templates `results/entries.html` (a row; per list `here`, `row_aside`,
 `row_details` with the templates in `results/rows/`), `results/list.html`, `results/more.html`,

@@ -42,20 +42,25 @@ def location_edit_denied(user, location):
 
 def item_conversion_unavailable(item):
     """Why the item cannot become a serialized item with one unique item, or None: only one piece at one location
-    can (not an estimate or a quick-item)."""
+    can, or a quick-item (unknown amount, at its one location), not an estimate."""
     if item.is_serialized:
         return _("It is a serialized item already.")
     entries = list(item.itemlocation_set.all())
-    if len(entries) != 1 or entries[0].amount != 1 or entries[0].location.is_deleted:
-        return _("Only an item with exactly one piece at exactly one location can become a serialized item.")
+    if len(entries) != 1 or entries[0].amount not in (1, None) or entries[0].location.is_deleted:
+        return _("Only an item with exactly one piece, or an unknown amount, at exactly one location can become a serialized item.")
+    return None
+
+
+def item_conversion_denied_by_permission(user):
+    """Why `user` may not turn any item into a serialized item, or None."""
+    if not user.has_perms(ITEM_CONVERSION_PERMISSIONS):
+        return _("You do not have permission to turn items into serialized items.")
     return None
 
 
 def item_conversion_denied(user, item):
     """Why `user` may not turn the item into a serialized item, or None."""
-    if not user.has_perms(ITEM_CONVERSION_PERMISSIONS):
-        return _("You do not have permission to turn items into serialized items.")
-    return item_conversion_unavailable(item)
+    return item_conversion_denied_by_permission(user) or item_conversion_unavailable(item)
 
 
 def location_purpose_denied(user, location):

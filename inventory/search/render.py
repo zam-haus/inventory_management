@@ -89,11 +89,16 @@ class Entry:
     more_places: int = 0
     sources: list = field(default_factory=list)  # where else the words were found, with the snippet found there
     snippets: dict = field(default_factory=dict)
+    # The category of an item or unique item, named in the row; not where the list is grouped by it (a heading).
+    category: object = None
     # Set by the list showing it: what it shows the entry for (e.g. its ItemLocation, for the amount and the
-    # stock button), a heading before it ((title, url), lists by group) and its aria-current (the location an item
-    # label leads to).
+    # stock button), a heading before it ((title, url), lists by group), the group it belongs to (lists by category:
+    # the category's pk, "none" without one; its heading shows the folder, a category's page folds it) and its
+    # aria-current (the location an item label leads to).
     row: object = None
     group: tuple = None
+    group_key: str = ""
+    group_sticky: bool = True  # False for a heading the breadcrumbs name already (a category's own items)
     current: str = ""
 
     @property
@@ -107,6 +112,10 @@ class Entry:
     @property
     def where_icon(self):
         return KINDS["category"][0] if self.kind == "category" else "geo-alt"
+
+    @property
+    def category_path(self):
+        return self.category.full_name.replace("/", " › ") if self.category else ""
 
     @property
     def kind_label(self):
@@ -212,8 +221,9 @@ def prepare(kind, objects, here=None, item_photos=True):
         ).values_list("pk", "n"))
         for item in objects:
             item.entry_place_count = counts.get(item.pk, 0)
+        prefetch_related_objects(objects, "category")
     elif kind == "unique":
-        prefetch_related_objects(objects, "item", "location", Prefetch(
+        prefetch_related_objects(objects, "item__category", "location", Prefetch(
             "images", to_attr="entry_images", queryset=ItemImage.objects.order_by("-is_primary", "pk")))
         if item_photos:
             prefetch_related_objects(objects, Prefetch(
@@ -244,8 +254,8 @@ def load(hits):
     querysets = {
         "location": Location.active.select_related("parent_location", "type"),
         "category": Category.objects.all(),
-        "item": Item.active.all(),
-        "unique": annotate_label_code(UniqueItem.active.select_related("item", "location")),
+        "item": Item.active.select_related("category"),
+        "unique": annotate_label_code(UniqueItem.active.select_related("item__category", "location")),
     }
     found = {}
     for kind, queryset in querysets.items():
@@ -277,16 +287,31 @@ def entry(kind, obj, hit=None, here=None):
         places += [Place(unique_item.location, label=unique_item.name_html, url=unique_item.get_absolute_url())
                    for unique_item in obj.entry_unique_items]
         return Entry(title=str(obj), photos=photos(obj.entry_images), places=places[:MAX_PLACES],
-                     more_places=max(0, obj.entry_place_count - MAX_PLACES), **common)
+                     more_places=max(0, obj.entry_place_count - MAX_PLACES), category=obj.category, **common)
     images = obj.entry_images + getattr(obj.item, "entry_general_images", [])
     return Entry(title=str(obj.item), subtitle=obj.name, label=obj.label_display or f"#{obj.pk}",
-                 photos=photos(images), places=[] if obj.location == here else [Place(obj.location)], **common)
+                 photos=photos(images), places=[] if obj.location == here else [Place(obj.location)],
+                 category=obj.item.category, **common)
 
 
 def entries(hits):
     """The entries of the hits, in their order; hits whose object is gone (e.g. deleted since) are left out."""
     found = load(hits)
     return [entry(hit.kind, found[hit.kind, hit.pk], hit) for hit in hits if (hit.kind, hit.pk) in found]
+
+
+def group_by_category(entries, previous=False):
+    """A heading wherever the category changes, in a list of items sorted by it (a location's items); the rows then
+    name no category. Items without one come last, under "Without category". `previous`: the category of the row
+    before them (None: none), where they continue a list (its further rows, views.location_rows)."""
+    for entry in entries:
+        category = entry.category
+        if previous is False or (category and category.pk) != (previous and previous.pk):
+            entry.group = (category.name, category.get_absolute_url()) if category else (_("Without category"), "")
+        entry.group_key = str(category.pk) if category else "none"
+        entry.category = None
+        previous = category
+    return entries
 
 
 def listed(kind, objects, here=None, item_photos=True):

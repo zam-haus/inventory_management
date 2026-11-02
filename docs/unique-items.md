@@ -14,8 +14,9 @@ In code the kind is `Item.Kind.SERIALIZED` (`"serialized"`, `Item.is_serialized`
 migration `inventory.0051` the kind was called `"unique"`, which shared its
 name (and its German label *Einzelobjekte*) with the objects.
 
-* **From a bulk item:** a bulk item with exactly one piece at exactly one location (not an estimate, not a
-  quick-item) can become a serialized item: "Convert into a unique item" on its page (`serialize_item`,
+* **From a bulk item:** a bulk item with exactly one piece at exactly one location (not an estimate), or a
+  quick-item (unknown amount at its one location), can become a serialized item: "Convert into a unique item" on
+  its page or in the quick-item's row on the location page ([quick-items](quick-items.md)) (`serialize_item`,
   `unique_item_views.serialize`; needs `change_item`, `change_stock`, `add_uniqueitem` and `claim_labelid`, else
   the button is disabled and says why). The stock entry goes (change log: reason "Other", note "Became a unique
   item"), the item is no longer for sale, and one unique item comes at that location, with the item's purchase

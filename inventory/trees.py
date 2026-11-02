@@ -8,16 +8,16 @@ from collections import Counter
 from dataclasses import dataclass, field
 
 from django.db.models import Count, IntegerField, OuterRef, Subquery, Value
-from django.db.models.functions import Coalesce, Lower
+from django.db.models.functions import Coalesce
 from django.utils.html import format_html, format_html_join
 from django.utils.safestring import mark_safe
-from django.utils.translation import gettext as _
+from django.urls import reverse
+from django.utils.translation import gettext as _, ngettext
 
 from . import icons
-from .label_ids.lookup import annotate_label_code
 from .location_display import CATEGORY_ICONS, icon_name, label_html
 from .models import Category, Item, ItemLocation, Location, LocationType, UniqueItem
-from .search.render import KINDS, SUB_LOCATIONS, SERIALIZED_ICON, count_text
+from .search.render import KINDS, SUB_LOCATIONS, count_text
 from .structure_overview import code_order
 
 OPEN = mark_safe(" open")
@@ -27,7 +27,7 @@ OPEN = mark_safe(" open")
 class Node:
     obj: object = None
     children: list = field(default_factory=list)  # child nodes
-    leaves: list = field(default_factory=list)  # items of a category
+    own: int = 0  # items right in a category (the item tree loads their rows when it is opened)
     bulk: int = 0  # counted items: stock here (locations) or counted items in the whole subtree (categories)
     unique: int = 0  # unique items here (locations) or in the whole subtree (categories)
     descendants: Counter = field(default_factory=Counter)  # sub-locations in the whole subtree, by icon_name
@@ -161,58 +161,42 @@ def location_tree():
 # Items
 
 def item_nodes():
-    """(roots of the category tree, items without a category). Items are sorted by name; an item tracked as unique
-    items has those still in the inventory as `units`, by name and label ID."""
+    """(roots of the category tree, the node of the items without a category). Each node knows how many items are
+    right in it (`own`; their rows are loaded when it is opened, tree.js) and, with its subcategories, the counted
+    items and the unique items still in the inventory."""
     nodes = {category.pk: Node(category) for category in
              Category.objects.only("pk", "name", "full_name", "parent_category_id")}
     roots = []
     for node in nodes.values():  # in the model's order (full_name), so siblings are sorted by name
         parent = nodes.get(node.obj.parent_category_id)
         (parent.children if parent else roots).append(node)
-    uncategorized = []
-    items = Item.active.only("pk", "name", "kind", "category_id").order_by(Lower(Coalesce("name", Value(""))), "pk")
-    by_pk = {}
-    for item in items:
-        node = nodes.get(item.category_id)
-        (node.leaves if node else uncategorized).append(item)
-        item.units = []
-        by_pk[item.pk] = item
-    for unit in annotate_label_code(UniqueItem.active.only("pk", "name", "item_id")).order_by(
-            Lower("name"), "label_code", "pk"):
-        item = by_pk.get(unit.item_id)
-        if item is not None:
-            unit.item = item  # named with it, without a query each
-            item.units.append(unit)
+    none = Node()
+
+    def per_category(queryset, key):
+        return dict(queryset.values(key).annotate(n=Count("pk")).values_list(key, "n"))
+    own = per_category(Item.active.all(), "category")
+    bulk = per_category(Item.active.exclude(kind=Item.Kind.SERIALIZED), "category")
+    unique = per_category(UniqueItem.active.filter(item__is_deleted=False), "item__category")
+    for pk, node in [*nodes.items(), (None, none)]:
+        node.own, node.bulk, node.unique = own.get(pk, 0), bulk.get(pk, 0), unique.get(pk, 0)
 
     def count(node):
-        node.bulk, node.unique = leaf_counts(node.leaves)
         for child in node.children:
             count(child)
             node.bulk += child.bulk
             node.unique += child.unique
     for root in roots:
         count(root)
-    return roots, uncategorized
+    return roots, none
 
 
-def leaf_counts(items):
-    """(counted items, unique items) among `items`."""
-    bulk = sum(item.kind != Item.Kind.SERIALIZED for item in items)
-    return bulk, sum(len(item.units) for item in items)
-
-
-def item_row(item):
-    """An item; a serialized one is a branch with its unique items (closed), each named as everywhere."""
-    if item.kind != Item.Kind.SERIALIZED:
-        return leaf(None, format_html('<span class="tree-row">{}<a href="{}">{}</a></span>',
-                                      use_icon(KINDS["item"][0]), item.get_absolute_url(), item))
-    row = format_html('<span class="tree-row">{}<a href="{}">{}</a>{}</span>', use_icon(SERIALIZED_ICON),
-                      item.get_absolute_url(), item, pills(*item_pills(Node(unique=len(item.units)))))
-    if not item.units:
-        return leaf(None, row)
-    return branch(None, row, format_html_join("", "{}", ((leaf(None, format_html(
-        '<span class="tree-row">{}<a href="{}">{}</a></span>', use_icon(KINDS["unique"][0]), unit.get_absolute_url(),
-        unit.name_html)),) for unit in item.units)), False)
+def items_html(node, key, url):
+    """Where the items right in a category come as result rows once it is opened (tree.js loads them from
+    /item/rows/, 50 at a time, more while scrolling); a link to them, which tree.js loads there too."""
+    rows = f"{reverse('item_tree_rows')}?category={key}"
+    text = ngettext("Show %(count)s item", "Show %(count)s items", node.own) % {"count": node.own}
+    return format_html('<li class="tree-items" data-tree-items="{}"><a class="tree-items-load" href="{}" '
+                       'data-tree-items-load>{}</a></li>', rows, url or rows, text)
 
 
 def category_row(node, name, url=None):
@@ -224,22 +208,20 @@ def category_row(node, name, url=None):
 
 
 def category_html(node):
-    row = category_row(node, node.obj.name, node.obj.get_absolute_url())
-    if not node.children and not node.leaves:
+    url = node.obj.get_absolute_url()
+    row = category_row(node, node.obj.name, url)
+    if not node.children and not node.own:
         return leaf(f"cat-{node.obj.pk}", row)
     inner = format_html("{}{}", format_html_join("", "{}", ((category_html(child),) for child in node.children)),
-                        format_html_join("", "{}", ((item_row(item),) for item in node.leaves)))
+                        items_html(node, node.obj.pk, url) if node.own else "")
     return branch(f"cat-{node.obj.pk}", row, inner, False)
 
 
 def item_tree():
     """(sprite, the tree's <li>s) for /item/: categories, then the items without one."""
-    roots, uncategorized = item_nodes()
+    roots, none = item_nodes()
     html = format_html_join("", "{}", ((category_html(root),) for root in roots))
-    if uncategorized:
-        bulk, unique = leaf_counts(uncategorized)
-        none = Node(bulk=bulk, unique=unique)
-        html = format_html("{}{}", html, branch(
-            "cat-none", category_row(none, _("Without category")),
-            format_html_join("", "{}", ((item_row(item),) for item in uncategorized)), False))
-    return sprite({KINDS["category"][0], KINDS["item"][0], KINDS["unique"][0], SERIALIZED_ICON}), html
+    if none.own:
+        html = format_html("{}{}", html, branch("cat-none", category_row(none, _("Without category")),
+                                                items_html(none, "none", None), False))
+    return sprite({KINDS["category"][0], KINDS["item"][0], KINDS["unique"][0]}), html
