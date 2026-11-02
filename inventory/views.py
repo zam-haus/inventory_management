@@ -1,5 +1,6 @@
 import logging
 import mimetypes
+from collections import defaultdict
 from pathlib import PurePath
 from urllib.parse import urlencode
 
@@ -256,11 +257,37 @@ class LocationLists:
     def children(self):
         return models.Location.active.filter(parent_location=self.location).select_related("type")
 
+    def sub_locations(self):
+        """The sub-locations its lists show, in their order (location_children_groups puts them in a list per kind):
+        with ?q= those the search finds below it, the best first (with ?depth=0 those right below it); with ?depth=0
+        those right below it as they are arranged (physical_order); else all below it in the order of the tree, each
+        after its parent, siblings as they are arranged."""
+        if self.query:
+            result = search.search(self.query, 0, limit=search.MAX_RESULTS, location=self.location,
+                                   depth=1 if self.depth == 0 else self.depth, kinds={"location"})
+            pks = [hit.pk for hit in result.hits]
+            found = models.Location.active.select_related("type").in_bulk(pks)
+            return [found[pk] for pk in pks if pk in found]
+        if self.depth == 0:
+            return physical_order(self.location, self.children())
+        children = defaultdict(list)
+        for location in (models.Location.active.filter(self.location.in_tree("", None, itself=False))
+                         .select_related("type")):
+            children[location.parent_location_id].append(location)
+        ordered = []
+
+        def add(parent):
+            for child in physical_order(parent, children[parent.pk]):
+                ordered.append(child)
+                add(child)
+        add(self.location)
+        return ordered
+
     def part(self, part, offset=0, objects=None):
         """(entries, the link to the next rows or None, how many there are in all, whether there are more than that)
         of one list; `objects`: a list of sub-locations, from the groups of them (location_children_groups)."""
         kind = LOCATION_LISTS[part.partition("-")[0]][0]
-        if self.query:
+        if self.query and objects is None:
             return self.found(part, kind, offset)
         if objects is None:
             objects = self.stock() if kind == "item" else self.unique_items()
@@ -315,13 +342,13 @@ class LocationLists:
                         depth="" if self.depth_param == "all" else self.depth_param, offset=offset)
 
 
-def location_children_groups(location, children):
-    """[(part, category, title, sub-locations)]: one list per category of sub-locations, or one of them all."""
-    groups = models.LocationType.group_by_category(children)
+def location_children_groups(sub_locations):
+    """[(part, category, title, sub-locations)]: one list per category of sub-locations (LocationLists.sub_locations,
+    in its order), or one of them all."""
+    groups = models.LocationType.group_by_category(sub_locations)
     if not any(category for category, _title, _children in groups):
-        return [("children-all", None, "", physical_order(location, children))]
-    return [(f"children-{category or 'other'}", category, title, physical_order(location, nodes))
-            for category, title, nodes in groups]
+        return [("children-all", None, "", list(sub_locations))]
+    return [(f"children-{category or 'other'}", category, title, nodes) for category, title, nodes in groups]
 
 
 def location_rows(request, pk, part):
@@ -333,8 +360,8 @@ def location_rows(request, pk, part):
     if name not in LOCATION_LISTS:
         raise Http404
     objects = None
-    if name == "children" and not lists.query:
-        objects = next((nodes for key, _category, _title, nodes in location_children_groups(location, lists.children())
+    if name == "children":
+        objects = next((nodes for key, _category, _title, nodes in location_children_groups(lists.sub_locations())
                         if key == part), None)
         if objects is None:
             raise Http404
@@ -378,11 +405,13 @@ class DetailLocationView(DetailView):
         if not self.object.type.no_sublocations:
             context["numbering_types"] = [kind.name for kind, _source in self.object.numbering_types()]
             context["container_types"] = [kind.name for kind in self.object.container_types()]
-        # One panel per category of sub-locations; without any category a single one, as before; while searching
-        # one of all those found below it. Where storage units or containers can be added, their panel (with its +
-        # shortcut) shows even while empty, but only to logged-in users, who see the shortcut at least disabled.
+        # One panel per category of sub-locations (LocationLists.sub_locations: all below it, those right below it, or
+        # those the search finds), also while searching; without any category a single one, as before. Where storage
+        # units or containers can be added, their panel (with its + shortcut) shows even while empty, but only to
+        # logged-in users, who see the shortcut at least disabled.
         Category = models.LocationType.Category
-        groups = [] if lists.query else models.LocationType.group_by_category(self.object.children.all())
+        sub_locations = lists.sub_locations()
+        groups = models.LocationType.group_by_category(sub_locations)
         if self.request.user.is_authenticated and not lists.query:
             for category, addable, before in ((Category.STORAGE_UNIT, "numbering_types", {Category.SPACE}),
                                               (Category.CONTAINER, "container_types", {Category.SPACE, Category.STORAGE_UNIT})):
@@ -394,13 +423,12 @@ class DetailLocationView(DetailView):
             {"category": category, "anchor": f"location-children-{(category or 'other').replace('_', '-')}",
              "title": title, "children": children,
              **dict(zip(("entries", "next_url", "count", "more"), lists.part(
-                 f"children-{category or 'other'}", objects=physical_order(self.object, children))))}
+                 f"children-{category or 'other'}", objects=children)))}
             for category, title, children in groups
         ] if any(category for category, _title, _children in groups) else None
         if context["child_groups"] is None:
             context["child_entries"], context["child_next_url"], context["child_count"], context["child_more"] = \
-                lists.part("children-all",
-                           objects=None if lists.query else physical_order(self.object, self.object.children.all()))
+                lists.part("children-all", objects=sub_locations)
         context["can_add_quick_photos"] = self.request.user.has_perms((*QUICK_ITEM_PERMISSIONS, "inventory.add_itemimage"))
         if self.request.user.has_perm("inventory.change_stock"):
             context["stock_change_form"] = forms.StockChangeForm()

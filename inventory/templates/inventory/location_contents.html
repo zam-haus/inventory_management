@@ -55,8 +55,7 @@ go into their slot.
     </div>
 
     {% comment %}Types without sub-locations need no panel, unless older data still has some. Sub-locations of
-       several categories (spaces, storage units, containers) get one panel each; while searching, those found below
-       it one together.{% endcomment %}
+       several categories (spaces, storage units, containers) get one panel each, also while searching.{% endcomment %}
     {% if child_groups %}
     <div class="location-children-groups">
         {% for group in child_groups %}

@@ -121,13 +121,15 @@ storage unit from the top down, the top one first and *a*, the lowest, last. Nar
 **Searching and the locations below.** Above the overview (whose counts follow what it leaves) a field searches the location's lists as you type
 (`live_search.js`), with the [search](search.md) of everything, but only within the location: each list shows what
 it finds of its kind, the best match first (items without category headings, each with its stock entries there;
-the sub-locations found in one list), and emptied, all of them again. Beside the heading **At this location …** a
+the sub-locations found by kind), and emptied, all of them again. Beside the heading **At this location …** a
 checkbox **Include all sub-locations** (on narrow screens *with sub-locations*), checked by default: the items and
 unique items of all locations below come with those right here, the items still by category; a row at a location
 below names it, with its code. Unchecked, only those right here (`?depth=0`, in the address only, so a link keeps it;
 the box belongs to the search form, `form=`, and a hidden field before it sends `depth=0` without JavaScript too;
-earlier addresses with a number of levels show all below). The sub-location panels stay those right below,
-unless searching. The overview, the counts and the jump buttons follow (`location_contents.html`, alone with
+earlier addresses with a number of levels show all below). The sub-locations follow the box, too, in a panel per
+kind (spaces, storage units, containers; `LocationLists.sub_locations`): all below it in the order of the tree, each
+after its parent, a row below the first level naming where it is; unchecked, those right below it; while searching,
+what is found, the best first, still by kind. The overview, the counts and the jump buttons follow (`location_contents.html`, alone with
 `?partial=1`; `location_detail.js` puts the quick-items, which only show those right here and not while searching,
 back in their place). `LocationLists` (`views.py`) makes all lists, a page at a time, cut in the database: the
 locations below by their code path (`Location.in_tree`, `locatable_identifier`). The magnifier in the navbar and

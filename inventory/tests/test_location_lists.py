@@ -208,6 +208,26 @@ class SubtreeTests(TestCase):
         # Earlier addresses with a number of levels: all of them, too.
         self.assertEqual(self.rows(self.page(depth="2")), self.rows(response))
 
+    def test_sub_locations_below_by_kind(self):
+        box = LocationType.objects.create(name="Box", category=LocationType.Category.CONTAINER)
+        crate = Location.objects.create(type=box, name="Crate", short_name="K1", parent_location=self.compartment)
+
+        def groups(**params):
+            return {group["category"]: [entry.obj for entry in group["entries"]]
+                    for group in self.page(**params).context["child_groups"]}
+        # All below it, each after its parent, in a panel per kind; where a row is, named in it.
+        self.assertEqual(groups(), {"storage_unit": [self.shelf, self.compartment], "container": [crate]})
+        entries = self.page().context["child_groups"][1]["entries"]
+        self.assertEqual(entries[0].above, [self.shelf, self.compartment])
+        # Only those right below it.
+        self.assertEqual(groups(depth="0"), {"storage_unit": [self.shelf]})
+        # Searching: what is found, still by kind; right below it only, with the box unchecked.
+        self.assertEqual(groups(q="crate"), {"container": [crate]})
+        self.assertIsNone(self.page(q="crate", depth="0").context["child_groups"])
+        # The next rows of a panel come from the same list.
+        rows = self.client.get(reverse("location_rows", args=[self.store.pk, "children-container"]), {"q": "crate"})
+        self.assertEqual([entry.obj for entry in rows.context["entries"]], [crate])
+
     def test_compartments_from_the_top_down(self):
         # Counted from the bottom up (a the lowest), listed as they stand: the top one first, on the page and in the tree.
         for code in ("c", "b"):
