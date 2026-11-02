@@ -95,7 +95,7 @@ when they are first used:
 | Warning, invalid | `exclamation-triangle` | done |
 | Briefing green / yellow / red | `check-lg` / `exclamation-lg` / `x-lg` | done |
 | Label ID, QR code | `qr-code` | reserved |
-| History | `clock-history` | reserved |
+| Change history (heading of the changes, jump button) | `clock-history` | done |
 
 The kind icons (item, serialized item, unique item, category, the three location kinds) also stand before the title of a location,
 item or unique item page, before the names in the search results and trees, and before *Items* (`boxes`) and

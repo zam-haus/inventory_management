@@ -5,6 +5,7 @@ from django.test import TestCase
 from django.urls import reverse
 
 from ..models import Category, Item, ItemLocation, Location, LocationType, MeasurementUnit, UniqueItem
+from ..trees import location_tree
 
 
 class LocationListTests(TestCase):
@@ -33,7 +34,7 @@ class LocationListTests(TestCase):
         self.assertContains(response, 'title="Zum Seitenanfang springen"')
         self.assertContains(self.client.get(reverse("index_items")), '<nav class="page-jump" aria-label="Springen zu" data-page-jump hidden>')
 
-    def test_long_lists_come_in_pages_while_scrolling(self):
+    def test_long_lists_show_ten_then_load_more_then_pages_while_scrolling(self):
         box = Location.objects.get(short_name="B0").type
         for index in range(11, 55):
             Location.objects.create(type=box, name=f"Box {index}", short_name=f"B{index}", parent_location=self.room)
@@ -42,11 +43,19 @@ class LocationListTests(TestCase):
             ItemLocation.objects.create(item=Item.objects.create(name=f"Part {index:02}", category=tools),
                                         location=self.room, amount=1)
         response = self.client.get(self.room.get_absolute_url())
-        self.assertEqual((len(response.context["item_entries"]), len(response.context["child_entries"])), (50, 50))
+        # The first ten rows of each list, then a button "Load more" (results/next.html, results.js).
+        self.assertEqual((len(response.context["item_entries"]), len(response.context["child_entries"])), (10, 10))
         items = reverse("location_rows", args=[self.room.pk, "items"])
-        self.assertContains(response, f'data-result-next="{items}?offset=50"')
-        self.assertContains(response, f'data-result-next="{reverse("location_rows", args=[self.room.pk, "children-all"])}?offset=50"')
+        self.assertContains(response, f'data-result-next="{items}?offset=10" data-result-next-row>', count=1)
+        self.assertContains(response, f'data-result-next="{reverse("location_rows", args=[self.room.pk, "children-all"])}'
+                                      '?offset=10" data-result-next-row>', count=1)
+        self.assertContains(response, '<span class="result-title">Mehr laden</span></a>', count=2)
         self.assertNotContains(response, "list-collapse")
+        # Clicked, up to 50 rows (here the other 45), and those after them while scrolling: no button any more.
+        page = self.client.get(items, {"offset": 10, "partial": "1"})
+        self.assertEqual(len(page.context["entries"]), 45)
+        self.assertNotContains(page, "data-result-next")
+        self.assertContains(self.client.get(items, {"offset": 1, "partial": "1"}), f'data-result-next="{items}?offset=51">')
         more = self.client.get(items, {"offset": 50, "partial": "1"})
         self.assertEqual([entry.obj.name for entry in more.context["entries"]],
                          ["Part 53", "Part 54", "Part 0", "Part 1", "Part 2"])
@@ -54,8 +63,14 @@ class LocationListTests(TestCase):
         self.assertEqual([entry.group for entry in more.context["entries"]][:3], [None, None, ("Ohne Kategorie", "")])
         self.assertTrue(more.content.decode().lstrip().startswith("<template data-result-entries>"))
         self.assertNotIn("data-result-next", more.content.decode())
-        boxes = self.client.get(reverse("location_rows", args=[self.room.pk, "children-all"]), {"offset": 50})
-        self.assertEqual(len(boxes.context["entries"]), 5)
+        boxes = self.client.get(reverse("location_rows", args=[self.room.pk, "children-all"]), {"offset": 10})
+        self.assertEqual(len(boxes.context["entries"]), 45)
+        self.assertNotIn("data-result-next", boxes.content.decode())
+        # Searching there loads while scrolling at once: a page of results, no button.
+        found = self.client.get(self.room.get_absolute_url(), {"q": "part"})
+        self.assertGreater(len(found.context["item_entries"]), 10)
+        self.assertContains(found, f'data-result-next="{items}?q=part&amp;offset=')
+        self.assertNotContains(found, "data-result-next-row")
         self.assertEqual(self.client.get(reverse("location_rows", args=[self.room.pk, "children-space"])).status_code, 404)
 
 
@@ -137,8 +152,8 @@ class SubLocationCategoryTests(TestCase):
 
 
 class SubtreeTests(TestCase):
-    """The lists of a location's page reach down to the depth chosen (?depth=) and are searched (?q=, live_search.js),
-    views.LocationLists."""
+    """The lists of a location's page include all locations below it, or with ?depth=0 (the box "Include all
+    sub-locations" unchecked) only those right there, and are searched (?q=, live_search.js), views.LocationLists."""
 
     @classmethod
     def setUpTestData(cls):
@@ -180,50 +195,67 @@ class SubtreeTests(TestCase):
         self.assertEqual(below(None), {"ST", "S1", "S9", "a"})
         self.assertEqual(below(1, itself=False), {"S1", "S9"})
 
-    def test_only_here_at_first(self):
+    def test_all_below_at_first(self):
         response = self.page()
-        self.assertEqual(self.rows(response), [("Hammer", "ST")])
-        self.assertEqual(response.context["unique_entries"], [])
-        self.assertContains(response, "Nur hier")
-        self.assertIsNone(response.context["item_entries"][0].at)
-
-    def test_levels_below(self):
-        response = self.page(depth="1")
         # By category, then by name; the places below named in the row, the deleted shelf left out.
-        self.assertEqual(self.rows(response), [("Drill", "S1"), ("Hammer", "ST")])
-        self.assertEqual(response.context["item_entries"][0].at, self.shelf)
-        self.assertEqual(response.context["items_count"], 2)
-        response = self.page(depth="all")
         self.assertEqual(self.rows(response), [("Drill", "S1"), ("Hammer", "ST"), ("Hammer", "a"), ("Saw", "a")])
+        self.assertEqual(response.context["item_entries"][0].at, self.shelf)
         self.assertEqual([entry.obj for entry in response.context["unique_entries"]], [self.lathe])
         self.assertContains(response, self.compartment.get_absolute_url())
         # The hammer's places in the list are not named again as its other places.
         self.assertEqual(response.context["item_entries"][1].places, [])
-        # Anything else is only here.
-        self.assertEqual(self.rows(self.page(depth="9")), [("Hammer", "ST")])
+        self.assertContains(response, 'name="depth" value="all" id="location-depth" data-off="0" form="location-search-form" checked>')
+        # Earlier addresses with a number of levels: all of them, too.
+        self.assertEqual(self.rows(self.page(depth="2")), self.rows(response))
+
+    def test_compartments_from_the_top_down(self):
+        # Counted from the bottom up (a the lowest), listed as they stand: the top one first, on the page and in the tree.
+        for code in ("c", "b"):
+            Location.objects.create(type=self.compartment.type, name=f"Compartment {code}", short_name=code,
+                                    parent_location=self.shelf)
+        groups = self.page(self.shelf).context["child_groups"]
+        self.assertEqual([entry.obj.short_name for entry in groups[0]["entries"]], ["c", "b", "a"])
+        tree = location_tree()[1]
+        self.assertLess(tree.index("Compartment c"), tree.index("Compartment b"))
+        self.assertLess(tree.index("Compartment b"), tree.index(">Compartment<"))
+
+    def test_only_here(self):
+        # The box unchecked: the hidden field's depth=0 alone (with the box checked, depth=all comes after it).
+        response = self.page(depth="0")
+        self.assertEqual(self.rows(response), [("Hammer", "ST")])
+        self.assertEqual(response.context["unique_entries"], [])
+        self.assertIsNone(response.context["item_entries"][0].at)
+        self.assertEqual(response.context["items_count"], 1)
+        self.assertNotContains(response, 'data-off="0" form="location-search-form" checked>')
+        both = self.client.get(f"{self.store.get_absolute_url()}?depth=0&depth=all")
+        self.assertEqual(len(self.rows(both)), 4)
 
     def test_further_rows_keep_the_depth(self):
         tools = Category.objects.get(name="Tools")
         for index in range(55):
             ItemLocation.objects.create(item=Item.objects.create(name=f"Part {index:02}", category=tools),
                                         location=self.shelf, amount=1)
-        response = self.page(depth="2")
+        response = self.page()
         items = reverse("location_rows", args=[self.store.pk, "items"])
-        self.assertContains(response, f'data-result-next="{items}?depth=2&amp;offset=50"')
-        more = self.client.get(items, {"depth": "2", "offset": 50, "partial": "1"})
+        self.assertContains(response, f'data-result-next="{items}?offset=10" data-result-next-row')
+        more = self.client.get(items, {"offset": 50, "partial": "1"})
         self.assertEqual([entry.row.item.name for entry in more.context["entries"]],
                          [*(f"Part {index}" for index in range(47, 55)), "Saw"])
         self.assertEqual([entry.group for entry in more.context["entries"]][-1:], [("Ohne Kategorie", "")])
+        # Only here, the next rows too.
+        for index in range(10):
+            ItemLocation.objects.create(item=Item.objects.create(name=f"Nail {index}"), location=self.store, amount=1)
+        self.assertContains(self.page(depth="0"), f'data-result-next="{items}?depth=0&amp;offset=10" data-result-next-row')
 
     def test_search_filters_every_list(self):
-        response = self.page(q="hammer")
+        response = self.page(q="hammer", depth="0")
         self.assertEqual(self.rows(response), [("Hammer", "ST")])
-        response = self.page(q="hammer", depth="all")
+        response = self.page(q="hammer")
         self.assertEqual(self.rows(response), [("Hammer", "ST"), ("Hammer", "a")])
         self.assertEqual(response.context["unique_entries"], [])
         self.assertEqual(response.context["child_entries"], [])
         self.assertContains(response, "Nichts gefunden.", count=2)
-        response = self.page(q="big lathe", depth="2")
+        response = self.page(q="big lathe")
         self.assertEqual([entry.obj for entry in response.context["unique_entries"]], [self.lathe])
         response = self.page(q="compartment", depth="all")
         self.assertEqual([entry.obj for entry in response.context["child_entries"]], [self.compartment])
@@ -231,7 +263,7 @@ class SubtreeTests(TestCase):
         tools = Category.objects.get(name="Tools")
         tools.keywords = "Werkzeug, Tool"
         tools.save()
-        self.assertEqual(self.rows(self.page(q="werkzeug", depth="1")), [("Drill", "S1"), ("Hammer", "ST")])
+        self.assertEqual(self.rows(self.page(q="werkzeug")), [("Drill", "S1"), ("Hammer", "ST"), ("Hammer", "a")])
         # Not what is elsewhere, nor the location itself.
         self.assertEqual(self.rows(self.page(q="glue", depth="all")), [])
         self.assertEqual(self.page(q="store", depth="all").context["child_entries"], [])
@@ -250,10 +282,15 @@ class SubtreeTests(TestCase):
         self.assertIn("data-quick-items-slot", self.page(partial="1").content.decode())
 
     def test_search_field_and_depth(self):
-        response = self.page(q="saw", depth="2")
+        response = self.page(q="saw", depth="0")
         self.assertContains(response, 'aria-controls="location-lists"')
         self.assertContains(response, 'name="q" value="saw"')
-        self.assertContains(response, '<option value="2" selected>')
+        # The box beside the heading belongs to the search form; on narrow screens its short label.
+        self.assertContains(response, '<form class="location-search" id="location-search-form"')
+        self.assertContains(response, '<input type="hidden" name="depth" value="0" form="location-search-form">')
+        self.assertContains(response, 'data-off="0" form="location-search-form">')
+        self.assertContains(response, '<span class="d-none d-sm-inline">Alle Unterorte einschließen</span>'
+                                      '<span class="d-sm-none">mit Unterorten</span>')
         self.assertContains(response, 'href="#location-search"')
         self.assertContains(response, "live_search.js")
         # The magnifier's texts, for the hint after going to the field (navbar.js).

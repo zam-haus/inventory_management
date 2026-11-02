@@ -1,7 +1,8 @@
-{% load i18n icons locations %}{# The jump buttons of the location page (base.html page_jump_links): to its search field and each list, with the icons of the overview; anew with the lists (location_contents.html). #}{% with children=object.children.all %}
+{% load i18n icons locations %}{# The jump buttons of the location page (base.html page_jump_links): to its search field and each list, with the icons of the overview; anew with the lists (location_contents.html). Last its changes, shown only where the page has them (location_detail.css). #}{% with children=object.children.all %}
 <a class="btn btn-light" href="#location-search" title="{% trans 'Go to the search field' %}" aria-label="{% trans 'Go to the search field' %}" data-page-jump-search>{% icon "search" %}</a>
 <a class="btn btn-light" href="#location-items" title="{% trans 'Go to the bulk items' %}" aria-label="{% trans 'Go to the bulk items' %}">{% icon "boxes" %}</a>
 <a class="btn btn-light" href="#location-unique-items" title="{% trans 'Go to the unique items' %}" aria-label="{% trans 'Go to the unique items' %}">{% icon "box-star" %}</a>
 {% if child_groups %}{% for group in child_groups %}{% blocktrans with title=group.title asvar go_to %}Go to the {{ title }}{% endblocktrans %}<a class="btn btn-light" href="#{{ group.anchor }}" title="{{ go_to }}" aria-label="{{ go_to }}">{% icon group.category|category_icon %}</a>{% endfor %}
 {% elif not object.type.no_sublocations or children or words %}<a class="btn btn-light" href="#location-children" title="{% trans 'Go to the sub-locations' %}" aria-label="{% trans 'Go to the sub-locations' %}">{% icon "geo-alt" %}</a>{% endif %}
+<a class="btn btn-light" href="#location-changes" title="{% trans 'Go to the changes' %}" aria-label="{% trans 'Go to the changes' %}">{% icon "clock-history" %}</a>
 {% endwith %}

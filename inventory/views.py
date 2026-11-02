@@ -32,7 +32,7 @@ from .permissions import (
 )
 from .models.unique_item import inherit_responsible_teams
 from .stock_change_views import mark_last_stock
-from .structure_overview import structure_overview
+from .structure_overview import physical_order, structure_overview
 from .label_ids import services
 from .label_ids.lookup import annotate_label_code
 from .label_ids.search import url_for_query
@@ -212,8 +212,12 @@ LOCATION_LISTS = {
     "unique": ("unique", "inventory/results/rows/usage_level.html", "inventory/results/rows/notes.html"),
     "children": ("location", "", ""),
 }
-# How far below a location its items and unique items reach (?depth=): right there, levels below, or all of them.
-LOCATION_DEPTHS = {"0": 0, "1": 1, "2": 2, "3": 3, "all": None}
+# How far below a location its items and unique items reach (?depth=): all locations below it (the default, the checkbox
+# "Include all sub-locations") or only right there (?depth=0).
+LOCATION_DEPTHS = {"0": 0, "all": None}
+# The first rows of each list on a location's page; more after a click on "Load more", then while scrolling. A search
+# there loads while scrolling at once.
+LOCATION_FIRST_ROWS = 10
 ACTIVE_PLACE = search.render.ACTIVE_PLACE
 
 
@@ -221,13 +225,13 @@ class LocationLists:
     """The lists of a location's page (docs/locations.md) as result rows, a page at a time: its items (stock entries,
     by category), its unique items and its sub-locations (one list per category of them). With ?depth=, the items and
     unique items of the locations below it, too; with ?q=, what the search finds there (in its order, the
-    sub-locations below it in one list). The page shows the first rows of each, location_rows the next ones
-    (?offset=), loaded while scrolling."""
+    sub-locations below it in one list). The page shows the first rows of each (LOCATION_FIRST_ROWS, then a row
+    "Load more"; with ?q= a page of results), location_rows the next ones (?offset=), loaded while scrolling."""
 
     def __init__(self, request, location):
         self.request, self.location = request, location
-        depth = request.GET.get("depth", "0")
-        self.depth_param = depth if depth in LOCATION_DEPTHS else "0"
+        # The last value: the form sends depth=0 from a hidden field, then depth=all while the box is checked.
+        self.depth_param = "0" if request.GET.get("depth") == "0" else "all"
         self.depth = LOCATION_DEPTHS[self.depth_param]
         self.query = request.GET.get("q", "").strip()
         self.words = self.query.split()[:search.MAX_WORDS]
@@ -260,18 +264,19 @@ class LocationLists:
             return self.found(part, kind, offset)
         if objects is None:
             objects = self.stock() if kind == "item" else self.unique_items()
+        size = search.PAGE if offset else LOCATION_FIRST_ROWS
         # One row more on both sides: the one before for its category, the one after for whether there are more.
-        rows = list(objects[max(offset - 1, 0):offset + search.PAGE + 1])
+        rows = list(objects[max(offset - 1, 0):offset + size + 1])
         previous = rows.pop(0) if offset and rows else None
-        more = len(rows) > search.PAGE
-        rows = rows[:search.PAGE]
+        more = len(rows) > size
+        rows = rows[:size]
         if kind == "item":
             entries = self.stock_entries(rows)
             search.render.group_by_category(entries, previous=previous.item.category if previous else False)
         else:
             entries = search.render.listed(kind, rows, here=self.location)
         count = len(objects) if isinstance(objects, list) else objects.count()
-        return entries, self.next_url(part, offset) if more else None, count, False
+        return entries, self.next_url(part, offset + size) if more else None, count, False
 
     def found(self, part, kind, offset):
         """A page of what the search finds below it, of one kind; an item with its stock entries there."""
@@ -288,7 +293,7 @@ class LocationLists:
             entries = search.render.entries(result.hits, here=self.location)
         count = result.counts.get(kind, 0)
         more = count > search.MAX_RESULTS
-        return (entries, self.next_url(part, offset) if result.next_offset else None,
+        return (entries, self.next_url(part, result.next_offset) if result.next_offset else None,
                 min(count, search.MAX_RESULTS), more)
 
     def stock_entries(self, rows, hits=None):
@@ -305,16 +310,18 @@ class LocationLists:
         return entries
 
     def next_url(self, part, offset):
+        """The link to a list's rows from `offset` on."""
         return page_url(reverse("location_rows", args=[self.location.pk, part]), q=self.query,
-                        depth="" if self.depth_param == "0" else self.depth_param, offset=offset + search.PAGE)
+                        depth="" if self.depth_param == "all" else self.depth_param, offset=offset)
 
 
 def location_children_groups(location, children):
     """[(part, category, title, sub-locations)]: one list per category of sub-locations, or one of them all."""
     groups = models.LocationType.group_by_category(children)
     if not any(category for category, _title, _children in groups):
-        return [("children-all", None, "", list(children))]
-    return [(f"children-{category or 'other'}", category, title, list(nodes)) for category, title, nodes in groups]
+        return [("children-all", None, "", physical_order(location, children))]
+    return [(f"children-{category or 'other'}", category, title, physical_order(location, nodes))
+            for category, title, nodes in groups]
 
 
 def location_rows(request, pk, part):
@@ -350,6 +357,8 @@ class DetailLocationView(DetailView):
         context = super().get_context_data(**kwargs)
         context["link_preview"] = link_preview.for_location(self.object)
         lists = context["lists"] = LocationLists(self.request, self.object)
+        # The first rows end in a row "Load more" (results/next.html); a search loads while scrolling at once.
+        context["load_more_button"] = not lists.query
         context["words"] = lists.words
         # Its quick-items, edited in place: only those right here, and not while searching.
         context["quick_entries"] = [] if lists.query else list(
@@ -385,12 +394,13 @@ class DetailLocationView(DetailView):
             {"category": category, "anchor": f"location-children-{(category or 'other').replace('_', '-')}",
              "title": title, "children": children,
              **dict(zip(("entries", "next_url", "count", "more"), lists.part(
-                 f"children-{category or 'other'}", objects=list(children))))}
+                 f"children-{category or 'other'}", objects=physical_order(self.object, children))))}
             for category, title, children in groups
         ] if any(category for category, _title, _children in groups) else None
         if context["child_groups"] is None:
             context["child_entries"], context["child_next_url"], context["child_count"], context["child_more"] = \
-                lists.part("children-all", objects=None if lists.query else list(self.object.children.all()))
+                lists.part("children-all",
+                           objects=None if lists.query else physical_order(self.object, self.object.children.all()))
         context["can_add_quick_photos"] = self.request.user.has_perms((*QUICK_ITEM_PERMISSIONS, "inventory.add_itemimage"))
         if self.request.user.has_perm("inventory.change_stock"):
             context["stock_change_form"] = forms.StockChangeForm()

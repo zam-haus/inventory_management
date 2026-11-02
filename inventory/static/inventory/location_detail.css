@@ -199,12 +199,22 @@ html:has(.location-stored-items) { scroll-padding-top: calc(var(--sticky-top) + 
 }
 .location-contents a:hover { border-color: var(--bs-link-color); background: #eef4ff; }
 .location-contents a:focus-visible { outline: 3px solid var(--bs-link-color); outline-offset: 2px; }
+/* The jump button to the changes only where the page shows them (change_log_panel.html, location_jump_links.html). */
+body:not(:has(#location-changes)) .page-jump a[href="#location-changes"] { display: none; }
 .location-contents-count { font-weight: 700; font-variant-numeric: tabular-nums; }
 /* Searching its lists, and beside it how far below it they reach (views.LocationLists); on narrow screens below it. */
 .location-search { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: .9rem; }
 .location-search-field { flex: 1 1 16rem; width: auto; }
 .location-search .form-control, .location-search .form-select { min-height: 44px; }
-.location-search .location-depth { flex: 0 1 auto; width: auto; }
+/* Beside the heading "At this location …": "Include all sub-locations", 44px high for fingers. */
+.location-stored-title { display: flex; flex-wrap: wrap; align-items: center; gap: .25rem 1.25rem; min-width: 0; }
+.location-depth { display: flex; align-items: center; gap: .5rem; min-height: 44px; margin: 0; padding-left: 0; }
+.location-depth .form-check-input { float: none; width: 1.25em; height: 1.25em; margin: 0; }
+/* Narrow screens: "Add overview photo" beside it only as its camera, so that the heading's row does not wrap; it stays
+   there, not in an actions menu (its name stays as aria-label and tooltip). */
+@media (max-width: 575.98px) {
+    .location-stored .location-panel-title-row .location-edit-overview .action-label { display: none; }
+}
 .location-panel-heading .search-error { margin: .5rem 0 0; }
 /* Icon-only action buttons: the icon a little larger than the text, like the emojis were. */
 .location-print .bi, .location-edit-overview .bi { width: 1.25em; height: 1.25em; }

@@ -132,33 +132,35 @@
         <section class="location-panel location-stored" id="location-search" aria-labelledby="location-stored-heading">
             <div class="location-panel-heading">
                 <div class="location-panel-title-row">
-                    <h2 id="location-stored-heading" class="fs-4">{% trans "At this location …" %}</h2>
+                    <div class="location-stored-title">
+                        <h2 id="location-stored-heading" class="fs-4">{% trans "At this location …" %}</h2>
+                        {# Part of the search below (form=): checked (the default), the lists include all locations below it; unchecked, the hidden field sends depth=0 (only here), live_search.js sends data-off then. Shorter on narrow screens. #}
+                        <div class="form-check location-depth">
+                            <input type="hidden" name="depth" value="0" form="location-search-form">
+                            <input class="form-check-input" type="checkbox" name="depth" value="all" id="location-depth" data-off="0" form="location-search-form"{% if lists.depth_param == "all" %} checked{% endif %}>
+                            <label class="form-check-label" for="location-depth"><span class="d-none d-sm-inline">{% trans "Include all sub-locations" %}</span><span class="d-sm-none">{% trans "with sub-locations" %}</span></label>
+                        </div>
+                    </div>
                     {% if not object.overview_photo %}{% include 'inventory/location_photo_button.html' with labelled=True %}{% endif %}
                 </div>
-                <nav class="location-contents" aria-label="{% trans 'Contents' %}">
-                    <ul data-location-contents-nav>{% include 'inventory/location_contents_nav.html' %}</ul>
-                </nav>
                 {% comment %}Searches its lists as you type (live_search.js, views.LocationLists), those of the locations below it
                    to the depth chosen, too; without words, all of them again. The magnifier of the navbar and Ctrl+F come here
                    (navbar.js).{% endcomment %}
-                <form class="location-search" method="get" action="{{ object.get_absolute_url }}" role="search" data-live-search data-live-search-listing>
+                <form class="location-search" id="location-search-form" method="get" action="{{ object.get_absolute_url }}" role="search" data-live-search data-live-search-listing>
                     <div class="input-group location-search-field">
                         <span class="input-group-text" aria-hidden="true">{% icon "search" %}</span>
                         <input type="search" class="form-control" name="q" value="{{ lists.query }}" aria-controls="location-lists"
                                aria-label="{% blocktrans with name=object.title %}Search in {{ name }}{% endblocktrans %}"
                                placeholder="{% blocktrans with name=object.title %}Search in {{ name }}{% endblocktrans %}" enterkeyhint="search" autocomplete="off">
                     </div>
-                    <select class="form-select location-depth" name="depth" aria-label="{% trans 'Locations below it' %}" title="{% trans 'Locations below it' %}">
-                        <option value="0"{% if lists.depth_param == "0" %} selected{% endif %}>{% trans "Only here" %}</option>
-                        <option value="1"{% if lists.depth_param == "1" %} selected{% endif %}>{% trans "1 level below" %}</option>
-                        <option value="2"{% if lists.depth_param == "2" %} selected{% endif %}>{% trans "2 levels below" %}</option>
-                        <option value="3"{% if lists.depth_param == "3" %} selected{% endif %}>{% trans "3 levels below" %}</option>
-                        <option value="all"{% if lists.depth_param == "all" %} selected{% endif %}>{% trans "All below" %}</option>
-                    </select>
                     <noscript><button type="submit" class="btn btn-outline-secondary">{% trans "Show results" %}</button></noscript>
                 </form>
                 <p class="search-error text-danger" role="alert" hidden data-search-error>{% trans "The search cannot be reached right now. The results shown are older." %}</p>
                 <p class="visually-hidden" role="status" data-search-status></p>
+                {# Below the filters, how many of each they leave (anew with the lists, location_detail.js). #}
+                <nav class="location-contents" aria-label="{% trans 'Contents' %}">
+                    <ul data-location-contents-nav>{% include 'inventory/location_contents_nav.html' %}</ul>
+                </nav>
             </div>
             {% if object.overview_photo %}
             <section class="location-photo-panel" aria-labelledby="location-overview-heading">

@@ -38,7 +38,8 @@ its bare name). A field in `TRACKED` that no longer exists is not logged, with a
 and from `manage.py check` (`inventory.W001`); a test fails on it. Internal fields (purchase prices, owner accounts and contacts,
 responsible person) are marked as internal.
 
-Entries are shown on the pages they concern, so one change can appear on several pages: a move on
+Entries are shown on the pages they concern, in a panel **Changes** with the icon `clock-history` (on a location's
+page also its jump button), so one change can appear on several pages: a move on
 the pages of both locations, a new location on that of the location it is in, a stock change on the
 item's and the location's page, a printed item label on both as well. Entries keep a label of their
 subject, so they stay readable after it is deleted; deleted records are not linked.

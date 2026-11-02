@@ -47,6 +47,9 @@
             [...form.elements].filter(field => field.name && field.name !== 'q' && field.name !== 'kinds'
                 && field.matches('select') && field.value !== field.options[0]?.value)
                 .forEach(field => target.searchParams.set(field.name, field.value));
+            // A checkbox with data-off (a location's "Include all sub-locations"): checked is the default, unchecked sends that.
+            [...form.elements].filter(field => field.matches('input[type="checkbox"][data-off]') && !field.checked)
+                .forEach(field => target.searchParams.set(field.name, field.dataset.off));
             if (partial) target.searchParams.set('partial', '1');
             target.search = target.search.replaceAll('%2C', ',');  // ?kinds=location,item, as the server's links
             return target;
@@ -119,8 +122,9 @@
             window.clearTimeout(timer);
             timer = window.setTimeout(() => show(input.value.trim()), DELAY);
         });
-        form.addEventListener('change', event => {
-            if (!event.target.matches('select')) return;
+        // Also from fields outside it that belong to it (form=, a location's "Include all sub-locations").
+        document.addEventListener('change', event => {
+            if (event.target.form !== form || !event.target.matches('select, input[type="checkbox"]')) return;
             window.clearTimeout(timer);
             show(input.value.trim());
         });

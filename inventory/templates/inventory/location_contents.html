@@ -18,7 +18,7 @@ go into their slot.
                     {% endif %}
                 </div>
             </div>
-            <p class="location-muted location-panel-note">{% if lists.depth_param == "all" %}{% trans "Bulk items stored here and in all locations below are shown." %}{% elif lists.depth %}{% blocktrans count counter=lists.depth %}Bulk items stored here and one level below are shown.{% plural %}Bulk items stored here and up to {{ counter }} levels below are shown.{% endblocktrans %}{% else %}{% trans "Only bulk items stored directly at this location are shown." %}{% endif %}</p>
+            <p class="location-muted location-panel-note">{% if lists.depth_param == "all" %}{% trans "Bulk items stored here and in all locations below are shown." %}{% else %}{% trans "Only bulk items stored directly at this location are shown." %}{% endif %}</p>
             {% if not words %}{% if partial %}<div data-quick-items-slot></div>{% else %}{% include 'inventory/location_quick_items.html' %}{% endif %}{% endif %}
             {% if item_entries %}
                 {# The first rows, the next ones while scrolling (views.location_rows). #}

@@ -47,6 +47,13 @@ button.result-thumb[aria-expanded="true"] { outline: 2px solid var(--bs-link-col
 .result-count { display: inline-flex; align-items: center; gap: .3em; padding: .1rem .5em; border-radius: 1em;
     background: #edf2f7; color: #59636e; font-size: .8rem; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .result-none, .result-more, .result-next { margin-top: 1rem; color: #59636e; }
+/* "Load more" after the first rows of a location's lists (results/next.html, results.js): one more row, clickable as a
+   whole, its title like the names above it and in line with them (past the photo column). */
+.result-next-row { margin: 0; border-top: 1px solid #dee2e6; }
+.result-next-row a { display: block; padding: .6rem .25rem .6rem calc(.25rem + 48px + .75rem); text-decoration: none; }
+.result-next-row a:hover, .result-next-row a:focus-visible { background: #f7f9fb; }
+.result-next-row a:hover .result-title, .result-next-row a:focus-visible .result-title { text-decoration: underline; }
+.result-next-row a.disabled { opacity: .6; pointer-events: none; }
 /* How many of each kind, above the results: chosen kinds filled, the others outlined (live_search.js). */
 .result-kinds { display: flex; flex-wrap: wrap; gap: .4rem; margin-bottom: .75rem; }
 .result-kind-filter { display: inline-flex; align-items: center; gap: .35em; min-height: 36px; padding: .2rem .75rem;
@@ -78,8 +85,10 @@ body:has(.app-navbar.is-hidden) .result-group { top: var(--sticky-top); }
 .location-panel .result-entry, .item-panel .result-entry { padding: .75rem 1.2rem; }
 .location-panel .result-group, .item-panel .result-group { padding-inline: 1.2rem; }
 .location-panel .result-list, .item-panel .result-list { border-top: 1px solid #dee2e6; }
+.location-panel .result-next-row a { padding: .75rem 1.2rem .75rem calc(1.2rem + 48px + .75rem); }
 @media (max-width: 575.98px) {
     .location-panel .result-entry, .item-panel .result-entry { padding-inline: 1rem; }
+    .location-panel .result-next-row a { padding-inline: calc(1rem + 48px + .75rem) 1rem; }
 }
 
 /* The photos of a row, below it (results.js): one photo wide, swiped sideways; vertical swipes go to

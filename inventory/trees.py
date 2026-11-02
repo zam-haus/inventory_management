@@ -18,7 +18,7 @@ from . import icons
 from .location_display import CATEGORY_ICONS, icon_name, label_html
 from .models import Category, Item, ItemLocation, Location, LocationType, UniqueItem
 from .search.render import KINDS, SUB_LOCATIONS, count_text
-from .structure_overview import code_order
+from .structure_overview import code_order, physical_order
 
 OPEN = mark_safe(" open")
 
@@ -91,7 +91,7 @@ def location_nodes():
         (parent.children if parent else roots).append(node)
 
     def arrange(node):
-        node.children.sort(key=lambda child: code_order(child.obj.short_name))
+        node.children = physical_order(node.obj, node.children, location=lambda child: child.obj)
         for child in node.children:
             node.descendants[icon_name(child.obj)] += 1
             node.descendants.update(arrange(child))

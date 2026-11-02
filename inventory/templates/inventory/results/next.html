@@ -1,6 +1,9 @@
 {% load i18n %}
-{# After a list: results.js loads the next rows when this comes into view; without JavaScript it is a link. #}
-{% if next_url %}
+{# After a list: results.js loads the next rows when this comes into view; without JavaScript it is a link. With #}
+{# load_more_button (the first rows of a location's lists) one more row to click instead; then loading goes on while scrolling. #}
+{% if next_url and load_more_button %}
+    <p class="result-next result-next-row" data-result-next="{{ next_url }}" data-result-next-row><a href="{{ next_url }}"><span class="result-title">{% trans "Load more" %}</span></a></p>
+{% elif next_url %}
     <p class="result-next" data-result-next="{{ next_url }}"><a href="{{ next_url }}">{% trans "More results" %}</a></p>
 {% elif capped %}
     <p class="result-more">{% trans "There are more results than shown. Add words to narrow the search." %}</p>

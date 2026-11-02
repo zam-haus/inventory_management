@@ -5432,3 +5432,19 @@ msgstr "von %(actor)s"
 #, python-format
 msgid "Show the preview of %(name)s"
 msgstr "Vorschau von %(name)s zeigen"
+
+#: inventory/templates/inventory/results/next.html:4
+msgid "Load more"
+msgstr "Mehr laden"
+
+#: inventory/templates/inventory/location_jump_links.html:7
+msgid "Go to the changes"
+msgstr "Zu den Änderungen springen"
+
+#: inventory/templates/inventory/location_detail.html
+msgid "Include all sub-locations"
+msgstr "Alle Unterorte einschließen"
+
+#: inventory/templates/inventory/location_detail.html
+msgid "with sub-locations"
+msgstr "mit Unterorten"

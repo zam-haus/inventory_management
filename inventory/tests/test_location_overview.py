@@ -14,9 +14,10 @@ from django.test.html import parse_html
 from django.urls import reverse
 from PIL import Image
 
-from ..icons import type_icon
+from ..icons import icon, type_icon
 from ..location_display import icon_name
 from ..models import ChangeLog, Item, ItemLocation, Location, LocationType, MeasurementUnit
+from .helpers import without_change_log
 
 
 def html_elements(element):
@@ -348,7 +349,7 @@ class LocationOverviewTests(TestCase):
         self.assertContains(detail, "Tools")
         self.assertContains(detail, "overview-editor")
 
-    def test_item_list_remains_expanded_and_keeps_every_item(self):
+    def test_item_list_is_not_collapsed_and_shows_ten_then_load_more(self):
         unit = MeasurementUnit.objects.create(name="Piece", short="pc")
         items = []
         for index in range(11):
@@ -364,12 +365,12 @@ class LocationOverviewTests(TestCase):
                     if dict(element.attributes).get("id") == "location-items-list"
                 ]
                 self.assertEqual(wrappers, [])
-                visible_contents = response.content.decode()
-                for stored in items:
-                    self.assertIn(stored.name, visible_contents)
-                    self.assertIn(stored.get_absolute_url(), visible_contents)
+                visible_contents = without_change_log(response)
+                # Ten rows; an eleventh behind the button "Load more" (views.LOCATION_FIRST_ROWS).
+                self.assertEqual(sum(stored.get_absolute_url() + '"' in visible_contents for stored in items), 10)
+                self.assertEqual("data-result-next-row" in visible_contents, len(items) > 10)
 
-    def test_sublocation_list_remains_expanded_and_keeps_every_child(self):
+    def test_sublocation_list_is_not_collapsed_and_shows_ten_then_load_more(self):
         children = []
         for index in range(11):
             child = Location.objects.create(
@@ -386,10 +387,9 @@ class LocationOverviewTests(TestCase):
                     if dict(element.attributes).get("id") == "location-children-list"
                 ]
                 self.assertEqual(wrappers, [])
-                visible_contents = response.content.decode()
-                for stored in children:
-                    self.assertIn(stored.name, visible_contents)
-                    self.assertIn(stored.get_absolute_url(), visible_contents)
+                visible_contents = without_change_log(response)
+                self.assertEqual(sum(stored.get_absolute_url() + '"' in visible_contents for stored in children), 10)
+                self.assertEqual("data-result-next-row" in visible_contents, len(children) > 10)
 
     def test_purpose_comes_first_and_the_photo_precedes_the_items(self):
         self.client.post(self.url, self.data(overview_photo=self.photo()))
@@ -428,8 +428,8 @@ class LocationOverviewTests(TestCase):
     def test_camera_moves_to_the_contents_heading_while_there_is_no_photo(self):
         def layout():
             elements = list(html_elements(parse_html(self.client.get(self.location.get_absolute_url()).content.decode())))
-            heading_row = next(e for e in elements if any(dict(c.attributes).get("id") == "location-stored-heading"
-                                                          for c in e.children if not isinstance(c, str)))
+            heading_row = next(e for e in elements if "location-panel-title-row" in dict(e.attributes).get("class", "")
+                               and 'id="location-stored-heading"' in str(e))
             photo_panels = [e for e in elements if "location-photo-panel" in dict(e.attributes).get("class", "")]
             return 'data-overview-open' in str(heading_row), photo_panels
         camera_above, panels = layout()
@@ -612,6 +612,11 @@ class LocationOverviewTests(TestCase):
             response = client.get(self.location.get_absolute_url())
             self.assertEqual(len(response.context["change_log_entries"]), 2)
             self.assertContains(response, "The last 2 changes.")
+            # With the icon of the change history, and the last jump button leads there (shown only with it).
+            self.assertContains(response, '<section id="location-changes" class="location-panel change-log"')
+            self.assertContains(response, f'<h2 id="change-log-heading" class="fs-4">{icon("clock-history")} Changes</h2>',
+                                html=True)
+            self.assertContains(response, '<a class="btn btn-light" href="#location-changes"')
         with override_settings(CHANGE_LOG_SHOWN=0):
             self.assertNotContains(client.get(self.location.get_absolute_url()), "change-log-heading")
 

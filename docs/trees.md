@@ -28,7 +28,8 @@ styles in `actions.css`).
   [breadcrumbs](location-structure.md): *Items* (the tree, opened at the category), then each category down
   to its own, each linked to its page, then the item and the unique item.
 * **Locations** (`/location/`): every location below its parent, in the order of their codes, numbers by value
-  (R2 before R10) and levels by number (WH-1 before WH+0); the top level is open. Below a location come its
+  (R2 before R10) and levels by number (WH-1 before WH+0), the compartments of a storage unit from the top down
+  (a, the lowest, last: `structure_overview.physical_order`, as on the location page); the top level is open. Below a location come its
   building parts and other sub-locations, then its storage units as one group (open, each storage unit
   closed), then its containers as one group (closed). A group only where it sets them apart from other
   sub-locations, so that the tree stays flat: none if they are all of one kind, and none for the storage

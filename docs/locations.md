@@ -105,20 +105,28 @@ the location above it, a dot and its short name, also where a type has codes of 
 ## Long lists
 
 The location page shows a panel per kind of entry: **At this location …** with
-the overview of its contents and the photo, then quick-items, items, unique items and
+its search field, the overview of its contents and the photo, then quick-items, items, unique items and
 sub-locations; the items panel is called **Bulk items** there, as serialized items are listed as their unique
 items. The overview lists how many of each the location has ("12 bulk items"), each with the icon of its
-kind and linking to its panel; the panel's heading shows the same icon. Lists come 50 rows at a time: the next
-rows load while scrolling towards the end of the list (`location_rows`, `/location/<id>/rows/<part>/`, as the
-search's further pages, `results.js`). Quick-items all show at once, as their list is edited in place.
+kind and linking to its panel; the panel's heading shows the same icon. Each list first shows 10 rows
+(`LOCATION_FIRST_ROWS`) and then one more row **Load more** to click, so that a long list does not push the next panels far
+down; once clicked, that list loads 50 rows at a time while scrolling towards its end (`location_rows`,
+`/location/<id>/rows/<part>/`, as the search's further pages, `results.js`). While searching, the lists load while
+scrolling from the start. Quick-items all show at once, as their list is edited in place. Sub-locations are listed as they are arranged
+(`structure_overview.physical_order`, as in the [tree](trees.md)): by code, numbers by value, and the compartments of a
+storage unit from the top down, the top one first and *a*, the lowest, last. Narrow screens show
+*Add overview photo* beside the heading only as its camera, so that the row does not wrap. Last come the changes
+(heading and jump button with `clock-history`, [change log](change-log.md)).
 
-**Searching and the locations below.** Below the overview a field searches the location's lists as you type
+**Searching and the locations below.** Above the overview (whose counts follow what it leaves) a field searches the location's lists as you type
 (`live_search.js`), with the [search](search.md) of everything, but only within the location: each list shows what
 it finds of its kind, the best match first (items without category headings, each with its stock entries there;
-the sub-locations found in one list), and emptied, all of them again. Beside the field the lists reach further down:
-*Only here* (the default), one, two or three levels below, or all of them (`?depth=`, in the address only, so a
-link keeps it). The items and unique items of the locations below then come with those right here, the items still
-by category; a row at a location below names it, with its code. The sub-location panels stay those right below,
+the sub-locations found in one list), and emptied, all of them again. Beside the heading **At this location …** a
+checkbox **Include all sub-locations** (on narrow screens *with sub-locations*), checked by default: the items and
+unique items of all locations below come with those right here, the items still by category; a row at a location
+below names it, with its code. Unchecked, only those right here (`?depth=0`, in the address only, so a link keeps it;
+the box belongs to the search form, `form=`, and a hidden field before it sends `depth=0` without JavaScript too;
+earlier addresses with a number of levels show all below). The sub-location panels stay those right below,
 unless searching. The overview, the counts and the jump buttons follow (`location_contents.html`, alone with
 `?partial=1`; `location_detail.js` puts the quick-items, which only show those right here and not while searching,
 back in their place). `LocationLists` (`views.py`) makes all lists, a page at a time, cut in the database: the
@@ -126,7 +134,8 @@ locations below by their code path (`Location.in_tree`, `locatable_identifier`).
 Ctrl+F go to the field, a jump button at the bottom right too ([search](search.md)).
 
 Once scrolled down at all, a column of round buttons at the bottom right leads back
-to the top and to each panel, with the icons of the overview (`page_jump_links` in `location_detail.html`); the buttons of the
+to the top and to each panel, with the icons of the overview, last the changes (`clock-history`, only where the page
+shows them; `page_jump_links` in `location_detail.html`); the buttons of the
 panels at the top of the page are marked, one per column on wide screens. The top button is on every page
 (`base.html`, `page_jump.js`); the map leaves it out. Going to a panel, by
 these buttons, the overview or a link with its `#anchor`, jumps there without smooth scrolling, so that the lists

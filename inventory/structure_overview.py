@@ -7,7 +7,7 @@ import re
 from dataclasses import dataclass, field
 
 from accounts.models import Team
-from .models import Location, LocationAxis
+from .models import Location, LocationAxis, LocationType
 
 LEVEL_CODE = re.compile(r"^(?P<house>[A-Za-z]+)(?P<level>[+-]\d+)$")
 # "Werkhaus -1" → "Werkhaus"
@@ -28,6 +28,18 @@ def code_order(code):
     if match:
         return [match["house"].upper(), int(match["level"]), ""]
     return _natural(code.upper())
+
+
+def physical_order(parent, siblings, location=lambda sibling: sibling):
+    """Sub-locations of `parent` as they are arranged, on its page and in the tree: by code (code_order); the
+    compartments of a storage unit from the top down, as they stand, for they are counted from the bottom up, a the
+    lowest (docs/location-structure.md). `location`: the location of a sibling (e.g. of a tree node)."""
+    siblings = sorted(siblings, key=lambda sibling: code_order(location(sibling).short_name))
+    storage = LocationType.Category.STORAGE_UNIT
+    if parent is None or parent.type.category != storage:
+        return siblings
+    compartments = [sibling for sibling in siblings if location(sibling).type.category == storage]
+    return compartments[::-1] + [sibling for sibling in siblings if location(sibling).type.category != storage]
 
 
 def level_label(number):

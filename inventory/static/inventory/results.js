@@ -12,7 +12,8 @@
 //   next list of the page (the item tree takes them first, tree.js: results:leave). Rows folded away are skipped.
 // * The row under the pointer is marked and takes the focus (unless a field has it), so pointer and keys go on from
 //   one row.
-// * More rows while scrolling: the next ones are loaded when the link to them comes near.
+// * More rows while scrolling: the next ones are loaded when the link to them comes near. After the first rows of a
+//   location's lists one more row "Load more" instead (results/next.html): once clicked, that list loads while scrolling.
 // window.inventoryResults: close() closes the photos; watch(container) loads more rows for the lists in it (after
 // they were replaced, live_search.js). Lists announce results:loaded and results:error (bubbling).
 (() => {
@@ -45,8 +46,22 @@
     }, {rootMargin: '600px 0px'}) : null;
 
     function watch(container) {
-        container.querySelectorAll('[data-result-next]').forEach(next => observer?.observe(next));
+        container.querySelectorAll('[data-result-next]:not([data-result-next-row])').forEach(next => observer?.observe(next));
     }
+    // "Load more": the next rows; those after them follow while scrolling (what comes with them is no such row).
+    document.addEventListener('click', event => {
+        const link = event.target.closest('[data-result-next-row] a');
+        const list = link?.parentElement.previousElementSibling;
+        if (!list?.matches('[data-result-list]')) return;
+        event.preventDefault();
+        link.classList.add('disabled');
+        link.setAttribute('aria-disabled', 'true');
+        loadMore(list).then(loaded => {
+            if (loaded) return;
+            link.classList.remove('disabled');
+            link.removeAttribute('aria-disabled');
+        });
+    });
 
     // Adds the next rows of the list; true if it did.
     async function loadMore(list) {
