@@ -350,6 +350,15 @@ class TemplateTests(InventoryData, TestCase):
         self.assertNotIn(f"design:{wide.pk}", keys(self.brother, self.tape))
         self.assertNotIn(f"design:{fixed.pk}", keys(self.brother, self.tape))
 
+    def test_templates_with_images_are_offered(self):
+        # An image does not make a template undrawable, also before it is uploaded (the template lists that problem
+        # itself); a QR code too small still does.
+        keys = lambda: [layout.key for layout in layouts_for("location", self.zebra, self.labels)]
+        logo = self.template('label 57 x 32\nrow\n  qr {{ qr }}\n  image "ZAM Logo"')
+        tiny = self.template('label 57 x 32\nrow\n  qr {{ qr }}  max 3\n  image "ZAM Logo"', name="Tiny")
+        self.assertIn(f"design:{logo.pk}", keys())
+        self.assertNotIn(f"design:{tiny.pk}", keys())
+
     def test_printed_on_matching_labels_only(self):
         from ..layouts.designs import fits
         from ..models import LabelMedium

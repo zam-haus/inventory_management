@@ -6,6 +6,8 @@ at the printer's resolution. Media offer the fitting active templates.
 """
 import functools
 
+from PIL import Image
+
 from django.utils.translation import gettext as _
 
 from inventory.models import LocationLabelTemplate
@@ -64,6 +66,12 @@ def size_fits(template, medium):
     return close(template.label_width, medium.width_mm) and close(template.label_height, medium.height_mm)
 
 
+def blank_picture(name):
+    """A label image in the check whether a design can be drawn: white, as large as its box lets it be. Whether the
+    image is there is the template's own problem (problems_of), not the printer's."""
+    return Image.new("L", (1, 1), 255)
+
+
 @functools.lru_cache(maxsize=512)
 def renders(subject_type, description, dpi, height, width, squeeze):
     """Whether a description can be drawn on a canvas of this size (its QR codes big enough to scan)."""
@@ -71,7 +79,7 @@ def renders(subject_type, description, dpi, height, width, squeeze):
     if problems or design.height is None:
         return False
     try:
-        render_design(design, Context(dpi, design_variables.placeholders(subject_type), lambda name: None, squeeze,
+        render_design(design, Context(dpi, design_variables.placeholders(subject_type), blank_picture, squeeze,
                                       strict=True), width, height)
     except TooSmall:
         return False
