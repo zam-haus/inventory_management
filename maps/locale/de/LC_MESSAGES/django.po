@@ -1744,6 +1744,15 @@ msgstr "Neue Quelldatei."
 msgid "Saved."
 msgstr "Gespeichert."
 
+#: templates/maps/slots/result_slides.html
+msgid "Large map"
+msgstr "Große Karte"
+
+#: templates/maps/slots/result_slides.html
+#, python-format
+msgid "(its own position is not known; in %(where)s, highlighted)"
+msgstr "(genaue Position nicht bekannt; in %(where)s, hervorgehoben)"
+
 #~ msgid "Done"
 #~ msgstr "Fertig"
 

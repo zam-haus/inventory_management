@@ -153,10 +153,11 @@ def target(params, payload):
                 return Target(corners=corners, text=text)
     except ValueError:
         pass
-    if FEATURE_ID.match(params.get("p") or ""):
-        for feature in payload["features"]["features"]:
-            if feature["properties"]["id"] == params["p"]:
-                return Target(feature=feature)
+    # Several (a result row's map of an item's places, map.js focusAll): the first of them.
+    named = [feature_id for feature_id in (params.get("p") or "").split(",") if FEATURE_ID.match(feature_id)]
+    for feature in payload["features"]["features"] if named else ():
+        if feature["properties"]["id"] == named[0]:
+            return Target(feature=feature)
     return Target()
 
 

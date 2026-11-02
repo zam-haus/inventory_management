@@ -73,7 +73,8 @@
             {% endif %}
             <div>
                 <dt>{% trans "Location" %}</dt>
-                <dd>{% if object.location %}<a href="{{ object.location.get_absolute_url }}" title="{{ object.location.descriptive_identifier }}">{% location_label object.location %}</a>{% else %}<span class="item-muted">–</span>{% endif %}</dd>
+                <dd>{% if object.location %}<a href="{{ object.location.get_absolute_url }}" title="{{ object.location.descriptive_identifier }}">{% location_label object.location %}</a>
+                    {% placed_stamp object as stamp %}{% if stamp %}<br>{% include "inventory/change_stamp.html" %}{% endif %}{% else %}<span class="item-muted">–</span>{% endif %}</dd>
             </div>
             {% if object.effective_usage_level %}
             <div>

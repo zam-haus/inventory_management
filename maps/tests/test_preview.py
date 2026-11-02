@@ -91,6 +91,13 @@ class PreviewTests(Building, TestCase):
         self.assertIn(f"item:{self.saw.pk}", ids(preview.target({"p": f"item:{self.saw.pk}"}, payload)))
         self.picture(f"/map/level/-1/preview.png?p=item:{self.saw.pk}")
 
+    def test_several_named_show_the_first(self):
+        # A result row's map of an item's places (map.js focusAll); the preview names one of them.
+        payload = level_payload(-1)
+        target = preview.target({"p": f"loc:{self.pallet.pk},loc:{self.store.pk}"}, payload)
+        self.assertEqual(target.feature["properties"]["id"], f"loc:{self.pallet.pk}")
+        self.assertIsNone(preview.target({"p": "loc:x,"}, payload).feature)
+
     def unique_rectangle(self):
         from inventory.models import Item, UniqueItem
         item = Item.objects.create(name="Workbench", kind=Item.Kind.SERIALIZED,

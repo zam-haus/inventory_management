@@ -123,12 +123,15 @@ behave the same: a category's items ([trees](trees.md)), a location's items, uni
 the title with the kind's icon, a location's code chip, where it is, then what the list adds beside it (an amount
 with the stock button, a usage level, what is in a location or category as in the trees) and below it (a description, a sale value). What the
 search found is marked only in the search. In a location's own lists, places at that location are left out, and so
-is "On the map".
+is the map.
 
-* A click on a row outside its links, buttons and chips opens it, unless text was selected there.
+* A click on a row outside its links, buttons and chips shows its photos (and map) below it, as Space does, and
+  a second click closes them; a row with nothing to show opens. Not when text was selected there (to copy it).
 * The photo opens the row's photos large below it; swipe sideways through them, up or down to the photos of
-  the next or previous row with photos in the same list.
-* The up and down arrow keys move between the rows; past the end of a list they go on into the next list of the
+  the next or previous row with photos in the same list. With maps on, the map comes last ([maps](maps.md)); rows
+  without photos open it through their icon, which then has a small map pin.
+* The up and down arrow keys move between the rows, page down and up a screen further (the page scrolls along, so
+  the marked row stays where it is on the screen); past the end of a list they go on into the next list of the
   page (on a location's page from the items to the unique items to the sub-locations), from a search field
   down to the first row and back up. Hovering over a row marks it the same way, unless a field has the focus.
   Space switches the large photos of the current row on or off (off at first, then for the next rows, too); left
@@ -141,5 +144,9 @@ is "On the map".
 `results/next.html`; `results.css` on every page. The kinds' icons are drawn once per page as `<symbol>`s that each
 row refers to (`result_icon`, as in the [trees](trees.md)): a busy location's page of 850 rows had 2.8 MB of
 inline icons otherwise. The sprite, the photo viewer (`results/viewer.html`) and `results.js` come only with pages
-that show rows or get them while typing (`{% result_rows %}`, added by `base.html` at its end). Optional apps add to a row through the slots `result_entry.place` and `result_entries.start` (maps: "On the
-map", and where the rows' locations are, loaded at once). Tests: `inventory/tests/test_result_lists.py`.
+that show rows or get them while typing (`{% result_rows %}`, added by `base.html` at its end). Optional apps add
+slides after a row's photos through the slot `result_entry.slides` (a badge for the photo button and
+`<template data-result-slides>` with a `<figure>` each; rows with photos or slides have `data-result-viewer`,
+`results.js` announces `result-viewer:shown`), and load what their rows need at once through
+`result_entries.start` (maps: the map, and where the rows' locations are). Tests:
+`inventory/tests/test_result_lists.py`.

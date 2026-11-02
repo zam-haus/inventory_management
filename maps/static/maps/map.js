@@ -583,10 +583,11 @@
     }
 
     // What a popup is opened for, or a link names (highlight: `kept` when its popup closes), is selected (HALO_PIXELS),
-    // one at a time on each map (map._zamSelection: {layer, halo, kept}). Closing the popup of one clicked, selecting
-    // another, the edit mode (unselect) or drawing the level anew lets it go.
+    // one at a time on each map (map._zamSelection: {layer, halo, kept}); several that a link names together are
+    // marked so (map._zamMarks, focusAll). Closing the popup of one clicked, selecting another, the edit mode
+    // (unselect) or drawing the level anew lets them go.
     function select(layer, kept) {
-        var map = layer._map, drawn = layer._drawn, base = layer._baseStyle || {};
+        var map = layer._map, drawn = layer._drawn;
         if (!map || !drawn) {
             return;
         }
@@ -596,6 +597,12 @@
             return;
         }
         unselect(map);
+        map._zamSelection = Object.assign(haloed(layer), {kept: Boolean(kept)});
+    }
+
+    // The layer drawn bolder with a halo around it: {layer, halo, clips}, for release.
+    function haloed(layer) {
+        var map = layer._map, base = layer._baseStyle || {};
         var weight = base.weight === undefined ? 2 : base.weight;
         var halo = L.geoJSON(layer.feature, {interactive: false,
             style: function () {
@@ -607,8 +614,17 @@
             }
         }).addTo(map);
         layer.setStyle({weight: weight * 2, opacity: 1});
-        raise(drawn, layer, halo);
-        map._zamSelection = {layer: layer, halo: halo, kept: Boolean(kept), clips: clipOutside(layer, halo)};
+        raise(layer._drawn, layer, halo);
+        return {layer: layer, halo: halo, clips: clipOutside(layer, halo)};
+    }
+
+    function release(selection) {
+        selection.halo.remove();
+        selection.clips.forEach(function (clip) {
+            clip.observer.disconnect();
+            clip.clip.remove();
+        });
+        selection.layer.resetStyle();
     }
 
     // The halo only outside the outline, so it covers nothing inside it: each of its paths is clipped to what lies
@@ -641,17 +657,12 @@
     }
 
     function unselect(map) {
-        var selection = map._zamSelection;
-        if (!selection) {
-            return;
+        (map._zamMarks || []).forEach(release);
+        map._zamMarks = null;
+        if (map._zamSelection) {
+            release(map._zamSelection);
+            map._zamSelection = null;
         }
-        map.removeLayer(selection.halo);
-        selection.clips.forEach(function (clip) {
-            clip.observer.disconnect();
-            clip.clip.remove();
-        });
-        selection.layer.resetStyle();
-        map._zamSelection = null;
     }
 
     // The layer of a drawn feature a popup is about (Leaflet gives the part of it), else null (a marker's, a
@@ -766,6 +777,23 @@
                 {maxZoom: 22, padding: [40, 40], animate: false});
         }
         return layer;
+    }
+
+    // Several that a link names together (?p=loc:1,loc:2; a result row's map: an item's places on a level), each
+    // marked as by focus, all in view; returns the first, or null if none of them is on the level.
+    function focusAll(drawn, ids, fit) {
+        if (ids.length < 2) {
+            return focus(drawn, ids[0], fit);
+        }
+        unselect(drawn.map);
+        var layers = ids.map(function (id) { return reveal(drawn, id); }).filter(Boolean);
+        drawn.map._zamMarks = layers.map(haloed);
+        if (layers.length && fit !== false) {
+            var bounds = L.latLngBounds([]);
+            layers.forEach(function (layer) { bounds.extend(layer.getBounds ? layer.getBounds() : layer.getLatLng()); });
+            drawn.map.fitBounds(bounds, {maxZoom: 22, padding: [40, 40], animate: false});
+        }
+        return layers[0] || null;
     }
 
     function load(url) {
@@ -1023,7 +1051,7 @@
     }
 
     window.ZamMap = {create: create, draw: draw, planLayer: planLayer, load: load, highlight: highlight, reveal: reveal,
-        focus: focus, unselect: unselect, openPopupAbove: openPopupAbove,
+        focus: focus, focusAll: focusAll, unselect: unselect, openPopupAbove: openPopupAbove,
         stackControl: stackControl,
         filterStacks: filterStacks, layerControl: layerControl, STYLES: STYLES, ITEM_POINT: ITEM_POINT,
         cornerDrawing: cornerDrawing,
@@ -1145,10 +1173,10 @@
             if (!first) {
                 return;
             }
-            // The address's view (the marked point or #z, b: showView, below), else what #p names (the "On the map"
-            // links), else the whole level.
+            // The address's view (the marked point or #z, b: showView, below), else what #p names (the links to the
+            // map; several: a result row's map of an item's places), else the whole level.
             var view = start.bounds || start.mark || start.area;  // set below
-            var named = start.popup ? focus(drawn, start.popup, !view) : null;
+            var named = start.popup ? focusAll(drawn, start.popup.split(','), !view) : null;
             if (view) {
                 return;
             }
@@ -1194,6 +1222,7 @@
             bar.dataset.unplacedUrl = link.dataset.unplacedUrl;
         }
         map.closePopup();
+        marked = null;
         show(false, true).then(writeHash).catch(function () {
             window.location.href = link.href;
         });
@@ -1251,6 +1280,7 @@
             area: areaOk ? a.map(function (c) { return L.latLng(c[0], c[1]); }) : null, label: values.t || null};
     }
     var openPopup = null;  // the feature id of the open popup
+    var marked = null;  // the feature ids of several marked together (?p=…,…), until a popup opens or another level
 
     var hashTimer = null;
     function writeHash() {  // at most every 300 ms: browsers limit changes of the history (Firefox complains)
@@ -1264,7 +1294,8 @@
         var bounds = map.getBounds(), digits = function (value) { return value.toFixed(6); };
         var view = 'z=' + (Math.round(map.getZoom() * 100) / 100) + '&b=' + [bounds.getSouth(), bounds.getWest(),
             bounds.getNorth(), bounds.getEast()].map(digits).join(',');
-        var target = (openPopup ? ['p=' + encodeURIComponent(openPopup).replace('%3A', ':')] : [])
+        var named = openPopup || marked;
+        var target = (named ? ['p=' + encodeURIComponent(named).replace(/%3A/g, ':').replace(/%2C/g, ',')] : [])
             .concat(page.markQuery ? page.markQuery() : []);
         // the state stays: the edit mode's steps (map_edit.js)
         history.replaceState(history.state, '', window.location.pathname + (target.length ? '?' + target.join('&') : '') +
@@ -1279,6 +1310,7 @@
         var source = event.popup._source, feature = source && (source.feature || (source.getLayers &&
             source.getLayers()[0] && source.getLayers()[0].feature));
         openPopup = feature ? feature.properties.id : null;
+        marked = null;  // let go: what the popup is about is selected instead (select)
         writeHash();
     });
     map.on('popupclose', function () {
@@ -1299,7 +1331,10 @@
                 map.setZoom(target.zoom, {animate: false});  // the same zoom on a screen of about the same size
             }
         }
-        if (target.popup && page.drawn && page.drawn.byId[target.popup]) {
+        if (target.popup && target.popup.indexOf(',') >= 0 && page.drawn) {  // several: marked, without a popup
+            focusAll(page.drawn, target.popup.split(','), false);
+            marked = target.popup;
+        } else if (target.popup && page.drawn && page.drawn.byId[target.popup]) {
             openPopupAbove(reveal(page.drawn, target.popup));
         }
     }

@@ -28,7 +28,8 @@
         </div>
         {% include "maps/place_tools.html" with prefix="map-place" %}
         {% if place.editable %}{% include "maps/edit_corner_box.html" %}{% endif %}
-        {% if place.around %}<p class="map-place-around" data-place-view-only>{% location_label place.around subtitle=False info=False as around_label %}{% blocktrans with where=around_label %}Its own position is not known; it is in {{ where }} (highlighted).{% endblocktrans %}</p>{% endif %}
+        {# When the position shown was set (that of the place it is in, without its own), as in the change log. #}
+        {% if place.around or place.stamp %}<p class="map-place-around" data-place-view-only>{% if place.around %}{% location_label place.around subtitle=False info=False as around_label %}{% blocktrans with where=around_label %}Its own position is not known; it is in {{ where }} (highlighted).{% endblocktrans %} {% endif %}{% include "inventory/change_stamp.html" with stamp=place.stamp %}</p>{% endif %}
         <div class="form-check" data-place-move hidden>
             <input class="form-check-input" type="checkbox" id="map-place-move">
             <label class="form-check-label" for="map-place-move" data-place-move-label></label>

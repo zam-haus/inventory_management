@@ -13,7 +13,7 @@ SLOTS = [
     ("unique_item_detail.scripts", "maps/slots/scripts.html"),
     ("unique_item_move.extra", "maps/slots/unique_item_move.html"),
     ("result_entries.start", "maps/slots/result_entries.html"),
-    ("result_entry.place", "maps/slots/result_entry.html"),
+    ("result_entry.slides", "maps/slots/result_slides.html"),
     ("location_info.links", "maps/slots/location_info.html"),
     ("location_info.body", "maps/slots/location_info_body.html"),
     ("base.scripts", "maps/slots/base_scripts.html"),

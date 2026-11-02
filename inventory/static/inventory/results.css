@@ -28,6 +28,9 @@ button.result-thumb[aria-expanded="true"] { outline: 2px solid var(--bs-link-col
 .result-thumb img { width: 100%; height: 100%; object-fit: cover; }
 .result-thumb-count { position: absolute; right: 2px; bottom: 2px; padding: 0 .3em; border-radius: .25rem;
     background: rgba(0, 0, 0, .65); color: #fff; font-size: .7rem; font-weight: 600; line-height: 1.4; }
+/* What else the photo button shows after the photos (slot result_entry.slides, e.g. the map), small at the left. */
+.result-thumb-badge { position: absolute; left: 2px; bottom: 2px; display: inline-flex; padding: .1em .2em;
+    border-radius: .25rem; background: rgba(0, 0, 0, .65); color: #fff; font-size: .7rem; line-height: 1; }
 .result-title { color: var(--bs-link-color); font-weight: 600; overflow-wrap: anywhere; }
 .result-subtitle { color: #59636e; font-size: .875em; font-weight: 400; }
 .result-meta, .result-source, .result-muted { color: #59636e; font-size: .875rem; overflow-wrap: anywhere; }
@@ -92,6 +95,7 @@ body:has(.app-navbar.is-hidden) .result-group { top: var(--sticky-top); }
     gap: .35rem; margin: 0; scroll-snap-align: center; }
 .result-viewer-strip img { display: block; max-width: 100%; max-height: min(70vh, 40rem); object-fit: contain; user-select: none; }
 .result-viewer-strip figcaption { padding: 0 3rem; color: #d0d5db; font-size: .875rem; text-align: center; overflow-wrap: anywhere; }
+.result-viewer-strip figcaption .change-stamp { color: inherit; }
 .result-viewer-counter { position: absolute; top: .75rem; left: .75rem; margin: 0; padding: 0 .45em; border-radius: .25rem;
     background: rgba(0, 0, 0, .6); color: #fff; font-size: .8rem; font-variant-numeric: tabular-nums; }
 .result-viewer-counter:empty { display: none; }

@@ -342,6 +342,40 @@ body.map-place-fullscreen {
     border-radius: var(--bs-border-radius);
     background: #f8f9fa;
 }
+/* The map after the photos of a result row (slots/result_slides.html, map_mini.js): as large as a photo, clear of
+   the viewer's buttons beside it (inventory/results.css), with the link to the large map in its corner. */
+.map-slide-frame {
+    position: relative;
+    width: calc(100% - 7rem);
+    max-width: 60rem;
+}
+.map-slide-canvas {
+    height: min(60vh, 28rem);
+    border-radius: var(--bs-border-radius);
+    background: #f8f9fa;
+}
+.map-slide-open {
+    position: absolute;
+    top: .5rem;
+    right: .5rem;
+    z-index: 1000;  /* over Leaflet's panes and controls */
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, .55);
+    color: #fff;
+    font-size: 1.2rem;
+}
+.map-slide-open:hover, .map-slide-open:focus-visible {
+    background: rgba(0, 0, 0, .75);
+    color: #fff;
+}
+.map-slide-mark {
+    display: block;
+}
 /* Aligning plans (map_align.js) */
 .map-align {
     display: grid;
@@ -394,9 +428,6 @@ body.map-place-fullscreen {
 }
 .leaflet-dragging .leaflet-marker-draggable.map-place-handle {
     cursor: crosshair;
-}
-.result-map {
-    white-space: nowrap;
 }
 .structure-level-map {
     display: block;

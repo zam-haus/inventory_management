@@ -4,11 +4,13 @@ from django.urls import reverse
 from django.utils.html import json_script
 from django.utils.translation import gettext as _
 
+from inventory.change_log import stamp
 from inventory.models import Location, UniqueItem
 
 from .. import permissions
 from ..levels import Tree
 from ..models import BackgroundLayer, FloorPlan, LocationShape, UniqueItemPosition
+from ..positions import last_set
 
 register = template.Library()
 
@@ -119,8 +121,8 @@ def map_focus_url(context, obj):
 
 @register.simple_tag(takes_context=True)
 def map_preload(context, entries):
-    """Loads where the locations of these result rows are in the tree at once, so that their map links
-    (map_focus_url) need no query each. Renders nothing."""
+    """Loads where the locations of these result rows are in the tree at once, and what their maps show (map_slides),
+    so that the rows need no query each. Renders the map scripts' settings once if a row has a map, else nothing."""
     pks = []
     for entry in entries:
         if isinstance(entry.obj, Location):
@@ -128,9 +130,65 @@ def map_preload(context, entries):
         elif isinstance(entry.obj, UniqueItem):
             pks.append(entry.obj.location_id)
         pks += [place.location.pk for place in entry.places]
-    if pks:
-        _index(context).tree.load(pks)
+    if not pks:
+        for entry in entries:
+            entry.map_slides = []
+        return ""
+    index = _index(context)
+    index.tree.load(pks)
+    _slides(index, entries, context["request"].user)
+    # Before map.js reads them (map_mini.js loads it once a row's map is shown); once per page.
+    if any(entry.map_slides for entry in entries) and not getattr(index, "config_shown", False):
+        index.config_shown = True
+        return map_config()
     return ""
+
+
+def _slides(index, entries, user):
+    """The maps of result rows after their photos (slots/result_slides.html), as entry.map_slides: one per level, with
+    all of the row there highlighted (a unique item or location, else the places of an item). Each slide: data_url
+    and focus (feature ids, comma separated) for map_mini.js, url (the large map showing the same) and marks, one per
+    thing shown: {target, around (the location highlighted instead, without a position of its own), stamp (when the
+    position highlighted was set, inventory.change_log.stamp)}. A few queries for all rows."""
+    for entry in entries:
+        targets = [entry.obj] if isinstance(entry.obj, (Location, UniqueItem)) else \
+            [place.location for place in entry.places]
+        slides = {}
+        for target in targets:
+            focus = _focus(index, target)
+            if focus is None:
+                continue
+            number, feature, shown = focus
+            slide = slides.setdefault(number, {"number": number, "features": [], "marks": []})
+            if feature not in slide["features"]:
+                slide["features"].append(feature)
+            exact = shown is None or (isinstance(target, Location) and shown == target.pk)
+            slide["marks"].append({"target": target, "feature": feature, "around": None if exact else shown})
+        entry.map_slides = list(slides.values())
+    marks = [mark for entry in entries for slide in entry.map_slides for mark in slide["marks"]]
+    if not marks:
+        return
+    around = Location.objects.select_related("type").in_bulk({mark["around"] for mark in marks if mark["around"]})
+    set_at = last_set({mark["feature"] for mark in marks})
+    for mark in marks:
+        mark["around"] = around.get(mark["around"])
+        mark["stamp"] = stamp(set_at.get(mark["feature"]), user)
+    for entry in entries:
+        for slide in entry.map_slides:
+            slide["focus"] = ",".join(slide["features"])
+            slide["data_url"] = reverse("maps:level_data", args=[slide["number"]])
+            slide["url"] = f"{reverse('maps:level', args=[slide['number']])}?p={slide['focus']}"
+
+
+@register.simple_tag(takes_context=True)
+def map_slides(context, entry):
+    """The maps a result row shows after its photos (see _slides; loaded for the list by map_preload)."""
+    if not hasattr(entry, "map_slides"):
+        _index(context).tree.load([entry.obj.pk] if isinstance(entry.obj, Location) else
+                                  [entry.obj.location_id] if isinstance(entry.obj, UniqueItem) else
+                                  [place.location.pk for place in entry.places])
+        _slides(_index(context), [entry], context["request"].user)
+    return entry.map_slides
 
 
 @register.simple_tag(takes_context=True)
@@ -162,6 +220,8 @@ def map_place(context, obj):
     focus_url = map_focus_url(context, obj)
     # Without its own position: the location shown instead ("it is in …", highlighted).
     around = Location.objects.filter(pk=focus[2]).first() if focus and not has_own and focus[2] else None
+    # When the position highlighted was set, and by whom as in the change log.
+    set_at = last_set([focus[1]]).get(focus[1]) if focus else None
     editable = placeable and not denied
     # Unique items: every shape (their item only gives the usual one).
     kinds = list(UniqueItemPosition.Kind.values) if isinstance(obj, UniqueItem) else \
@@ -169,7 +229,7 @@ def map_place(context, obj):
     return {"show": bool(focus_url or editable), "focus_url": focus_url, "has_map": bool(focus_url),
             # The map as on the large one with ?p= (map.js focus): the level and what it shows.
             "data_url": reverse("maps:level_data", args=[focus[0]]) if focus else "", "focus": focus[1] if focus else "",
-            "around": around,
+            "around": around, "stamp": stamp(set_at, user),
             "has_own": has_own, "editable": editable, "kinds": kinds, "area": "area" in kinds,
             "move_url": move_url if editable else "",
             "edit_denied": denied if placeable and denied and user.is_authenticated else ""}

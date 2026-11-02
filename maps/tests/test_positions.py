@@ -335,9 +335,10 @@ class StorageUnitTests(Building, TestCase):
 
 
 @override_settings(LANGUAGE_CODE="en")
-class ResultMapLinkTests(Building, TestCase):
-    """Result rows link to the map (slot result_entry.place); where their locations are in the tree is loaded once for
-    the whole list (result_entries.start), not once per row."""
+class ResultMapTests(Building, TestCase):
+    """Result rows show their map after their photos (slot result_entry.slides); where their locations are in the
+    tree and when the positions shown were set are loaded once for the whole list (result_entries.start), not once
+    per row."""
 
     @classmethod
     def setUpTestData(cls):
@@ -358,21 +359,91 @@ class ResultMapLinkTests(Building, TestCase):
             response = self.client.get(url, params)
         return len(captured), response
 
+    def row(self, page, obj):
+        """The result row of that object."""
+        start = page.rindex('<li class="result-entry', 0, page.index(f'class="result-link" href="{obj.get_absolute_url()}"'))
+        return page[start:page.index("</li>", start)]
+
     def test_the_search_loads_the_tree_once(self):
         self.add(0)
         one, response = self.queries(reverse("index"), q="hobel")
-        self.assertContains(response, "On the map")
+        self.assertContains(response, "data-map-slide ")
         for n in range(1, 10):
             self.add(n)
         ten, response = self.queries(reverse("index"), q="hobel")
-        self.assertEqual(response.content.decode().count("On the map"), 20)  # each item and its unique item
+        page = response.content.decode()
+        self.assertEqual(page.count("data-map-slide "), 20)  # each item and its unique item
+        self.assertEqual(page.count('id="map-config"'), 1)  # once, for map.js
+        self.assertNotIn("On the map", page)  # the map's link is on the map now
         self.assertEqual(ten, one)
+
+    def test_a_row_without_photos_opens_its_map(self):
+        self.add(0)
+        unique_item = UniqueItem.objects.get(item__name="Hobel 0")
+        row = self.row(self.client.get(reverse("index"), {"q": "hobel"}).content.decode(), unique_item)
+        self.assertIn(" data-result-viewer>", row)
+        self.assertIn('aria-label="Show the preview of Hobel 0">', row)
+        self.assertIn('<template data-result-slides>', row)
+        # Its box has no position: the store's is shown, highlighted, and the hint says so.
+        level = reverse("maps:level_data", args=[-1])
+        self.assertIn(f'data-url="{level}" data-focus="loc:{self.store.pk}"', row)
+        self.assertIn(f'href="{reverse("maps:level", args=[-1])}?p=loc:{self.store.pk}"', row)
+        self.assertIn("Its own position is not known; it is in", row)
+        self.assertIn("last set less than a minute ago</time></span>", row)  # the store's, by nobody named
+        # Its own position: exact, no hint.
+        positions.set_item_position(unique_item, None, local_point(20, 0))
+        row = self.row(self.client.get(reverse("index"), {"q": "hobel"}).content.decode(), unique_item)
+        self.assertIn(f'data-focus="item:{unique_item.pk}"', row)
+        self.assertNotIn("Its own position is not known", row)
+
+    def test_an_items_places_on_one_level_share_a_map(self):
+        from inventory.models import ItemLocation
+        positions.set_location_shape(self.hbb, LocationShape.Kind.AREA, geo.rectangle(local_point(5, 0), 5, 5))
+        glue = Item.objects.create(name="Leim", measurement_unit_id=self.saw.item.measurement_unit_id)
+        ItemLocation.objects.create(item=glue, location=self.store, amount=1)
+        ItemLocation.objects.create(item=glue, location=self.pallet, amount=2)
+        row = self.row(self.client.get(reverse("index"), {"q": "leim"}).content.decode(), glue)
+        self.assertEqual(row.count("data-map-slide "), 1)
+        focus = {f"loc:{self.hbb.pk}", f"loc:{self.store.pk}"}
+        shown = row[row.index('data-focus="') + 12:]
+        self.assertEqual(set(shown[:shown.index('"')].split(",")), focus)
+        self.assertIn("(its own position is not known; in", row)  # the pallet's: HBB is highlighted
+        # A place on another level: a map of its own.
+        ground = Location.objects.create(type=self.level.type, name="Werkhaus 0", short_name="WH+0")
+        hall = Location.objects.create(type=self.hbb.type, name="Halle", short_name="HAL", parent_location=ground)
+        positions.set_location_shape(hall, LocationShape.Kind.AREA, geo.rectangle(local_point(40, 0), 5, 5))
+        ItemLocation.objects.create(item=glue, location=hall, amount=3)
+        row = self.row(self.client.get(reverse("index"), {"q": "leim"}).content.decode(), glue)
+        self.assertEqual(row.count("data-map-slide "), 2)
+        self.assertIn(f'data-focus="loc:{hall.pk}"', row)
+
+    def test_who_set_it_only_for_those_who_see_it_in_the_change_log(self):
+        from django.contrib.auth import get_user_model
+        from inventory.change_log import change_context
+        User = get_user_model()
+        alex = User.objects.create_user(username="alex", first_name="Alex", last_name="Example")  # invented
+        with change_context(actor=alex):
+            # Another size: the change log tells only what changed as people read it (positions.describe).
+            positions.set_location_shape(self.store, LocationShape.Kind.AREA, geo.rectangle(local_point(20, 0), 6, 6))
+        self.add(0)
+        page = self.client.get(reverse("index"), {"q": "hobel"}).content.decode()
+        self.assertNotIn("Alex E.", page)
+        viewer = User.objects.create_user(username="viewer")
+        viewer.user_permissions.add(*Permission.objects.filter(
+            content_type__app_label="inventory", codename__in=["view_changelog", "view_changelog_actor"]))
+        self.client.force_login(viewer)
+        page = self.client.get(reverse("index"), {"q": "hobel"}).content.decode()
+        self.assertIn("last set less than a minute ago</time> by Alex E. (alex)", page)
+        # The grey box tells the same.
+        page = self.client.get(Location.objects.get(short_name="K10").get_absolute_url()).content.decode()
+        self.assertIn("by Alex E. (alex)", page[page.index("map-place-around"):])
 
     def test_not_in_a_locations_own_lists(self):
         self.add(0)
         page = self.client.get(self.store.get_absolute_url()).content.decode()
         lists = page[page.index("data-result-list"):]
-        self.assertNotIn("result-map", lists)
+        self.assertNotIn("data-map-slide", lists)
+        self.assertNotIn("data-result-viewer", lists)
 
 
 class LocationSizeMigrationTests(TransactionTestCase):

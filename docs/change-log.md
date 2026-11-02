@@ -82,3 +82,12 @@ add, change or delete entries in the admin.
 
 The [data export](data-export.md) keeps the entries without who acted, notes, owners and internal
 values.
+
+## How old where something is
+
+Where something is says when it was last set, from the log: on a unique item's page beside its location, on the
+page of a location that moves (boxes, pallets) beside the one it is in, and with [maps](maps.md) on, beside the
+positions shown in the grey box and in the results ("zuletzt gesetzt vor 3 Tagen"). Everyone who sees the page
+sees how old it is; who set it („von Vorname N. (benutzername)“) only people who may see both the changes and who
+made them, as in the panel. Without an entry (set before the log began) nothing is said. `change_log.latest`,
+`last_placed` and `stamp`, the filter `ago` (`templatetags/change_log.py`) and `change_stamp.html`.

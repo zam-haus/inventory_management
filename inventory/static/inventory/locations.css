@@ -46,3 +46,5 @@ a:has(> .loc-label):hover > .loc-label > .loc-title { text-decoration-thickness:
 
 /* A unique item's label ID in its name (UniqueItem.name_html). */
 .unique-item-code { font-family: monospace; font-size: 1.05em; letter-spacing: .04em; white-space: nowrap; }
+/* When something was last set, and by whom (change_stamp.html). */
+.change-stamp { color: #59636e; font-size: .875rem; }

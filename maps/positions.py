@@ -7,6 +7,7 @@ parent: that is restructuring, and their areas stay where the building is.
 """
 from django.contrib.gis.geos import GEOSException, GEOSGeometry
 from django.db import transaction
+from django.db.models import Q
 from django.utils import formats
 from django.utils.translation import gettext as _
 
@@ -52,6 +53,24 @@ def _log(subject, before, after, *, entry=None, **links):
         entry.save(update_fields=["changes"])
     else:
         change_log.record(ChangeLog.Action.CHANGED, subject, changes=[change], **links)
+
+
+def last_set(features):
+    """The latest change log entry that changed each of these positions (feature ids as on the map: loc:<pk>,
+    item:<pk>): {feature id: entry}, without those set before the log began."""
+    def changed(entry):
+        return any(change.get("field") == FIELD for change in entry.changes)
+
+    # Narrowed down on every database (JSON containment is not on SQLite); `changed` makes sure.
+    condition = Q(changes__icontains=f'"{FIELD}"')
+    pks = {"loc": set(), "item": set()}
+    for feature in features:
+        kind, pk = feature.split(":")
+        pks[kind].add(int(pk))
+    return {**{f"loc:{pk}": entry for pk, entry in
+               change_log.latest("location", pks["loc"], condition, changed).items()},
+            **{f"item:{pk}": entry for pk, entry in
+               change_log.latest("uniqueitem", pks["item"], condition, changed).items()}}
 
 
 def _item_links(unique_item):

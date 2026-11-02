@@ -4,18 +4,24 @@ search results, a category's items, a location's items and sub-locations, an ite
 results.js opens a row on a click outside its links, moves between rows with the arrow keys and shows the photos
 below a row. Per list: `here` (the location whose lists these are), `row_aside` and `row_details` (templates for each
 row, given `entry`), `words` (marked), `collapsible_groups` (a toggle in each heading folds its rows: a category's
-page, results.js).
+page, results.js). Optional apps add slides after the photos (slot result_entry.slides: a badge for the photo button
+and <template data-result-slides> with a <figure> each; maps: the map), also to rows without photos.
 {% endcomment %}{% result_rows %}{% slot "result_entries.start" %}
 {# Lists that are no search have no words: as filter argument, a missing one would be an error. #}{% with words=words|default:"" %}
 {% for entry in entries %}
     {% if entry.group %}<li class="result-group{% if not entry.group_sticky %} is-static{% endif %}"{% if entry.group_key %} data-group="{{ entry.group_key }}"{% endif %}><h2 class="result-group-title">{% if collapsible_groups and entry.group_key %}<button type="button" class="result-group-toggle" data-group-toggle aria-expanded="true" title="{% trans 'Fold or unfold its items' %}" aria-label="{% trans 'Fold or unfold its items' %}"></button>{% endif %}{% if entry.group_key and entry.group_key != "none" %}{% result_icon "folder" %} {% endif %}{% if entry.group.1 %}<a href="{{ entry.group.1 }}">{{ entry.group.0 }}</a>{% else %}{{ entry.group.0 }}{% endif %}</h2></li>{% endif %}
-    <li class="result-entry{% if entry.current %} result-entry-current{% endif %}" data-result-entry{% if entry.group_key %} data-group="{{ entry.group_key }}"{% endif %}{% if entry.current %} aria-current="{{ entry.current }}"{% endif %}{% if entry.photos %} data-photos="{{ entry.photos_json }}"{% endif %}>
+    {% slot "result_entry.slides" as slides %}
+    <li class="result-entry{% if entry.current %} result-entry-current{% endif %}" data-result-entry{% if entry.group_key %} data-group="{{ entry.group_key }}"{% endif %}{% if entry.current %} aria-current="{{ entry.current }}"{% endif %}{% if entry.photos or slides.strip %} data-result-viewer{% endif %}{% if entry.photos %} data-photos="{{ entry.photos_json }}"{% endif %}>
         {% if entry.thumbnail %}
             <button type="button" class="result-thumb" data-result-photos aria-expanded="false"
                     aria-label="{% blocktrans with name=entry.title count count=entry.photos|length %}Show the photo of {{ name }}{% plural %}Show the {{ count }} photos of {{ name }}{% endblocktrans %}">
                 {% thumbnail entry.thumbnail "160x160" as im %}<img src="{{ im.url }}" alt="" loading="lazy">{% endthumbnail %}
                 {% if entry.photos|length > 1 %}<span class="result-thumb-count" aria-hidden="true">{{ entry.photos|length }}</span>{% endif %}
+                {{ slides }}
             </button>
+        {% elif slides.strip %}
+            <button type="button" class="result-thumb" data-result-photos aria-expanded="false"
+                    aria-label="{% blocktrans with name=entry.title %}Show the preview of {{ name }}{% endblocktrans %}">{% result_icon entry.icon %}{{ slides }}</button>
         {% else %}
             <span class="result-thumb" aria-hidden="true">{% result_icon entry.icon %}</span>
         {% endif %}
@@ -34,8 +40,6 @@ page, results.js).
             {% endfor %}
             {% if entry.more_places %}<span class="result-meta">{% blocktrans count count=entry.more_places %}and {{ count }} more place{% plural %}and {{ count }} more places{% endblocktrans %}</span>{% endif %}
             {% if row_details %}{% include row_details %}{% endif %}
-            {# Not in a location's own lists: they are all there. #}
-            {% if not here %}{% slot "result_entry.place" %}{% endif %}
             {% if entry.sources %}<span class="result-source">{% trans "Found in" %} {{ entry.sources|join:", " }}</span>{% endif %}
         </div>
         {% if entry.counts or row_aside %}

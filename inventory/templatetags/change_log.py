@@ -9,12 +9,13 @@ from django.db.models import Q
 from django.urls import reverse
 from django.utils.html import format_html
 from django.utils.http import urlencode
+from django.utils import timezone
 from django.utils.text import Truncator
 from django.utils.translation import gettext as _, ngettext
 
 from .. import location_display
 from ..icons import type_icon
-from ..change_log import APP_FIELDS, FORMER_FIELDS, SUMMARY_FIELDS, actor_label
+from ..change_log import APP_FIELDS, FORMER_FIELDS, SUMMARY_FIELDS, actor_label, last_placed, stamp
 from ..label_ids import naming
 from ..models import ChangeLog, Item, Location, UniqueItem, format_amount
 
@@ -168,3 +169,31 @@ def change_log_panel(context, page):
         admin_url = reverse("admin:inventory_changelog_changelist") + "?" + urlencode(admin_filter)
     return {"change_log_entries": [describe(entry, page, user) for entry in entries], "admin_url": admin_url,
             "panel": "location" if isinstance(page, Location) else "item"}
+
+
+@register.filter
+def ago(moment):
+    """How long ago, in its largest whole unit: "3 days ago" (Django's timesince has no case for "vor 3 Tagen")."""
+    minutes = int((timezone.now() - moment).total_seconds() // 60)
+    if minutes < 1:
+        return _("less than a minute ago")
+    if minutes < 60:
+        return ngettext("%(count)d minute ago", "%(count)d minutes ago", minutes) % {"count": minutes}
+    hours = minutes // 60
+    if hours < 24:
+        return ngettext("%(count)d hour ago", "%(count)d hours ago", hours) % {"count": hours}
+    days = hours // 24
+    if days < 30:
+        return ngettext("%(count)d day ago", "%(count)d days ago", days) % {"count": days}
+    if days < 365:
+        months = days // 30
+        return ngettext("%(count)d month ago", "%(count)d months ago", months) % {"count": months}
+    years = days // 365
+    return ngettext("%(count)d year ago", "%(count)d years ago", years) % {"count": years}
+
+
+@register.simple_tag(takes_context=True)
+def placed_stamp(context, obj):
+    """When a location was last moved into the one it is in, or a unique item put where it is, and by whom as in the
+    change log (change_stamp.html); None if the log does not tell."""
+    return stamp(last_placed(obj), context["request"].user)

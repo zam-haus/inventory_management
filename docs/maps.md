@@ -1,7 +1,7 @@
 # Maps
 
 Floor plans of the levels on a background map, with the positions of building parts and storage units on them (the
-`maps` app). The map gives orientation when searching ("On the map" in the results), in the location window (a
+`maps` app). The map gives orientation when searching (the map after a result's photos), in the location window (a
 location's code chip: a small map with it, or the place it is in, highlighted; Leaflet is loaded only then) and on
 the pages of locations and unique items: their grey box shows a small map of where it is (on the left, the other
 fields beside it), with "Show on the map" to the large map. Whoever may place it switches to **Change position** (or
@@ -94,13 +94,19 @@ coordinates.
   them, as storage units and rooms are placed. Their item may give the usual shape and the size of a rectangle (admin:
   the item's page, section *Map (unique items)*); placing starts with them, and each unique item may differ. Unique items that are points have a layer of their own in the layer selection,
   "Unique items (points)", off at first, also in the edit mode: many points hide the rest. One a link names (`?p=item:…`,
-  "On the map", "Show on the map") is shown all the same, and so are the link previews (`preview.shown`). Rectangles and
+  a result's map, "Show on the map") is shown all the same, and so are the link previews (`preview.shown`). Rectangles and
   areas of unique items are always shown. From zoom 22.5 on they are named: the item (and its own name; a long one
   in two lines), the ZAMid below (`#<pk>` without one). Their labels come first; those of the areas around move aside.
   A click on one opens its popup, as for locations, with its ZAMid as the chip.
 - Something without a position of its own is shown by the nearest location above it that has one ("is in HBB.2;
-  its own position is not known"). The map in the grey box and "On the map" appear only where there is something to
-  show; without it, the grey box says "No position yet." to whoever may place it (or is logged in).
+  its own position is not known"). The map in the grey box and a result's map appear only where there is something
+  to show; without it, the grey box says "No position yet." to whoever may place it (or is logged in).
+- Both tell when the position shown was last set, from the change log (`positions.last_set`; nothing for positions
+  set before it began), and by whom for people who see that in the change log ([change log](change-log.md)).
+- **In results**, a row's map comes after its photos, as large as one (`slots/result_slides.html`, drawn by
+  `map_mini.js` once it is in view, configured as the location window's). It moves only by its zoom buttons (and a
+  mouse): swipes and arrow keys go on through the photos and rows. The button in its corner opens the large map
+  showing the same. An item has a map per level, with all its places on that level highlighted together.
 
 ### Edit mode of the map
 
@@ -211,8 +217,9 @@ gaps.
 
 ### Sharing a view
 
-The "On the map" links lead to the level with `?p=loc:<pk>` (or `item:`): the map shows that location, or the
-place it is in, highlighted with its popup open (`map.js` focus). The small maps in the location window and in the grey box
+The links to the map lead to the level with `?p=loc:<pk>` (or `item:`): the map shows that location, or the
+place it is in, highlighted with its popup open (`map.js` focus). Several, separated by commas (a result's map of
+an item's places), are all highlighted and in view, without a popup (`focusAll`); the link preview shows the first. The small maps in the location window and in the grey box
 of a location's or unique item's page highlight it the same way, without a popup (it would cover it there). What lies in the highlighted area (its parts, storage units, unique items) stays above it, to be clicked.
 Highlighted (what a link names, and what is clicked while its popup is open) means a wide white halo around it, only
 outside its outline (clipped to it, so it covers nothing inside), and its own outline twice as thick, in its own colours, so one still sees what kind of thing it is (`map.js` select).
@@ -257,10 +264,11 @@ link of an earlier version pasted into the open page's address applies at once (
   coordinates, sizes or areas: they say nothing to people (`inventory.change_log.SUMMARY_FIELDS`).
 
 The inventory does not know the maps app: it sends `inventory.signals.moved` and renders template slots
-(`inventory/slots.py`, `{% slot %}`) that the app fills (`maps/apps.py`). "On the map" in
-[result rows](search.md#result-rows) (`result_entry.place`) is left out of a location's own lists; before a
-list, `result_entries.start` loads where all its locations are in the tree at once (`map_preload`), so that the
-links need no query per row.
+(`inventory/slots.py`, `{% slot %}`) that the app fills (`maps/apps.py`). The map in
+[result rows](search.md#result-rows) (`result_entry.slides`) is left out of a location's own lists; before a
+list, `result_entries.start` loads where all its locations are in the tree, the locations highlighted instead and
+when the positions were set at once (`map_preload`), so that the rows need no query each, and renders the map
+scripts' settings once.
 
 ## Floor plans
 

@@ -236,3 +236,77 @@ class ChangeLogTests(TestCase):
         with mock.patch.dict(change_log.FORMER_FIELDS, {("location", "summary"): "Zusammenfassung"}):
             self.assertEqual(field_label("location", "summary"), "Zusammenfassung")
         self.assertEqual(field_label("vanished", "name"), "name")
+
+
+@override_settings(**SETTINGS)
+class ChangeStampTests(TestCase):
+    """How old where something is: when it was put there, and by whom for those who see that in the change log."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.unit, _ = MeasurementUnit.objects.get_or_create(pk=1, defaults={"name": "Piece", "short": "pc"})
+        cls.room_type = LocationType.objects.create(name="Room", unique=True)
+        cls.box_type = LocationType.objects.create(name="Box", unique=True, moveable=True, category="container")
+        cls.workshop = Location.objects.create(type=cls.room_type, name="Workshop", short_name="WS")
+        cls.store = Location.objects.create(type=cls.room_type, name="Store", short_name="ST")
+        User = get_user_model()
+        # Invented people only.
+        cls.member = User.objects.create_user(username="alex", first_name="Alex", last_name="Example")
+        grant(cls.member, "change_location", "change_uniqueitem")
+        cls.viewer = User.objects.create_user(username="viewer")
+        grant(cls.viewer, "view_changelog")
+        cls.actor_only = User.objects.create_user(username="actor-only")
+        grant(cls.actor_only, "view_changelog_actor")
+        cls.active = User.objects.create_user(username="active")
+        grant(cls.active, "view_changelog", "view_changelog_actor")
+
+    def test_ago_in_the_largest_whole_unit(self):
+        from datetime import timedelta
+        from django.utils import timezone
+        from ..templatetags.change_log import ago
+        now = timezone.now()
+        for delta, text in [(timedelta(seconds=30), "less than a minute ago"), (timedelta(minutes=1), "1 minute ago"),
+                            (timedelta(minutes=59), "59 minutes ago"), (timedelta(hours=2), "2 hours ago"),
+                            (timedelta(days=1), "1 day ago"), (timedelta(days=29), "29 days ago"),
+                            (timedelta(days=45), "1 month ago"), (timedelta(days=364), "12 months ago"),
+                            (timedelta(days=800), "2 years ago")]:
+            with self.subTest(text=text):
+                self.assertEqual(ago(now - delta), text)
+
+    def test_the_last_move_of_a_unique_item(self):
+        drill = UniqueItem.objects.create(item=Item.objects.create(name="Drill", kind=Item.Kind.SERIALIZED),
+                                          location=self.workshop)
+        created = change_log.last_placed(drill)
+        self.assertEqual(created.action, "created")
+        with acting_as(self.member):
+            drill.location = self.store
+            drill.save()
+            drill.name = "blue"  # a change elsewhere does not count
+            drill.save()
+        moved = change_log.last_placed(drill)
+        self.assertEqual((moved.action, moved.actor), ("moved", self.member))
+        self.assertEqual(change_log.stamp(moved, self.viewer)["actor"], "")
+        self.assertEqual(change_log.stamp(moved, self.actor_only)["actor"], "")  # as the panel: not without the log
+        self.assertEqual(change_log.stamp(moved, self.active)["actor"], "Alex E. (alex)")
+        self.assertIsNone(change_log.stamp(None, self.active))
+        page = self.client.get(drill.get_absolute_url()).content.decode()
+        self.assertIn('<span class="change-stamp"><time datetime=', page)
+        self.assertIn(">last set less than a minute ago</time></span>", page)
+        self.client.force_login(self.active)
+        self.assertIn("last set less than a minute ago</time> by Alex E. (alex)</span>",
+                      self.client.get(drill.get_absolute_url()).content.decode())
+        # Changed before the log began: nothing to tell.
+        ChangeLog.objects.filter(unique_item=drill).delete()
+        self.assertNotIn("change-stamp", self.client.get(drill.get_absolute_url()).content.decode())
+
+    def test_where_a_moveable_location_is_since_when(self):
+        box = Location.objects.create(type=self.box_type, name="Box 1", short_name="B1", parent_location=self.workshop)
+        with acting_as(self.member):
+            box.parent_location = self.store
+            box.save()
+        self.client.force_login(self.active)
+        page = self.client.get(box.get_absolute_url()).content.decode()
+        self.assertIn('class="location-summary-place"', page)
+        self.assertIn("last set less than a minute ago</time> by Alex E. (alex)", page)
+        # What does not move has its place in the breadcrumbs only.
+        self.assertNotIn("location-summary-place", self.client.get(self.store.get_absolute_url()).content.decode())

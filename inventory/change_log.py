@@ -535,3 +535,45 @@ def actor_label(user):
     name = " ".join(part for part in (first, f"{last[0]}." if last else "") if part)
     return f"{name} ({user.get_username()})" if name else user.get_username()
 
+
+# What put a location into the one it is in, or a unique item where it is (last_placed).
+PLACED_ACTIONS = ("created", "moved", "restored", "activated")
+
+
+def latest(subject_type, pks, condition=None, match=None):
+    """The latest entry about each of these locations or unique items (subject_type "location" or "uniqueitem") with
+    `condition` (a Q) and `match` (a test of each entry, for what a query cannot ask on every database, e.g. a field
+    in its changes): {pk: entry}, without those that have none (changed before the log began, docs/change-log.md)."""
+    from .models import ChangeLog
+    pks = {pk for pk in pks if pk is not None}
+    if not pks:
+        return {}
+    # By the indexed link to the page that shows the entry; for its own entries that is the subject.
+    entries = ChangeLog.objects.filter(**{f"{'unique_item' if subject_type == 'uniqueitem' else 'location'}__in": pks},
+                                       subject_type=subject_type, subject_id__in=pks)
+    if condition is not None:
+        entries = entries.filter(condition)
+    found = {}
+    for entry in entries.select_related("actor").order_by("-created_at", "-pk").iterator():
+        if entry.subject_id not in found and (match is None or match(entry)):
+            found[entry.subject_id] = entry
+            if len(found) == len(pks):
+                break
+    return found
+
+
+def last_placed(obj):
+    """The entry of when a location was last moved into the one it is in (or created there), or a unique item put
+    where it is; None if the log does not tell."""
+    return latest(obj._meta.model_name, [obj.pk], models.Q(action__in=PLACED_ACTIONS)).get(obj.pk)
+
+
+def stamp(entry, user):
+    """When an entry was made and, for people who may see that in the change log, by whom: what change_stamp.html
+    shows beside what it set ({"at", "actor"}); None without an entry."""
+    if entry is None:
+        return None
+    named = user.has_perm("inventory.view_changelog") and user.has_perm("inventory.view_changelog_actor")
+    actor = (actor_label(entry.actor) if entry.actor is not None else entry.actor_name) if named else ""
+    return {"at": entry.created_at, "actor": actor}
+

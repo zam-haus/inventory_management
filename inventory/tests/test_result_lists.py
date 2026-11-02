@@ -88,6 +88,7 @@ class ResultListTests(MediaMixin, TestCase):
         ItemImage.objects.create(item=self.glue, image=png("red"), description="Bottle")
         content = self.client.get(self.room.get_absolute_url()).content.decode()
         self.assertIn('data-result-photos aria-expanded="false"', content)
+        self.assertIn(" data-result-viewer data-photos=", content)  # results.js opens rows with something to show
         self.assertIn("&quot;alt&quot;: &quot;Bottle&quot;", content)
         self.assertIn('id="result-viewer"', content)  # base.html, once per page
 

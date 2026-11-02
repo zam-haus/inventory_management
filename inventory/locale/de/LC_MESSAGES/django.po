@@ -5378,3 +5378,57 @@ msgstr "Bisheriges Foto"
 #: templates/inventory/change_log_panel.html
 msgid "New photo"
 msgstr "Neues Foto"
+
+#: templatetags/change_log.py
+msgid "less than a minute ago"
+msgstr "vor weniger als einer Minute"
+
+#: templatetags/change_log.py
+#, python-format
+msgid "%(count)d minute ago"
+msgid_plural "%(count)d minutes ago"
+msgstr[0] "vor %(count)d Minute"
+msgstr[1] "vor %(count)d Minuten"
+
+#: templatetags/change_log.py
+#, python-format
+msgid "%(count)d hour ago"
+msgid_plural "%(count)d hours ago"
+msgstr[0] "vor %(count)d Stunde"
+msgstr[1] "vor %(count)d Stunden"
+
+#: templatetags/change_log.py
+#, python-format
+msgid "%(count)d day ago"
+msgid_plural "%(count)d days ago"
+msgstr[0] "vor %(count)d Tag"
+msgstr[1] "vor %(count)d Tagen"
+
+#: templatetags/change_log.py
+#, python-format
+msgid "%(count)d month ago"
+msgid_plural "%(count)d months ago"
+msgstr[0] "vor %(count)d Monat"
+msgstr[1] "vor %(count)d Monaten"
+
+#: templatetags/change_log.py
+#, python-format
+msgid "%(count)d year ago"
+msgid_plural "%(count)d years ago"
+msgstr[0] "vor %(count)d Jahr"
+msgstr[1] "vor %(count)d Jahren"
+
+#: templates/inventory/change_stamp.html
+#, python-format
+msgid "last set %(ago)s"
+msgstr "zuletzt gesetzt %(ago)s"
+
+#: templates/inventory/change_stamp.html
+#, python-format
+msgid "by %(actor)s"
+msgstr "von %(actor)s"
+
+#: templates/inventory/results/entries.html
+#, python-format
+msgid "Show the preview of %(name)s"
+msgstr "Vorschau von %(name)s zeigen"

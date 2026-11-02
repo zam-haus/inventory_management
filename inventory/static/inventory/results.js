@@ -1,11 +1,13 @@
 // Result rows (results/entries.html, docs/search.md) in every list of them ([data-result-list]): the search results,
 // a category's items, a location's items and sub-locations, an item's places.
-// * A click on a row outside its links, buttons and code chips opens it, unless text was selected there to copy it.
-// * The photo button opens the photos of a row below it. Swipe sideways for its other photos, up or down for those
-//   of the next or previous row with photos in the same list.
+// * A click on a row outside its links, buttons and code chips shows its photos below it as Space does (a second
+//   click closes them), unless text was selected there to copy it; a row with nothing to show opens.
+// * The photo button opens the photos of a row below it, then what optional apps add (its <template
+//   data-result-slides>, results/entries.html: maps adds the map; shown: result-viewer:shown on the viewer). Swipe
+//   sideways for its other photos, up or down for those of the next or previous row with photos in the same list.
 // * The up and down arrow keys move between the rows of a list (down from a search field that controls the list to
-//   its first row, up from the first back to it) and mark the current one. Space switches the large photos on or off
-//   (off at first): while on, those of the current row open below it, left and right go through them; Escape closes
+//   its first row, up from the first back to it) and mark the current one; page down and up a screen further, the
+//   page scrolling along. Space switches the large photos on or off (off at first): while on, those of the current row open below it, left and right go through them; Escape closes
 //   them and switches them off. Enter opens the row. Off the first or the last row of a list the keys go on to the
 //   next list of the page (the item tree takes them first, tree.js: results:leave). Rows folded away are skipped.
 // * The row under the pointer is marked and takes the focus (unless a field has it), so pointer and keys go on from
@@ -23,6 +25,8 @@
     const INTERACTIVE = 'a, button, input, select, textarea, label, [role="button"], .disabled-action, [data-location-info]';
 
     const rows = list => [...list.children].filter(child => child.matches('[data-result-entry]') && !child.hidden);
+    // Whether a row has photos or other slides to show below it.
+    const viewable = entry => entry.hasAttribute('data-result-viewer');
     const listOf = entry => entry.closest('[data-result-list]');
     const linkOf = entry => entry.querySelector('.result-link');
 
@@ -104,7 +108,8 @@
 
         function open(entry) {
             const list = photos(entry);
-            if (!list.length) return;
+            const extra = entry.querySelector('template[data-result-slides]');
+            if (!list.length && !extra) return;
             current?.querySelector('[data-result-photos]')?.setAttribute('aria-expanded', 'false');
             current = entry;
             mark(entry);
@@ -123,10 +128,11 @@
                     figure.append(caption);
                 }
                 return figure;
-            }));
+            }), ...(extra ? extra.content.cloneNode(true).children : []));
             entry.after(element);  // moving it blurs the strip
             strip.scrollLeft = 0;
             count();
+            element.dispatchEvent(new CustomEvent('result-viewer:shown', {bubbles: true, detail: {entry}}));
             entry.scrollIntoView({block: 'start', behavior});
             // The keys work on the photos now (on phones this also puts the keyboard away).
             strip.focus({preventScroll: true});
@@ -153,7 +159,7 @@
                     all = rows(list);
                     if (position >= all.length) return;
                 }
-                if (all[position].dataset.photos && !all[position].hidden) {
+                if (viewable(all[position]) && !all[position].hidden) {
                     open(all[position]);
                     return;
                 }
@@ -193,10 +199,19 @@
             else viewer.open(entry);
             return;
         }
-        // A click on a row outside its links opens its title, unless text was selected there (to copy it).
+        // A click on a row outside its links: its photos as with Space, on for the rows the keys go to next, or off
+        // again; a row with nothing to show opens its title. Not when text was selected there (to copy it).
         const entry = event.target.closest('[data-result-entry]');
         if (!entry || event.target.closest(INTERACTIVE) || String(window.getSelection())) return;
-        linkOf(entry).click();
+        if (viewer.current === entry) {
+            previews = false;
+            viewer.close();
+        } else if (viewable(entry)) {
+            previews = true;
+            viewer.open(entry);
+        } else {
+            linkOf(entry).click();
+        }
     });
 
 
@@ -209,7 +224,7 @@
 
     function go(entry) {
         mark(entry);
-        if (previews && entry.dataset.photos) {
+        if (previews && viewable(entry)) {
             viewer.open(entry);
         } else {
             viewer.close();
@@ -230,6 +245,56 @@
         if (next) go(direction > 0 ? rows(next)[0] : rows(next).at(-1));
     }
 
+    // The next row (1) or the one before (-1), loading more rows at the end; off the first one back to the search
+    // field, off the first or last one on to the list before or after it.
+    async function next(entry, direction) {
+        const list = listOf(entry);
+        const position = rows(list).indexOf(entry) + direction;
+        if (position < 0) {
+            const field = fieldOf(list);
+            if (!field) {
+                leave(entry, -1);
+                return;
+            }
+            viewer.close();
+            mark(null);
+            field.focus();
+            return;
+        }
+        if (position >= rows(list).length && !await loadMore(list)) {
+            leave(entry, 1);
+            return;
+        }
+        const row = rows(list)[position];
+        if (row) go(row);
+    }
+
+    // Page down (1) or up (-1): the row about a screen below or above (below the sticky bars), loading more rows at
+    // the end. The page scrolls by as much, so the marked row stays where it was on the screen. From the first or
+    // last row on as the arrow keys.
+    async function page(entry, direction) {
+        const list = listOf(entry);
+        const top = entry.getBoundingClientRect().top;
+        const height = window.innerHeight - (parseFloat(getComputedStyle(entry).scrollMarginTop) || 0);
+        let all = rows(list);
+        let row = null;
+        for (let position = all.indexOf(entry) + direction; position >= 0; position += direction) {
+            if (position >= all.length) {
+                if (!await loadMore(list)) break;
+                all = rows(list);
+                if (position >= all.length) break;
+            }
+            row = all[position];
+            if ((row.getBoundingClientRect().top - top) * direction >= height) break;
+        }
+        if (!row) {
+            await next(entry, direction);
+            return;
+        }
+        window.scrollBy({top: row.getBoundingClientRect().top - top, behavior: 'instant'});
+        go(row);
+    }
+
     document.addEventListener('keydown', async event => {
         if (event.defaultPrevented || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
         const target = event.target;
@@ -243,28 +308,14 @@
         }
         const entry = viewer.current || target.closest?.('[data-result-entry]');
         if (!entry) return;
-        const inViewer = Boolean(target.closest?.('.result-viewer-strip'));
+        // On the slides themselves, not on a link or button in one (e.g. the map's).
+        const inViewer = Boolean(target.closest?.('.result-viewer-strip')) && !target.closest(INTERACTIVE);
         if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
             event.preventDefault();
-            const list = listOf(entry);
-            const position = rows(list).indexOf(entry) + (event.key === 'ArrowDown' ? 1 : -1);
-            if (position < 0) {
-                const field = fieldOf(list);
-                if (!field) {
-                    leave(entry, -1);
-                    return;
-                }
-                viewer.close();
-                mark(null);
-                field.focus();
-                return;
-            }
-            if (position >= rows(list).length && !await loadMore(list)) {
-                leave(entry, 1);
-                return;
-            }
-            const row = rows(list)[position];
-            if (row) go(row);
+            await next(entry, event.key === 'ArrowDown' ? 1 : -1);
+        } else if (event.key === 'PageDown' || event.key === 'PageUp') {
+            event.preventDefault();
+            await page(entry, event.key === 'PageDown' ? 1 : -1);
         } else if (viewer.current && (event.key === 'ArrowLeft' || event.key === 'ArrowRight')) {
             event.preventDefault();
             viewer.step(event.key === 'ArrowRight' ? 1 : -1);
@@ -273,7 +324,7 @@
             // code chips in it handle their own keys).
             event.preventDefault();
             previews = !previews;
-            if (previews && entry.dataset.photos) {
+            if (previews && viewable(entry)) {
                 viewer.open(entry);
             } else if (!previews) {
                 viewer.close();
