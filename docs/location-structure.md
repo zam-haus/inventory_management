@@ -59,15 +59,31 @@ are in [Standortregeln](standortregeln.md) (German).
   `add_location`, on levels, rooms and areas and on pallets in them, `Location.numbering_types()`;
   ranges are always reserved for the numbering area, never for the pallet): the location page shows
   a button named after
-  the area-numbered types (“Regal / Schrank”). The page first asks which type, then the number:
+  the area-numbered types (“Regal / Schrank / Tisch”; the type *Tisch*, code `Ti` + number with compartments, comes
+  from migration `inventory.0056`). **Add storage furniture** is one page: first the type (radio buttons with its
+  icon, from the types that can be added here, the first one chosen); what depends on it follows and changes with it
+  without losing purpose and description (`numbered_location_fields.html`, `?partial=1`, `numbered_location.js`;
+  without JavaScript a *Continue* button): how they are numbered here, the type's **drawing** and **text** (set per
+  type in the admin: `LocationType.numbering_drawing`, *shelf* for shelves and cabinets, side by side and compartments
+  from the bottom up with the top as the last one, or *table*, a floor plan of tables along a wall with a chair
+  pushed in at each, counted from the left, and a table from the front as its icon, lettered from the bottom up:
+  below it, the drawers, its top, above it if there is something; `numbering_info` in Markdown, e.g. what to keep in mind here; `numbered_location_order.html`,
+  `numbering/`), then the number:
   a free *reserved* number of the range that applies (`Location.free_numbers(type)`, the next one
   first); a *wished-for* number that no range of the type covers and no code uses
-  (`LocationNumberRange.unavailable`), optionally reserving the following ones for this area; or a
-  *new* number, which reserves as many as are to be expected (`LocationNumberRange.reserve`:
-  behind a used-up range if free, else `suggest`). Name and code come from the type's automatic
-  naming (`Regal 301`, `R301`). A drawing on the page shows the order: neighbours left to right,
-  compartments from the bottom up, the top of the shelf or cabinet as the last one (if things are put
-  on it; the count fields say so too). Only the fields of the chosen way count
+  (`LocationNumberRange.unavailable`); or a *new* number (`LocationNumberRange.reserve`: behind a used-up range if
+  free, else `suggest`). **How many, from this number on?** (1 at first) creates that many at once, each with the
+  next free number: a reserved number the next free reserved ones, beyond the reservation the numbers right after
+  its range, which then grows by them, if no location uses them and no range covers them (else the form says so); a
+  wished-for or new number that many consecutive numbers, recorded as a range for the area, so the next one goes
+  behind it. With **Only reserve the following numbers** (wished-for or new number) only the first one is created
+  and the others are reserved for the area, for later (up to 200). Several at once each get as many compartments
+  and the same description, but no purpose (the field hides; purposes differ, they are set on the pages later), at
+  most 50 (`MAX_ALL`); then the location's page opens with the label print dialog for all of them and their
+  compartments, without asking for the compartments'
+  purposes. Name and code come from the type's automatic
+  naming (`Regal 301`, `R301`). The count field of compartments says that the top of a shelf or cabinet counts as
+  one too (for tables: below it the first, its top and above it the last ones). Only the fields of the chosen way count
   (`NumberedLocationForm.FIELDS_FOR`; `numbered_location.js` hides and disables the others), and
   the wish field shows the type's prefix in front.
 * **Reserved containers** (preprinted labels): in the admin, **Reserve containers** on the location

@@ -21,11 +21,11 @@ def add_icon(name):
 
 @register.simple_tag
 def type_icon(name):
-    """{% type_icon "boxes" %}: the icon of a location's type or an item's kind before its name (icons.TYPE_ICONS)."""
+    """{% type_icon "boxes" %}: the icon of a location's type or an item's kind before its name (icons.type_icon_names)."""
     return icons.type_icon(name)
 
 
 @register.simple_tag
-def type_icon_sprite():
-    """Once on every page (base.html): the icons type_icon refers to."""
-    return icons.type_icon_sprite()
+def type_icon_sprite(database=True):
+    """Once on every page (base.html): the icons type_icon refers to; database=False on pages that must not need it."""
+    return icons.type_icon_sprite(database)

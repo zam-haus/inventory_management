@@ -48,7 +48,8 @@ class StorageUnitsOnPalletsTests(TestCase):
 
     def test_a_pallet_in_a_room_offers_shelves_with_the_rooms_numbers(self):
         self.assertEqual(self.pallet.numbering_area(), self.hall)
-        self.assertEqual([kind for kind, _source in self.pallet.numbering_types()], [self.shelf_type])
+        # Tables too (migration 0056 adds the type to every database).
+        self.assertEqual([kind.name for kind, _source in self.pallet.numbering_types()], [self.shelf_type.name, "Tisch"])
         self.assertContains(self.client.get(self.pallet.get_absolute_url()), self.create_url(self.pallet))
         self.client.post(self.create_url(self.pallet), {"type": self.shelf_type.pk, "mode": "reserved",
                                                         "reserved": "301", "sublocations": 2})
@@ -58,10 +59,11 @@ class StorageUnitsOnPalletsTests(TestCase):
 
     def test_numbers_are_reserved_for_the_room_not_the_pallet(self):
         LocationNumberRange.objects.all().delete()
-        self.client.post(self.create_url(self.pallet), {"type": self.shelf_type.pk, "mode": "auto", "expected": 5})
+        self.client.post(self.create_url(self.pallet), {"type": self.shelf_type.pk, "mode": "auto", "count": 5,
+                                                        "reserve_only": "on"})
         self.assertEqual(list(LocationNumberRange.objects.values_list("location", flat=True)), [self.hall.pk])
         self.client.post(self.create_url(self.pallet), {"type": self.shelf_type.pk, "mode": "wish", "wish": 700,
-                                                        "expected": 3})
+                                                        "count": 3, "reserve_only": "on"})
         self.assertEqual(LocationNumberRange.objects.get(first=700).location, self.hall)
         self.assertEqual(Location.objects.get(short_name="R700").parent_location, self.pallet)
 

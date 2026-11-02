@@ -150,7 +150,8 @@ class NumberRangeTests(TestCase):
         from ..models import LocationNumberRange
         room = LocationType.objects.create(name="Raum", unique=True, structure="room", admin_only=True)
         part = LocationType.objects.create(name="Teilbereich", structure="area")
-        naming = {"unique": True, "area_numbering": True, "auto_short_name_padding_length": 3, "auto_sequence": "0123456789"}
+        naming = {"unique": True, "area_numbering": True, "auto_short_name_padding_length": 3, "auto_sequence": "0123456789",
+                  "numbering_drawing": "shelf", "category": "storage_unit"}
         cls.shelf = LocationType.objects.create(name="Regal", auto_name_prefix="Regal", auto_short_name_prefix="R", **naming)
         cls.cabinet = LocationType.objects.create(name="Schrank", auto_name_prefix="Schrank", auto_short_name_prefix="S", **naming)
         cls.hall = Location.objects.create(type=room, name="Halle", short_name="HAL")
@@ -167,7 +168,8 @@ class NumberRangeTests(TestCase):
         self.assertEqual([short for _n, _name, short in self.stage.free_numbers(self.cabinet)], ["S300", "S301"])
         # A range applies to everything below, also to rooms with their own code.
         self.assertEqual([short for _n, _name, short in self.wc.free_numbers(self.shelf)], ["R301", "R302", "R303"])
-        self.assertEqual([kind.name for kind, _source in self.stage.numbering_types()], ["Regal", "Schrank"])
+        # Tables too (migration 0056 adds the type to every database).
+        self.assertEqual([kind.name for kind, _source in self.stage.numbering_types()], ["Regal", "Schrank", "Tisch"])
 
     def test_a_part_can_reserve_numbers_that_its_neighbours_do_not_get(self):
         from ..models import LocationNumberRange
@@ -210,11 +212,24 @@ class NumberRangeTests(TestCase):
         url = reverse("numbered_location_create", args=[location.pk])
         return url + (f"?type={kind.pk}" if kind else "")
 
-    def test_first_step_asks_what_is_added(self):
+    def test_one_page_the_type_first(self):
         self.client.force_login(self.member)
         page = self.client.get(self.page(self.stage)).content.decode()
-        self.assertIn(f"?type={self.shelf.pk}", page)
-        self.assertIn(f"?type={self.cabinet.pk}", page)
+        # Every type that can be added here, with its icon; the first one chosen, its fields and drawing below.
+        self.assertIn(f'name="type" id="numbering-type-{self.shelf.pk}" value="{self.shelf.pk}" checked', page)
+        self.assertIn(f'name="type" id="numbering-type-{self.cabinet.pk}" value="{self.cabinet.pk}" data-numbering-type', page)
+        self.assertIn('class="bi bi-bookshelf', page)
+        self.assertIn(f'data-numbering-kind="{self.shelf.pk}"', page)
+        self.assertIn(">R301</text>", page)  # the drawing "shelf": side by side
+        # Another type: only what depends on it, with the submit button's text.
+        part = self.client.get(self.page(self.stage), {"type": self.cabinet.pk, "partial": "1"}).content.decode()
+        self.assertTrue(part.lstrip().startswith(f'<div class="numbering-kind" data-numbering-kind="{self.cabinet.pk}">'))
+        self.assertIn("Schrank anlegen", part)
+        self.assertNotIn('name="purpose"', part)
+        # Its text, as Markdown.
+        self.cabinet.numbering_info = "Schränke **von links** zählen."
+        self.cabinet.save()
+        self.assertIn("<strong>von links</strong>", self.client.get(self.page(self.stage, self.cabinet)).content.decode())
         detail = self.client.get(self.stage.get_absolute_url()).content.decode()
         self.assertIn(self.page(self.stage), detail)
         self.assertIn("Regal / Schrank", detail)
@@ -239,12 +254,15 @@ class NumberRangeTests(TestCase):
         from ..models import LocationNumberRange
         self.client.force_login(self.member)
         store = Location.objects.create(type=self.hall.type, name="Lager", short_name="LAG1")
-        taken = self.client.post(self.page(store), {"type": self.shelf.pk, "mode": "wish", "wish": 302, "expected": 1})
+        taken = self.client.post(self.page(store), {"type": self.shelf.pk, "mode": "wish", "wish": 302, "count": 1})
         self.assertContains(taken, "302", status_code=200)  # reserved for the hall
-        short = self.client.post(self.page(store), {"type": self.shelf.pk, "mode": "wish", "wish": 298, "expected": 5})
+        short = self.client.post(self.page(store), {"type": self.shelf.pk, "mode": "wish", "wish": 298, "count": 5,
+                                                       "reserve_only": "on"})
         self.assertContains(short, "298", status_code=200)  # only 298 and 299 are free before 300
-        self.client.post(self.page(store), {"type": self.shelf.pk, "mode": "wish", "wish": 500, "expected": 4})
+        self.client.post(self.page(store), {"type": self.shelf.pk, "mode": "wish", "wish": 500, "count": 4,
+                                            "reserve_only": "on"})
         self.assertEqual(Location.objects.get(short_name="R500").parent_location, store)
+        self.assertFalse(Location.objects.filter(short_name="R501").exists())
         number_range = LocationNumberRange.objects.get(location=store)
         self.assertEqual((number_range.type, number_range.first, number_range.last), (self.shelf, 500, 503))
 
@@ -258,7 +276,8 @@ class NumberRangeTests(TestCase):
         page = self.client.get(self.page(store, self.shelf)).content.decode()
         self.assertNotIn('name="reserved"', page)
         self.assertIn('name="sublocations"', page)
-        self.client.post(self.page(store), {"type": self.shelf.pk, "mode": "auto", "expected": 5, "sublocations": 3})
+        self.client.post(self.page(store), {"type": self.shelf.pk, "mode": "auto", "count": 5, "reserve_only": "on",
+                                            "sublocations": 3})
         number_range = LocationNumberRange.objects.get(location=store)
         self.assertEqual(number_range.last - number_range.first + 1, 5)
         first = Location.objects.get(parent_location=store)
@@ -267,12 +286,76 @@ class NumberRangeTests(TestCase):
         self.assertEqual(list(first.children.order_by("short_name").values_list("name", "short_name")),
                          [(f"{first.name} Fach {code}", code) for code in "abc"])
 
+    def test_all_of_them_at_once_instead_of_reserving(self):
+        compartment = LocationType.objects.create(name="Fach/Schub", auto_name_prefix="Fach", auto_sequence="abcdefghijklmnopqrstuvwxyz")
+        self.shelf.sublocation_type = compartment
+        self.shelf.save()
+        self.client.force_login(self.member)
+        store = Location.objects.create(type=self.hall.type, name="Lager", short_name="LAG1")
+        page = self.client.get(self.page(store, self.shelf))
+        self.assertContains(page, 'name="count"')
+        self.assertContains(page, 'name="reserve_only"')
+        # A wished-for number: the whole row (unless only the following numbers are reserved), each shelf with as many compartments, the same description, no purpose.
+        response = self.client.post(self.page(store), {"type": self.shelf.pk, "mode": "wish", "wish": 500, "count": 4,
+                                                       "sublocations": 2, "description": "grau",
+                                                       "purpose": "Farben"})
+        self.assertTrue(response.url.startswith(store.get_absolute_url()))  # not the compartments' purposes
+        shelves = Location.objects.filter(parent_location=store).order_by("short_name")
+        self.assertEqual([(shelf.short_name, shelf.description, shelf.purpose) for shelf in shelves],
+                         [(f"R{number}", "grau", "") for number in range(500, 504)])
+        self.assertEqual([shelf.children.count() for shelf in shelves], [2, 2, 2, 2])
+        # A reserved number: as many as asked for, from it on, the next free reserved ones (not "create all").
+        from ..models import LocationNumberRange
+        hall_range = LocationNumberRange.objects.get(location=self.hall, type=self.shelf)
+        self.assertEqual((hall_range.first, hall_range.last), (300, 303))
+        # More than the reservation holds: the numbers right behind it, if they are free; not while a range covers them.
+        blocking = LocationNumberRange.objects.create(location=store, type=self.shelf, first=305, last=310)
+        short = self.client.post(self.page(self.stage), {"type": self.shelf.pk, "mode": "reserved", "reserved": "302",
+                                                         "count": 5})
+        self.assertContains(short, "Ab 302 sind nur 2 reservierte Nummern frei, und die Nummern direkt nach der "
+                                   "Reservierung 300–303 sind belegt oder reserviert.")
+        blocking.delete()
+        response = self.client.post(self.page(self.stage), {"type": self.shelf.pk, "mode": "reserved", "reserved": "301",
+                                                            "count": 5, "reserve_only": "on", "purpose": "Farben"},
+                                    follow=True)
+        self.assertContains(response, "Die Reservierung von Halle umfasst jetzt 300–305.")
+        stage_shelves = lambda: list(Location.objects.filter(parent_location=self.stage, type=self.shelf)
+                                     .order_by("short_name").values_list("short_name", "purpose"))
+        self.assertEqual(stage_shelves(), [(f"R{number}", "") for number in range(301, 306)])
+        hall_range.refresh_from_db()
+        self.assertEqual(hall_range.last, 305)
+        # A new number behind the used-up range: only the new, free numbers, from the one it gives on.
+        self.client.post(self.page(self.stage), {"type": self.shelf.pk, "mode": "auto", "count": 3})
+        self.assertEqual([code for code, _purpose in stage_shelves()], [f"R{number}" for number in range(301, 309)])
+        # One alone keeps its purpose.
+        self.client.post(self.page(store), {"type": self.shelf.pk, "mode": "wish", "wish": 600, "count": 1,
+                                            "purpose": "Farben"})
+        self.assertEqual(Location.objects.get(short_name="R600").purpose, "Farben")
+        # At most MAX_ALL created at once; only reserving, more.
+        too_many = self.client.post(self.page(store), {"type": self.shelf.pk, "mode": "auto", "count": 60})
+        self.assertContains(too_many, "Höchstens 50 können auf einmal angelegt werden.")
+        before = Location.objects.filter(parent_location=store).count()
+        self.client.post(self.page(store), {"type": self.shelf.pk, "mode": "auto", "count": 60, "reserve_only": "on"})
+        self.assertEqual(Location.objects.filter(parent_location=store).count(), before + 1)
+
+    def test_tables_are_numbered_like_shelves(self):
+        # The type of migration 0056: Ti + number from the area's range, created like shelves.
+        table = LocationType.objects.get(name="Tisch")
+        self.client.force_login(self.member)
+        page = self.client.get(self.page(self.stage, table)).content.decode()
+        self.assertIn(f'value="{table.pk}" checked', page)
+        self.assertIn('class="bi bi-furniture-table', page)
+        self.client.post(self.page(self.stage), {"type": table.pk, "mode": "wish", "wish": 401, "count": 2})
+        tables = Location.objects.filter(type=table).order_by("short_name")
+        self.assertEqual([(entry.name, entry.short_name, entry.parent_location) for entry in tables],
+                         [("Tisch 401", "Ti401", self.stage), ("Tisch 402", "Ti402", self.stage)])
+
     def test_a_used_up_range_grows_right_behind_it(self):
         from ..models import LocationNumberRange
         self.client.force_login(self.member)
         for number in (301, 302, 303):
             Location.objects.create(type=self.shelf, name=f"Regal {number}", short_name=f"R{number}", parent_location=self.hall)
-        self.client.post(self.page(self.stage), {"type": self.shelf.pk, "mode": "auto", "expected": 3})
+        self.client.post(self.page(self.stage), {"type": self.shelf.pk, "mode": "auto", "count": 3, "reserve_only": "on"})
         hall_range = LocationNumberRange.objects.get(location=self.hall, type=self.shelf)
         self.assertEqual((hall_range.first, hall_range.last), (300, 306))
         self.assertEqual(Location.objects.get(short_name="R304").parent_location, self.stage)
@@ -303,7 +386,7 @@ class NumberRangeTests(TestCase):
         self.assertIn('<span class="input-group-text">R</span><input type="number" name="wish"', page)
         self.assertIn("numbered_location.js", page)
         response = self.client.post(self.page(self.stage), {"type": self.shelf.pk, "mode": "reserved", "reserved": "301",
-                                                              "wish": "abc", "expected": 0})
+                                                              "wish": "abc", "reserve_only": "on"})
         self.assertEqual(response.status_code, 302)
         self.assertTrue(Location.objects.filter(short_name="R301").exists())
 

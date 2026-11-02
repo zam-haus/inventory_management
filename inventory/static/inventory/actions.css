@@ -42,7 +42,8 @@
 /* An "add" button ({% add_icon %}): the icon of what it adds with a plus badge at the top right. The plus is cut out
    of the badge, and the icon around the badge, so both stand out on any button, outline or menu. --add-badge: its
    size; its middle lies .05em right of the icon and .1em below its top. (svg.: before rules that size every icon of a button.) */
-.action-add-icon { --add-badge: .55em; position: relative; display: inline-flex; margin-right: .25em; }
+/* Its margin makes room for the badge sticking out on the right, so that the text after it keeps its distance. */
+.action-add-icon { --add-badge: .55em; position: relative; display: inline-flex; margin-right: calc(.05em + var(--add-badge) / 2); }
 .action-add-icon > svg.action-add-kind {
     --add-cut: radial-gradient(circle at calc(100% + .05em) .1em, transparent calc(var(--add-badge) / 2 + .08em),
                                #000 calc(var(--add-badge) / 2 + .08em + .5px));

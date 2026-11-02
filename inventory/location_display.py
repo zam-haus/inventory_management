@@ -1,5 +1,6 @@
 """
-How locations are shown (docs/locations.md): the icon of its type first, then what people call it, its purpose, else
+How locations are shown (docs/locations.md): the icon of its type first (set per type in the admin, else that of its
+category), then what people call it, its purpose, else
 its name (the name small next to a purpose); its code after it, always alike: white monospace on muted grey (class
 loc-code, inventory/locations.css). A path names each location above it so, too. Items and unique items have the
 icon of their kind before their names (docs/icons.md). Template tags: {% load locations %}{% location_label location %},
@@ -16,8 +17,9 @@ CATEGORY_ICONS = {"storage_unit": "bookshelf", "container": "eurobox-open"}
 
 
 def icon_name(location):
-    """The icon of a location (inventory/icons.py), from its type's category; needs location.type."""
-    return category_icon_name(location.type.category)
+    """The icon of a location (inventory/icons.py): its type's (LocationType.icon), else its category's; needs
+    location.type. Counts of sub-locations by kind go by category_icon_name."""
+    return location.type.icon_name
 
 
 def category_icon_name(category):

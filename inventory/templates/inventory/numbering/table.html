@@ -1,0 +1,71 @@
+{% load i18n %}{# The drawing "table" (LocationType.numbering_drawing, numbered_location_order.html): a floor plan of tables along a wall, each with a chair pushed in, counted from left to right; a table from the front (as its icon furniture-table), its compartments from the bottom up: below it, the drawers, its top, above it (if there is something). With parts_only just the compartments of table `code`. #}
+{% with prefix=kind.auto_short_name_prefix sub=kind.sublocation_type %}{% firstof code prefix|add:"301" as table %}
+<figure class="numbering-order{% if parts_only %} numbering-order-parts{% endif %}">
+    <svg viewBox="{% if parts_only %}385 0 195 240{% else %}0 0 580 240{% endif %}" role="img" aria-labelledby="numbering-order-caption" style="max-width:100%;height:auto">
+        <defs>
+            <marker id="numbering-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+                <path d="M0 0 L10 5 L0 10 z" fill="currentColor"/>
+            </marker>
+        </defs>
+        {% if not parts_only %}
+        {# From above: the wall at the top, the tables along it, a chair pushed in at each one's long side. #}
+        <line x1="10" y1="44" x2="375" y2="44" stroke="currentColor" stroke-width="4"/>
+        <g fill="none" stroke="currentColor" stroke-width="1.5">
+            <g><rect x="40" y="88" width="32" height="34" rx="5"/><line x1="42" y1="120" x2="70" y2="120" stroke-width="3"/></g>
+            <g><rect x="130" y="88" width="32" height="34" rx="5"/><line x1="132" y1="120" x2="160" y2="120" stroke-width="3"/></g>
+            <g><rect x="220" y="88" width="32" height="34" rx="5"/><line x1="222" y1="120" x2="250" y2="120" stroke-width="3"/></g>
+            <g stroke-dasharray="4 3"><rect x="310" y="88" width="32" height="34" rx="5"/><line x1="312" y1="120" x2="340" y2="120" stroke-width="3"/></g>
+            <rect x="20" y="48" width="72" height="54" fill="var(--bs-body-bg, #fff)"/>
+            <rect x="110" y="48" width="72" height="54" fill="var(--bs-body-bg, #fff)"/>
+            <rect x="200" y="48" width="72" height="54" fill="var(--bs-body-bg, #fff)"/>
+            <rect x="290" y="48" width="72" height="54" fill="var(--bs-body-bg, #fff)" stroke-dasharray="5 4"/>
+            <line x1="20" y1="185" x2="362" y2="185" marker-end="url(#numbering-arrow)"/>
+        </g>
+        <g fill="currentColor" font-size="14" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-weight="600">
+            <text x="56" y="80">{{ prefix }}301</text>
+            <text x="146" y="80">{{ prefix }}302</text>
+            <text x="236" y="80">{{ prefix }}303</text>
+            <text x="326" y="80">{{ prefix }}304</text>
+        </g>
+        <g fill="currentColor" font-size="12" text-anchor="middle" font-family="system-ui, sans-serif">
+            <text x="326" y="142">{% trans "new" %}</text>
+            <text x="365" y="36" text-anchor="end">{% trans "wall" %}</text>
+            <text x="191" y="205">{% trans "left lower, right higher" %}</text>
+            <text x="191" y="18" font-weight="600">{% trans "Side by side, from above" %}</text>
+        </g>
+        {% endif %}
+        {% if sub %}
+        {# From the front, as the icon: the top, a leg on the left, the drawers on the right. #}
+        <g fill="none" stroke="currentColor" stroke-width="1.5">
+            <line x1="392" y1="200" x2="560" y2="200"/>
+            <rect x="395" y="112" width="160" height="10"/>
+            <line x1="402" y1="122" x2="402" y2="200"/>
+            <rect x="482" y="122" width="68" height="78"/>
+            <line x1="482" y1="161" x2="550" y2="161"/>
+            <rect x="402" y="42" width="146" height="36" stroke-dasharray="5 4"/>
+            <line x1="570" y1="195" x2="570" y2="45" marker-end="url(#numbering-arrow)"/>
+        </g>
+        <g fill="currentColor" font-size="12" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-weight="600">
+            <text x="442" y="190">{{ table }}.a</text>
+            <text x="516" y="185">{{ table }}.b</text>
+            <text x="516" y="146">{{ table }}.c</text>
+            <text x="475" y="104">{{ table }}.d</text>
+            <text x="475" y="64">{{ table }}.e</text>
+        </g>
+        <g fill="currentColor" font-size="11" text-anchor="middle" font-family="system-ui, sans-serif">
+            <text x="442" y="174">{% trans "below" %}</text>
+            <text x="475" y="90">{% trans "on the top" %}</text>
+            <text x="475" y="38">{% trans "above (if there is something)" %}</text>
+        </g>
+        <g fill="currentColor" font-size="12" text-anchor="middle" font-family="system-ui, sans-serif">
+            <text x="475" y="18" font-weight="600">{{ sub.name }}</text>
+            <text x="475" y="226">{% trans "from the bottom up" %}</text>
+        </g>
+        {% endif %}
+    </svg>
+    <figcaption id="numbering-order-caption" class="{% if parts_only %}visually-hidden{% else %}location-muted{% endif %}">
+        {% if not parts_only %}{% trans "Tables along a wall get consecutive numbers, the lower one on the left seen from where one sits; a new one is added at the end of the row." %}{% endif %}
+        {% if sub %}{% blocktrans with sub=sub.name %}{{ sub }}: lettered from the bottom up: a below the table, then its drawers, then its top and, if there is something above it, that last.{% endblocktrans %}{% endif %}
+    </figcaption>
+</figure>
+{% endwith %}

@@ -5451,3 +5451,138 @@ msgstr "Alle Unterorte einschließen"
 #: inventory/templates/inventory/location_detail.html
 msgid "with sub-locations"
 msgstr "mit Unterorten"
+
+#: inventory/numbered_location_views.py
+#, python-format
+msgid "each with as many %(sub)s and the description below, without a purpose"
+msgstr "jeweils mit derselben Anzahl %(sub)s und der Beschreibung wie unten, ohne Zweck"
+
+#: inventory/numbered_location_views.py
+msgid "each with the description below, without a purpose"
+msgstr "jeweils mit der Beschreibung wie unten, ohne Zweck"
+
+#: inventory/numbered_location_views.py
+msgid "How many, from this number on?"
+msgstr "Wie viele, ab dieser Nummer?"
+
+#: inventory/numbered_location_views.py
+#, python-format
+msgid "Only %(count)s reserved numbers from %(number)s on are free, and the numbers right after the reservation %(range)s are used or reserved."
+msgstr "Ab %(number)s sind nur %(count)s reservierte Nummern frei, und die Nummern direkt nach der Reservierung %(range)s sind belegt oder reserviert."
+
+#: inventory/numbered_location_views.py
+#, python-format
+msgid "The reservation of %(place)s now covers %(range)s."
+msgstr "Die Reservierung von %(place)s umfasst jetzt %(range)s."
+
+#: inventory/numbered_location_views.py
+#, python-format
+msgid "At most %(max)s can be created at once."
+msgstr "Höchstens %(max)s können auf einmal angelegt werden."
+
+#: inventory/numbered_location_views.py
+#, python-format
+msgid "%(count)s × %(type)s created: %(first)s to %(last)s."
+msgstr "%(count)s × %(type)s angelegt: %(first)s bis %(last)s."
+
+#: inventory/numbered_location_views.py
+#, python-format
+msgid "Each with %(count)s %(type)s."
+msgstr "Jeweils mit %(count)s × %(type)s."
+
+#: inventory/numbered_location_views.py
+msgid "Only reserve the following numbers"
+msgstr "Folgenummern nur reservieren"
+
+#: inventory/numbered_location_views.py
+#, python-format
+msgid "More than 1: this one and the following free numbers, %(alike)s; at most %(max)s at once."
+msgstr "Mehr als 1: diese und die folgenden freien Nummern, %(alike)s; höchstens %(max)s auf einmal."
+
+#: inventory/numbered_location_views.py
+#, python-format
+msgid "For a wished-for or new number: only this one is created, the following numbers up to the count are reserved for this area, for later (at most %(max)s)."
+msgstr "Bei Wunsch- oder neuer Nummer: Nur diese wird angelegt, die folgenden Nummern bis zur Anzahl werden für diesen Bereich reserviert, für später (höchstens %(max)s)."
+
+#: inventory/templates/inventory/numbered_location_create.html
+msgid "Add storage furniture"
+msgstr "Lagermöbel anlegen"
+
+#: inventory/templates/inventory/numbered_location_create.html
+msgid "Continue"
+msgstr "Weiter"
+
+#: inventory/models/location.py
+msgid "icon"
+msgstr "Symbol"
+
+#: inventory/models/location.py
+msgid "Shown before the names of its locations and on its add buttons (with a plus). Empty: the icon of its category. One of the icons in the inventory; another one is added by copying its SVG from icons.getbootstrap.com (docs/icons.md)."
+msgstr "Steht vor den Namen seiner Standorte und auf den Anlegen-Knöpfen (mit Plus). Leer: das Symbol seiner Kategorie. Eines der Symbole im Inventar; ein weiteres kommt hinzu, indem sein SVG von icons.getbootstrap.com kopiert wird (docs/icons.md)."
+
+#: inventory/models/location.py
+msgid "Shelves side by side, compartments from the bottom up"
+msgstr "Regale nebeneinander, Fächer von unten nach oben"
+
+#: inventory/models/location.py
+msgid "Tables along a wall from above; from the bottom up: below, drawers, top, above"
+msgstr "Tische an einer Wand von oben; von unten nach oben: darunter, Schübe, Platte, darüber"
+
+#: inventory/models/location.py
+msgid "drawing when adding"
+msgstr "Zeichnung beim Anlegen"
+
+#: inventory/models/location.py
+msgid "Shown when locations of this type are added on the inventory pages: how they are numbered."
+msgstr "Wird beim Anlegen von Standorten dieses Typs auf den Inventarseiten gezeigt: wie sie nummeriert werden."
+
+#: inventory/models/location.py
+msgid "text when adding"
+msgstr "Text beim Anlegen"
+
+#: inventory/models/location.py
+msgid "Shown with it (Markdown), e.g. what to keep in mind when numbering them here."
+msgstr "Wird dazu gezeigt (Markdown), z. B. worauf beim Nummerieren hier zu achten ist."
+
+#: inventory/models/location.py
+#, python-format
+msgid "There is no icon %(name)s in the inventory."
+msgstr "Das Symbol %(name)s gibt es im Inventar nicht."
+
+#: inventory/admin.py
+msgid "– the icon of its category –"
+msgstr "– das Symbol seiner Kategorie –"
+
+#: inventory/templates/inventory/numbering/table.html
+msgid "wall"
+msgstr "Wand"
+
+#: inventory/templates/inventory/numbering/table.html
+msgid "Side by side, from above"
+msgstr "Nebeneinander, von oben"
+
+#: inventory/templates/inventory/numbering/table.html
+msgid "below"
+msgstr "darunter"
+
+#: inventory/templates/inventory/numbering/table.html
+msgid "on the top"
+msgstr "auf der Platte"
+
+#: inventory/templates/inventory/numbering/table.html
+msgid "above (if there is something)"
+msgstr "darüber (falls vorhanden)"
+
+#: inventory/templates/inventory/numbering/table.html
+msgid "Tables along a wall get consecutive numbers, the lower one on the left seen from where one sits; a new one is added at the end of the row."
+msgstr "Tische entlang einer Wand bekommen aufeinanderfolgende Nummern, vom Sitzplatz aus links die kleinere; ein neuer kommt ans Ende der Reihe."
+
+#: inventory/templates/inventory/numbering/table.html
+#, python-format
+msgid "%(sub)s: lettered from the bottom up: a below the table, then its drawers, then its top and, if there is something above it, that last."
+msgstr "%(sub)s: von unten nach oben mit Buchstaben: a unter dem Tisch, dann die Schübe, dann die Arbeitsplatte und, falls etwas darüber ist, das zuletzt."
+
+#: inventory/numbered_location_views.py
+#, python-format
+msgid "Below the %(type)s counts as the first one, its top and, if there is something above it, that one as the last ones."
+msgstr "Unter dem %(type)s zählt als erstes, die Arbeitsplatte und, falls etwas darüber ist, das als letzte."

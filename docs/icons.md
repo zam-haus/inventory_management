@@ -13,7 +13,7 @@ there for each icon a script needs. To add an icon, copy its SVG from the
 Bootstrap Icons site into that folder; unknown names raise an error (see
 `inventory/tests/test_icons.py`).
 
-Six icons are our own, drawn in the style of Bootstrap Icons and kept in the same folder: `box-star`
+Seven icons are our own, drawn in the style of Bootstrap Icons and kept in the same folder: `box-star`
 (Bootstrap's `box` with a star on its side: one single, individually tracked object, next to the
 `boxes` of counted items), `box-star-stack` (a smaller `box-star` with a plain box behind it: a serialized item,
 several unique items; the back box is drawn as lines that stop short of the front one, so the icon
@@ -22,10 +22,16 @@ lines thickened to match the others at 16 px), `plus-badge` (a disc with a plus 
 what an "add" button adds, `{% add_icon %}`), `tag-id` (a tag lying flat, its hole on the left, "ID" on it: a label
 with a code) and `price-label` (a price frame as the labels print it, `shape bulge` in
 `label_printing/design/layout.py`: straight top and bottom, the sides arching out like a price gun's labels, a € in
-it).
+it) and `furniture-table` (a table top on a leg on the left and a stack of two drawers on the right: the type *Tisch*;
+Bootstrap Icons has no piece of furniture to sit at).
 
-**Names have the icon of what they are.** A location's name has the icon of its type (`geo-alt`, `bookshelf` for
-storage units, `eurobox-open` for containers; `location_display.icon_name`), also each location in a path (where it
+**Names have the icon of what they are.** A location's name has the icon of its type: the one chosen for the type in
+the admin (*Location types → icon*, among the vendored icons; `LocationType.icon`, e.g. `furniture-table` for
+*Tisch*), else that of its category (`geo-alt`, `bookshelf` for storage units, `eurobox-open` for containers;
+`location_display.icon_name`). Its "add" buttons show the same icon with the plus badge. Lists and panels that
+group locations by category (the panels of a location's page, the counts in rows and trees) keep the category's
+icon. The icons chosen are drawn once per page with the others (`icons.type_icon_names`, asked once per request;
+error pages, which need no database, only the fixed ones). This holds also for each location in a path (where it
 is: the breadcrumbs, the location in brief, the result rows, moving and dissolving, the details); an item has the
 icon of its kind (`boxes`, `box-star-stack` for a serialized item), a unique item `box-star`. This holds in headings,
 lists, choices and sentences ("width and depth from <icon> Regal 3"); only where no icon can stand stays text: the

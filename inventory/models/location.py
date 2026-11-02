@@ -127,6 +127,27 @@ class LocationType(models.Model):
                     "moves with its contents, such as boxes, cartons and pallets. Empty for anything else, e.g. "
                     "on loan."),
     )
+    # Before the names of its locations everywhere (location_display.icon_name, docs/icons.md); empty: its category's.
+    icon = models.CharField(
+        _("icon"), max_length=64, blank=True,
+        help_text=_("Shown before the names of its locations and on its add buttons (with a plus). Empty: the icon of "
+                    "its category. One of the icons in the inventory; another one is added by copying its SVG from "
+                    "icons.getbootstrap.com (docs/icons.md)."),
+    )
+
+    # What the page for adding numbered locations (numbered_location_create.html) shows of this type above the form.
+    class Drawing(models.TextChoices):
+        SHELF = "shelf", _("Shelves side by side, compartments from the bottom up")
+        TABLE = "table", _("Tables along a wall from above; from the bottom up: below, drawers, top, above")
+
+    numbering_drawing = models.CharField(
+        _("drawing when adding"), max_length=16, blank=True, choices=Drawing.choices,
+        help_text=_("Shown when locations of this type are added on the inventory pages: how they are numbered."),
+    )
+    numbering_info = models.TextField(
+        _("text when adding"), blank=True,
+        help_text=_("Shown with it (Markdown), e.g. what to keep in mind when numbering them here."),
+    )
 
     @classmethod
     def group_by_category(cls, locations):
@@ -140,7 +161,18 @@ class LocationType(models.Model):
         return [(category, cls.CATEGORY_PLURALS.get(category, _("Other sub-locations")), groups[category])
                 for category in order if category in groups]
 
+    @property
+    def icon_name(self):
+        """Its icon, else that of its category (location_display.category_icon_name)."""
+        from ..location_display import category_icon_name
+
+        return self.icon or category_icon_name(self.category)
+
     def clean(self):
+        from .. import icons
+
+        if self.icon and not icons.exists(self.icon):
+            raise ValidationError({"icon": _("There is no icon %(name)s in the inventory.") % {"name": self.icon}})
         # A missing category follows from what the type is; a contradicting one is an error.
         if not self.category and self.structure:
             self.category = self.Category.SPACE

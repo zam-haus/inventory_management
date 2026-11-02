@@ -22,7 +22,7 @@
     </style>
 </head>
 <body>
-{% load icons %}{% type_icon_sprite %}
+{% load icons %}{% type_icon_sprite database=False %}
 <main>
     {{ logo|safe }}
     {% block content %}{% endblock %}

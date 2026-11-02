@@ -23,7 +23,7 @@ from label_printing.design import variables as label_variables
 from label_printing.layouts import designs as label_designs
 from label_printing.models import LabelMedium
 
-from . import models
+from . import icons, models
 from .numbered_location_views import create_numbered_container
 from .forms import AdminItemLocationForm, AdminLocationForm
 from .soft_delete import SoftDeleteModel
@@ -39,10 +39,31 @@ from .label_ids.lookup import annotate_label_code
 admin.site.register(models.MeasurementUnit)
 
 
+class LocationTypeAdminForm(forms.ModelForm):
+    """The icon chosen among the vendored ones (icons.available)."""
+
+    class Meta:
+        model = models.LocationType
+        fields = "__all__"
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["icon"].widget = forms.Select(choices=[("", _("– the icon of its category –")),
+                                                           *((name, name) for name in icons.available())])
+
+
 @admin.register(models.LocationType)
 class LocationTypeAdmin(admin.ModelAdmin):
-    list_display = ("name", "category", "structure", "unique", "moveable", "area_numbering", "description")
+    form = LocationTypeAdminForm
+    list_display = ("icon_preview", "name", "category", "structure", "unique", "moveable", "area_numbering",
+                    "description")
+    list_display_links = ("icon_preview", "name")
     list_filter = ("category", "structure", "unique")
+    readonly_fields = ("icon_preview",)
+
+    @admin.display(description=_("icon"))
+    def icon_preview(self, kind):
+        return icons.icon(kind.icon_name) if kind.pk or kind.category else ""
 
 
 @admin.register(models.LocationAxis)

@@ -11,7 +11,7 @@ children, child_entries, child_next_url, child_count, child_more, category; word
                     {% else %}
                         {% disabled_action numbering_icon name=add_title classes="btn btn-success location-add-item" %}
                     {% endif %}
-                {% endwith %}{% elif object.type.sublocation_type and not object.type.no_sublocations %}{% blocktrans with type=object.type.sublocation_type.name asvar add_title %}Add {{ type }} with the next free letters{% endblocktrans %}{% add_icon object.type.sublocation_type.category|category_icon as sub_icon %}
+                {% endwith %}{% elif object.type.sublocation_type and not object.type.no_sublocations %}{% blocktrans with type=object.type.sublocation_type.name asvar add_title %}Add {{ type }} with the next free letters{% endblocktrans %}{% add_icon object.type.sublocation_type.icon_name as sub_icon %}
                     {% if perms.inventory.add_location %}
                         <a class="btn btn-success location-add-item" href="{% url 'sublocation_add' pk=object.pk %}" data-bs-toggle="tooltip" title="{{ add_title }}" aria-label="{{ add_title }}">{{ sub_icon }}</a>
                     {% else %}

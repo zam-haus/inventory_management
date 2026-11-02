@@ -138,6 +138,8 @@ html:has(.location-stored-items) { scroll-padding-top: calc(var(--sticky-top) + 
 }
 
 .numbering-order { max-width: 40rem; margin: 1rem 0 0; }
+/* On the page for adding storage furniture: the drawing and the type's text, then the number fields. */
+.numbering-kind .numbering-order, .numbering-kind .numbering-info { margin-bottom: 1rem; }
 .dissolve-table { min-width: 36rem; table-layout: fixed; }
 .dissolve-plan-table { min-width: 48rem; }
 .dissolve-table > :not(caption) > * > * { padding: .8rem 1rem; vertical-align: top; }

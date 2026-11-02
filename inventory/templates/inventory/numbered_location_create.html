@@ -6,15 +6,15 @@
     <link rel="stylesheet" href="{% static 'inventory/location_detail.css' %}">
 {% endblock %}
 
-{% block title %}{% trans "Add numbered location" %}: {{ object.title_with_code }}{% endblock %}
+{% block title %}{% trans "Add storage furniture" %}: {{ object.title_with_code }}{% endblock %}
 
-{% block breadcrumbs %}{% trans "Add numbered location" as page %}{% include "inventory/location_breadcrumb.html" with location=object page=page %}{% endblock %}
+{% block breadcrumbs %}{% trans "Add storage furniture" as page %}{% include "inventory/location_breadcrumb.html" with location=object page=page %}{% endblock %}
 
 {% block page_header %}
     <header class="location-header">
         <div class="location-heading">
             <div class="location-heading-text">
-                <p class="location-eyebrow">{% trans "Add numbered location" %} · {{ object.type.name }}</p>
+                <p class="location-eyebrow">{% trans "Add storage furniture" %} · {{ object.type.name }}</p>
                 <h1>{% location_label object %}</h1>
             </div>
             <div class="location-actions">
@@ -26,47 +26,34 @@
 
 {% block content %}
     <div class="location-detail location-move">
-        {% if kinds %}
-            <section class="location-panel" aria-labelledby="kind-heading">
-                <div class="location-panel-heading">
-                    <h2 id="kind-heading">{% trans "What is added?" %}</h2>
-                </div>
-                <div class="location-actions location-move-form">
-                    {% for kind in kinds %}
-                        <a class="btn btn-success" href="{{ url }}?type={{ kind.pk }}">{% add_icon kind.category|category_icon %} {{ kind.name }}</a>
+        <section class="location-panel" aria-labelledby="numbered-heading">
+            <div class="location-panel-heading">
+                <h2 id="numbered-heading">{% trans "Add storage furniture" %}</h2>
+                <p class="location-muted mb-1">{% trans "Neighbouring ones should have consecutive numbers, the lower number on the left and the higher on the right where possible." %}</p>
+            </div>
+            {# The type first (from those that can be added here, Location.numbering_types); what depends on it follows and changes with it (numbered_location_fields.html, numbered_location.js). #}
+            <form method="post" novalidate class="location-move-form location-narrow-form" data-numbering-form data-fields-url="{{ url }}">
+                {% csrf_token %}
+                <fieldset class="mb-3">
+                    <legend class="form-label fs-6">{% trans "What is added?" %}</legend>
+                    {% for choice in kinds %}
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="type" id="numbering-type-{{ choice.pk }}" value="{{ choice.pk }}"{% if choice == kind %} checked{% endif %} data-numbering-type>
+                            <label class="form-check-label" for="numbering-type-{{ choice.pk }}">{% icon choice.icon_name %} {{ choice.name }}</label>
+                        </div>
                     {% endfor %}
+                    <noscript><button class="btn btn-secondary btn-sm mt-1" type="submit" formmethod="get" formnovalidate>{% trans "Continue" %}</button></noscript>
+                </fieldset>
+                {% bootstrap_form_errors form type="non_fields" %}
+                <div data-numbering-fields>{% include "inventory/numbered_location_fields.html" %}</div>
+                {% bootstrap_field form.purpose %}
+                {% bootstrap_field form.description %}
+                <div class="location-actions mt-3">
+                    <button class="btn btn-success" type="submit" data-numbering-submit-button>{% add_icon kind.icon_name %} {% blocktrans with type=kind.name %}Add {{ type }}{% endblocktrans %}</button>
                 </div>
-            </section>
-        {% else %}
-            <section class="location-panel" aria-labelledby="numbered-heading">
-                <div class="location-panel-heading">
-                    <h2 id="numbered-heading">{% blocktrans with type=kind.name %}Add {{ type }}: choose the number{% endblocktrans %}</h2>
-                    <p class="location-muted mb-1">{% trans "Neighbouring ones should have consecutive numbers, the lower number on the left and the higher on the right where possible." %}</p>
-                    {% include "inventory/numbered_location_order.html" %}
-                    {% if source %}
-                        <p class="location-muted">{% location_name source as source_name %}{% blocktrans with type=kind.name ranges=ranges name=source_name %}{{ type }}: numbered from {{ ranges }} ({{ name }}).{% endblocktrans %}</p>
-                    {% else %}
-                        <p class="location-muted">{% blocktrans with type=kind.name %}{{ type }}: no numbers reserved here yet.{% endblocktrans %}</p>
-                    {% endif %}
-                </div>
-                <form method="post" novalidate class="location-move-form location-narrow-form" data-numbering-form>
-                    {% csrf_token %}
-                    <input type="hidden" name="type" value="{{ kind.pk }}">
-                    {% bootstrap_form_errors form type="non_fields" %}
-                    {% bootstrap_field form.mode %}
-                    {% if "reserved" in form.fields %}{% bootstrap_field form.reserved %}{% endif %}
-                    {% bootstrap_field form.wish addon_before=kind.auto_short_name_prefix %}
-                    {% bootstrap_field form.expected %}
-                    {% if "sublocations" in form.fields %}{% bootstrap_field form.sublocations %}{% endif %}
-                    {% bootstrap_field form.purpose %}
-                    {% bootstrap_field form.description %}
-                    <div class="location-actions mt-3">
-                        <button class="btn btn-success" type="submit">{% add_icon kind.category|category_icon %} {% blocktrans with type=kind.name %}Add {{ type }}{% endblocktrans %}</button>
-                    </div>
-                    {% if perms.label_printing.print_label %}<p class="form-text mt-2 mb-0">{% icon "tag-id" %} {% trans "Then the label print dialog opens with the labels of the new locations checked." %}</p>{% endif %}
-                </form>
-            </section>
-        {% endif %}
+                {% if perms.label_printing.print_label %}<p class="form-text mt-2 mb-0">{% icon "tag-id" %} {% trans "Then the label print dialog opens with the labels of the new locations checked." %}</p>{% endif %}
+            </form>
+        </section>
     </div>
 {% endblock %}
 

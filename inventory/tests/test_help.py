@@ -83,6 +83,7 @@ class HelpContextTests(TestCase):
         def kind(name, **fields):
             return LocationType.objects.create(name=name, **fields)
 
+        LocationType.objects.filter(name="Tisch").delete()  # added by migration 0056; these tests have their own types
         level = kind("Level", category=Category.SPACE, structure=Structure.LEVEL, unique=True, admin_only=True)
         room = kind("Room", category=Category.SPACE, structure=Structure.ROOM, unique=True, admin_only=True)
         compartment = kind("Compartment", category=Category.STORAGE_UNIT, deletable_in_frontend=True,

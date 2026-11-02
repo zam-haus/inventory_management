@@ -1,9 +1,11 @@
 """Create locations of area-numbered types (such as shelves) on a location page.
 
-First the type is chosen, then the number: a free number reserved for this area (the next one first), a
+On one page the type is chosen first (with its drawing and text, LocationType.numbering_drawing and numbering_info),
+then the number: a free number reserved for this area (the next one first), a
 wished-for number that nobody uses or reserves, or a new number assigned automatically. A wished-for or new
-number reserves as many following numbers as are to be expected here (LocationNumberRange). The location's
-sub-locations, such as a shelf's compartments, can be created along with it.
+number creates as many as asked for at once, each alike, or only reserves the following numbers for this area
+(LocationNumberRange, reserve_only). The location's sub-locations, such as a shelf's compartments, can be created along
+with it.
 
 Containers (boxes, cartons, pallets) simply get the next number of their type (ContainerCreateView).
 """
@@ -17,6 +19,7 @@ from django.db import IntegrityError, transaction
 from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse
+from django.utils.functional import cached_property
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.utils.translation import gettext_lazy as _
 from django.views.generic import FormView
@@ -27,18 +30,16 @@ from .models import Location, LocationNumberRange, LocationType
 COMPUTED = ["unique_identifier", "locatable_identifier", "descriptive_identifier"]
 RESERVED, WISH, AUTO = "reserved", "wish", "auto"
 MAX_CONTAINERS = 50  # created at once
+MAX_ALL = 50  # numbered locations created at once
 
 
 class NumberedLocationForm(forms.Form):
     mode = forms.ChoiceField(label=_("Number"), widget=forms.RadioSelect)
     reserved = forms.ChoiceField(label=_("Reserved number"), required=False)
     wish = forms.IntegerField(label=_("Wished-for number"), required=False, min_value=0)
-    expected = forms.IntegerField(
-        label=_("How many are to be expected here in total, this one included?"), required=False,
-        min_value=1, max_value=LocationNumberRange.MAX_RESERVATION, initial=10,
-        help_text=_("For a wished-for or new number: that many consecutive numbers are reserved for this "
-                        "area. With 1, only this number is used."),
-    )
+    count = forms.IntegerField(label=_("How many, from this number on?"), required=False, min_value=1,
+                               max_value=LocationNumberRange.MAX_RESERVATION, initial=1)
+    reserve_only = forms.BooleanField(label=_("Only reserve the following numbers"), required=False)
     sublocations = forms.IntegerField(required=False, min_value=0, initial=0)
     purpose = forms.CharField(label=_("Purpose"), max_length=50, required=False)
     description = forms.CharField(
@@ -58,6 +59,15 @@ class NumberedLocationForm(forms.Form):
         self.fields["mode"].choices = modes
         self.fields["mode"].initial = modes[0][0]
         sub = kind.sublocation_type
+        # Several at once: each alike, without a purpose (it differs from one to the next; set on their pages).
+        alike = (_("each with as many %(sub)s and the description below, without a purpose") % {"sub": sub.name}
+                 if sub and sub.auto_sequence else _("each with the description below, without a purpose"))
+        self.fields["count"].help_text = _(
+            "More than 1: this one and the following free numbers, %(alike)s; at most %(max)s at once.") % {
+            "alike": alike, "max": MAX_ALL}
+        self.fields["reserve_only"].help_text = _(
+            "For a wished-for or new number: only this one is created, the following numbers up to the count are "
+            "reserved for this area, for later (at most %(max)s).") % {"max": LocationNumberRange.MAX_RESERVATION}
         if sub and sub.auto_sequence:
             self.fields["sublocations"].label = _("Number of %(type)s inside") % {"type": sub.name}
             self.fields["sublocations"].help_text = on_top_hint(kind)
@@ -66,32 +76,60 @@ class NumberedLocationForm(forms.Form):
         else:
             del self.fields["sublocations"]
 
-    FIELDS_FOR = {RESERVED: {"reserved"}, WISH: {"wish", "expected"}, AUTO: {"expected"}}
+    FIELDS_FOR = {RESERVED: {"reserved", "count"}, WISH: {"wish", "count", "reserve_only"},
+                  AUTO: {"count", "reserve_only"}}
+
+    def extend(self, cleaned, count):
+        """More than the reservation holds from the chosen number on: the numbers right behind its range, if no
+        location uses them and no range covers them; that range then grows by them (cleaned["extend"]: the range
+        and its new last number)."""
+        numbers = cleaned["numbers"]
+        source = self.parent.number_range_source(self.kind)
+        number_range = next(r for r in source.number_ranges.filter(type=self.kind) if r.first <= numbers[-1] <= r.last)
+        first, last = number_range.last + 1, number_range.last + count - len(numbers)
+        upper = 10 ** (self.kind.auto_short_name_padding_length or 3) - 1
+        blocked = sorted(LocationNumberRange.unavailable(self.kind, first, last))
+        if last > upper or blocked:
+            self.add_error("count", _("Only %(count)s reserved numbers from %(number)s on are free, and the numbers "
+                                      "right after the reservation %(range)s are used or reserved.") % {
+                "count": len(numbers), "number": numbers[0], "range": number_range})
+            return
+        cleaned["numbers"] = numbers + list(range(first, last + 1))
+        cleaned["extend"] = (number_range, last)
 
     def clean(self):
         cleaned = super().clean()
         mode = cleaned.get("mode")
         # Only the fields of the chosen way count; whatever else was entered is ignored.
-        for name in {"reserved", "wish", "expected"} - self.FIELDS_FOR.get(mode, set()):
+        for name in {"reserved", "wish", "count", "reserve_only"} - self.FIELDS_FOR.get(mode, set()):
             self._errors.pop(name, None)
             cleaned.pop(name, None)
-        expected = cleaned.get("expected") or 1
+        count = cleaned.get("count") or 1
+        created = 1 if cleaned.get("reserve_only") else count
+        if created > MAX_ALL:
+            self.add_error("count", _("At most %(max)s can be created at once.") % {"max": MAX_ALL})
         if mode == RESERVED:
             if cleaned.get("reserved") not in self.free:
                 self.add_error("reserved", _("Choose one of the reserved numbers."))
+            elif count <= MAX_ALL:
+                chosen = int(cleaned["reserved"])
+                cleaned["numbers"] = sorted(n for n in map(int, self.free) if n >= chosen)[:count]
+                if len(cleaned["numbers"]) < count:
+                    self.extend(cleaned, count)
         elif mode == WISH:
             wish = cleaned.get("wish")
             if wish is None:
                 self.add_error("wish", _("Enter the number you want."))
             else:
-                blocked = sorted(LocationNumberRange.unavailable(self.kind, wish, wish + expected - 1))
+                blocked = sorted(LocationNumberRange.unavailable(self.kind, wish, wish + count - 1))
                 if blocked and blocked[0] == wish:
                     self.add_error("wish", _("%(number)s is already used or reserved.") % {"number": wish})
                 elif blocked:
-                    self.add_error("expected", _("Only %(count)s numbers from %(number)s on are free.") % {
+                    self.add_error("count", _("Only %(count)s numbers from %(number)s on are free.") % {
                         "count": blocked[0] - wish, "number": wish})
-        elif mode == AUTO and not cleaned.get("expected"):
-            self.add_error("expected", _("Say how many are to be expected here."))
+        # Several at once get no purpose (the field hides then, numbered_location.js).
+        if created > 1:
+            cleaned["purpose"] = ""
         return cleaned
 
 
@@ -110,31 +148,33 @@ class NumberedLocationCreateView(PermissionRequiredMixin, FormView):
             raise PermissionDenied
         return kinds
 
-    @property
+    @cached_property
     def kind(self):
+        """The type chosen (?type=, also posted), at first the first one: the form is one page, the type its first
+        field (numbered_location_create.html)."""
         kinds = {str(kind.pk): kind for kind in self.kinds()}
-        chosen = self.request.GET.get("type") or self.request.POST.get("type")
-        if chosen is None and len(kinds) == 1:
+        chosen = self.request.POST.get("type") or self.request.GET.get("type")
+        if chosen is None:
             return next(iter(kinds.values()))
-        if chosen is not None and chosen not in kinds:
+        if chosen not in kinds:
             raise Http404
-        return kinds.get(chosen)
+        return kinds[chosen]
 
-    def get(self, request, *args, **kwargs):
-        if self.kind is None:  # step 1: what is created
-            return self.render_to_response({"object": self.parent, "view": self, "kinds": self.kinds(),
-                                            "url": reverse("numbered_location_create", args=[self.parent.pk])})
-        return super().get(request, *args, **kwargs)
+    def get_template_names(self):
+        # Another type chosen: only what depends on it (numbered_location.js).
+        if self.request.GET.get("partial"):
+            return ["inventory/numbered_location_fields.html"]
+        return [self.template_name]
 
     def get_form_kwargs(self):
-        if self.kind is None:
-            raise Http404
         return {**super().get_form_kwargs(), "parent": self.parent, "kind": self.kind}
 
     def get_context_data(self, **kwargs):
         source = self.parent.number_range_source(self.kind)
         ranges = ", ".join(str(r) for r in source.number_ranges.filter(type=self.kind)) if source else ""
-        return super().get_context_data(object=self.parent, kind=self.kind, source=source, ranges=ranges, **kwargs)
+        return super().get_context_data(object=self.parent, kind=self.kind, kinds=self.kinds(), source=source,
+                                        ranges=ranges, url=reverse("numbered_location_create", args=[self.parent.pk]),
+                                        **kwargs)
 
     def form_valid(self, form):
         kind, data, reservation = self.kind, form.cleaned_data, None
@@ -144,25 +184,45 @@ class NumberedLocationCreateView(PermissionRequiredMixin, FormView):
             with transaction.atomic():
                 if data["mode"] == RESERVED:
                     number = int(data["reserved"])
-                elif data["mode"] == WISH:
-                    number = data["wish"]
-                    if (data.get("expected") or 1) > 1:
-                        reservation = LocationNumberRange.objects.create(
-                            location=area, type=kind, first=number, last=number + data["expected"] - 1)
+                    numbers = data["numbers"]
+                    if data.get("extend"):
+                        reservation, last = data["extend"]
+                        reservation.last = last
+                        reservation.save()
                 else:
-                    reservation = self.reserve_new(area, kind, data["expected"], bool(form.free))
-                    number = next(n for n, _name, _short in self.parent.free_numbers(kind)
-                                  if reservation.first <= n <= reservation.last)
-                name, short = kind.numbered_names(number)
-                location = Location(type=kind, name=name, short_name=short, parent_location=self.parent,
-                                    purpose=data["purpose"], description=data["description"])
-                location.full_clean(exclude=COMPUTED + ["overview_photo"])
-                location.save(actor=self.request.user)
-                parts = self.create_sublocations(location, data.get("sublocations") or 0)
+                    count = data.get("count") or 1
+                    if data["mode"] == WISH:
+                        number = data["wish"]
+                        if count > 1:
+                            reservation = LocationNumberRange.objects.create(
+                                location=area, type=kind, first=number, last=number + count - 1)
+                    else:
+                        reservation = self.reserve_new(area, kind, count, bool(form.free))
+                        number = next(n for n, _name, _short in self.parent.free_numbers(kind)
+                                      if reservation.first <= n <= reservation.last)
+                    # All numbers of the range, from this one on, each alike; or only this one, the others reserved.
+                    numbers = [number] if data.get("reserve_only") or reservation is None else [
+                        n for n, _name, _short in self.parent.free_numbers(kind) if number <= n <= reservation.last]
+                created = [self.create(kind, n, data) for n in numbers]
         except (ValidationError, IntegrityError) as error:
             form.add_error(None, " ".join(getattr(error, "messages", [])) or
                            _("The number was taken in the meantime. Choose another one."))
             return self.form_invalid(form)
+        location, parts = created[0]
+        if len(created) > 1:
+            locations = [entry for entry, _parts in created]
+            text = _("%(count)s × %(type)s created: %(first)s to %(last)s.") % {
+                "count": len(created), "type": kind.name, "first": locations[0].short_name,
+                "last": locations[-1].short_name}
+            if parts:
+                text += " " + _("Each with %(count)s %(type)s.") % {
+                    "count": len(parts), "type": kind.sublocation_type.name}
+            if data.get("extend"):
+                text += " " + _("The reservation of %(place)s now covers %(range)s.") % {
+                    "place": reservation.location.name, "range": reservation}
+            messages.success(self.request, text)
+            new = [new_location for entry, entry_parts in created for new_location in [entry, *entry_parts]]
+            return redirect(with_print_dialog(self.request, self.parent, new))
         text = _("%(name)s created.") % {"name": location.name}
         if reservation:
             text += " " + _("Numbers %(range)s are reserved for %(type)s at %(place)s.") % {
@@ -171,6 +231,15 @@ class NumberedLocationCreateView(PermissionRequiredMixin, FormView):
             text += " " + _("%(count)s %(type)s added.") % {"count": len(parts), "type": kind.sublocation_type.name}
         messages.success(self.request, text)
         return purposes_url_or(self.request, location, parts, [location] + parts)
+
+    def create(self, kind, number, data):
+        """(the location of `kind` with `number`, its sub-locations)."""
+        name, short = kind.numbered_names(number)
+        location = Location(type=kind, name=name, short_name=short, parent_location=self.parent,
+                            purpose=data["purpose"], description=data["description"])
+        location.full_clean(exclude=COMPUTED + ["overview_photo"])
+        location.save(actor=self.request.user)
+        return location, self.create_sublocations(location, data.get("sublocations") or 0)
 
     def reserve_new(self, area, kind, count, keep_reserved):
         """A new range of `count` numbers for `area`; behind a used-up range if possible, otherwise in a free gap."""
@@ -426,7 +495,11 @@ class SublocationPurposeView(PermissionRequiredMixin, FormView):
 
 
 def on_top_hint(kind):
-    """The hint at a count of compartments: the top of the shelf or cabinet is one too (numbered_location_order)."""
+    """The hint at a count of compartments: the top of the shelf or cabinet is one too (numbering/shelf.html); below a
+    table, its top and above it count as well (numbering/table.html)."""
+    if kind.numbering_drawing == LocationType.Drawing.TABLE:
+        return _("Below the %(type)s counts as the first one, its top and, if there is something above it, that one "
+                 "as the last ones.") % {"type": kind.name}
     return _("The top of the %(type)s counts as one too if things are put on it: it gets the last letter.") % {
         "type": kind.name}
 

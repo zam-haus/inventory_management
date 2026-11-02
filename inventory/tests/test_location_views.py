@@ -391,19 +391,20 @@ class PrintableInventoryTests(TestCase):
 
     def test_query_count_does_not_grow_with_items_or_tree_depth(self):
         # The selection checked, then with its types (their icons), the locations and the paths above them, entries,
-        # images and unique items; recursion adds parent relationships, and the locations above those below.
-        with self.assertNumQueries(6):
+        # images and unique items; recursion adds parent relationships, and the locations above those below. One
+        # more for the icons the location types choose (icons.type_icon_names), once.
+        with self.assertNumQueries(7):
             self.report([self.root])
-        with self.assertNumQueries(8):
+        with self.assertNumQueries(9):
             self.report([self.root], include_children=True)
         for index in range(5):
             item = Item.objects.create(name=f"Extra {index}", measurement_unit=self.unit)
             ItemLocation.objects.create(item=item, location=self.grandchild, amount=index)
-        with self.assertNumQueries(6):
+        with self.assertNumQueries(7):
             self.report([self.root])
-        with self.assertNumQueries(8):
+        with self.assertNumQueries(9):
             self.report([self.root, self.other], include_children=True)
-        with self.assertNumQueries(8):
+        with self.assertNumQueries(9):
             self.report([self.root], include_children=True)
 
     def test_preselected_report_shows_direct_items_without_location_selector(self):

@@ -1,0 +1,19 @@
+{% load django_bootstrap5 i18n icons locations %}{% comment %}The part of the page for adding numbered locations that depends on the type chosen (numbered_location_create.html):
+how they are numbered here (the type's drawing and text, numbered_location_order.html), the number and how many, the
+compartments. Alone with ?partial=1, when another type is chosen (numbered_location.js); the submit button's text
+comes along.{% endcomment %}
+<div class="numbering-kind" data-numbering-kind="{{ kind.pk }}">
+    {% if source %}
+        <p class="location-muted">{% location_name source as source_name %}{% blocktrans with type=kind.name ranges=ranges name=source_name %}{{ type }}: numbered from {{ ranges }} ({{ name }}).{% endblocktrans %}</p>
+    {% else %}
+        <p class="location-muted">{% blocktrans with type=kind.name %}{{ type }}: no numbers reserved here yet.{% endblocktrans %}</p>
+    {% endif %}
+    {% include "inventory/numbered_location_order.html" %}
+    {% bootstrap_field form.mode %}
+    {% if "reserved" in form.fields %}{% bootstrap_field form.reserved %}{% endif %}
+    {% bootstrap_field form.wish addon_before=kind.auto_short_name_prefix %}
+    {% bootstrap_field form.count %}
+    {% bootstrap_field form.reserve_only %}
+    {% if "sublocations" in form.fields %}{% bootstrap_field form.sublocations %}{% endif %}
+    <template data-numbering-submit>{% add_icon kind.icon_name %} {% blocktrans with type=kind.name %}Add {{ type }}{% endblocktrans %}</template>
+</div>

@@ -15,14 +15,14 @@ register = template.Library()
 @register.simple_tag
 def result_icon(name):
     # The icons of types and kinds are on every page already (icons.type_icon_sprite).
-    if name in icons.TYPE_ICONS:
+    if name in icons.type_icon_names():
         return icons.use(name, "type-icon", f"bi bi-{name}")
     return icons.use(name, "result-icon", f"bi bi-{name}")
 
 
 @register.simple_tag
 def result_icon_sprite():
-    return icons.sprite(set(ICONS) - set(icons.TYPE_ICONS), "result-icon", "result-sprite")
+    return icons.sprite(set(ICONS) - icons.type_icon_names(), "result-icon", "result-sprite")
 
 
 @register.simple_tag(takes_context=True)

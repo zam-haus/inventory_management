@@ -15,7 +15,8 @@ from django.urls import reverse
 from django.utils.translation import gettext as _, ngettext
 
 from . import icons
-from .location_display import CATEGORY_ICONS, icon_name, label_html
+from .icons import type_icon_names
+from .location_display import category_icon_name, icon_name, label_html
 from .models import Category, Item, ItemLocation, Location, LocationType, UniqueItem
 from .search.render import KINDS, SUB_LOCATIONS, count_text
 from .structure_overview import code_order, physical_order
@@ -30,7 +31,7 @@ class Node:
     own: int = 0  # items right in a category (the item tree loads their rows when it is opened)
     bulk: int = 0  # counted items: stock here (locations) or counted items in the whole subtree (categories)
     unique: int = 0  # unique items here (locations) or in the whole subtree (categories)
-    descendants: Counter = field(default_factory=Counter)  # sub-locations in the whole subtree, by icon_name
+    descendants: Counter = field(default_factory=Counter)  # sub-locations in the whole subtree, by category icon
 
 
 def sprite(names):
@@ -81,7 +82,7 @@ def location_nodes():
     unique = UniqueItem.active.filter(location=OuterRef("pk")).values("location").annotate(n=Count("pk")).values("n")
     locations = (Location.active.select_related("type")
                  .only("pk", "name", "short_name", "purpose", "unique_identifier", "parent_location_id",
-                       "type__category")
+                       "type__category", "type__icon")
                  .annotate(stock=Coalesce(Subquery(stock, output_field=IntegerField()), Value(0)),
                            unique=Coalesce(Subquery(unique, output_field=IntegerField()), Value(0))))
     nodes = {location.pk: Node(location, bulk=location.stock, unique=location.unique) for location in locations}
@@ -93,7 +94,7 @@ def location_nodes():
     def arrange(node):
         node.children = physical_order(node.obj, node.children, location=lambda child: child.obj)
         for child in node.children:
-            node.descendants[icon_name(child.obj)] += 1
+            node.descendants[category_icon_name(child.obj.type.category)] += 1
             node.descendants.update(arrange(child))
         return node.descendants
     roots.sort(key=lambda root: code_order(root.obj.short_name))
@@ -155,7 +156,7 @@ def group_html(parent, category, title, nodes, is_open, depth):
 def location_tree():
     """(sprite, the tree's <li>s) for /location/."""
     roots = location_nodes()
-    return sprite({"geo-alt", KINDS["item"][0], KINDS["unique"][0], *CATEGORY_ICONS.values()}), nodes_html(roots, 0)
+    return sprite({KINDS["item"][0], KINDS["unique"][0], *type_icon_names()}), nodes_html(roots, 0)
 
 
 # Items
