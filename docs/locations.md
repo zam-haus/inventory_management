@@ -27,9 +27,10 @@ A UX rule for every page, list and dialog (`inventory/location_display.py`, `{% 
   between them), `{% location_name location %}` (in a sentence: icon and title), `{% location_code code %}`.
 * **Plain text** (page titles, messages, tooltips, select options) reads "Schrauben M4 · WH-1.R301.a"
   (`Location.title_with_code`).
-* Location fields (`widgets.LocationSelect`) show their suggestions the same way, with the parent
-  below; their autocompletes give HTML only to them (`?html=1`), the admin's fields get the path as
-  text. The breadcrumb shows the path with each location's title and short name.
+* Location fields (`widgets.LocationSelect`) show their suggestions the same way, with the whole path above it
+  below (each location with its icon and short name, without links, as a click chooses; `option_html`, the paths of
+  a page of suggestions in one query); their autocompletes give HTML only to them (`?html=1`), the admin's fields
+  get the path as text. The breadcrumb shows the path with each location's title and short name.
 * **In brief:** a location's code chip opens it in a window (`location_info.js`, `/location/<id>/info/`; click,
   Enter or space): the path with the titles and short names of the locations above it, its title and code,
   overview photo and description, and *Open location*. Its name still leads to its page. Closing the window

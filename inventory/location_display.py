@@ -54,11 +54,13 @@ def label_html(location, code=None, url=None, subtitle=True, classes="", info=Fa
                        format_html_join(" ", "{}", ((part,) for part in parts)))
 
 
-def option_html(location):
-    """A location in an autocomplete's suggestions: its label, and where it is, below."""
-    parent = location.parent_location
-    where = format_html('<span class="loc-where">{} {}</span>', type_icon(icon_name(parent)), parent.title) \
-        if parent else ""
+def option_html(location, above=None):
+    """A location in an autocomplete's suggestions: its label, and below it where it is, the whole path from the top
+    (`above`: the locations above it, paths(); else loaded here). Without links: a click chooses the location."""
+    if above is None:
+        above = paths([location])[location.pk]
+    where = format_html('<span class="loc-where">{}</span>', path_html(above[-1], above=above[:-1], links=False)) \
+        if above else ""
     return format_html('<span class="loc-option">{}{}</span>', label_html(location), where)
 
 

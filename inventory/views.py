@@ -135,8 +135,16 @@ class LocationResults:
     def html(self):
         return bool(self.request.GET.get("html"))
 
+    def get_results(self, context):
+        # The paths above the suggestions, with their icons: in one query for the page of them.
+        if self.html():
+            self.above = location_display.paths(list(context["object_list"]))
+        return super().get_results(context)
+
     def get_result_label(self, result):
-        return location_display.option_html(result) if self.html() else result.path_with_purpose
+        if self.html():
+            return location_display.option_html(result, above=getattr(self, "above", {}).get(result.pk))
+        return result.path_with_purpose
 
     def get_selected_result_label(self, result):
         return location_display.label_html(result) if self.html() else result.path_with_purpose

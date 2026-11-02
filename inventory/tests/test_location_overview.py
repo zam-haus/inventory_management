@@ -453,12 +453,35 @@ class LocationOverviewTests(TestCase):
                 # the frontend's fields (widgets.LocationSelect): HTML, with where it is below
                 result = self.client.get(reverse(name), {"q": "carp", "html": "1"}).json()["results"][0]
                 self.assertInHTML(plain, result["text"])
-                self.assertIn(f'<span class="loc-where">{type_icon(icon_name(self.location))} {self.location.title}</span>',
-                              result["text"])
+                self.assertIn(f'<span class="loc-where"><span class="loc-path"><span class="loc-label">'
+                              f'{type_icon(icon_name(self.location))} <span class="loc-title">{self.location.title}</span> '
+                              f'<span class="loc-code">{self.location.short_name}</span></span></span></span>', result["text"])
                 self.assertInHTML(plain, result["selected_text"])
                 # the admin's: text with the path
                 results = self.client.get(reverse(name), {"q": "carp"}).json()["results"]
                 self.assertEqual([result["text"] for result in results], [f"{child.descriptive_identifier}: Carp project"])
+        # Below it the whole path from the top, each with its icon and short name, without links (a click chooses).
+        inner = Location.objects.create(type=self.location.type, parent_location=child, name="Inner", short_name="IN")
+        where = self.client.get(reverse("location-autocomplete"), {"q": "inner", "html": "1"}).json()["results"][0]["text"]
+        where = where[where.index('<span class="loc-where">'):]
+        self.assertEqual(where.count('<span class="loc-label">'), 2)
+        self.assertLess(where.index(f">{self.location.short_name}<"), where.index(">B23<"))
+        self.assertIn('<span class="loc-path-sep" aria-hidden="true">›</span>', where)
+        self.assertNotIn("<a ", where)
+        self.assertNotIn(f">{inner.short_name}<", where)
+        # The paths for a page of suggestions in one query: the queries do not grow with them.
+        from django.db import connection
+        from django.test.utils import CaptureQueriesContext
+
+        def queries():
+            with CaptureQueriesContext(connection) as captured:
+                self.client.get(reverse("location-autocomplete"), {"q": "deep", "html": "1"})
+            return len(captured)
+        deep = Location.objects.create(type=self.location.type, parent_location=inner, name="Deep 0", short_name="D0")
+        before = queries()
+        for index in range(1, 6):
+            Location.objects.create(type=self.location.type, parent_location=deep, name=f"Deep {index}", short_name=f"D{index}")
+        self.assertEqual(queries(), before)
         # Escaped, also as the text of a chosen option, which the field shows as HTML.
         child.purpose = "<b>Carp</b>"
         child.save()
