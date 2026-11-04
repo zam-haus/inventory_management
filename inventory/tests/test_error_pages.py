@@ -105,3 +105,9 @@ class ErrorPageTests(TestCase):
         response = self.client.get("/%2Fx", headers={"host": "i.zam.haus"})
         self.assertContains(response, "Page not found", status_code=404)
         self.assertNotContains(response, 'id="navbar-search"', status_code=404)
+
+    def test_resolver_hosts_reject_posts_standalone(self):
+        # Scanners post to id.zam.haus/; the form check's page needs the inventory's URLs.
+        response = Client(enforce_csrf_checks=True).post("/", {}, headers={"host": "id.zam.haus"})
+        self.assertContains(response, "No access", status_code=403)
+        self.assertNotContains(response, 'id="navbar-search"', status_code=403)

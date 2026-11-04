@@ -60,6 +60,9 @@ def server_error(request):
 
 def csrf_failure(request, reason=""):
     """CSRF_FAILURE_VIEW: mostly a form left open too long, or a login or logout in another tab meanwhile."""
+    # Set for all hosts, unlike the handlers; the resolver hosts have no forms, so a POST there is a stray request.
+    if getattr(request, "label_id_resolver_host", False):
+        return standalone(request, 403)
     referer = request.META.get("HTTP_REFERER", "")
     safe = url_has_allowed_host_and_scheme(referer, {request.get_host()}, require_https=request.is_secure())
     return page(request, 403, title=_("Form expired"), csrf=True, no_cookie=reason == REASON_NO_CSRF_COOKIE,
