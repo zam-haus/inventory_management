@@ -47,6 +47,16 @@ def build_payload(printer, medium, rendered, copies, quality=Quality.STANDARD):
                               offset=medium.offset_y, cut=printer.cut, chain=printer.chain_printing)
 
 
+def print_quality(layout, printer, quality):
+    """High quality prints as standard where the layout is drawn dot by dot or the printer has no high resolution
+    (Brother PT-P700)."""
+    if quality == Quality.HIGH and (layout.fixed_resolution or (
+            printer.language == Printer.Language.PTOUCH and printer.model in drivers.PTOUCH_MODELS
+            and not drivers.ptouch_high_resolution(printer.model))):
+        return Quality.STANDARD
+    return quality
+
+
 def render(layout, subjects, medium, preview=False, user=None, quality=Quality.STANDARD):
     """The labels; for Brother high quality drawn at twice the resolution and squeezed across the tape."""
     canvas = Canvas.for_medium(medium, quality)
@@ -87,8 +97,7 @@ def submit(*, printer, medium, layout_key, subject_type, subjects, copies=1, use
     quality = quality or layout.quality or medium.quality
     if quality not in Quality.values:
         raise PrintError(_("Unknown print quality."))
-    if layout.fixed_resolution and quality == Quality.HIGH:
-        quality = Quality.STANDARD
+    quality = print_quality(layout, printer, quality)
     rendered = render(layout, subjects, medium, user=user if user is not None and user.is_authenticated else None,
                       quality=quality)
     payload, pages = build_payload(printer, medium, rendered, copies, quality)
@@ -537,9 +546,7 @@ def dispatch(job, outcome, target):
     except (LookupError, ObjectDoesNotExist):
         still_waiting.update(status=PrintJob.Status.FAILED, code="subject_gone", finished_at=now)
         return 0
-    quality = job.quality
-    if outcome.layout.fixed_resolution and quality == Quality.HIGH:
-        quality = Quality.STANDARD
+    quality = print_quality(outcome.layout, target.printer, job.quality)
     try:
         rendered = render(outcome.layout, subjects, target.medium, user=job.user, quality=quality)
         payload, pages = build_payload(target.printer, target.medium, rendered, job.copies, quality)
@@ -578,6 +585,25 @@ def default_medium(printer):
     loaded = set(printer.loaded_stock_ids())
     media = sorted(printer.media(), key=lambda medium: (medium.pk not in loaded, medium.name))
     return media[0] if media else None
+
+
+OWN_LABELS = ("test", "calibration")
+
+
+def no_material_text():
+    return " ".join((_("It takes no label material on hand."),
+                     _("Mark label material as on hand (Label material) or check what the printer takes.")))
+
+
+def print_own_label(printer, layout_key, user=None):
+    """A printer's test or calibration label (the admin, the print agent's display), on the labels loaded in it."""
+    if layout_key not in OWN_LABELS:
+        raise PrintError(_("Unknown layout."))
+    medium = default_medium(printer)
+    if medium is None:
+        raise PrintError(no_material_text())
+    return submit(printer=printer, medium=medium, layout_key=layout_key, subject_type="printer", subjects=[printer],
+                  user=user)
 
 
 def job_medium(job):

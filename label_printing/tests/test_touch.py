@@ -8,7 +8,7 @@ from django.test import SimpleTestCase
 from .. import agent
 from ..agent import Printers, Task
 from ..devices import bluetooth
-from ..touch import CONTENT_TOP, Touch
+from ..touch import CONTENT_BOTTOM, CONTENT_TOP, Touch
 from .test_panel import ZEBRA, FakeLink, FakeRequest
 
 
@@ -78,6 +78,8 @@ class TouchTests(SimpleTestCase):
                     x, y = item.x + dx + item.w // 2, item.y + dy + item.h // 2
                     if items is frame.choices:
                         self.assertTrue(top <= y < top + height, f"{label!r} is scrolled out of sight")
+                    if items is frame.content:
+                        self.assertTrue(CONTENT_TOP <= y < CONTENT_BOTTOM, f"{label!r} is scrolled out of sight")
                     self.assertTrue(self.touch.tap(x, y), label)
                     return
         self.fail(f"no button {label!r} in {self.labels()}")
@@ -151,6 +153,23 @@ class TouchTests(SimpleTestCase):
         self.assertEqual(self.link.loaded[-1], (ZEBRA["uid"], 5))
         self.press("‹ Zurück")
         self.assertIsNone(self.touch.detail)
+
+    def test_printer_page_prints_test_and_calibration_labels(self):
+        self.touch.show_tab("printers")
+        self.touch.show_printer(ZEBRA["uid"])
+        self.touch.drag(-10_000)  # below the Zebra's buttons
+        self.press("Testetikett drucken")
+        self.press("Kalibrieretikett drucken")
+        self.assertEqual(self.link.asked, [(ZEBRA["uid"], "test"), (ZEBRA["uid"], "calibration")])
+        self.assertIn("Kalibrieretikett kommt", self.texts())
+        self.link.refusal = "Er nimmt kein vorrätiges Etikettenmaterial. Markiere Etikettenmaterial als vorrätig."
+        self.press("Testetikett drucken")
+        self.assertIn("Testetikett nicht gedruckt", self.texts())  # the reason in full, in a dialog
+        self.assertLessEqual(self.touch.note_until, self.now)  # no "fordere an ..." behind it
+        self.press("OK")
+        self.assertEqual(self.touch.dialogs, [])
+        self.link.settings[ZEBRA["uid"]]["active"] = False
+        self.assertNotIn("Testetikett drucken", self.labels())
 
     def test_a_long_list_of_labels_scrolls_in_its_dialog(self):
         self.link.settings[ZEBRA["uid"]]["media"] = [{"id": number, "name": f"Etiketten {number}"}

@@ -16,6 +16,7 @@ class FakeLink:
         self.server = server
         self.state = {"code": "ok", "message": "", "since": 0.0}
         self.settings, self.waiting, self.loaded = {}, [], []
+        self.asked, self.refusal = [], ""
 
     def set_loaded(self, uid, medium):
         self.loaded.append((uid, medium))
@@ -25,6 +26,10 @@ class FakeLink:
         self.loaded.append((uid, ribbon))
         self.settings[uid] = {**self.settings[uid], "ribbon": ribbon, "ribbon_problem": ""}
         return True
+
+    def print_own_label(self, uid, label):
+        self.asked.append((uid, label))
+        return self.refusal
 
 
 class FakeRequest:
@@ -106,7 +111,7 @@ class PanelTests(SimpleTestCase):
     def test_printer_menu(self):
         self.go_to("Zebra Lager")
         self.panel.press(PRESS)
-        self.assertEqual(self.panel.lines(), ["Zebra Lager", "1/3 Anhalten"])
+        self.assertEqual(self.panel.lines(), ["Zebra Lager", "1/5 Anhalten"])
         self.panel.press(PRESS)
         self.assertTrue(self.printers.state(ZEBRA["uid"])["held"])
         self.assertEqual(self.texts()[4][1], "⏸ angehalten (Menü: fortsetzen)")
@@ -118,6 +123,20 @@ class PanelTests(SimpleTestCase):
         self.panel.press(LEFT)
         self.panel.press(PRESS)  # go on
         self.assertFalse(self.printers.state(ZEBRA["uid"])["held"])
+
+    def test_test_and_calibration_labels_from_the_menu(self):
+        self.panel.background = lambda work: work()
+        menu = self.panel.printer_menu(ZEBRA["uid"])
+        self.assertEqual([label for label, _action in menu.entries],
+                         ["Anhalten", "Etiketten eingelegt", "Testetikett", "Kalibrieretikett", "Zurück"])
+        dict(menu.entries)["Kalibrieretikett"]()
+        self.assertEqual(self.link.asked, [(ZEBRA["uid"], "calibration")])
+        self.assertEqual(self.panel.note, "Kalibrieretikett kommt")
+        self.link.refusal = "Er nimmt kein vorrätiges Etikettenmaterial."
+        self.panel.print_own_label(self.link, ZEBRA["uid"], "test")
+        self.assertEqual(self.panel.note, "✗ Er nimmt kein vorrätiges Etikettenmaterial.")
+        self.link.settings[ZEBRA["uid"]]["active"] = False
+        self.assertEqual(self.panel.own_label_entries(ZEBRA["uid"]), [])
 
     def test_a_ribbon_that_does_not_suit_the_labels(self):
         self.link.settings[ZEBRA["uid"]].update(

@@ -2135,3 +2135,28 @@ msgstr ""
 #: admin.py:206
 msgid "label material loaded or on hand it takes"
 msgstr "eingelegtes oder vorrätiges Etikettenmaterial, das er nimmt"
+
+#: models.py:140
+msgid "Brother: between the labels of a job. P700 and P710BT: no half cut."
+msgstr ""
+"Brother: zwischen den Etiketten eines Auftrags. P700 und P710BT: kein "
+"Halbschnitt."
+
+#: models.py:143
+msgid ""
+"Brother: the last label stays in the printer and the next job goes on from "
+"there, which saves tape; cut it off with the printer's cutter button. Off: "
+"the printer feeds and cuts after every job. P700 and P710BT do not cut off "
+"the empty start of the tape themselves: off, it is cut off before every job; "
+"on, the first label after the button keeps it."
+msgstr ""
+"Brother: Das letzte Etikett bleibt im Drucker, der nächste Auftrag macht "
+"dort weiter, das spart Band; abschneiden mit der Schneidetaste des Druckers. "
+"Aus: Der Drucker schiebt vor und schneidet nach jedem Auftrag. P700 und "
+"P710BT schneiden den leeren Bandanfang nicht selbst ab: aus, wird er vor "
+"jedem Auftrag abgeschnitten; an, behält ihn das erste Etikett nach der Taste."
+
+#: models.py:202
+#, python-format
+msgid "The %(model)s cannot half cut: choose a full cut."
+msgstr "Der %(model)s kann keinen Halbschnitt: wähle einen Vollschnitt."

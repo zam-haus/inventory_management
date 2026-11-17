@@ -243,7 +243,7 @@ class QualityTests(SimpleTestCase):
         draft, _ = drivers.ptouch_job("E550W", 12, [image], quality="draft")
         wide = image.resize((200, image.height), Image.NEAREST)
         high, _ = drivers.ptouch_job("E550W", 12, [wide], quality="high")
-        self.assertEqual(self.advanced_mode(draft), self.advanced_mode(standard) | 0x01)
+        self.assertEqual(self.advanced_mode(draft), self.advanced_mode(standard))  # the E550W has no draft mode
         self.assertEqual(self.advanced_mode(high), self.advanced_mode(standard) | 0x40)
         self.assertEqual((self.print_length(standard), self.print_length(high)), (100, 200))
         decoded, = simulator.decode_brother(high)  # every line once, not doubled
@@ -259,7 +259,56 @@ class QualityTests(SimpleTestCase):
                 payload, _pages = drivers.ptouch_job("E550W", 12, [image, image], cut=cut, chain=chain)
                 self.assertEqual((flags(payload, b"\x1biK"), flags(payload, b"\x1biM")), ({advanced}, {various}))
         draft, _pages = drivers.ptouch_job("E550W", 12, [image], quality="draft")
+        self.assertEqual(flags(draft, b"\x1biK"), {0x04})  # no draft printing on the E550W: half cut, continuous
+        image = Image.new("1", (64, drivers.ptouch_print_pins("P900W", 12)), 1)
+        draft, _pages = drivers.ptouch_job("P900W", 12, [image], quality="draft")
         self.assertEqual(flags(draft, b"\x1biK"), {0x05})  # draft printing and half cut, continuous
+
+    def test_brother_page_flags(self):
+        """ESC i z n9: the P900 series needs its last page marked (2), else it waits for more and hangs; the 128-pin
+        models print with 0."""
+        def flags(payload):
+            return [payload[index + 11] for index in range(len(payload) - 12) if payload[index:index + 3] == b"\x1biz"]
+        image = Image.new("1", (64, drivers.ptouch_print_pins("P900W", 24)), 1)
+        self.assertEqual(flags(drivers.ptouch_job("P900W", 24, [image])[0]), [2])
+        self.assertEqual(flags(drivers.ptouch_job("P900W", 24, [image] * 3)[0]), [0, 1, 2])
+        self.assertEqual(flags(drivers.ptouch_job("P900W", 24, [image], copies=2, quality="high")[0]), [0, 2])
+        image = Image.new("1", (64, drivers.ptouch_print_pins("E550W", 12)), 1)
+        self.assertEqual(flags(drivers.ptouch_job("E550W", 12, [image] * 2)[0]), [0, 0])
+
+    def test_brother_without_half_cut(self):
+        """PT-P700 and PT-P710BT cut fully instead, without "cut each * labels"; without continuous printing, an
+        empty label first takes off the leader they do not cut off themselves."""
+        def flags(payload, command):
+            return [payload[index + 3] for index in range(len(payload) - 3) if payload[index:index + 3] == command]
+        image = Image.new("1", (64, drivers.ptouch_print_pins("P700", 24)), 0)
+        for model in ("P700", "P710BT"):
+            with self.subTest(model=model):
+                payload, pages = drivers.ptouch_job(model, 24, [image, image], cut="half", chain=True)
+                self.assertEqual((pages, flags(payload, b"\x1biK"), flags(payload, b"\x1biM")),
+                                 (2, [0x00, 0x00], [0x40, 0x40]))
+                self.assertNotIn(b"\x1biA", payload)
+                payload, pages = drivers.ptouch_job(model, 24, [image, image], cut="full", chain=False)
+                decoded = simulator.decode_brother(payload)
+                self.assertEqual((pages, len(decoded)), (3, 3))
+                self.assertIsNone(ImageChops.invert(decoded[0].convert("L")).getbbox())  # nothing printed
+                self.assertEqual(drivers.ptouch_job(model, 24, [image], cut="none", chain=False)[1], 1)
+        tape = Image.new("1", (64, drivers.ptouch_print_pins("E550W", 12)), 0)
+        self.assertEqual(drivers.ptouch_job("E550W", 12, [tape], chain=False)[1], 1)  # cuts off the leader itself
+        self.assertEqual((drivers.ptouch_high_resolution("P700"), drivers.ptouch_high_resolution("P710BT")),
+                         (False, True))
+
+    def test_high_quality_prints_as_standard_without_high_resolution(self):
+        from types import SimpleNamespace
+
+        from ..models import Printer
+        from ..services import print_quality
+
+        drawn, dot_by_dot = SimpleNamespace(fixed_resolution=False), SimpleNamespace(fixed_resolution=True)
+        p700, e550w = Printer(language="ptouch", model="P700"), Printer(language="ptouch", model="E550W")
+        self.assertEqual([print_quality(drawn, p700, "high"), print_quality(drawn, e550w, "high"),
+                          print_quality(dot_by_dot, e550w, "high"), print_quality(drawn, p700, "draft")],
+                         ["standard", "high", "standard", "draft"])
 
     def test_zebra_speed(self):
         image = Image.new("1", (16, 8), 1)

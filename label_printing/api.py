@@ -209,6 +209,20 @@ def ribbon(request, agent, data):
     return JsonResponse({"ok": True, "ribbon_problem": str(printer.ribbon_problem())})
 
 
+@agent_api
+def own_label(request, agent, data):
+    """A test or calibration label ("label") for one of the agent's printers, asked for on its display: queued like
+    any job, fetched with the next poll. A refusal says why in words for the display."""
+    printer = agent_printer(agent, data)
+    if printer is None:
+        return JsonResponse({"error": "not a printer of this agent"}, status=404)
+    try:
+        job = services.print_own_label(printer, str(data.get("label", "")))
+    except services.PrintError as error:
+        return JsonResponse({"error": str(error)}, status=400)
+    return JsonResponse({"ok": True, "job": job.pk})
+
+
 def agent_printer(agent, data):
     return Printer.objects.filter(agent=agent).filter(
         Q(uid=str(data.get("printer", ""))) | Q(slug=str(data.get("printer", "")))).first()

@@ -9,6 +9,7 @@ urlpatterns = [
     path("api/agent/jobs/<int:pk>/result", api.result, name="print_agent_result"),
     path("api/agent/printers/loaded", api.loaded, name="print_agent_loaded"),
     path("api/agent/printers/ribbon", api.ribbon, name="print_agent_ribbon"),
+    path("api/agent/printers/own-label", api.own_label, name="print_agent_own_label"),
     path("templates/preview", views.design_preview, name="label_design_preview"),
     path("templates/help", views.design_help, name="label_design_help"),
     path("templates/<int:pk>/sample.png", views.template_sample, name="label_template_sample"),

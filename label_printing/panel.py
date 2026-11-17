@@ -105,10 +105,14 @@ class Menu:
         self.title, self.entries, self.index = title, entries, 0
 
 
+OWN_LABELS = {"test": "Testetikett", "calibration": "Kalibrieretikett"}
+
+
 class Station:
     """What a display of the print agent shows and does, whatever it looks like (the PiFace Control & Display here,
     the touch screen in touch.py): the printers' and servers' state in words, the network, and the actions (pause,
-    go on, abort, labels and ribbon loaded in a Zebra), run so that the display stays responsive."""
+    go on, abort, labels and ribbon loaded in a Zebra, test and calibration labels), run so that the display stays
+    responsive."""
 
     held_text = "⏸ angehalten"
 
@@ -238,6 +242,25 @@ class Station:
         self.background(run)
         self.tell("speichere ...", 10)
 
+    def print_own_label(self, link, uid, label):
+        """Ask the server for the printer's test or calibration label, in the background."""
+        def run():
+            if problem := link.print_own_label(uid, label):
+                self.refused(f"{OWN_LABELS[label]} nicht gedruckt", problem)
+            else:
+                self.tell(f"{OWN_LABELS[label]} kommt")
+        self.tell("fordere an ...", 10)
+        self.background(run)
+
+    def refused(self, title, problem):
+        self.tell(f"✗ {problem}", 8)
+
+    def own_label_entries(self, uid):
+        """(label, link, which) for each server the printer is active on."""
+        active = [link for link in self.links if link.settings.get(uid, {}).get("active")]
+        return [(OWN_LABELS[which] + (f" ({urlsplit(link.server).hostname})" if len(active) > 1 else ""), link, which)
+                for link in active for which in OWN_LABELS]
+
     def do(self, action, uid, note):
         action(uid)
         self.tell(note)
@@ -331,6 +354,8 @@ class Panel(Station):
                                 lambda link=link, settings=settings: self.media_menu(link, uid, settings)))
             if settings.get("language") == "zpl" and settings.get("active") and settings.get("ribbons"):
                 entries.append(("Farbband eingelegt" + server, lambda link=link: self.ribbon_menu(link, uid)))
+        entries += [(label, lambda link=link, which=which: self.print_own_label(link, uid, which))
+                    for label, link, which in self.own_label_entries(uid)]
         entries.append(("Zurück", lambda: Menu.BACK))
         return Menu(self.printer_name(uid), entries)
 

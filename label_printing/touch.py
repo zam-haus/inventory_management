@@ -360,6 +360,10 @@ class Touch(Station):
                 items.append(Button(x, y, 360, ROW - 12, "Farbband wählen" + server,
                                     lambda link=link: self.open(self.ribbon_dialog(link, uid))))
             y += ROW
+        for index, (label, link, which) in enumerate(self.own_label_entries(uid)):
+            items.append(Button(2 * PAD + index % 2 * (360 + PAD), y, 360, ROW - 12, label + " drucken",
+                                lambda link=link, which=which: self.print_own_label(link, uid, which)))
+            y += ROW if index % 2 else 0
         if jobs:
             items.append(Text(2 * PAD, y, inner, "Aufträge", 22, bold=True))
             y += 32
@@ -534,6 +538,11 @@ class Touch(Station):
         self.tell("kopple ..." if accept else "nicht gekoppelt")
 
     # ------------------------------------------------------------ actions
+
+    def refused(self, title, problem):
+        """In full: a reason from the server is longer than the note bar (whose "asking ..." goes)."""
+        self.tell("", 0)
+        self.open(Dialog(title, problem, [("OK", None, "normal")]))
 
     def show_tab(self, key):
         self.tab, self.detail = key, None

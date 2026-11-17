@@ -20,6 +20,16 @@ class PrinterValidationTests(TestCase):
         printer.clean()
         self.assertEqual(printer.dpi, 360)
 
+    def test_brother_without_half_cut(self):
+        p700 = Printer.objects.create(name="P", slug="p", language="ptouch", model="P700", host="h")
+        self.assertEqual((p700.cut, p700.chain_printing), ("full", False))  # its leader is cut off (drivers)
+        p700.cut = "half"
+        with self.assertRaises(ValidationError) as raised:
+            p700.clean()
+        self.assertEqual(raised.exception.message_dict["cut"], ["The P700 cannot half cut: choose a full cut."])
+        e550w = Printer.objects.create(name="E", slug="e", language="ptouch", model="E550W", host="h")
+        self.assertEqual((e550w.cut, e550w.chain_printing), ("half", True))
+
     def test_connection_needs_host_or_agent(self):
         for transport, field in (("network", "host"), ("agent", "agent")):
             with self.subTest(transport=transport), self.assertRaises(ValidationError) as raised:

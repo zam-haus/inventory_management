@@ -74,11 +74,15 @@ ZEBRA_MODELS = {
 
 def model_capabilities(language, model):
     """What a printer model takes, for the printer's fields ({} if the model is not known). Brother: the widest tape
-    of its print head (ptouch); Zebra: ZEBRA_MODELS."""
+    of its print head (ptouch), and for models without half cut a full cut, without continuous printing (so every
+    job's leader is cut off: drivers.leader_label); Zebra: ZEBRA_MODELS."""
     if language == "ptouch":
         if model not in drivers.PTOUCH_MODELS:
             return {}
-        return {"max_width_mm": round(max(tape.width_mm for tape in drivers.PTOUCH_MODELS[model].PIN_CONFIGS))}
+        values = {"max_width_mm": round(max(tape.width_mm for tape in drivers.PTOUCH_MODELS[model].PIN_CONFIGS))}
+        if not drivers.ptouch_half_cut(model):
+            values.update(cut=Printer.Cut.FULL, chain_printing=False)
+        return values
     name = (model or "").upper()
     return next((dict(values) for key, values in ZEBRA_MODELS.items() if name.startswith(key)), {})
 
@@ -133,12 +137,13 @@ class Printer(models.Model):
         NONE = "none", _("no cut between labels")
 
     cut = models.CharField(_("cutting"), max_length=8, choices=Cut.choices, default=Cut.HALF,
-                           help_text=_("Brother: between the labels of a job."))
+                           help_text=_("Brother: between the labels of a job. P700 and P710BT: no half cut."))
     chain_printing = models.BooleanField(
         _("continuous printing"), default=True,
         help_text=_("Brother: the last label stays in the printer and the next job goes on from there, which "
                     "saves tape; cut it off with the printer's cutter button. Off: the printer feeds and cuts "
-                    "after every job."))
+                    "after every job. P700 and P710BT do not cut off the empty start of the tape themselves: off, "
+                    "it is cut off before every job; on, the first label after the button keeps it."))
     # Calibration, for all its labels
     offset_x = models.SmallIntegerField(_("offset x (dots)"), default=0, help_text=_("Zebra: label home (^LH)."))
     offset_y = models.SmallIntegerField(
@@ -194,6 +199,8 @@ class Printer(models.Model):
                 errors["model"] = _("Choose one of %(models)s.") % {"models": ", ".join(drivers.PTOUCH_MODELS)}
             else:
                 self.dpi = drivers.ptouch_dpi(self.model)
+                if self.cut == self.Cut.HALF and not drivers.ptouch_half_cut(self.model):
+                    errors["cut"] = _("The %(model)s cannot half cut: choose a full cut.") % {"model": self.model}
         if self.transport == self.Transport.NETWORK and not self.host:
             errors["host"] = _("Network printers need a host.")
         if self.transport == self.Transport.AGENT and not self.agent_id:

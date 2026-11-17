@@ -45,7 +45,7 @@ from .devices import usb, zebra
 from .devices.io import DeviceError, device_for
 from .devices.run import FAILED, Control, Result, query_status, run_job
 
-VERSION = "5.2"
+VERSION = "5.3"
 CONFIG_PATHS = ("/boot/label-agent/config.json", "/boot/firmware/label-agent/config.json",
                 "/etc/label-agent/config.json")
 DEFAULTS = {"servers": [], "poll_interval": 2, "status_interval": 30,
@@ -493,6 +493,22 @@ class Link(threading.Thread):
                                   "ribbon_problem": (answer or {}).get("ribbon_problem", "")}
         log.info("%s: ribbon %s set as loaded in %s", self.server, ribbon, uid)
         return True
+
+    def print_own_label(self, uid, label):
+        """Ask the server for a printer's test or calibration label (from the display), which comes with the next
+        poll: "" if it is queued, else why not, in words."""
+        try:
+            status, answer = self.request("printers/own-label", {"printer": uid, "label": label})
+        except (OSError, ValueError, Refused) as error:
+            log.warning("%s: %s label for %s not asked for: %s", self.server, label, uid, error)
+            return "Server nicht erreichbar"
+        if status != 200:
+            problem = (answer or {}).get("error") or ("Server kann das noch nicht" if status == 404 else
+                                                      f"Server antwortet {status}")
+            log.warning("%s: %s label for %s refused: %s", self.server, label, uid, problem)
+            return problem
+        log.info("%s: %s label for %s queued", self.server, label, uid)
+        return ""
 
     def mark(self, code, message=""):
         if code != self.state["code"] or message != self.state["message"]:

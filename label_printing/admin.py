@@ -162,11 +162,6 @@ class LabelImageAdmin(admin.ModelAdmin):
 
 
 
-def no_material():
-    return " ".join((gettext("It takes no label material on hand."),
-                     gettext("Mark label material as on hand (Label material) or check what the printer takes.")))
-
-
 @admin.register(Printer)
 class PrinterAdmin(admin.ModelAdmin):
     list_display = ("name", "slug", "language", "model", "transport", "agent", "is_active", "is_default", "status",
@@ -229,7 +224,7 @@ class PrinterAdmin(admin.ModelAdmin):
             if printer.agent is not None and not printer.agent.is_active:
                 note = " " + gettext("Its print agent %(agent)s is not active yet.") % {"agent": printer.agent}
             if not printer.media():
-                note += " " + no_material()
+                note += " " + services.no_material_text()
             elif printer.language == Printer.Language.ZPL and not printer.loaded_medium_id:
                 note += " " + gettext("Set the labels loaded in it.")
             self.message_user(request, gettext("%(printer)s is active.") % {"printer": printer} + note)
@@ -263,12 +258,8 @@ class PrinterAdmin(admin.ModelAdmin):
 
     def print_own_label(self, request, queryset, layout_key, what):
         for printer in queryset:
-            if (medium := services.default_medium(printer)) is None:
-                self.message_user(request, f"{printer}: {no_material()}", messages.ERROR)
-                continue
             try:
-                job = services.submit(printer=printer, medium=medium, layout_key=layout_key,
-                                      subject_type="printer", subjects=[printer], user=request.user)
+                job = services.print_own_label(printer, layout_key, user=request.user)
             except services.PrintError as error:
                 self.message_user(request, f"{printer}: {error}", messages.ERROR)
                 continue

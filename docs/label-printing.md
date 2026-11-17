@@ -130,9 +130,9 @@ right, so taking out stays visible longest.
      roll from Greiner (2 × 47 × 24 mm side by side: a template prints only on the left one), all on hand.
      Sizes are whole millimetres (15 × 6.35 mm is 15 × 6; the name keeps the exact size).
    * The **print quality** of material is used unless the label template sets one: *draft (fast)*,
-     *standard*, *high quality (slower)*. Brother: draft printing, or high resolution (E550W 180×360, P900
-     series 360×720 dpi): the label is drawn at twice the resolution along the tape, not only printed twice as
-     dense. Zebra: print speed (`^PR6`, the printer's own setting, `^PR2`).
+     *standard*, *high quality (slower)*. Brother: draft printing (P900, P900W, P950NW only; the others
+     print standard), or high resolution (E550W, P750W, P710BT 180×360, P900 series 360×720 dpi; not the
+     P700): the label is drawn at twice the resolution along the tape, not only printed twice as dense. Zebra: print speed (`^PR6`, the printer's own setting, `^PR2`).
    * Material offers the label templates for its labels: of its size, and of its label material, material
      and colours if a template names them (see [label designs](label-designs.md#where-templates-are-offered)).
    * **Ribbons** (admin → Ribbons) are a catalog of their own: material (wax, wax/resin, resin), width and
@@ -173,6 +173,16 @@ right, so taking out stays visible longest.
      * **continuous printing** (default on): the last label stays in the printer and the next job
        goes on from there, saving the tape's leading margin. Cut it off with the printer's cutter
        button. Off, the printer feeds and cuts after every job.
+     * The **P700 and P710BT** cannot half cut (Brother's raster command references): they cut fully,
+       and are added with a full cut and continuous printing off. Nor do they cut off the empty start of
+       the tape between cutter and print head (24.3 mm, "no precut"), which other models do before a job:
+       without continuous printing, every job begins with an empty label of minimum length (24.5 mm),
+       cut off, so the first label starts cleanly (it counts as a page of the job). With continuous
+       printing, the first label after the cutter button keeps that start. The P700 has no high
+       resolution either: high quality prints as standard there.
+     * The P900 series needs the last page of a job marked as such in its print information (`ESC i z`
+       n9 = 2; 0 the first, 1 the others), or it waits for more pages and hangs until switched off; the
+       128-pin models (E550W, P750W, P700, P710BT) print with 0 on every page.
 3. Print jobs record the printer and the label material they were printed on.
 4. **Test label** (30 mm on tape) and **Check the printer status** are actions on the printer list.
 
@@ -432,7 +442,7 @@ same time.
    model and resolution filled in where known (Brother by USB ID, Zebra by asking it, `~HI`).
    Brother P-touch printers with Bluetooth (named `PT-…BT`) are paired (by themselves, or confirmed on the
    agent's display) and reported with an ID from their Bluetooth address (`bt-a1b2c3d4e5f6`).
-   Name them, check the model, **Activate** them and mark the label material there is as on hand. A printer found
+   Name them, check the model and **Activate** them; mark label material that is not in a printer as on hand. A printer found
    again (unplugged and plugged in, the agent restarted) stays as it is, active or not; one that
    has moved to another agent moves along and stays active if it was. An agent may report at
    most `PRINT_AGENT_MAX_PRINTERS` new printers.
@@ -459,6 +469,11 @@ same time.
    and which is loaded, and the labels waiting for one of its printers that is online but has other labels
    loaded (or none left): printer, labels, how many jobs, what is loaded. On the display someone can set a
    Zebra's loaded labels (`POST /print/api/agent/printers/loaded`); jobs waiting for them go out at once.
+   A printer active on the server gets **Testetikett drucken** and **Kalibrieretikett drucken** on its page
+   of the touch screen (the PiFace display: in its printer menu; since agent version 5.3): the agent asks for
+   the label (`POST /print/api/agent/printers/own-label`, `{"printer": uid, "label": "test"}` or
+   `"calibration"`), which is queued like the admin's test print on the labels loaded in it and comes with
+   the next poll; a refusal (no label material it takes, printer inactive) is shown with its reason.
    Each job carries its subject's name (`subject`, e.g. the location), which the touch screen lists with the
    printer's jobs.
 

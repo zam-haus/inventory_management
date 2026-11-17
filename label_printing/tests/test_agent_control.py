@@ -166,6 +166,22 @@ class PollTests(InventoryData, TestCase):
         self.assertEqual(([entry["id"] for entry in answer["jobs"]], answer["waiting"]), ([job.pk], []))
         self.assertEqual(answer["printers"][self.zebra.uid]["loaded"], small.pk)
 
+    def test_test_and_calibration_labels_asked_for_on_the_display(self):
+        response = self.post("print_agent_own_label", {"printer": self.zebra.uid, "label": "calibration"})
+        job = PrintJob.objects.get(pk=response.json()["job"])
+        self.assertEqual((job.printer, job.medium, job.layout_key, job.status),
+                         (self.zebra, self.labels.stock, "calibration", "pending"))
+        self.assertEqual([entry["id"] for entry in self.poll()["jobs"]], [job.pk])
+        self.assertEqual(self.post("print_agent_own_label", {"printer": self.zebra.uid, "label": "x"}).json(),
+                         {"error": "Unknown layout."})
+        other, other_token = create_agent("other")
+        self.assertEqual(self.post("print_agent_own_label", {"printer": self.zebra.uid, "label": "test"},
+                                   token=other_token).status_code, 404)
+        LabelStock.objects.filter(language="ptouch").update(in_stock=False)  # and no tape reported
+        response = self.post("print_agent_own_label", {"printer": self.brother.uid, "label": "test"})
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("It takes no label material on hand.", response.json()["error"])
+
 
 @override_settings(**SETTINGS)
 class RibbonTests(TestCase):
@@ -367,6 +383,15 @@ class AgentControlTests(SimulatedPrinters, LiveServerTestCase):
         self.assertTrue(self.link.set_ribbon("zebra-lan", ribbon.pk))
         self.assertEqual((Printer.objects.get(pk=self.zebra.pk).loaded_ribbon, self.link.settings["zebra-lan"]["ribbon"]),
                          (ribbon, ribbon.pk))
+
+    def test_the_display_asks_for_a_test_label(self):
+        self.assertEqual(self.link.print_own_label("ptouch-lan", "test"), "")
+        self.assertTrue(self.link.poll_once())
+        self.printers.wait_idle()
+        self.assertEqual(PrintJob.objects.get().status, "done")
+        self.assertEqual(len(self.brother_output.printed), 1)
+        Printer.objects.filter(pk=self.brother.pk).update(is_active=False)
+        self.assertNotEqual(self.link.print_own_label("ptouch-lan", "test"), "")  # switched off in the admin
 
 
 @override_settings(**SETTINGS)

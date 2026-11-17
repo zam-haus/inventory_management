@@ -9,21 +9,28 @@ import math
 import ptouch
 from PIL import Image
 from ptouch.connection import Connection
+from ptouch.printers import PTP900Series
 
 
 
 class PTP710BT(ptouch.PTP750W):
     """Brother PT-P710BT (Bluetooth and USB): the raster commands, print head and resolution of the PT-P750W
-    (raster command reference PT-E550W/P750W/P710BT)."""
+    (raster command reference PT-E550W/P750W/P710BT), but no half cut and no "cut each * labels" (ESC i A)."""
 
     USB_PRODUCT_ID = 0x20AF
+    SUPPORTS_HALF_CUT = False
+    SUPPORTS_PAGE_NUMBER_CUTS = False
 
 
 class PTP700(ptouch.PTP750W):
-    """Brother PT-P700 (USB only): the PT-P750W without WLAN, the same print head (128 pins, 180 dpi, up to 24 mm)
-    and raster commands. Its switch for P-Lite (Editor Lite) must be off: else it is a USB drive, not a printer."""
+    """Brother PT-P700 (USB only): the print head of the PT-P750W (128 pins, 180 dpi, up to 24 mm) and its raster
+    commands, but (raster command reference PT-H500/P700/E500) no half cut, no high resolution and no "cut each *
+    labels" (ESC i A). Its switch for P-Lite (Editor Lite) must be off: else it is a USB drive, not a printer."""
 
     USB_PRODUCT_ID = 0x2061
+    SUPPORTS_HALF_CUT = False
+    SUPPORTS_PAGE_NUMBER_CUTS = False
+    RESOLUTION_DPI_HIGH = 0
 
 
 # Printer.model choices for P-touch printers → ptouch printer classes.
@@ -37,6 +44,9 @@ PTOUCH_MODELS = {
     "P950NW": ptouch.PTP950NW,
     "P910BT": ptouch.PTP910BT,
 }
+# P-touch printers with draft printing (ESC i K bit 0)
+PTOUCH_DRAFT_MODELS = {"P900", "P900W", "P950NW"}
+
 # Tape widths (mm, as on the cassette) → ptouch tape classes; 3.5 mm tape reports 4 mm.
 PTOUCH_TAPES = {
     4: ptouch.Tape3_5mm,
@@ -128,12 +138,13 @@ def ptouch_dpi(model):
 def ptouch_printer(model, quality):
     """The ptouch printer class for `model`, printing in `quality`:
 
-    * draft: the printer's draft mode (ESC i K bit 0), faster and lighter,
+    * draft: the printer's draft mode (ESC i K bit 0), faster and lighter; only the PT-P900, P900W and P950NW
+      have it (raster command references: "not used" elsewhere, the P910BT wants it 0), the others print standard,
     * high: high resolution (twice the dots along the tape). The label images are then already twice as
       long in dots (ptouch_high_resolution_dpi), so every raster line is sent once, not doubled as ptouch
       would do."""
     base = PTOUCH_MODELS[model]
-    if quality == "draft":
+    if quality == "draft" and model in PTOUCH_DRAFT_MODELS:
         class Draft(base):
             def _cmd_advanced_mode_settings(self, *args, **kwargs):
                 command = bytearray(super()._cmd_advanced_mode_settings(*args, **kwargs))
@@ -151,6 +162,17 @@ def ptouch_printer(model, quality):
     return base
 
 
+def ptouch_half_cut(model):
+    """Whether the model half cuts; those that do also cut off the leader before a job ("precut"), those that do
+    not (PT-P700, PT-P710BT) cut fully instead (cutting) and leave it on the first label (leader_label)."""
+    return PTOUCH_MODELS[model].SUPPORTS_HALF_CUT
+
+
+def ptouch_high_resolution(model):
+    """Whether the model prints in high resolution (not the PT-P700): else high quality prints as standard."""
+    return PTOUCH_MODELS[model].RESOLUTION_DPI_HIGH > 0
+
+
 def ptouch_high_resolution_dpi(model):
     """Dots per inch along the tape in high resolution (across it, the resolution stays the same)."""
     return PTOUCH_MODELS[model].RESOLUTION_DPI_HIGH
@@ -159,7 +181,10 @@ def ptouch_high_resolution_dpi(model):
 def cutting(base, cut, chain):
     """The printer class cutting as asked in every page's control sequence (ESC i M bit 6: auto cut; ESC i K
     bit 2: half cut, bit 3: no chain printing): cut "half", "full" or "none" between the labels; chain: the last
-    label is neither fed out nor cut, the next job goes on from it."""
+    label is neither fed out nor cut, the next job goes on from it. Printers without half cut cut fully instead."""
+    if cut == "half" and not base.SUPPORTS_HALF_CUT:
+        cut = "full"
+
     class Cutting(base):
         def _build_page_control_sequence(self, num_lines, *args, **kwargs):
             kwargs.update(auto_cut=cut == "full", half_cut=cut == "half", chain_printing=chain)
@@ -167,11 +192,39 @@ def cutting(base, cut, chain):
     return Cutting
 
 
+def page_flags(base, pages):
+    """The printer class marking each page in its print information (ESC i z, n9), as the P900 series needs: 0 the
+    first page, 1 the others, 2 the last (a job of one page: 2). Without the last page marked, a P900W prints and
+    then waits for more pages: its cutter button does nothing and it stops answering until switched off. The 128-pin
+    models know only 0 and 1 and print with 0 throughout, as ptouch sends it."""
+    if not issubclass(base, PTP900Series):
+        return base
+
+    class PageFlags(base):
+        page = 0
+
+        def _cmd_print_information(self, *args, **kwargs):
+            command = bytearray(super()._cmd_print_information(*args, **kwargs))
+            command[11] = 2 if self.page == pages - 1 else 0 if self.page == 0 else 1
+            self.page += 1
+            return bytes(command)
+    return PageFlags
+
+
+def leader_label(tape, pins):
+    """An empty label, cut off before a job's labels: a printer without half cut does not cut off the tape between
+    its cutter and print head (24.3 mm, "no precut"), so the first label would start with it. Without continuous
+    printing every job starts there; the printer feeds at least 24.5 mm for any label, so this one takes the leader
+    off. (With continuous printing the tape goes on from the last job's label, unless it was fed out with the
+    printer's button: then the leader stays on the first label.)"""
+    return ptouch.Label(Image.new("1", (8, pins), 1), tape)  # white: nothing printed
+
+
 def ptouch_job(model, tape_mm, images, copies=1, quality="standard", offset=0, cut="half", chain=True):
     """(bytes, pages): the labels, cut between them as set (cutting). In high quality the images are twice as
     long in dots (see ptouch_printer). offset moves the print area across the tape by that many print head pins,
     positive = down as the label is read (image row 0 is the top row), for printers whose tape sits a little
-    apart from the pins Brother's specification gives."""
+    apart from the pins Brother's specification gives. Pages: the labels, and a leader_label first if there is one."""
     tape = ptouch_tape(tape_mm)
     pins = ptouch_print_pins(model, tape_mm)
     labels = []
@@ -179,8 +232,11 @@ def ptouch_job(model, tape_mm, images, copies=1, quality="standard", offset=0, c
         if image.height != pins:
             raise ValueError(f"label image is {image.height} dots high, the {tape_mm} mm tape needs {pins}")
         labels.extend(ptouch.Label(image.convert("1"), tape) for _ in range(copies))
+    if not chain and cut != "none" and not ptouch_half_cut(model):
+        labels.insert(0, leader_label(tape, pins))
     connection = BufferConnection()
-    printer = cutting(ptouch_printer(model, quality), cut, chain)(connection, high_resolution=quality == "high")
+    printer = page_flags(cutting(ptouch_printer(model, quality), cut, chain), len(labels))(
+        connection, high_resolution=quality == "high")
     if offset:
         config = printer.PIN_CONFIGS[tape]
         offset = max(-config.left_pins, min(offset, config.right_pins))
