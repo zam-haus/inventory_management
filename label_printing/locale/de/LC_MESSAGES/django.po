@@ -2160,3 +2160,37 @@ msgstr ""
 #, python-format
 msgid "The %(model)s cannot half cut: choose a full cut."
 msgstr "Der %(model)s kann keinen Halbschnitt: wähle einen Vollschnitt."
+
+#: admin.py:235
+msgid "Set the labels loaded in it on the print agent's display."
+msgstr "Lege auf dem Display des Druckagenten fest, welche Etiketten eingelegt sind."
+
+#: outcomes.py:45
+msgid "No labels are set as loaded in this printer (on its print agent's display)."
+msgstr ""
+"Für diesen Drucker sind keine eingelegten Etiketten eingestellt (auf dem "
+"Display seines Druckagenten)."
+
+#: models.py:171
+msgid ""
+"Zebra: the labels in the printer now; set it when changing labels (on a "
+"print agent: on its display). Only these are printed, after comparing their "
+"height with the label length the printer measured (it cannot tell their "
+"width)."
+msgstr ""
+"Zebra: die Etiketten, die gerade im Drucker sind; beim Etikettenwechsel "
+"umstellen (an einem Druckagenten: auf seinem Display). Nur auf diese wird "
+"gedruckt, nachdem ihre Höhe mit der vom Drucker gemessenen Etikettenlänge "
+"verglichen wurde (die Breite kann er nicht erkennen)."
+
+#: models.py:176
+msgid ""
+"Zebra: the ribbon in the printer now; set it when changing ribbons (on a "
+"print agent: on its display). Its material (wax, wax/resin, resin) is "
+"compared with what the loaded labels need, and the print agent's display "
+"warns if it does not suit them."
+msgstr ""
+"Zebra: das Farbband, das gerade im Drucker ist; beim Wechseln setzen (an "
+"einem Druckagenten: auf seinem Display). Sein Material (Wachs, Wachs/Harz, "
+"Harz) wird mit dem verglichen, was die eingelegten Etiketten brauchen, und "
+"das Display des Druckagenten warnt, wenn es nicht passt."

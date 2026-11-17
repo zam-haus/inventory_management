@@ -168,14 +168,14 @@ class Printer(models.Model):
     loaded_medium = models.ForeignKey(
         "LabelStock", verbose_name=_("loaded labels"), null=True, blank=True, on_delete=models.SET_NULL,
         related_name="+",
-        help_text=_("Zebra: the labels in the printer now; set it when changing labels. Only these are printed, "
-                    "after comparing their height with the label length the printer measured (it cannot tell "
-                    "their width)."))
+        help_text=_("Zebra: the labels in the printer now; set it when changing labels (on a print agent: on its "
+                    "display). Only these are printed, after comparing their height with the label length the "
+                    "printer measured (it cannot tell their width)."))
     loaded_ribbon = models.ForeignKey(
         "Ribbon", verbose_name=_("loaded ribbon"), null=True, blank=True, on_delete=models.SET_NULL, related_name="+",
-        help_text=_("Zebra: the ribbon in the printer now; set it when changing ribbons. Its material (wax, "
-                    "wax/resin, resin) is compared with what the loaded labels need, and the print agent's display "
-                    "warns if it does not suit them."))
+        help_text=_("Zebra: the ribbon in the printer now; set it when changing ribbons (on a print agent: on its "
+                    "display). Its material (wax, wax/resin, resin) is compared with what the loaded labels need, "
+                    "and the print agent's display warns if it does not suit them."))
     is_active = models.BooleanField(_("active"), default=True)
     is_default = models.BooleanField(_("default printer"), default=False,
                                      help_text=_("Used by the print actions in the admin."))

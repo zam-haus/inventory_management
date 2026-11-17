@@ -41,6 +41,8 @@ def not_loaded(printer, medium):
             return str(loaded_text(status))
         return ""
     if printer.loaded_medium_id is None:
+        if printer.transport == Printer.Transport.AGENT:
+            return _("No labels are set as loaded in this printer (on its print agent's display).")
         return _("No labels are set as loaded in this printer (admin: its settings).")
     if printer.loaded_medium_id != medium.pk:
         return _("Loaded: %(media)s.") % {"media": printer.loaded_medium.name}

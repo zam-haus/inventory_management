@@ -19,7 +19,7 @@ here=$(cd "$(dirname "$0")" && pwd)
 repo=$(cd "$here/../.." && pwd)
 dest="$boot/label-agent"
 mkdir -p "$dest/label_printing/devices"
-cp "$repo/label_printing/__init__.py" "$repo/label_printing/agent.py" "$repo/label_printing/panel.py" \
+cp "$repo/label_printing/__init__.py" "$repo/label_printing/agent.py" "$repo/label_printing/station.py" \
     "$repo/label_printing/touch.py" "$dest/label_printing/"
 cp "$repo"/label_printing/devices/*.py "$dest/label_printing/devices/"
 cp "$here/install.sh" "$here/update.sh" "$here/keep.sh" "$here/label-agent.service" "$here/label-agent-keep.path" \

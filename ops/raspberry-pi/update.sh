@@ -14,7 +14,13 @@ for candidate in /boot/firmware /boot; do
     if [ -d "$candidate/label-agent/label_printing" ]; then boot=$candidate; break; fi
 done
 agent=/opt/label-agent
-if [ -n "$boot" ]; then
+# A copy cut short (the power gone before the card was written, e.g. a reboot hanging after push.sh) leaves empty
+# files on the boot partition: then neither code nor service files are taken from there, the installed ones stay.
+damaged=""
+[ -n "$boot" ] && damaged=$(find "$boot/label-agent" -type f -size 0 ! -name config.json ! -name '*.tgz' | head -3)
+if [ -n "$damaged" ]; then
+    echo "label-agent: empty files on the boot partition (a copy cut short?): $(echo $damaged); keeping the installed agent, copy it again (push.sh)" >&2
+elif [ -n "$boot" ]; then
     rm -rf $agent/label_printing.new
     cp -r "$boot/label-agent/label_printing" $agent/label_printing.new
     find $agent/label_printing.new -name '._*' -delete  # macOS leaves these on FAT
@@ -72,7 +78,7 @@ JOURNAL
 files="$policy_file /etc/dbus-1/system.d/label-agent-bluetooth.conf
 $journal_file /etc/systemd/journald.conf.d/label-agent.conf"
 for unit in label-agent.service label-agent-keep.path label-agent-keep.service; do
-    [ -n "$boot" ] && [ -f "$boot/label-agent/$unit" ] && files="$files
+    [ -n "$boot" ] && [ -z "$damaged" ] && [ -f "$boot/label-agent/$unit" ] && files="$files
 $boot/label-agent/$unit /etc/systemd/system/$unit"
 done
 outdated=""

@@ -159,7 +159,9 @@ right, so taking out stays visible longest.
      moves the print across the tape, positive = down, if the top or bottom is cut off: print the calibration
      label to measure).
    * A Zebra cannot tell which labels are in it: set its **loaded labels** (label material it takes)
-     whenever labels are changed. Only those are printed on, and only while the label length
+     whenever labels are changed: on its print agent's display (**Etiketten wählen**; in the admin the field
+     is then read-only, as is the ribbon: the agent knows what is in its printers), for a network Zebra in
+     the admin. Only those are printed on, and only while the label length
      the printer measured (`~HS`, after calibration) matches their height within 2 mm; the width
      cannot be checked. The check is made when the dialog lists the labels and again right before a
      job is sent (also by print agents). Set its **loaded ribbon** likewise when changing ribbons: its material is

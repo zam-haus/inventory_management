@@ -183,9 +183,15 @@ class PrinterAdmin(admin.ModelAdmin):
     actions = ["activate", "test_print", "calibration_print", "check_status", "resume_held"]
 
     def get_readonly_fields(self, request, obj=None):
-        """The model is fixed: another model is another printer (delete it and add it anew)."""
+        """The model is fixed: another model is another printer (delete it and add it anew). A Zebra on a print
+        agent has its labels and ribbon set on the agent's display, which knows what is in it."""
         fields = super().get_readonly_fields(request, obj)
-        return (*fields, "language", "model") if obj else fields
+        if obj is None:
+            return fields
+        fields = (*fields, "language", "model")
+        if obj.transport == Printer.Transport.AGENT:
+            fields = (*fields, "loaded_medium", "loaded_ribbon")
+        return fields
 
     def has_print_label_permission(self, request):
         """Printing labels is for who may (label_printing.print_label: the local group), also in the admin."""
@@ -226,7 +232,8 @@ class PrinterAdmin(admin.ModelAdmin):
             if not printer.media():
                 note += " " + services.no_material_text()
             elif printer.language == Printer.Language.ZPL and not printer.loaded_medium_id:
-                note += " " + gettext("Set the labels loaded in it.")
+                note += " " + (gettext("Set the labels loaded in it on the print agent's display.")
+                               if printer.transport == Printer.Transport.AGENT else gettext("Set the labels loaded in it."))
             self.message_user(request, gettext("%(printer)s is active.") % {"printer": printer} + note)
 
     @admin.display(description=_("status"))

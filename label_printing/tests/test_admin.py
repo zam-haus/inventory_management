@@ -172,3 +172,12 @@ class PrinterAdminTests(SimulatedPrinters, TestCase):
         self.assertNotIn(self.tape.stock, choices)  # a Brother tape
         self.assertContains(response, "57 × 32 mm")  # the material on hand it takes
 
+    def test_a_zebra_on_an_agent_has_its_labels_set_on_the_display(self):
+        from .test_agent import create_agent
+
+        Printer.objects.filter(pk=self.zebra.pk).update(transport="agent", agent=create_agent()[0])
+        response = self.client.get(reverse("admin:label_printing_printer_change", args=[self.zebra.pk]))
+        self.assertNotIn("loaded_medium", response.context["adminform"].form.fields)
+        self.assertNotIn("loaded_ribbon", response.context["adminform"].form.fields)
+        self.assertContains(response, "57 × 32 mm")  # shown, read-only
+
