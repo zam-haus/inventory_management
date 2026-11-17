@@ -6,11 +6,14 @@
 // on first use. Nothing is fetched from third-party servers.
 //
 // createBarcodeScanner({formats, labels, onDetect}) returns {open, close}.
-// `onDetect(value, format)` returns false for codes it ignores (for example
-// duplicates); the dialog then says so instead of confirming the scan.
-// `labels` holds the page-specific title, hint, added and duplicate texts;
-// `{code}` in added and duplicate is replaced by the scanned value. Shared
-// texts come from data-label-* attributes of this script's tag.
+// Only codes wholly inside the drawn box are read. `onDetect(value, format)`
+// returns false for a code scanned already (a duplicate) and 'error' for one it
+// cannot use (e.g. a link to another site); the dialog then says so, with its
+// own sound, instead of confirming the scan. The list keeps the codes taken; a
+// failed last scan shows above them until the next one. `labels` holds the
+// page-specific title, hint, added, duplicate and error texts; `{code}` in them
+// is replaced by the scanned value. Shared texts come from data-label-*
+// attributes of this script's tag. Cameras with a light get a flashlight button.
 (() => {
     const config = document.currentScript.dataset;
     const SCAN_INTERVAL = 120;
@@ -58,21 +61,42 @@
         return detectors.get(key);
     }
 
-    function beep() {
+    // What a scan sounds and feels like: a short high beep for a code taken, two
+    // lower ones for one scanned already, a low buzz for one that cannot be used.
+    const FEEDBACK = {
+        added: {tones: [[1200, 0, 0.08]], vibrate: 60},
+        duplicate: {tones: [[700, 0, 0.07], [700, 0.12, 0.07]], vibrate: [40, 60, 40]},
+        error: {tones: [[220, 0, 0.3, 'square']], vibrate: 250},
+    };
+    let audio = null;
+
+    // Created (or woken) while the user opens the scanner: browsers only allow sound after a gesture.
+    function wakeAudio() {
         try {
-            const audio = beep.context || (beep.context = new AudioContext());
-            const oscillator = audio.createOscillator();
-            const gain = audio.createGain();
-            oscillator.frequency.value = 1200;
-            gain.gain.value = 0.05;
-            oscillator.connect(gain).connect(audio.destination);
-            oscillator.start();
-            oscillator.stop(audio.currentTime + 0.08);
+            audio = audio || new AudioContext();
+            if (audio.state === 'suspended') audio.resume();
         } catch { /* sound is optional */ }
     }
 
+    function feedback(kind) {
+        const {tones, vibrate} = FEEDBACK[kind];
+        try {
+            for (const [frequency, start, length, type = 'sine'] of tones) {
+                const oscillator = audio.createOscillator();
+                const gain = audio.createGain();
+                oscillator.type = type;
+                oscillator.frequency.value = frequency;
+                gain.gain.value = type === 'square' ? 0.03 : 0.05;
+                oscillator.connect(gain).connect(audio.destination);
+                oscillator.start(audio.currentTime + start);
+                oscillator.stop(audio.currentTime + start + length);
+            }
+        } catch { /* sound is optional */ }
+        if (navigator.vibrate) navigator.vibrate(vibrate);
+    }
+
     const sharedLabels = {
-        close: config.labelClose, done: config.labelDone, starting: config.labelStarting,
+        close: config.labelClose, done: config.labelDone, starting: config.labelStarting, torch: config.labelTorch,
         denied: config.labelDenied, noCamera: config.labelNoCamera,
         insecure: config.labelInsecure, unavailable: config.labelUnavailable,
     };
@@ -84,6 +108,7 @@
         let stream = null;
         let generation = 0;
         const recent = new Map();
+        const canvas = document.createElement('canvas');
 
         function build() {
             dialog = document.createElement('dialog');
@@ -94,15 +119,19 @@
                     <h2 class="fs-5 m-0" id="barcode-scanner-title"></h2>
                     <button type="button" class="btn-close" data-scanner-close></button>
                 </div>
-                <div class="barcode-scanner-view"><video muted playsinline></video><span class="barcode-scanner-frame" aria-hidden="true"></span></div>
+                <div class="barcode-scanner-view"><video muted playsinline></video><span class="barcode-scanner-frame" aria-hidden="true"></span><button type="button" class="barcode-scanner-torch" aria-pressed="false" hidden></button></div>
                 <p class="barcode-scanner-status" role="status"></p>
                 <ol class="barcode-scanner-results"></ol>
                 <div class="barcode-scanner-footer"><button type="button" class="btn btn-primary" data-scanner-done></button></div>`;
             document.body.append(dialog);
             parts = {
                 video: dialog.querySelector('video'), view: dialog.querySelector('.barcode-scanner-view'),
+                frame: dialog.querySelector('.barcode-scanner-frame'), torch: dialog.querySelector('.barcode-scanner-torch'),
                 status: dialog.querySelector('.barcode-scanner-status'), results: dialog.querySelector('.barcode-scanner-results'),
             };
+            parts.torch.setAttribute('aria-label', labels.torch);
+            parts.torch.title = labels.torch;
+            parts.torch.addEventListener('click', toggleTorch);
             dialog.querySelector('#barcode-scanner-title').textContent = labels.title;
             dialog.querySelector('[data-scanner-close]').setAttribute('aria-label', labels.close);
             dialog.querySelector('[data-scanner-done]').textContent = labels.done;
@@ -122,9 +151,56 @@
 
         function stop() {
             generation += 1;
-            if (stream) stream.getTracks().forEach(track => track.stop());
+            if (stream) stream.getTracks().forEach(track => track.stop());  // the light goes off with it
             stream = null;
-            if (parts) parts.video.srcObject = null;
+            if (parts) {
+                parts.video.srcObject = null;
+                parts.torch.hidden = true;
+                showTorch(false);
+            }
+        }
+
+        function showTorch(lit) {
+            parts.torch.setAttribute('aria-pressed', String(lit));
+            parts.torch.replaceChildren(window.appIcon(lit ? 'lightning-charge-fill' : 'lightning-charge'));
+        }
+
+        // The flashlight button, for a camera that can switch its light (not every phone browser can tell).
+        function offerTorch(track) {
+            const capabilities = track.getCapabilities ? track.getCapabilities() : {};
+            parts.torch.hidden = !capabilities.torch;
+        }
+
+        async function toggleTorch() {
+            const track = stream && stream.getVideoTracks()[0];
+            if (!track) return;
+            const lit = parts.torch.getAttribute('aria-pressed') !== 'true';
+            try {
+                await track.applyConstraints({advanced: [{torch: lit}]});
+                showTorch(lit);
+            } catch {
+                parts.torch.hidden = true;  // it said it could, but cannot
+            }
+        }
+
+        // The video's pixels inside the drawn box (the video fills the view, cropped as needed: object-fit cover).
+        function inFrame() {
+            const {video} = parts;
+            const view = parts.view.getBoundingClientRect();
+            const frame = parts.frame.getBoundingClientRect();
+            const scale = Math.max(view.width / video.videoWidth, view.height / video.videoHeight);
+            if (!scale) return null;
+            const left = view.left + (view.width - video.videoWidth * scale) / 2;
+            const top = view.top + (view.height - video.videoHeight * scale) / 2;
+            const x = Math.max(0, (frame.left - left) / scale);
+            const y = Math.max(0, (frame.top - top) / scale);
+            const width = Math.min(video.videoWidth - x, frame.width / scale);
+            const height = Math.min(video.videoHeight - y, frame.height / scale);
+            if (width < 1 || height < 1) return null;
+            canvas.width = Math.round(width);
+            canvas.height = Math.round(height);
+            canvas.getContext('2d', {willReadFrequently: true}).drawImage(video, x, y, width, height, 0, 0, canvas.width, canvas.height);
+            return canvas;
         }
 
         function close() {
@@ -139,27 +215,30 @@
                 return;
             }
             recent.set(value, now);
-            const accepted = onDetect(value, format) !== false;
+            const result = onDetect(value, format);
+            const kind = result === 'error' ? 'error' : result === false ? 'duplicate' : 'added';
+            // The codes taken; a failed scan only until the next one, above them
+            parts.results.querySelectorAll('.is-duplicate, .is-error').forEach(item => item.remove());
             const item = document.createElement('li');
             item.textContent = value;
-            item.className = accepted ? 'is-added' : 'is-duplicate';
+            item.className = `is-${kind}`;
             parts.results.prepend(item);
-            while (parts.results.children.length > 5) parts.results.lastElementChild.remove();
-            setStatus((accepted ? labels.added : labels.duplicate).replace('{code}', value), accepted ? 'added' : 'duplicate');
+            const taken = parts.results.querySelectorAll('.is-added');
+            if (taken.length > 5) taken[taken.length - 1].remove();
+            setStatus((labels[kind] || labels.duplicate).replace('{code}', value), kind);
+            parts.view.dataset.hit = kind;
             parts.view.classList.remove('is-hit');
             void parts.view.offsetWidth;
             parts.view.classList.add('is-hit');
-            if (accepted) {
-                beep();
-                if (navigator.vibrate) navigator.vibrate(60);
-            }
+            feedback(kind);
         }
 
         async function scan(current, detector) {
             while (current === generation) {
-                if (parts.video.readyState >= 2 && parts.video.videoWidth) {
+                const image = parts.video.readyState >= 2 && parts.video.videoWidth ? inFrame() : null;
+                if (image) {
                     try {
-                        for (const code of await detector.detect(parts.video)) {
+                        for (const code of await detector.detect(image)) {
                             if (current !== generation) return;
                             report(code.rawValue, code.format);
                         }
@@ -172,6 +251,7 @@
         async function open() {
             if (!dialog) build();
             if (!dialog.open) dialog.showModal();
+            wakeAudio();
             stop();
             const current = generation;
             parts.results.replaceChildren();
@@ -194,6 +274,7 @@
                     return;
                 }
                 stream = media;
+                offerTorch(media.getVideoTracks()[0]);
                 parts.video.srcObject = media;
                 await parts.video.play().catch(() => {});
             } catch (error) {

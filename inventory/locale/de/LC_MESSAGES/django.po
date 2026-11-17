@@ -5651,3 +5651,7 @@ msgstr "Verantwortung speichern"
 #: inventory/templates/inventory/unique_item_responsibility_editor.html
 msgid "Responsible person"
 msgstr "Verantwortliche Person"
+
+#: inventory/templates/inventory/barcode_scanner_script.html
+msgid "Flashlight"
+msgstr "Taschenlampe"

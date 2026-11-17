@@ -9,8 +9,17 @@
 .barcode-scanner-view video { display: block; width: 100%; height: 100%; object-fit: cover; }
 .barcode-scanner-frame { position: absolute; inset: 15%; border: 3px solid rgb(255 255 255 / .8); border-radius: .5rem; box-shadow: 0 0 0 100vmax rgb(0 0 0 / .25); }
 .barcode-scanner-view.is-hit .barcode-scanner-frame { animation: barcode-scanner-hit .4s ease-out; }
+.barcode-scanner-view.is-hit[data-hit="duplicate"] .barcode-scanner-frame { animation-name: barcode-scanner-again; }
+.barcode-scanner-view.is-hit[data-hit="error"] .barcode-scanner-frame { animation-name: barcode-scanner-miss; }
 @keyframes barcode-scanner-hit { from { border-color: #20c997; box-shadow: 0 0 0 100vmax rgb(32 201 151 / .35); } }
+@keyframes barcode-scanner-again { from { border-color: #adb5bd; box-shadow: 0 0 0 100vmax rgb(173 181 189 / .35); } }
+@keyframes barcode-scanner-miss { from { border-color: #dc3545; box-shadow: 0 0 0 100vmax rgb(220 53 69 / .35); } }
 @media (prefers-reduced-motion: reduce) { .barcode-scanner-view.is-hit .barcode-scanner-frame { animation: none; } }
+.barcode-scanner-torch {
+    position: absolute; right: .5rem; bottom: .5rem; width: 44px; height: 44px; display: grid; place-items: center;
+    border: 0; border-radius: 50%; background: rgb(0 0 0 / .55); color: #fff; font-size: 1.25rem;
+}
+.barcode-scanner-torch[aria-pressed="true"] { background: #ffc107; color: #111; }
 .barcode-scanner-status { min-height: 1.5rem; margin: .75rem 1rem 0; overflow-wrap: anywhere; }
 .barcode-scanner-status[data-kind="added"] { color: #146c43; font-weight: 600; }
 .barcode-scanner-status[data-kind="duplicate"] { color: #59636e; }
@@ -18,6 +27,9 @@
 .barcode-scanner-results { margin: .5rem 1rem 0; padding-left: 1.25rem; font-family: monospace; font-size: .875rem; color: #59636e; overflow-wrap: anywhere; }
 .barcode-scanner-results .is-added { color: #111; }
 .barcode-scanner-results .is-duplicate { text-decoration: line-through; }
+.barcode-scanner-results .is-error { color: #b02a37; text-decoration: line-through; }
+/* A failed scan: above the codes taken, without a number of its own */
+.barcode-scanner-results .is-duplicate, .barcode-scanner-results .is-error { display: block; }
 .barcode-scanner-footer { display: flex; justify-content: flex-end; padding: .75rem 1rem 1rem; }
 .barcode-scanner-footer .btn { min-height: 44px; }
 .barcode-scanner :focus-visible { outline: 3px solid #0d6efd; outline-offset: 2px; }

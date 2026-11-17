@@ -26,7 +26,7 @@
 
     const scanner = window.createBarcodeScanner({
         formats: ['qr_code', 'code_128', 'ean_13', 'ean_8'],
-        labels: {title: data.title, hint: data.hint, added: data.opening, duplicate: data.foreign},
+        labels: {title: data.title, hint: data.hint, added: data.opening, error: data.foreign},
         onDetect: (value, format) => {
             if (format === 'code_128') {
                 scanner.close();
@@ -41,7 +41,7 @@
                 return true;
             }
             const url = servedUrl(value);
-            if (!url) return false;
+            if (!url) return 'error';  // not a link to this inventory
             scanner.close();
             window.location.assign(url.href);
             return true;
