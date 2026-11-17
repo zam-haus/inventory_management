@@ -14,7 +14,7 @@ from inventory.numbered_location_views import with_print_dialog
 from inventory.models import Item, ItemLocation, LabelId, Location, LocationLabelTemplate, LocationType, MeasurementUnit
 from .. import dialog, drivers, label_urls, services, simulator
 from ..layouts import Canvas, get_layout, layouts_for
-from ..models import LabelMedium, PrintJob
+from ..models import LabelMedium, LastLabel, PrintJob
 from .helpers import SETTINGS, SimulatedPrinters, create_printers, create_user, generated, outcome_key
 
 
@@ -165,6 +165,26 @@ class PrintDialogTests(SimulatedPrinters, InventoryData, TestCase):
         job, = PrintJob.objects.all()
         self.assertEqual((job.snapshot[0]["code"], job.layout_key), ("R303.a", f"design:{self.template.pk}"))
         self.assertEqual(self.post("location", self.shelf, {"copies": 1, "children": "on"}).status_code, 400)  # none chosen
+
+    def test_the_chosen_label_is_preselected_from_now_on_only_if_asked(self):
+        def last_labels():
+            return dict(LastLabel.objects.values_list("subject_pk", "layout_key"))
+
+        plain, tape = f"design:{self.template.pk}@57x32", outcome_key("location", "tape12")
+        self.assertTrue(self.post("location", self.part, {"outcome": tape, "copies": 1}).json()["ok"])
+        self.assertEqual(last_labels(), {})  # printed once: the preselection stays as it was
+        self.post("location", self.part, {"outcome": plain, "copies": 1, "remember": "on"})
+        self.assertEqual(last_labels(), {str(self.part.pk): f"design:{self.template.pk}"})
+        self.assertEqual(dialog.options("location", self.part)["rows"][0]["chosen"], plain)
+        # In the overview: each printed location's label
+        self.post("location", self.shelf, {"copies": 1, "children": "on", "remember": "on", "row-0-print": "on",
+                                           "row-0-outcome": tape, "row-2-print": "on", "row-2-outcome": plain})
+        self.assertEqual(last_labels(), {str(self.shelf.pk): tape.split("@")[0], str(self.part.pk): plain.split("@")[0],
+                                         str(self.other_part.pk): plain.split("@")[0]})
+        # Only a location's label is remembered
+        self.assertNotIn("remember", dialog.PrintForm(subject_type="item", obj=self.item).fields)
+        self.assertNotContains(self.client.get(self.item.get_absolute_url()), 'name="remember"')
+        self.assertContains(self.client.get(self.part.get_absolute_url()), 'name="remember"')
 
     def test_print_an_item_label(self):
         data = self.post("item", self.item, {"outcome": outcome_key("item", "57x32"), "copies": 2,

@@ -449,8 +449,8 @@ class PrintJob(models.Model):
 
 
 class LastLabel(models.Model):
-    """The label template a subject was printed with last (selection.py preselects it): e.g. the arrow up or
-    down for a compartment, which no rule could tell. By its layout key ("design:12", as PrintJob.layout_key),
+    """The label template chosen for a subject in the print dialog ("preselect from now on"; selection.py
+    preselects it): e.g. the arrow up or down for a compartment, which no rule could tell. By its layout key ("design:12", as PrintJob.layout_key),
     so label printing has no relation to the inventory's models."""
 
     class Meta:

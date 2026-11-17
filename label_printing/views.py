@@ -137,6 +137,7 @@ class PrintLabelsView(PermissionRequiredMixin, View):
                             outcome, subject_type=outcome.layout.subject_type, subjects=[subject],
                             copies=form.cleaned_data["copies"], user=request.user, request_id=request_id,
                             wait=True, batch=batch))
+                    form.remember_labels()
             except services.PrintError as error:
                 jobs = []
                 form.add_error(None, str(error))

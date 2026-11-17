@@ -144,7 +144,6 @@ def finish(job, result):
     if job.status in (PrintJob.Status.DONE, PrintJob.Status.SENT):
         if job.subject_type in ("labelid", "uniqueitem"):
             label_ids.mark_printed(entry["code"] for entry in job.snapshot if entry.get("code"))
-        selection.remember_job(job)
         if finished:  # once, also if a result is reported twice
             change_log.record_print(job, layout_name(job))
     return job

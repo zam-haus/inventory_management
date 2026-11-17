@@ -1851,3 +1851,15 @@ msgstr ""
 
 #~ msgid "QR code, code and path"
 #~ msgstr "QR-Code, Kennung und Ort"
+
+#: dialog.py templates/label_printing/print_fields.html
+msgid "Preselect from now on"
+msgstr "Künftig vorauswählen"
+
+#: templates/label_printing/print_fields.html
+msgid ""
+"The chosen label is preselected the next time this location is printed (in "
+"the overview: each location's)."
+msgstr ""
+"Das gewählte Etikett ist beim nächsten Druck dieses Orts vorausgewählt (in "
+"der Übersicht: das jedes Orts)."

@@ -76,6 +76,13 @@
         <label class="form-check-label" for="label-print-children-{{ subject_type }}">{% blocktrans count count=print_options.children %}Also its sub-location ({{ count }}){% plural %}Also its sub-locations ({{ count }}){% endblocktrans %}</label>
     </div>
     {% endif %}
+    {% if subject_type == "location" %}
+    <div class="form-check mb-3">
+        <input class="form-check-input" type="checkbox" name="remember" id="label-print-remember-{{ subject_type }}" aria-describedby="label-print-remember-help-{{ subject_type }}">
+        <label class="form-check-label" for="label-print-remember-{{ subject_type }}">{% trans "Preselect from now on" %}</label>
+        <div class="form-text" id="label-print-remember-help-{{ subject_type }}">{% trans "The chosen label is preselected the next time this location is printed (in the overview: each location's)." %}</div>
+    </div>
+    {% endif %}
     <div class="mb-3">
         <label class="form-label" for="label-print-copies-{{ subject_type }}">{% trans "Copies per label" %}</label>
         <input class="form-control label-print-copies{% if form.copies.errors %} is-invalid{% endif %}" type="number" id="label-print-copies-{{ subject_type }}" name="copies" value="1" min="1" max="{{ print_options.max_copies }}" inputmode="numeric" required>

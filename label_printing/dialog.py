@@ -263,6 +263,8 @@ class PrintForm(forms.Form):
     copies = forms.IntegerField(label=_("Copies"), min_value=1, initial=1)
     location = forms.ModelChoiceField(Location.active.all(), label=_("Location"), required=False)
     children = forms.BooleanField(label=_("Also the sub-locations"), required=False)
+    # A location's label preselected from now on (selection.remember_label); printing alone changes nothing
+    remember = forms.BooleanField(label=_("Preselect from now on"), required=False)
     request_id = forms.UUIDField(required=False, widget=forms.HiddenInput)
 
     def __init__(self, *args, subject_type, obj, **kwargs):
@@ -276,6 +278,7 @@ class PrintForm(forms.Form):
             del self.fields["location"]
         if subject_type != "location":
             del self.fields["children"]
+            del self.fields["remember"]
 
     @property
     def overview(self):
@@ -321,6 +324,12 @@ class PrintForm(forms.Form):
             else:
                 self.add_error("outcome", problem)
         return data
+
+    def remember_labels(self):
+        """If asked: each printed location's label becomes the one preselected for it from now on."""
+        if self.cleaned_data.get("remember"):
+            for outcome, subject in self.chosen:
+                selection.remember_label(subject, outcome.layout.template, label_kind(self.subject_type))
 
     def jobs(self, user):
         """[(outcome, the subject its template draws, request ID)]: a job per label, in the rows' order. A unique

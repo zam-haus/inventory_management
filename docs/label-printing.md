@@ -22,7 +22,7 @@ Brother gets P-touch raster data. The code is in the app `label_printing`.
   (9 mm tape on the E550W).
   * Which templates are meant for a subject, and which comes first, say the templates' **rules**
     (see [label templates](#label-templates-and-images)): the one of the highest print priority is
-    preselected (for a location: the one it was printed with last), the others above priority 0 are
+    preselected (for a location: the one chosen for it, see below), the others above priority 0 are
     shown, those of priority 0 under **more labels**, unless none ranks higher.
   * Each choice has a preview and either the printer it would print on or why no printer can
     print it now.
@@ -33,6 +33,9 @@ Brother gets P-touch raster data. The code is in the app `label_printing`.
     minutes (`PRINT_WAIT_MAX`) and is printed as soon as a printer can (a print agent back online,
     the right tape loaded, labels of that size put into a printer). Otherwise it expires unprinted.
     The dialog follows the job as long as it waits. Without any active printer nothing waits.
+  * **Preselect from now on** (locations only, off at first): the chosen label becomes the one preselected
+    the next time this location is printed, in the overview each printed location's. Without it printing
+    changes nothing, so a one-off label (e.g. a temporary tape) does not replace the location's label.
   * **Also its sub-locations** (e.g. a shelf with its compartments) shows an overview instead: a row per
     location, each with the template best for it preselected (the compartment's arrow it was printed with
     last), to change or to leave out.
@@ -171,9 +174,10 @@ reserving containers works the same way.
   template those its saved rules are meant for) and with the printer it is for chosen or none. Mistakes
   are listed by line, and a template with mistakes is not saved. The list of templates shows each with
   random records it is meant for.
-* The location page shows the location's label: with the template it was printed with last, else the
+* The location page shows the location's label: with the template chosen for it, else the
   one its rules put first.
-* **Last labels** (`LastLabel`) remember the template each location was printed with last. Migration
+* **Last labels** (`LastLabel`) remember the template chosen for each location in the print dialog
+  (**preselect from now on**; printing alone does not change it). Migration
   `label_printing.0002` made the templates chosen before (`Location.label_template`, else the location
   type's `default_label_template`) the locations' last labels, so they keep their labels; the rules decide
   for new locations.

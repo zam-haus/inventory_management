@@ -3,8 +3,8 @@ Which label templates are meant for a subject, and which comes first: the rules 
 (inventory.LabelTemplateRule: a condition over the subject's variables, and the print priority while it holds).
 A template is meant for a subject while one of its rules holds; its priority is the highest of those (without
 rules: for every subject of its kind, priority 0). The print
-dialog preselects the template of the highest priority (a location's: the one it was printed with last,
-LastLabel), shows those above 0 and the others on request, unless none ranks higher.
+dialog preselects the template of the highest priority (a location's: the one chosen for it, LastLabel, set in the
+print dialog with "preselect from now on"), shows those above 0 and the others on request, unless none ranks higher.
 """
 from dataclasses import dataclass
 
@@ -18,7 +18,7 @@ from .models import LastLabel
 # The kinds of templates for a kind of subject: unique items also by their label ID.
 KINDS = {"location": ("location",), "item": ("item",), "uniqueitem": ("uniqueitem", "labelid"),
          "labelid": ("labelid",)}
-# Subjects whose last label is preselected: a compartment's arrow up or down is up to whoever stuck it on.
+# Subjects whose chosen label is preselected: a compartment's arrow up or down is up to whoever stuck it on.
 REMEMBERED = ("location",)
 
 
@@ -92,7 +92,7 @@ def subject_key(subject_type, subject):
 
 
 def last_template_pk(subject_type, subject):
-    """The template the subject was printed with last, if its last label is remembered."""
+    """The template chosen for the subject (remember_label), if it is a kind whose label is remembered."""
     if subject_type not in REMEMBERED or getattr(subject, "pk", None) is None:
         return None
     kind, pk = subject_key(subject_type, subject)
@@ -101,7 +101,7 @@ def last_template_pk(subject_type, subject):
 
 
 def last_template_pks(subject_type, subjects):
-    """{subject pk (str): template pk} of the subjects' last labels, in one query (see last_template_pk)."""
+    """{subject pk (str): template pk} of the templates chosen for the subjects, in one query (see last_template_pk)."""
     if subject_type not in REMEMBERED:
         return {}
     keys = [str(subject.pk) for subject in subjects if getattr(subject, "pk", None) is not None]
@@ -114,22 +114,12 @@ def last_template_pks(subject_type, subjects):
 
 
 def remember_label(subject, template, subject_type="location"):
-    """The subject was printed with this template (or should be preselected with it)."""
+    """The subject is preselected with this template from now on (the print dialog's "preselect from now on")."""
     if subject_type not in REMEMBERED:
         return
     kind, pk = subject_key(subject_type, subject)
     LastLabel.objects.update_or_create(subject_type=kind, subject_pk=pk,
                                        defaults={"layout_key": f"design:{template.pk}", "printed_at": timezone.now()})
-
-
-def remember_job(job):
-    """After a job was printed: its template for each of its subjects whose last label is remembered."""
-    if job.subject_type not in REMEMBERED or not job.layout_key.startswith("design:"):
-        return
-    for entry in job.snapshot:
-        if isinstance(entry, dict) and entry.get("type") == job.subject_type and entry.get("id") is not None:
-            LastLabel.objects.update_or_create(subject_type=job.subject_type, subject_pk=str(entry["id"]),
-                                               defaults={"layout_key": job.layout_key, "printed_at": timezone.now()})
 
 
 @dataclass
@@ -178,7 +168,7 @@ def preferred_template(subject_type, subject):
 
 
 def best_layout(subject_type, subject, layouts):
-    """Of layouts on one printer's labels (layouts_for): the subject's last one, else the highest priority; None
+    """Of layouts on one printer's labels (layouts_for): the one chosen for the subject, else the highest priority; None
     if none is meant for it."""
     templates = [layout.template for layout in layouts if getattr(layout, "template", None) is not None]
     found = priorities(subject_type, subject, templates)

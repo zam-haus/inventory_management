@@ -1105,7 +1105,7 @@ class Location(SoftDeleteModel, ComputedFieldsModel):
         return self.name + f" [{self.short_name}]"
 
     def label_preview_url(self):
-        """The location's label as an image (label_printing.views): with the template it was printed with last,
+        """The location's label as an image (label_printing.views): with the template chosen for it,
         else the one its rules put first (label_printing.selection)."""
         from label_printing.selection import preferred_template
 

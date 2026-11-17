@@ -44,7 +44,7 @@ EXCLUDED_MODELS = {
     "label_printing.labelmedium": "belongs to the printers",
     "label_printing.printagent": "access tokens of the print agents",
     "label_printing.printjob": "who printed what when",
-    "label_printing.lastlabel": "which template each location was printed with last, this installation's history",
+    "label_printing.lastlabel": "which template was chosen for each location, this installation's choices",
     "label_printing.labelstock": "label catalog, filled by migrations; local entries are configuration",
 }
 

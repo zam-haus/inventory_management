@@ -48,15 +48,11 @@ class RuleTests(InventoryData, TestCase):
         LabelTemplateRule.objects.filter(template=self.plain).update(priority=0)
         self.assertEqual(self.ranked(self.part), [("Reserve", 0, True, True), ("Schlicht", 0, True, False)])  # by name
 
-    def test_the_last_label_of_a_location_comes_first(self):
+    def test_the_label_chosen_for_a_location_comes_first(self):
         selection.remember_label(self.box, self.spare)
         self.assertEqual(self.ranked(self.box)[0], ("Reserve", 0, True, True))
         self.assertEqual(selection.preferred_template("location", self.box), self.spare)
-        with patch("label_printing.services.process"):
-            job = services.submit(printer=self.zebra, medium=self.labels, layout_key=f"design:{self.plain.pk}",
-                                  subject_type="location", subjects=[self.box])
-        PrintJob.objects.filter(pk=job.pk).update(status=PrintJob.Status.DONE)
-        selection.remember_job(PrintJob.objects.get(pk=job.pk))
+        selection.remember_label(self.box, self.plain)  # chosen again
         self.assertEqual(LastLabel.objects.get(subject_pk=str(self.box.pk)).layout_key, f"design:{self.plain.pk}")
         # The admin's printing takes it too
         with patch("label_printing.services.process"), patch("label_printing.tasks.process_job.delay"):
