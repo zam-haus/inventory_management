@@ -1,13 +1,13 @@
 #!/bin/sh
 # Prepare the boot partition of a Raspberry Pi OS SD card (mounted on this computer) to run the label
-# print agent: copies the agent and the service there, switches SPI on (for a PiFace Control & Display)
-# and lets the Pi install it on its next boot. With "read_only": true in config.json (the default) the Pi makes
+# print agent: copies the agent and the service there and lets the Pi install it on its next boot. With "read_only": true in config.json (the default) the Pi makes
 # its system read-only once everything is installed (update.sh).
 #
 #   ops/raspberry-pi/prepare-boot.sh /Volumes/boot [SERVER TOKEN ...]
 #
 # Each SERVER (e.g. https://inventar.zam.haus) with the agent's TOKEN from that inventory's admin
-# (Label printing → Print agents → add) goes into label-agent/config.json; without them an existing
+# (Label printing → Print agents → add) goes into label-agent/config.json: the agent works for the first, the
+# others can be chosen on its touch screen; without them an existing
 # config.json is kept. Running it again updates the code; the agent picks it up when it restarts
 # (sudo systemctl restart label-agent, or reboot).
 set -e
@@ -42,10 +42,6 @@ case "$cmdline" in
     *) printf '%s systemd.run=%s/label-agent/install.sh systemd.run_success_action=reboot systemd.unit=kernel-command-line.target\n' \
            "$(printf '%s' "$cmdline" | tr -d '\n')" "$mount" > "$boot/cmdline.txt" ;;
 esac
-# SPI for the PiFace Control & Display (harmless without one); the Pi reads config.txt on boot.
-if ! grep -q '^dtparam=spi=on' "$boot/config.txt"; then
-    printf '\n[all]\n# label print agent: PiFace Control & Display\ndtparam=spi=on\n' >> "$boot/config.txt"
-fi
 # macOS keeps extended attributes on FAT as ._ files; the Pi does not need them.
 find "$dest" -name '._*' -delete
 echo "Prepared $boot: agent in label-agent/, servers: $(grep -o '"url": "[^"]*"' "$dest/config.json" | tr '\n' ' ')"

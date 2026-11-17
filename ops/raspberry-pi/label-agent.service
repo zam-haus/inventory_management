@@ -15,11 +15,11 @@ ExecStart=/usr/bin/python3 -m label_printing.agent
 Environment=PYTHONUNBUFFERED=1 PYTHONDONTWRITEBYTECODE=1
 # An unprivileged user of its own (update.sh creates it; a fixed one, not DynamicUser: D-Bus checks the
 # groups of a user it can look up, for BlueZ); its tokens are in config.json. Group lp may use /dev/usb/lp*,
-# spi and gpio the PiFace Control & Display, bluetooth BlueZ on D-Bus, video and render the touch screen
+# bluetooth BlueZ on D-Bus, video and render the touch screen
 # (and its backlight), input its touches.
 User=label-agent
 Group=label-agent
-SupplementaryGroups=lp spi gpio bluetooth video render input
+SupplementaryGroups=lp bluetooth video render input
 # What DynamicUser gave: no writing anywhere but /run/label-agent, no home, no new privileges
 ProtectSystem=strict
 ProtectHome=yes

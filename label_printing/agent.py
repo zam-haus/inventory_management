@@ -1,21 +1,22 @@
 """
 Print agent: runs on a computer next to label printers (e.g. a Raspberry Pi, see ops/raspberry-pi/),
-finds USB and Bluetooth printers by itself and serves one or more inventories at the same time.
+finds USB and Bluetooth printers by itself and serves one inventory: the first server of the configuration, or
+another one of it chosen on the touch screen (for trying things out; until the agent starts again).
 
     python3 -m label_printing.agent [--config /etc/label-agent/config.json]
 
-An admin creates the agent in each inventory (admin → Label printing → Print agents) and gives it its
+An admin creates the agent in the inventory (admin → Label printing → Print agents) and gives it its
 token, which goes into the configuration next to the inventory's address. The agent reports the printers
 it finds (new ones appear in the admin, inactive until checked, named and activated) and their status
 (errors, loaded tape and its colours, label length), fetches the jobs of its active printers, prints them
 (each printer on its own, so several print at the same time) and reports how they went. Jobs can be paused
 and aborted, on the display or in the admin.
 
-With a touch screen (label_printing/touch.py, e.g. the Raspberry Pi Touch Display) or a PiFace Control & Display
-(label_printing/panel.py) it shows the jobs, the connections to the servers, the printers, the labels waiting
-for a printer that has other labels loaded, and a Zebra whose ribbon does not suit its labels; there a Zebra's
-labels and ribbon can be set as loaded, Bluetooth printers paired (on the touch screen also searched for and
-unpaired) and jobs paused or aborted.
+With a touch screen (label_printing/touch.py and station.py, e.g. the Raspberry Pi Touch Display) it shows the
+jobs, the connection to the server, the printers, the labels waiting for a printer that has other labels loaded,
+and a Zebra whose ribbon does not suit its labels; there a Zebra's labels and ribbon can be set as loaded,
+Bluetooth printers searched for, paired and unpaired, jobs paused or aborted, test and calibration labels asked
+for, and another configured server chosen.
 
 The configuration (JSON, see ops/raspberry-pi/config.json):
     {"servers": [{"url": "https://inventar.zam.haus", "token": "…"}],
@@ -24,8 +25,8 @@ The configuration (JSON, see ops/raspberry-pi/config.json):
      "read_only": true,
      "static_printers": [{"uid": "zebra-lan", "device": "tcp://192.0.2.10:9100", "language": "zpl"}]}
 
-Needs Python 3.9+ and label_printing/devices, no Django; the touch screen needs python3-pygame, the PiFace display
-python3-spidev, Bluetooth python3-dbus and python3-gi (without them the agent runs without). "read_only" is for
+Needs Python 3.9+ and label_printing/devices, no Django; the touch screen needs python3-pygame, Bluetooth
+python3-dbus and python3-gi (without them the agent runs without). "read_only" is for
 ops/raspberry-pi/update.sh: the Pi's system read-only, to spare the SD card.
 """
 import argparse
@@ -45,13 +46,13 @@ from .devices import usb, zebra
 from .devices.io import DeviceError, device_for
 from .devices.run import FAILED, Control, Result, query_status, run_job
 
-VERSION = "5.3"
+VERSION = "6.0"
 CONFIG_PATHS = ("/boot/label-agent/config.json", "/boot/firmware/label-agent/config.json",
                 "/etc/label-agent/config.json")
 DEFAULTS = {"servers": [], "poll_interval": 2, "status_interval": 30,
             "scan_interval": 10, "report_interval": 60, "static_printers": [],
-            # "auto": a touch screen if there is one, else a PiFace Control & Display if there is one; "touch",
-            # "piface": that one; "none". screen_rotation 180: a touch screen mounted upside down
+            # "auto": the touch screen if there is one; "touch": log an error if there is none; "none".
+            # screen_rotation 180: a touch screen mounted upside down
             "display": "auto", "backlight_timeout": 600, "screen_rotation": 0,
             # Pairing: "confirm" on the display (without display: by itself), or "auto" always by itself
             "bluetooth": True, "bluetooth_pairing": "confirm", "bluetooth_scan_interval": 60,
@@ -390,6 +391,10 @@ class Link(threading.Thread):
         self.settings = {}
         # Labels waiting for one of the agent's printers to get other labels: [{"printer", "material", …}]
         self.waiting = []
+        self.stopped = threading.Event()  # another server was chosen (Connection.switch)
+
+    def stop(self):
+        self.stopped.set()
 
     def request(self, path, data, redirects=3):
         """POST JSON; (status code, decoded JSON or None). Follows redirects to another address."""
@@ -429,6 +434,8 @@ class Link(threading.Thread):
     def poll_once(self):
         """Report the printers, take the server's commands and new jobs (one for each printer that is free);
         True if there were jobs."""
+        if self.stopped.is_set():
+            return False
         status, answer = self.request("poll", {"version": VERSION, "hostname": self.hostname,
                                                "printers": self.printer_reports(), "busy": self.printers.busy(),
                                                "held": self.printers.held(), "printing": self.printers.tasks_of(self)})
@@ -444,7 +451,7 @@ class Link(threading.Thread):
             if command == "resume":  # held on the display or by a paused job, perhaps aborted since
                 self.printers.resume(uid)
                 log.info("%s: printer %s goes on (from the server)", self.server, uid)
-        jobs = answer.get("jobs") or ([answer["job"]] if answer.get("job") else [])  # "job": servers before 5
+        jobs = answer.get("jobs") or []
         for job in jobs:
             self.printers.submit(Task(self, job))
         self.mark("ok")
@@ -517,20 +524,47 @@ class Link(threading.Thread):
     def run(self):
         interval = self.config["poll_interval"]
         backoff = interval
-        while True:
+        while not self.stopped.is_set():
             try:
                 if not self.poll_once():
-                    time.sleep(interval)
+                    self.stopped.wait(interval)
                 backoff = interval
             except Refused as error:
                 self.mark("refused", str(error))
                 log.warning("%s: %s; next try in 60 s", self.server, error)
-                time.sleep(60)
+                self.stopped.wait(60)
             except (OSError, ValueError, ServerError) as error:  # URLError is an OSError
                 self.mark("error" if isinstance(error, ServerError) else "offline", str(error))
                 backoff = min(backoff * 2, 60)
                 log.warning("%s: %s; next try in %d s", self.server, error, backoff)
-                time.sleep(backoff)
+                self.stopped.wait(backoff)
+
+
+class Connection:
+    """The one server the agent works for: the first configured one, or another one chosen on the display, until
+    the agent starts again (the configuration stays as it is: the Pi's system may be read-only)."""
+
+    def __init__(self, servers, printers, config, hostname, link=Link):
+        self.servers, self.printers, self.config, self.hostname, self.make_link = (
+            servers, printers, config, hostname, link)
+        self.index, self.link = 0, None
+
+    def start(self, index=0):
+        self.index = index
+        self.link = self.make_link(self.servers[index], self.printers, self.config, self.hostname)
+        self.link.start()
+        log.info("working for %s", self.servers[index]["url"])
+
+    def switch(self, index):
+        """Work for the server `index` from now on, asking it everything anew as after a reboot; False while a
+        printer has jobs (or is held: the old server's matter)."""
+        if index == self.index or not 0 <= index < len(self.servers):
+            return index == self.index
+        if self.printers.busy():
+            return False
+        self.link.stop()
+        self.start(index)
+        return True
 
 
 def monitor(printers, config):
@@ -587,23 +621,20 @@ def main():
     for printer in config["static_printers"]:
         device_for(printer["device"])  # validates
     hostname = socket.gethostname()
-    log.info("print agent %s on %s for %s", VERSION, hostname, ", ".join(server["url"] for server in servers))
-    panel = open_display(config, hostname)
-    bluetooth = start_bluetooth(config, panel)
+    log.info("print agent %s on %s; servers: %s", VERSION, hostname, ", ".join(server["url"] for server in servers))
+    display = open_display(config, hostname)
+    bluetooth = start_bluetooth(config, display)
     printers = Printers(config["static_printers"],
                         find=(lambda: usb.find_printers() + bluetooth.printers()) if bluetooth else usb.find_printers)
     threading.Thread(target=monitor, args=(printers, config), name="monitor", daemon=True).start()
-    links = [Link(server, printers, config, hostname) for server in servers]
-    for link in links:
-        link.start()
-    if panel is not None:
-        panel.attach(printers, links, bluetooth)
+    connection = Connection(servers, printers, config, hostname)
+    connection.start()
+    if display is not None:
+        display.attach(printers, connection, bluetooth)
     try:
-        if panel is not None and getattr(panel, "screen", None) is not None:
-            panel.run()  # the touch screen: SDL wants its events and drawing in the thread that opened it
+        if display is not None:
+            display.run()  # SDL wants its events and drawing in the thread that opened the screen
         else:
-            if panel is not None:
-                threading.Thread(target=panel.run, name="panel", daemon=True).start()
             while True:
                 time.sleep(3600)
     except KeyboardInterrupt:
@@ -611,33 +642,20 @@ def main():
 
 
 def open_display(config, hostname):
-    """What runs the display (touch.Touch for a touch screen, panel.Panel for a PiFace Control & Display), or None
-    (none configured, or none there)."""
+    """The touch screen's display (touch.Touch), or None (none configured, or none there)."""
     kind = config["display"]
-    if kind in ("auto", "touch"):
-        from .devices.screen import NoScreen, TouchScreen
+    if kind not in ("auto", "touch"):
+        return None
+    from .devices.screen import NoScreen, TouchScreen
 
-        try:
-            screen = TouchScreen(rotation=config["screen_rotation"])
-        except NoScreen as error:
-            (log.error if kind == "touch" else log.info)("no touch screen: %s", error)
-        else:
-            from .touch import Touch
+    try:
+        screen = TouchScreen(rotation=config["screen_rotation"])
+    except NoScreen as error:
+        (log.error if kind == "touch" else log.info)("no touch screen: %s", error)
+        return None
+    from .touch import Touch
 
-            return Touch(screen, hostname, backlight_timeout=config["backlight_timeout"], version=VERSION)
-    if kind in ("auto", "piface"):
-        from .devices.piface import NoDisplay, PiFaceCAD
-
-        try:
-            display = PiFaceCAD()
-        except NoDisplay as error:
-            (log.error if kind == "piface" else log.info)("no PiFace display: %s", error)
-        else:
-            log.info("PiFace Control & Display found")
-            from .panel import Panel
-
-            return Panel(display, hostname, backlight_timeout=config["backlight_timeout"])
-    return None
+    return Touch(screen, hostname, backlight_timeout=config["backlight_timeout"], version=VERSION)
 
 
 def keep_pairings():
@@ -650,7 +668,7 @@ def keep_pairings():
         file.write(str(time.time()))
 
 
-def start_bluetooth(config, panel):
+def start_bluetooth(config, display):
     """Bluetooth printers, if Bluetooth is on in the configuration (else None); if it cannot start, its status
     says why (the display shows it) and it finds nothing. Pairing is confirmed on the display, if there is one
     and bluetooth_pairing is "confirm"."""
@@ -658,7 +676,7 @@ def start_bluetooth(config, panel):
         return None
     from .devices.bluetooth import Bluetooth
 
-    ask = panel.ask if panel is not None and config["bluetooth_pairing"] == "confirm" else None
+    ask = display.ask if display is not None and config["bluetooth_pairing"] == "confirm" else None
     bluetooth = Bluetooth(scan_interval=config["bluetooth_scan_interval"], channel=config["bluetooth_channel"],
                           pin=str(config["bluetooth_pin"]), ask=ask, on_change=keep_pairings)
     bluetooth.start()

@@ -9,7 +9,8 @@ Four tabs at the bottom:
   pause / go on and abort; "Alle anhalten" and "Alle abbrechen" for all printers;
 * Drucker: the printers and their state; a printer's page shows how it is connected, what is loaded and its
   jobs, pauses or aborts them and sets the labels and the ribbon loaded in a Zebra;
-* Verbindung: the servers (connected, or why not), the network addresses, Bluetooth and the agent's version;
+* Verbindung: the server (connected, or why not) and the others configured, to work for one of them instead
+  (until the agent starts again), the network addresses, Bluetooth and the agent's version;
 * Bluetooth: the printers paired and found, search now, pair and unpair.
 
 Pairing a printer that was found is asked in a dialog, which stays until answered. Long pages scroll by dragging.
@@ -17,9 +18,8 @@ The backlight goes off after backlight_timeout seconds without a touch, unless s
 first touch then only lights it.
 """
 import time
-from urllib.parse import urlsplit
 
-from .panel import BLUETOOTH, Station, addresses
+from .station import BLUETOOTH, Station, addresses
 
 WIDTH, HEIGHT = 800, 480
 HEADER, TABS = 48, 64
@@ -139,9 +139,6 @@ class Touch(Station):
     def sorted_printers(self, reports):
         return sorted(reports.items(), key=lambda item: self.printer_name(*item).lower())
 
-    def server_name(self, server):
-        return urlsplit(server).hostname or server
-
     def connection_of(self, report):
         device = str(report.get("device", ""))
         if device.startswith("bt://"):
@@ -150,7 +147,7 @@ class Touch(Station):
             return "Netzwerk " + device[len("tcp://"):]
         return "USB"
 
-    def job_text(self, job, many_servers):
+    def job_text(self, job):
         pages = job.get("pages", 1)
         text = f"#{job['id']}"
         if job.get("subject"):
@@ -159,8 +156,6 @@ class Touch(Station):
             text += f" · {job.get('sent', 0)}/{pages} Etiketten"
         else:
             text += f" · {plural(pages, 'Etikett', 'Etiketten')}"
-        if many_servers:
-            text += f" · {self.server_name(job['server'])}"
         return text
 
     def color_of(self, text):
@@ -196,11 +191,9 @@ class Touch(Station):
         network = self.network()
         frame.fixed.append(Text(PAD, 12, 420, f"{self.hostname} · {network[0][1] if network else 'kein Netz'}", 22,
                                 bold=True))
-        connected = sum(link.state["code"] == "ok" for link in self.links)
-        server_text = f"Server {connected}/{len(self.links)}"
-        color = "ok" if self.links and connected == len(self.links) else "error"
-        frame.fixed.append(Text(440, 13, 200, ("✓ " if color == "ok" else "✗ ") + server_text, 20, color,
-                                align="right"))
+        connected = self.link is not None and self.link.state["code"] == "ok"
+        frame.fixed.append(Text(440, 13, 200, "✓ Server" if connected else "✗ Server", 20,
+                                "ok" if connected else "error", align="right"))
         frame.fixed.append(Text(660, 12, WIDTH - 660 - PAD, time.strftime("%H:%M"), 22, align="right"))
 
     def tab_bar(self, frame, alerts):
@@ -243,14 +236,13 @@ class Touch(Station):
             text_y = self.paragraph(items, 2 * PAD, y + 40, inner, alert.text, 20)
             if alert.kind == "waiting" and alert.medium:
                 items.append(Button(2 * PAD, text_y + 4, 280, ROW - 12, "Sind eingelegt",
-                                    lambda alert=alert: self.set_loaded(alert.link, alert.uid, alert.medium),
+                                    lambda alert=alert: self.set_loaded(alert.uid, alert.medium),
                                     "primary"))
             elif alert.kind == "ribbon":
                 items.append(Button(2 * PAD, text_y + 4, 280, ROW - 12, "Farbband wählen",
-                                    lambda alert=alert: self.open(self.ribbon_dialog(alert.link, alert.uid)),
+                                    lambda alert=alert: self.open(self.ribbon_dialog(alert.uid)),
                                     "primary"))
             y += height + PAD
-        many = len(self.links) > 1
         shown = 0
         for uid, report in self.sorted_printers(reports):
             jobs = self.printers.jobs(uid)
@@ -267,7 +259,7 @@ class Touch(Station):
             row_y = y + 46
             for job in jobs:
                 mark = "⏸ " if job["paused"] and job["printing"] else "▶ " if job["printing"] else "· "
-                items.append(Text(2 * PAD, row_y, inner, mark + self.job_text(job, many), 20,
+                items.append(Text(2 * PAD, row_y, inner, mark + self.job_text(job), 20,
                                   "text" if job["printing"] else "muted"))
                 row_y += 28
             if not jobs:
@@ -328,16 +320,11 @@ class Touch(Station):
         loaded = self.loaded_text(uid, report.get("status") or {})
         if loaded:
             lines.append(("Eingelegt", loaded))
-        for link in self.links:
-            settings = link.settings.get(uid, {})
+        settings = self.settings(uid)
+        if settings.get("language") == "zpl":
             ribbon = next((entry["name"] for entry in settings.get("ribbons", []) if entry["id"] == settings.get("ribbon")),
                           None)
-            if settings.get("language") == "zpl":
-                lines.append(("Farbband", ribbon or "keins gesetzt"))
-            if len(self.links) > 1:
-                lines.append(("Server", f"{self.server_name(link.server)}: " + (
-                    "aktiv" if settings.get("active") else
-                    "inaktiv (im Admin aktivieren)" if settings else "neu, wird gemeldet")))
+            lines.append(("Farbband", ribbon or "keins gesetzt"))
         for label, value in lines:
             items.append(Text(2 * PAD, y, 170, label, 20, "muted"))
             y = self.paragraph(items, 2 * PAD + 180, y, inner - 180, value, 20,
@@ -346,30 +333,24 @@ class Touch(Station):
         y += 4
         self.printer_buttons(items, uid, state, bool(jobs), y)
         y += ROW
-        zebra_on = [link for link in self.links if link.settings.get(uid, {}).get("language") == "zpl"
-                    and link.settings[uid].get("active")]
-        for link in zebra_on:  # a Zebra active on several servers: each its own buttons
-            settings = link.settings[uid]
-            server = f" ({self.server_name(link.server)})" if len(zebra_on) > 1 else ""
+        if settings.get("language") == "zpl" and settings.get("active"):
             x = 2 * PAD
             if settings.get("media"):
-                items.append(Button(x, y, 360, ROW - 12, "Etiketten wählen" + server,
-                                    lambda link=link: self.open(self.media_dialog(link, uid))))
+                items.append(Button(x, y, 360, ROW - 12, "Etiketten wählen", lambda: self.open(self.media_dialog(uid))))
                 x += 360 + PAD
             if settings.get("ribbons"):
-                items.append(Button(x, y, 360, ROW - 12, "Farbband wählen" + server,
-                                    lambda link=link: self.open(self.ribbon_dialog(link, uid))))
+                items.append(Button(x, y, 360, ROW - 12, "Farbband wählen", lambda: self.open(self.ribbon_dialog(uid))))
             y += ROW
-        for index, (label, link, which) in enumerate(self.own_label_entries(uid)):
+        for index, (label, which) in enumerate(self.own_label_entries(uid)):
             items.append(Button(2 * PAD + index % 2 * (360 + PAD), y, 360, ROW - 12, label + " drucken",
-                                lambda link=link, which=which: self.print_own_label(link, uid, which)))
+                                lambda which=which: self.print_own_label(uid, which)))
             y += ROW if index % 2 else 0
         if jobs:
             items.append(Text(2 * PAD, y, inner, "Aufträge", 22, bold=True))
             y += 32
             for job in jobs:
                 mark = "▶ " if job["printing"] else "· "
-                items.append(Text(2 * PAD, y, inner, mark + self.job_text(job, len(self.links) > 1), 20,
+                items.append(Text(2 * PAD, y, inner, mark + self.job_text(job), 20,
                                   "text" if job["printing"] else "muted"))
                 y += 28
         frame.height = y + PAD
@@ -378,7 +359,8 @@ class Touch(Station):
         items, y, inner = frame.content, PAD, WIDTH - 4 * PAD
         items.append(Text(PAD, y, inner, "Server", 22, bold=True))
         y += 34
-        for link in self.links:
+        link = self.link
+        if link is not None:
             text = self.link_text(link)
             lines = self.wrap(text, inner, 20)
             height = 46 + len(lines) * 24
@@ -386,9 +368,21 @@ class Touch(Station):
             items.append(Text(2 * PAD, y + 10, inner, self.server_name(link.server), 22, bold=True))
             self.paragraph(items, 2 * PAD, y + 40, inner, text, 20, self.color_of(text))
             y += height + PAD
-        if not self.links:
+        else:
             items.append(Text(PAD, y, inner, "kein Server (config.json)", 20, "error"))
             y += 32
+        servers = self.connection.servers if self.connection is not None else []
+        for index, server in enumerate(servers):
+            if index == self.connection.index:
+                continue
+            name = self.server_name(server["url"])
+            items.append(Button(PAD, y, WIDTH - 2 * PAD, ROW - 12, f"Stattdessen für {name} arbeiten",
+                                lambda index=index, name=name: self.open(Dialog(
+                                    f"Für {name} arbeiten?",
+                                    "Bis zum nächsten Neustart des Agenten; danach wieder für den ersten Server.",
+                                    [("Ja, wechseln", lambda: self.switch_server(index), "primary"),
+                                     ("Nein", None, "normal")]))))
+            y += ROW
         items.append(Text(PAD, y + 4, inner, "Netzwerk", 22, bold=True))
         y += 38
         network = self.network()
@@ -510,20 +504,20 @@ class Touch(Station):
             dialog.scroll = max(0, chosen[0] - 1) * (ROW - 8)
         return dialog
 
-    def media_dialog(self, link, uid):
-        settings = link.settings.get(uid, {})
+    def media_dialog(self, uid):
+        settings = self.settings(uid)
         return self.choice_dialog("Welche Etiketten sind eingelegt?", [
-            (medium["name"], lambda medium=medium: self.set_loaded(link, uid, medium["id"]),
+            (medium["name"], lambda medium=medium: self.set_loaded(uid, medium["id"]),
              medium["id"] == settings.get("loaded"))
             for medium in settings.get("media", [])])
 
-    def ribbon_dialog(self, link, uid):
-        settings = link.settings.get(uid, {})
+    def ribbon_dialog(self, uid):
+        settings = self.settings(uid)
         return self.choice_dialog("Welches Farbband ist eingelegt?", [
-            (ribbon["name"], lambda ribbon=ribbon: self.set_ribbon(link, uid, ribbon["id"]),
+            (ribbon["name"], lambda ribbon=ribbon: self.set_ribbon(uid, ribbon["id"]),
              ribbon["id"] == settings.get("ribbon"))
             for ribbon in settings.get("ribbons", [])] + [
-            ("kein Farbband", lambda: self.set_ribbon(link, uid, None), settings.get("ribbon") is None)])
+            ("kein Farbband", lambda: self.set_ribbon(uid, None), settings.get("ribbon") is None)])
 
     def question_dialog(self, request):
         return Dialog("Bluetooth-Drucker gefunden", f"{request.name} koppeln? Danach druckt er über diesen Agenten.",
@@ -649,7 +643,7 @@ class Touch(Station):
         return self.layout()
 
     def run(self, interval=1 / 30, redraw=0.5):
-        """Read touches, draw, switch the backlight (in the agent's panel thread)."""
+        """Read touches, draw, switch the backlight (in the agent's main thread: SDL wants it so)."""
         drawn, down, moved, last_y = 0.0, None, False, 0
         while True:
             try:

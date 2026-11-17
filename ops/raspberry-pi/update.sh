@@ -39,11 +39,11 @@ read_only=$(setting read_only false)
 overlay_now=no; grep -q "overlayroot=tmpfs" /proc/cmdline && overlay_now=yes
 overlay_set=no; [ -n "$boot" ] && grep -q "overlayroot=tmpfs" "$boot/cmdline.txt" && overlay_set=yes
 
-# The PiFace Control & Display (python3-spidev, SPI on in config.txt), the touch screen (python3-pygame, DejaVu
+# The touch screen (python3-pygame, DejaVu
 # fonts; SDL's KMS driver draws even in 2D through OpenGL: Mesa's EGL, the GPU's driver (libgl1-mesa-dri) and
 # # glvnd's libOpenGL, all only recommended, not dependencies; without them the screen stays black), Bluetooth
 # printers (BlueZ on D-Bus) and, for read-only, raspi-config's overlay (overlayroot).
-packages="python3-spidev python3-dbus python3-gi bluez python3-pygame fonts-dejavu-core libegl1 libegl-mesa0 libgles2 libgl1-mesa-dri libopengl0"
+packages="python3-dbus python3-gi bluez python3-pygame fonts-dejavu-core libegl1 libegl-mesa0 libgles2 libgl1-mesa-dri libopengl0"
 [ "$read_only" = true ] && packages="$packages overlayroot"
 missing=""
 for package in $packages; do
@@ -85,7 +85,7 @@ outdated=$(outdated_files)
 
 # The service's user, member of the groups it uses (D-Bus checks group bluetooth in /etc/group, not the
 # service's SupplementaryGroups)
-groups="lp spi gpio bluetooth video input render"
+groups="lp bluetooth video input render"
 user_ok=yes
 for group in $groups; do
     id -nG label-agent 2>/dev/null | tr ' ' '\n' | grep -qx "$group" || user_ok=no

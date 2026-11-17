@@ -422,15 +422,17 @@ take in time is dropped, not piled up.
 ### USB and Bluetooth printers: the print agent
 
 `label_printing/agent.py` runs on a computer next to the printers (e.g. a Raspberry Pi; setting
-one up, with Bluetooth, the optional touch screen or PiFace Control & Display, and a read-only system:
+one up, with Bluetooth, the optional touch screen and a read-only system:
 [ops/raspberry-pi/](../ops/raspberry-pi/README.md)). It needs Python 3.9+ and only `label_printing/agent.py`,
-`label_printing/panel.py`, `label_printing/touch.py` and `label_printing/devices/`: no Django, no database; the
-touch screen needs `python3-pygame`, the PiFace display `python3-spidev`, Bluetooth `python3-dbus` and
-`python3-gi` (without them it runs without). Both displays share what they show and do (`panel.Station`); the
-touch screen's layout (`touch.py`) is plain Python, drawn by `devices/screen.py`. One agent serves several inventories at the
-same time (e.g. production and a development server), each with its own token; each printer prints in a
-thread of its own, so several print at once, and jobs of different servers never reach a printer at the
-same time.
+`label_printing/station.py`, `label_printing/touch.py` and `label_printing/devices/`: no Django, no database;
+the touch screen needs `python3-pygame`, Bluetooth `python3-dbus` and `python3-gi` (without them it runs
+without). What the display shows and does is `station.Station`; the touch screen's layout (`touch.py`) is plain
+Python, drawn by `devices/screen.py`. An agent serves one inventory: the first server of its configuration
+(`agent.Connection`). Others listed there (e.g. a development server) can be chosen on the touch screen's
+**Verbindung** tab, for trying things out: the agent then asks the chosen server everything anew, as after a
+reboot, until it starts again (not while a printer has jobs). Each printer prints in a thread of its own, so
+several print at once. (Agents before version 6 served several servers at once; the PiFace Control & Display
+is no longer supported.)
 
 1. **Created by an admin:** **admin → Print agents → add** gives the agent a token, shown once as
    the entry for its configuration (`{"url": …, "token": …}`); **Give a new token** replaces it
@@ -474,7 +476,7 @@ same time.
    loaded (or none left): printer, labels, how many jobs, what is loaded. On the display someone can set a
    Zebra's loaded labels (`POST /print/api/agent/printers/loaded`); jobs waiting for them go out at once.
    A printer active on the server gets **Testetikett drucken** and **Kalibrieretikett drucken** on its page
-   of the touch screen (the PiFace display: in its printer menu; since agent version 5.3): the agent asks for
+   of the touch screen (since agent version 5.3): the agent asks for
    the label (`POST /print/api/agent/printers/own-label`, `{"printer": uid, "label": "test"}` or
    `"calibration"`), which is queued like the admin's test print on the labels loaded in it and comes with
    the next poll; a refusal (no label material it takes, printer inactive) is shown with its reason.

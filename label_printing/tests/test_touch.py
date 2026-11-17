@@ -9,7 +9,7 @@ from .. import agent
 from ..agent import Printers, Task
 from ..devices import bluetooth
 from ..touch import CONTENT_BOTTOM, CONTENT_TOP, Touch
-from .test_panel import ZEBRA, FakeLink, FakeRequest
+from .test_station import SERVERS, ZEBRA, FakeConnection, FakeLink, FakeRequest
 
 
 def measure(text, size, bold=False):
@@ -50,7 +50,8 @@ class TouchTests(SimpleTestCase):
         self.bluetooth = FakeBluetooth()
         self.touch = Touch(None, "pi-lager", backlight_timeout=600, version="5.2", clock=lambda: self.now,
                            addresses=lambda: [("wlan0", "192.0.2.23")], measure=measure)
-        self.touch.attach(self.printers, [self.link], self.bluetooth)
+        self.connection = FakeConnection(self.link, SERVERS)
+        self.touch.attach(self.printers, self.connection, self.bluetooth)
         self.touch.background = lambda work: work()  # (a thread of its own on the agent)
 
     def items(self, kind=None):
@@ -171,6 +172,20 @@ class TouchTests(SimpleTestCase):
         self.link.settings[ZEBRA["uid"]]["active"] = False
         self.assertNotIn("Testetikett drucken", self.labels())
 
+    def test_a_ribbon_that_does_not_suit_the_labels(self):
+        self.link.settings[ZEBRA["uid"]].update(ribbon=5, ribbon_problem="Das Farbband passt nicht zu den Etiketten.")
+        self.assertIn("! Zebra Lager", self.texts())
+        self.press("Farbband wählen")
+        self.press("kein Farbband")
+        self.assertEqual(self.link.loaded, [(ZEBRA["uid"], None)])
+
+    def test_another_server_is_chosen_on_the_connection_tab(self):
+        self.press("Verbindung")
+        self.assertIn("inventar.zam.haus", self.texts())
+        self.press("Stattdessen für 192.0.2.10 arbeiten")
+        self.press("Ja, wechseln")
+        self.assertEqual(self.connection.switched, [1])
+
     def test_a_long_list_of_labels_scrolls_in_its_dialog(self):
         self.link.settings[ZEBRA["uid"]]["media"] = [{"id": number, "name": f"Etiketten {number}"}
                                                      for number in range(1, 13)]
@@ -213,7 +228,7 @@ class TouchTests(SimpleTestCase):
         self.press("Ja, entkoppeln")
         self.assertEqual(self.bluetooth.calls, ["search", ("pair", "11:22:33:44:55:66"),
                                                 ("unpair", "A1:B2:C3:D4:E5:F6")])
-        self.touch.attach(self.printers, [self.link], None)
+        self.touch.attach(self.printers, FakeConnection(self.link), None)
         self.assertIn("aus (config.json)", self.texts())
 
     def test_the_first_touch_after_the_backlight_went_off_only_lights_it(self):
@@ -257,7 +272,7 @@ class AgentDisplayTests(SimpleTestCase):
     def config(self, **values):
         return {**agent.DEFAULTS, **values}
 
-    def test_a_touch_screen_first_then_the_piface_display(self):
+    def test_the_touch_screen_if_there_is_one(self):
         screen = mock.Mock()
         with mock.patch("label_printing.devices.screen.TouchScreen", return_value=screen) as found:
             touch = agent.open_display(self.config(screen_rotation=180), "pi-lager")
@@ -265,13 +280,10 @@ class AgentDisplayTests(SimpleTestCase):
         self.assertEqual((touch.screen, touch.version), (screen, agent.VERSION))
         found.assert_called_once_with(rotation=180)
         from ..devices.screen import NoScreen
-        from ..panel import Panel
 
-        with mock.patch("label_printing.devices.screen.TouchScreen", side_effect=NoScreen("no display")), \
-                mock.patch("label_printing.devices.piface.PiFaceCAD") as piface:
-            self.assertIsInstance(agent.open_display(self.config(), "pi-lager"), Panel)
+        with mock.patch("label_printing.devices.screen.TouchScreen", side_effect=NoScreen("no display")):
+            self.assertIsNone(agent.open_display(self.config(), "pi-lager"))
             self.assertIsNone(agent.open_display(self.config(display="touch"), "pi-lager"))
-        piface.assert_called_once()
         self.assertIsNone(agent.open_display(self.config(display="none"), "pi-lager"))
 
     def test_pairings_are_kept_on_a_change(self):
