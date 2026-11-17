@@ -129,10 +129,12 @@ are in [Standortregeln](standortregeln.md) (German).
     row, the path of where it is, ending in the unique item as well. A unique item's heading links to its item.
   * The trees (`/item/`, `/location/`): the path to the open node at the top of the view while scrolling, each
     crumb leading to its node in the tree (`tree.js`).
-* **Sub-locations** (`LocationType.sublocation_type`, e.g. *Fach/Schub* for shelves and
-  cabinets): creating such a location asks how many to add inside it and creates them with the
-  sub type's naming, with the shelf's or cabinet's name first (`Regal 301 Fach a`, `a`;
-  `LocationType.sublocation_name`, “Fach a” if that would be too long). Renaming the shelf renames
+* **Sub-locations** (`LocationType.sublocation_type`, e.g. *Fach* for shelves and cabinets, *Schub* for tables;
+  migration `inventory.0057` split the former *Fach/Schub* into these two, the compartments of tables becoming
+  drawers, so their labels differ: shelf levels with arrows to colour in, drawers without): creating such a
+  location asks how many to add inside it and creates them with the sub type's naming, with the shelf's or
+  cabinet's name first (`Regal 301 Fach a`, `a`; `LocationType.sublocation_name`, “Fach a” if that would be too
+  long). Renaming the shelf renames
   the compartments that still have their default name; migration `inventory.0040` gave existing
   ones with the old default name (“Fach a”) the new one. Its page has a button to add more later
   (`SublocationAddView`, permission `add_location`): they get the next free characters of the

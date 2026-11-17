@@ -32,7 +32,7 @@ Jeder Standort gehört über seinen Typ zu einer von drei Kategorien:
 | Kategorie | Was | Typen |
 |---|---|---|
 | **Gebäudeteil** | Teil des Gebäudes, bewegt sich nie | Haus+Ebene, Raum, Bereich, Teilraum, Teilbereich |
-| **Lagermöbel** | Möbel zum Aufbewahren und Lagern, samt Fächern und Schüben | Regal, Schrank, Werkbank mit Schubladen, Werkzeugwagen, Rollcontainer, Fach/Schub |
+| **Lagermöbel** | Möbel zum Aufbewahren und Lagern, samt Fächern und Schüben | Regal, Schrank, Werkbank mit Schubladen, Werkzeugwagen, Rollcontainer, Fach, Schub |
 | **Behälter** | wandert mit seinem Inhalt durchs Haus | Kiste, Karton, Palette |
 
 Lagermöbel bleiben Lagermöbel, auch wenn sie Rollen haben. *Mobil* (unterwegs oder verliehen)
@@ -235,7 +235,7 @@ das Kürzel (`R`, `S`) schon vor dem Feld, einzugeben ist nur die Zahl.
 kleinere; ein neues kommt ans Ende der Reihe. **Fächer und Schübe** werden von unten nach oben
 benannt, beginnend mit `a`. Die Anlegeseite zeigt das als Bild und legt auf Wunsch gleich die
 gewünschte Zahl Fächer mit an (`R301.a` „Regal 301 Fach a“, `R301.b` …). Weitere Fächer kommen später über den
-Knopf **Fach/Schub** auf der Seite des Regals oder Schranks dazu; sie bekommen die nächsten
+Knopf **Fach** auf der Seite des Regals oder Schranks (am Tisch: **Schub**) dazu; sie bekommen die nächsten
 freien Buchstaben, also die oberen Fächer. Nach `z` geht es mit `aa`, `ab` … weiter.
 Wer Standorte ändern darf, kommt danach auf eine Seite, auf der sich die Zwecke der neuen
 Fächer gleich eintragen lassen (optional, „Überspringen“ geht direkt zum Regal). Die Felder

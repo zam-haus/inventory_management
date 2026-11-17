@@ -130,7 +130,7 @@
     "model": "inventory.locationtype",
     "pk": 7,
     "fields": {
-        "name": "Fach/Schub",
+        "name": "Fach",
         "unique": false,
         "deletable_in_frontend": true,
         "auto_name_prefix": "Fach",
