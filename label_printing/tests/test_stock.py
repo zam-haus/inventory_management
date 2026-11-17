@@ -47,6 +47,19 @@ class LabelStockTests(TestCase):
         self.assertIn(tape, brother.media())
         self.assertEqual(zebra.takes(stock), "These labels are for another kind of printer.")
 
+    def test_loaded_material_is_printed_on_without_being_on_hand(self):
+        zebra, zebra_labels, brother, _tape = create_printers()
+        LabelStock.objects.update(in_stock=False)
+        self.assertEqual(zebra.media(), [zebra_labels])  # set as loaded
+        self.assertEqual(brother.media(), [])
+        brother.remember_status({"media_width_mm": 18, "tape_color": "gelb", "text_color": "schwarz"})
+        loaded = {medium.stock for medium in brother.media()}
+        self.assertTrue(loaded)
+        self.assertEqual({(stock.tape_mm, stock.background_color, stock.print_color) for stock in loaded},
+                         {(18, "gelb", "schwarz")})
+        brother.remember_status({"media_width_mm": 18, "tape_color": "andere", "text_color": "andere"})
+        self.assertEqual(len(brother.media()), LabelStock.objects.filter(language="ptouch", tape_mm=18).count())
+
     def test_templates_by_label_stock_material_and_colours(self):
         """A template prints on labels of its size, and of its label stock, material and colours if it names them;
         label stock without colours is black on white."""

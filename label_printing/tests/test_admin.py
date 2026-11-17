@@ -117,6 +117,31 @@ class PrinterAdminTests(SimulatedPrinters, TestCase):
         job = PrintJob.objects.get()
         self.assertEqual((job.layout_key, job.snapshot[0]["rows"]), ("calibration", 70))
 
+    def test_printer_without_material_on_hand_says_so(self):
+        LabelStock.objects.filter(pk=self.tape.pk).update(in_stock=False)
+        response = self.action("test_print", self.brother)
+        self.assertContains(response, "P-touch Werkstatt: It takes no label material on hand. Mark label material as "
+                                      "on hand (Label material)")
+        self.assertFalse(PrintJob.objects.exists())
+
+    def test_loaded_tape_prints_without_being_on_hand(self):
+        LabelStock.objects.filter(pk=self.tape.pk).update(in_stock=False)
+        self.action("check_status", self.brother)  # reports 12 mm tape
+        response = self.action("test_print", self.brother)
+        self.assertContains(response, "P-touch Werkstatt: test label waiting")
+        self.assertEqual(PrintJob.objects.get().medium.tape_mm, 12)
+
+    def test_tape_missing_from_the_catalog_is_added_once_reported(self):
+        LabelStock.objects.filter(tape_mm=24).delete()
+        self.brother_state.tape_mm = 24
+        self.action("check_status", self.brother)
+        self.action("check_status", self.brother)
+        tape = LabelStock.objects.get(tape_mm=24)
+        self.assertEqual((tape.name, tape.in_stock, tape.background_color, tape.print_color),
+                         ("24 mm", False, "weiß", "schwarz"))
+        self.action("calibration_print", self.brother)
+        self.assertEqual(PrintJob.objects.get().medium, tape)
+
     def test_check_status(self):
         self.brother_state.errors = ["cover_open"]
         response = self.action("check_status", self.brother)

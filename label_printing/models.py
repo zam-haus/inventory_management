@@ -239,11 +239,26 @@ class Printer(models.Model):
         return ""
 
     def media(self, in_stock=True):
-        """The labels the printer takes, each as a Medium: of the label materials on hand (in_stock=False: of all)."""
+        """The labels the printer takes, each as a Medium: the material loaded in it and the material on hand
+        (in_stock=False: all)."""
         stocks = LabelStock.objects.filter(language=self.language)
         if in_stock:
-            stocks = stocks.filter(in_stock=True)
+            stocks = stocks.filter(models.Q(in_stock=True) | models.Q(pk__in=self.loaded_stock_ids()))
         return [Medium(self, stock) for stock in stocks if not self.takes(stock)]
+
+    def loaded_stock_ids(self):
+        """The label material in the printer: a Zebra's loaded labels; Brother: tape of the width it last reported
+        (of its colours, if any is; material without colours counts as of any)."""
+        if self.language == self.Language.ZPL:
+            return [self.loaded_medium_id] if self.loaded_medium_id else []
+        tape = reported_tape(self.last_status)
+        if not tape:
+            return []
+        stocks = list(LabelStock.objects.filter(language=self.language, tape_mm=tape["tape_mm"]).values(
+            "pk", "background_color", "print_color"))
+        coloured = [stock for stock in stocks if all(stock[key] in ("", tape[key])
+                                                     for key in ("background_color", "print_color"))]
+        return [stock["pk"] for stock in coloured or stocks]
 
     def unavailable_code(self):
         """Why jobs cannot be printed now ("inactive", "agent_offline"), or ""."""
@@ -265,6 +280,10 @@ class Printer(models.Model):
             status = {**status, "label_length_mm": round(status["label_length_dots"] * 25.4 / self.dpi)}
         self.last_status, self.last_status_at = status, timezone.now()
         Printer.objects.filter(pk=self.pk).update(last_status=status, last_status_at=self.last_status_at)
+        if self.language == self.Language.PTOUCH and (tape := reported_tape(status)) and not LabelStock.objects.filter(
+                language=self.Language.PTOUCH, tape_mm=tape["tape_mm"]).exists():
+            # Loaded tape is printed on: it needs a label material (not on hand, so not offered once taken out)
+            LabelStock.objects.create(language=self.Language.PTOUCH, name=TAPE_NAMES[tape["tape_mm"]], **tape)
 
     def ribbon_problem(self):
         """Zebra: why the loaded ribbon does not suit the loaded labels, or "" (see ribbon_problem)."""
@@ -283,6 +302,17 @@ class Printer(models.Model):
         return " ".join(str(part) for part in (_("Ready."), loaded_text(status)) if part)
 
 
+def reported_tape(status):
+    """Brother: the tape a printer reported loaded, as label material fields (tape_mm, colours), or None."""
+    width = (status or {}).get("media_width_mm")
+    tape_mm = 4 if width == 3.5 else width  # 3.5 mm tape is sold as 4 mm
+    if tape_mm not in drivers.PTOUCH_TAPES or status.get("tape_color") in ("Reinigungsband", "Schablonenband"):
+        return None
+    colours = [(status.get(key) or "") for key in ("tape_color", "text_color")]
+    colours = ["" if colour == "andere" else colour for colour in colours]
+    return {"tape_mm": tape_mm, "background_color": colours[0], "print_color": colours[1]}
+
+
 def loaded_text(status):
     """What a printer reports to be loaded: "12 mm tape, black on white" or "labels 32 mm long, thermal transfer"."""
     if status.get("media_width_mm"):
@@ -299,7 +329,8 @@ def loaded_text(status):
     return _("Loaded: %(media)s.") % {"media": ", ".join(str(part) for part in parts)} if parts else ""
 
 
-TAPE_CHOICES = [(width, f"{width if width != 4 else 3.5} mm") for width in drivers.PTOUCH_TAPES]
+TAPE_NAMES = {width: f"{width if width != 4 else 3.5} mm" for width in drivers.PTOUCH_TAPES}
+TAPE_CHOICES = list(TAPE_NAMES.items())
 
 
 class Quality(models.TextChoices):
@@ -350,8 +381,10 @@ class LabelStock(models.Model):
     material = models.CharField(_("material"), max_length=64, blank=True,
                                 help_text=_("e.g. paper, polypropylene, polyester"))
     url = models.URLField(_("product page"), blank=True)
-    in_stock = models.BooleanField(_("on hand"), default=False,
-                                   help_text=_("Only material on hand is offered for printing and waited for."))
+    in_stock = models.BooleanField(
+        _("on hand"), default=False,
+        help_text=_("Material not on hand is offered for printing only while it is loaded in a printer, and not "
+                    "waited for."))
     quality = models.CharField(
         _("print quality"), max_length=16, choices=Quality.choices, default=Quality.STANDARD,
         help_text=_("Unless the label template sets it. Brother: draft printing or high resolution; Zebra: print "

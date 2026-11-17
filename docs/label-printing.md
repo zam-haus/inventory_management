@@ -111,9 +111,12 @@ right, so taking out stays visible longest.
 
 ## Setting up (admin → Label printing)
 
-1. **Label material** is the catalog of labels and tapes, and says what there is: only material **on hand**
-   (field, or the list actions **On hand** / **Not on hand**) is offered for printing and waited for. Each
-   printer prints on the material on hand that it takes (see 2.); there is nothing to set up per printer.
+1. **Label material** is the catalog of labels and tapes. A printer always prints on the material loaded in
+   it: Brother the tape of the width it reported (of its colours where the catalog has them; a tape missing
+   from the catalog is added as "24 mm" etc. with the colours reported), a Zebra its loaded labels (see 2.).
+   **On hand** (field, or the list actions **On hand** / **Not on hand**) is for the material that is not
+   loaded: only material on hand is offered for printing then, and waited for. Each printer prints on the
+   material it takes (see 2.); there is nothing to set up per printer.
    * Brother P-touch tapes (TZe, HGe) with article number, width, print and background colour,
      kind (laminated, extra strong adhesive, flexible, matte, …) and description, from Brother's
      tape selector (`label_printing/catalog/brother_tapes.json`, loaded by migration `0002`), not on hand
@@ -151,7 +154,7 @@ right, so taking out stays visible longest.
      printer (delete it and add the new one). A printer takes material of its language that fits: Brother tape its print head
      has and no wider than its widest; Zebra labels no wider than its widest, of its core and winding, and
      thermal transfer labels only if it prints thermal transfer. What is empty is not checked. The printer's
-     page lists the material on hand it takes.
+     page lists the material loaded and on hand it takes.
    * **Calibration:** offset x and y in dots, for all its labels (Zebra: label home `^LH`; Brother: offset y
      moves the print across the tape, positive = down, if the top or bottom is cut off: print the calibration
      label to measure).

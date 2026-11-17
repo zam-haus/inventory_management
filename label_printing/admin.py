@@ -161,6 +161,12 @@ class LabelImageAdmin(admin.ModelAdmin):
         return TemplateResponse(request, "label_printing/admin/image_import.html", context)
 
 
+
+def no_material():
+    return " ".join((gettext("It takes no label material on hand."),
+                     gettext("Mark label material as on hand (Label material) or check what the printer takes.")))
+
+
 @admin.register(Printer)
 class PrinterAdmin(admin.ModelAdmin):
     list_display = ("name", "slug", "language", "model", "transport", "agent", "is_active", "is_default", "status",
@@ -197,7 +203,7 @@ class PrinterAdmin(admin.ModelAdmin):
             kwargs["queryset"] = LabelStock.objects.filter(pk__in=taken).order_by("-in_stock", "name")
         return super().formfield_for_foreignkey(db_field, request, **kwargs)
 
-    @admin.display(description=_("label material on hand it takes"))
+    @admin.display(description=_("label material loaded or on hand it takes"))
     def labels_taken(self, printer):
         if not printer.pk:
             return "–"
@@ -223,7 +229,7 @@ class PrinterAdmin(admin.ModelAdmin):
             if printer.agent is not None and not printer.agent.is_active:
                 note = " " + gettext("Its print agent %(agent)s is not active yet.") % {"agent": printer.agent}
             if not printer.media():
-                note += " " + gettext("It takes no label material on hand.")
+                note += " " + no_material()
             elif printer.language == Printer.Language.ZPL and not printer.loaded_medium_id:
                 note += " " + gettext("Set the labels loaded in it.")
             self.message_user(request, gettext("%(printer)s is active.") % {"printer": printer} + note)
@@ -257,8 +263,11 @@ class PrinterAdmin(admin.ModelAdmin):
 
     def print_own_label(self, request, queryset, layout_key, what):
         for printer in queryset:
+            if (medium := services.default_medium(printer)) is None:
+                self.message_user(request, f"{printer}: {no_material()}", messages.ERROR)
+                continue
             try:
-                job = services.submit(printer=printer, medium=services.default_medium(printer), layout_key=layout_key,
+                job = services.submit(printer=printer, medium=medium, layout_key=layout_key,
                                       subject_type="printer", subjects=[printer], user=request.user)
             except services.PrintError as error:
                 self.message_user(request, f"{printer}: {error}", messages.ERROR)

@@ -2117,3 +2117,21 @@ msgstr ""
 #, python-format
 msgid "%(labels)d labels"
 msgstr "%(labels)d Etiketten"
+
+#: admin.py:168
+msgid "Mark label material as on hand (Label material) or check what the printer takes."
+msgstr ""
+"Markiere Etikettenmaterial als vorrätig (Etikettenmaterial) oder prüfe, "
+"welche Etiketten der Drucker nimmt."
+
+#: models.py:386
+msgid ""
+"Material not on hand is offered for printing only while it is loaded in a "
+"printer, and not waited for."
+msgstr ""
+"Nicht vorrätiges Material wird nur zum Drucken angeboten, solange es in einem "
+"Drucker eingelegt ist, und nicht abgewartet."
+
+#: admin.py:206
+msgid "label material loaded or on hand it takes"
+msgstr "eingelegtes oder vorrätiges Etikettenmaterial, das er nimmt"

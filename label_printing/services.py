@@ -573,14 +573,11 @@ def check_status(printer):
 
 
 def default_medium(printer):
-    """The labels loaded in a Zebra, else the first material on hand the printer takes (Brother: of the tape it
-    reported loaded, if any), or None."""
-    if printer.language == Printer.Language.ZPL and printer.loaded_medium_id:
-        return Medium(printer, printer.loaded_medium)
-    media = sorted(printer.media(), key=lambda medium: medium.name)
-    width = (printer.last_status or {}).get("media_width_mm")
-    tapes = (width, 4) if width == 3.5 else (width,)  # 3.5 mm tape is sold as 4 mm (outcomes.not_loaded)
-    return next((medium for medium in media if medium.ptouch_tape in tapes), media[0] if media else None)
+    """The labels loaded in the printer (a Zebra's set as loaded, Brother: the tape it reported), else the first
+    material on hand it takes, or None."""
+    loaded = set(printer.loaded_stock_ids())
+    media = sorted(printer.media(), key=lambda medium: (medium.pk not in loaded, medium.name))
+    return media[0] if media else None
 
 
 def job_medium(job):
