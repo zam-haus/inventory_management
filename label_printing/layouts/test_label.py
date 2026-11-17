@@ -35,7 +35,8 @@ class TestLabel(Layout):
 @register
 class CalibrationLabel(Layout):
     """Lines across the whole print area, numbered by row, with a frame along its edges: shows how many rows
-    a printer cuts off at the top or bottom (Brother: the medium's offset y moves the print)."""
+    a printer cuts off at the top or bottom (Brother: the medium's offset y moves the print). Lines are a pin
+    thick per 180 dpi, each starting at its row: a single pin of a 360 dpi head prints too faint and broken."""
     key = "calibration"
     name = _("Calibration label")
     subject_type = "printer"
@@ -46,16 +47,17 @@ class CalibrationLabel(Layout):
         height = canvas.height
         width = canvas.width or canvas.dots(TAPE_LENGTH_MM + 10)
         step = 10 if height <= 160 else 20
+        thick = max(1, round(canvas.dpi / 180))
         image = render.blank(width, height)
         draw = ImageDraw.Draw(image)
-        draw.rectangle((0, 0, width - 1, height - 1), outline=0)
+        draw.fontmode = "1"
+        draw.rectangle((0, 0, width - 1, height - 1), outline=0, width=thick)
         loaded = render.font(render.MONO, max(render.MIN_FONT_PX, min(step * 2 - 2, height // 6)), 700)
         for row in range(0, height, step):
-            draw.line((0, row, width // 6 if row % (2 * step) else width // 3, row), fill=0)
+            draw.rectangle((0, row, width // 6 if row % (2 * step) else width // 3, row + thick - 1), fill=0)
             if row % (2 * step) == 0 and row:
-                draw.fontmode = "1"
                 draw.text((width // 3 + 4, row), str(row), font=loaded, fill=0, anchor="lm")
         # The last row, numbered from the bottom edge.
-        draw.line((width * 2 // 3, height - 1, width - 1, height - 1), fill=0)
-        draw.text((width - 4, height - 3), str(height - 1), font=loaded, fill=0, anchor="rd")
+        draw.rectangle((width * 2 // 3, height - thick, width - 1, height - 1), fill=0)
+        draw.text((width - 4, height - 3 - thick), str(height - 1), font=loaded, fill=0, anchor="rd")
         return Rendered(image=image, snapshot={"printer": printer.name, "medium": medium.name, "rows": height})

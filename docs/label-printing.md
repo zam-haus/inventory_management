@@ -131,8 +131,8 @@ right, so taking out stays visible longest.
      Sizes are whole millimetres (15 × 6.35 mm is 15 × 6; the name keeps the exact size).
    * The **print quality** of material is used unless the label template sets one: *draft (fast)*,
      *standard*, *high quality (slower)*. Brother: draft printing (P900, P900W, P950NW only; the others
-     print standard), or high resolution (E550W, P750W, P710BT 180×360, P900 series 360×720 dpi; not the
-     P700): the label is drawn at twice the resolution along the tape, not only printed twice as dense. Zebra: print speed (`^PR6`, the printer's own setting, `^PR2`).
+     print standard), or high resolution (E550W, P750W, P710BT 180×360, P900, P900W, P950NW 360×720 dpi;
+     not the P700 and P910BT): the label is drawn at twice the resolution along the tape, not only printed twice as dense. Zebra: print speed (`^PR6`, the printer's own setting, `^PR2`).
    * Material offers the label templates for its labels: of its size, and of its label material, material
      and colours if a template names them (see [label designs](label-designs.md#where-templates-are-offered)).
    * **Ribbons** (admin → Ribbons) are a catalog of their own: material (wax, wax/resin, resin), width and
@@ -182,7 +182,11 @@ right, so taking out stays visible longest.
        resolution either: high quality prints as standard there.
      * The P900 series needs the last page of a job marked as such in its print information (`ESC i z`
        n9 = 2; 0 the first, 1 the others), or it waits for more pages and hangs until switched off; the
-       128-pin models (E550W, P750W, P700, P710BT) print with 0 on every page.
+       128-pin models (E550W, P750W, P700, P710BT) print with 0 on every page. For high resolution and draft
+       printing on laminated tape it needs the media type 09h there. Brother's raster commands have no print
+       speed or darkness (unlike a Zebra's `^PR`/`^MD`).
+     * The calibration label's lines are a pin thick per 180 dpi (2 on the P900 series): single pins of a
+       360 dpi head print faint and broken.
 3. Print jobs record the printer and the label material they were printed on.
 4. **Test label** (30 mm on tape) and **Check the printer status** are actions on the printer list.
 

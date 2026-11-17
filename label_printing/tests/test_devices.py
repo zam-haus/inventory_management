@@ -264,6 +264,19 @@ class QualityTests(SimpleTestCase):
         draft, _pages = drivers.ptouch_job("P900W", 12, [image], quality="draft")
         self.assertEqual(flags(draft, b"\x1biK"), {0x05})  # draft printing and half cut, continuous
 
+    def test_calibration_lines_a_pin_thick_per_180_dpi(self):
+        from ..layouts import Canvas, get_layout
+        from ..models import LabelStock, Medium, Printer
+
+        for model, dpi, thick in (("E550W", 180, 1), ("P900W", 360, 2)):
+            printer = Printer(name="P", language="ptouch", model=model, dpi=dpi)
+            medium = Medium(printer, LabelStock(language="ptouch", name="24 mm", tape_mm=24))
+            image = get_layout("calibration").render(printer, Canvas.for_medium(medium), medium).image
+            column = [bool(image.getpixel((5, row))) for row in range(image.height)]  # False: black
+            with self.subTest(model=model):
+                self.assertEqual(column[:thick + 1], [False] * thick + [True])  # the frame
+                self.assertEqual(column[20:20 + thick + 1], [False] * thick + [True])  # the line of row 20
+
     def test_brother_page_flags(self):
         """ESC i z n9: the P900 series needs its last page marked (2), else it waits for more and hangs; the 128-pin
         models print with 0."""
@@ -275,6 +288,18 @@ class QualityTests(SimpleTestCase):
         self.assertEqual(flags(drivers.ptouch_job("P900W", 24, [image], copies=2, quality="high")[0]), [0, 2])
         image = Image.new("1", (64, drivers.ptouch_print_pins("E550W", 12)), 1)
         self.assertEqual(flags(drivers.ptouch_job("E550W", 12, [image] * 2)[0]), [0, 0])
+
+    def test_p900_media_type_for_high_resolution_and_draft(self):
+        """For high resolution and draft printing on laminated tape the P900 series wants media type 09h."""
+        def media(payload):
+            return {payload[index + 4] for index in range(len(payload) - 5) if payload[index:index + 3] == b"\x1biz"}
+        image = Image.new("1", (64, drivers.ptouch_print_pins("P900W", 24)), 1)
+        wide = Image.new("1", (128, drivers.ptouch_print_pins("P900W", 24)), 1)
+        self.assertEqual([media(drivers.ptouch_job("P900W", 24, [image])[0]),
+                          media(drivers.ptouch_job("P900W", 24, [wide], quality="high")[0]),
+                          media(drivers.ptouch_job("P900W", 24, [image], quality="draft")[0]),
+                          media(drivers.ptouch_job("P910BT", 24, [image], quality="draft")[0])],
+                         [{0x00}, {0x09}, {0x09}, {0x00}])
 
     def test_brother_without_half_cut(self):
         """PT-P700 and PT-P710BT cut fully instead, without "cut each * labels"; without continuous printing, an
@@ -295,8 +320,8 @@ class QualityTests(SimpleTestCase):
                 self.assertEqual(drivers.ptouch_job(model, 24, [image], cut="none", chain=False)[1], 1)
         tape = Image.new("1", (64, drivers.ptouch_print_pins("E550W", 12)), 0)
         self.assertEqual(drivers.ptouch_job("E550W", 12, [tape], chain=False)[1], 1)  # cuts off the leader itself
-        self.assertEqual((drivers.ptouch_high_resolution("P700"), drivers.ptouch_high_resolution("P710BT")),
-                         (False, True))
+        self.assertEqual([drivers.ptouch_high_resolution(model) for model in ("P700", "P710BT", "P900W", "P910BT")],
+                         [False, True, True, False])
 
     def test_high_quality_prints_as_standard_without_high_resolution(self):
         from types import SimpleNamespace

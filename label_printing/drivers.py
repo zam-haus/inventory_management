@@ -33,6 +33,13 @@ class PTP700(ptouch.PTP750W):
     RESOLUTION_DPI_HIGH = 0
 
 
+class PTP910BT(ptouch.PTP910BT):
+    """Brother PT-P910BT: the P900 series without high resolution and draft printing (raster command reference
+    PT-P900/P900W/P950NW/P910BT)."""
+
+    RESOLUTION_DPI_HIGH = 0
+
+
 # Printer.model choices for P-touch printers → ptouch printer classes.
 PTOUCH_MODELS = {
     "E550W": ptouch.PTE550W,
@@ -42,7 +49,7 @@ PTOUCH_MODELS = {
     "P900": ptouch.PTP900,
     "P900W": ptouch.PTP900W,
     "P950NW": ptouch.PTP950NW,
-    "P910BT": ptouch.PTP910BT,
+    "P910BT": PTP910BT,
 }
 # P-touch printers with draft printing (ESC i K bit 0)
 PTOUCH_DRAFT_MODELS = {"P900", "P900W", "P950NW"}
@@ -169,7 +176,8 @@ def ptouch_half_cut(model):
 
 
 def ptouch_high_resolution(model):
-    """Whether the model prints in high resolution (not the PT-P700): else high quality prints as standard."""
+    """Whether the model prints in high resolution (not the PT-P700 and PT-P910BT): else high quality prints as
+    standard."""
     return PTOUCH_MODELS[model].RESOLUTION_DPI_HIGH > 0
 
 
@@ -192,23 +200,28 @@ def cutting(base, cut, chain):
     return Cutting
 
 
-def page_flags(base, pages):
-    """The printer class marking each page in its print information (ESC i z, n9), as the P900 series needs: 0 the
-    first page, 1 the others, 2 the last (a job of one page: 2). Without the last page marked, a P900W prints and
-    then waits for more pages: its cutter button does nothing and it stops answering until switched off. The 128-pin
-    models know only 0 and 1 and print with 0 throughout, as ptouch sends it."""
+def p900_print_information(base, pages, quality):
+    """The printer class filling in the print information (ESC i z) as the P900 series needs it: each page marked
+    (n9) 0 the first, 1 the others, 2 the last (a job of one page: 2) – without the last page marked, a P900W prints
+    and then waits for more pages: its cutter button does nothing and it stops answering until switched off; and
+    for high resolution or draft printing on laminated tape the media type 09h (n2), else it is refused or ignored.
+    The 128-pin models know only 0 and 1 and print with 0 throughout, as ptouch sends it."""
     if not issubclass(base, PTP900Series):
         return base
+    refined = quality in ("high", "draft") and issubclass(base, tuple(
+        PTOUCH_MODELS[model] for model in PTOUCH_DRAFT_MODELS))
 
-    class PageFlags(base):
+    class PrintInformation(base):
         page = 0
 
         def _cmd_print_information(self, *args, **kwargs):
             command = bytearray(super()._cmd_print_information(*args, **kwargs))
+            if refined and command[4] == 0x00:  # laminated tape
+                command[4] = 0x09
             command[11] = 2 if self.page == pages - 1 else 0 if self.page == 0 else 1
             self.page += 1
             return bytes(command)
-    return PageFlags
+    return PrintInformation
 
 
 def leader_label(tape, pins):
@@ -235,7 +248,7 @@ def ptouch_job(model, tape_mm, images, copies=1, quality="standard", offset=0, c
     if not chain and cut != "none" and not ptouch_half_cut(model):
         labels.insert(0, leader_label(tape, pins))
     connection = BufferConnection()
-    printer = page_flags(cutting(ptouch_printer(model, quality), cut, chain), len(labels))(
+    printer = p900_print_information(cutting(ptouch_printer(model, quality), cut, chain), len(labels), quality)(
         connection, high_resolution=quality == "high")
     if offset:
         config = printer.PIN_CONFIGS[tape]
