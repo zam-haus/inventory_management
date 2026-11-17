@@ -11,8 +11,8 @@ def process_job(job_id):
 
 @shared_task(name="label_printing.tasks.dispatch_waiting_jobs", ignore_result=True)
 def dispatch_waiting_jobs():
-    """Print waiting jobs a printer can print now; schedules itself again while jobs wait."""
-    services.dispatch_waiting()
+    """Offer the waiting jobs to the network printers; schedules itself again while jobs wait."""
+    services.offer_to_network_printers()
 
 
 @shared_task(name="label_printing.tasks.check_network_printers", ignore_result=True)

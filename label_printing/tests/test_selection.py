@@ -131,10 +131,10 @@ class SubjectsTests(InventoryData, TestCase):
         # With the owner's template: the unique item, with its owner
         owned = next(outcome for outcome in outcomes.outcomes("uniqueitem")
                      if outcome.layout.template.label_width == 57)
-        with patch("label_printing.services.process"):
+        with self.captureOnCommitCallbacks(execute=True), patch("label_printing.services.process"):
             response = self.client.post(reverse("print_labels", args=["uniqueitem", drill.pk]),
                                         {"outcome": owned.key, "copies": 1}, headers={"Accept": "application/json"})
-        job = PrintJob.objects.get(pk=response.json()["job"]["id"])
+        job = PrintJob.objects.get(pk=response.json()["job"]["id"])  # drawn when the printer took it
         self.assertEqual((job.subject_type, job.snapshot[0]["owner"], job.label_code), ("uniqueitem", "Robin", lid.code))
 
     def test_a_label_id_of_a_unique_item_marked_printed(self):

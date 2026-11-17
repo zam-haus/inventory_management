@@ -6,18 +6,25 @@ from django.contrib import admin, messages
 from django.template.response import TemplateResponse
 from django.utils.translation import gettext as _, ngettext
 
+from . import outcomes
 from .dialog import BatchPrintForm
 from .services import PrintError, print_batch
 
 
 def report(request, jobs, skipped):
-    """Say where the labels print, or that they wait for a printer, and which ones no label is meant for."""
+    """Say where the labels print (a printer that has their labels and can print now takes them, as in the dialog),
+    or that they wait for a printer, and which ones no label is meant for."""
+    found = {}
     for job in jobs:
-        count = len(job.snapshot) or len(job.request.get("subjects", []))  # waiting jobs are drawn later
+        count = len(job.snapshot) or len(job.request.get("subjects", []))  # drawn when a printer takes them
         labels = ngettext("%(count)d label", "%(count)d labels", count) % {"count": count}
-        if job.printer_id:
+        if job.subject_type not in found:
+            found[job.subject_type] = {outcome.key: outcome for outcome in outcomes.outcomes(job.subject_type)}
+        outcome = found[job.subject_type].get(job.outcome)
+        printer = job.printer or (target.printer if outcome and (target := outcome.target()) else None)
+        if printer is not None:
             messages.info(request, _("%(labels)s (%(subjects)s): on %(printer)s.") % {
-                "labels": labels, "subjects": job.subject_label, "printer": job.printer})
+                "labels": labels, "subjects": job.subject_label, "printer": printer})
         else:
             messages.warning(request, _("%(labels)s (%(subjects)s) wait for a printer with their labels.") % {
                 "labels": labels, "subjects": job.subject_label})

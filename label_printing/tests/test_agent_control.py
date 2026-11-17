@@ -41,7 +41,7 @@ class PollTests(InventoryData, TestCase):
                                 headers={"Authorization": f"Bearer {token or self.token}"})
 
     def poll(self, busy=(), printing=None, held=None):
-        return self.post("print_agent_poll", {"version": "5.1", "hostname": "pi", "printers": {}, "busy": list(busy),
+        return self.post("print_agent_poll", {"version": "6.0", "hostname": "pi", "printers": {}, "busy": list(busy),
                                               "printing": printing or {},
                                               **({"held": list(held)} if held is not None else {})}).json()
 
@@ -86,12 +86,6 @@ class PollTests(InventoryData, TestCase):
         self.assertEqual(self.poll(held=[])["printer_commands"], {})
         self.zebra.refresh_from_db()
         self.assertEqual((self.zebra.held_at, self.zebra.resume_requested), (None, False))
-
-    def test_agents_before_version_5_get_one_job(self):
-        job = self.queue(self.zebra, self.labels)
-        self.queue(self.brother, self.tape)
-        answer = self.post("print_agent_poll", {"version": "4", "printers": {}}).json()
-        self.assertEqual((answer["job"]["id"], set(answer)), (job.pk, {"printers", "job"}))
 
     def test_jobs_held_by_the_agent_keep_their_lease(self):
         job = self.queue(self.zebra, self.labels)
@@ -153,7 +147,8 @@ class PollTests(InventoryData, TestCase):
                                               "material": "60 × 30 (60 × 30 mm labels)",
                                               "reason": "Loaded: 57 × 32.", "jobs": 2, "ribbon_problem": ""}])
         other, other_token = create_agent("other")
-        self.assertEqual(self.post("print_agent_poll", {"busy": []}, token=other_token).json()["waiting"], [])
+        self.assertEqual(self.post("print_agent_poll", {"version": "6.0", "busy": []}, token=other_token)
+                         .json()["waiting"], [])
         self.assertEqual(self.post("print_agent_loaded", {"printer": self.zebra.uid, "medium": small.pk},
                                    token=other_token).status_code, 404)
         self.assertEqual(self.post("print_agent_loaded", {"printer": self.zebra.uid, "medium": self.tape.pk})
@@ -161,16 +156,18 @@ class PollTests(InventoryData, TestCase):
         self.assertEqual(self.post("print_agent_loaded", {"printer": self.zebra.uid, "medium": small.pk}).json(),
                          {"ok": True})
         job.refresh_from_db()
-        self.assertEqual((job.status, job.printer, job.medium), ("pending", self.zebra, small.stock))
+        self.assertEqual((job.status, job.printer), ("waiting", None))  # until the Zebra takes it
         answer = self.poll()
         self.assertEqual(([entry["id"] for entry in answer["jobs"]], answer["waiting"]), ([job.pk], []))
         self.assertEqual(answer["printers"][self.zebra.uid]["loaded"], small.pk)
+        job.refresh_from_db()
+        self.assertEqual((job.status, job.printer, job.medium), ("processing", self.zebra, small.stock))
 
     def test_test_and_calibration_labels_asked_for_on_the_display(self):
         response = self.post("print_agent_own_label", {"printer": self.zebra.uid, "label": "calibration"})
         job = PrintJob.objects.get(pk=response.json()["job"])
         self.assertEqual((job.printer, job.medium, job.layout_key, job.status),
-                         (self.zebra, self.labels.stock, "calibration", "pending"))
+                         (self.zebra, self.labels.stock, "calibration", "waiting"))
         self.assertEqual([entry["id"] for entry in self.poll()["jobs"]], [job.pk])
         self.assertEqual(self.post("print_agent_own_label", {"printer": self.zebra.uid, "label": "x"}).json(),
                          {"error": "Unknown layout."})
@@ -246,7 +243,7 @@ class RibbonTests(TestCase):
         self.assertEqual(self.on_polyester().colours(), ("", "gelb"))  # print: not known
 
     def test_the_agent_hears_of_it_and_sets_another(self):
-        answer = self.post("print_agent_poll", {"busy": []}).json()["printers"][self.zebra.uid]
+        answer = self.post("print_agent_poll", {"version": "6.0", "busy": []}).json()["printers"][self.zebra.uid]
         ours = [ribbon for ribbon in answer["ribbons"] if ribbon["id"] in (self.wax.pk, self.resin.pk)]
         self.assertEqual((ours, answer["ribbon"]), (
             [{"id": self.wax.pk, "name": "wax ribbon 84 mm, schwarz"},
@@ -297,8 +294,8 @@ class AgentControlTests(SimulatedPrinters, LiveServerTestCase):
                                subjects=[printer])
 
     def held_task(self, job, uid="zebra-lan"):
-        """The job claimed for the agent and waiting in its held printer."""
-        services.claim(job.pk, self.agent.name, self.agent)
+        """The job taken by the agent's printer and waiting in it, held."""
+        self.assertEqual(services.take(Printer.objects.get(uid=uid), self.agent.name, self.agent), job)
         job.refresh_from_db()
         self.printers.spooler(uid).pause()
         self.printers.submit(Task(self.link, job_data(job)))
@@ -314,7 +311,7 @@ class AgentControlTests(SimulatedPrinters, LiveServerTestCase):
         job = self.queue(self.zebra, self.labels)
         self.printers.spooler("zebra-lan").pause()  # on the display
         self.assertFalse(self.link.poll_once())
-        self.assertEqual(PrintJob.objects.get(pk=job.pk).status, "pending")
+        self.assertEqual(PrintJob.objects.get(pk=job.pk).status, "waiting")
         self.printers.resume("zebra-lan")
         self.assertTrue(self.link.poll_once())
         self.printers.wait_idle()
@@ -325,7 +322,7 @@ class AgentControlTests(SimulatedPrinters, LiveServerTestCase):
         self.printers.pause()  # button 4 on the display, before either printer printed
         self.assertEqual(self.printers.busy(), ["ptouch-lan", "zebra-lan"])
         self.assertFalse(self.link.poll_once())
-        self.assertEqual(PrintJob.objects.get(pk=job.pk).status, "pending")
+        self.assertEqual(PrintJob.objects.get(pk=job.pk).status, "waiting")
 
     def test_abort_on_the_display(self):
         job = self.queue(self.zebra, self.labels)

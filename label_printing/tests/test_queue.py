@@ -29,7 +29,7 @@ class SubmitTests(TestCase):
 
     def test_zebra_job_holds_a_raster_format_per_label(self):
         job = self.submit(copies=3)
-        self.assertEqual((job.status, job.pages, job.copies, job.user), ("pending", 3, 3, self.user))
+        self.assertEqual((job.status, job.pages, job.copies, job.user), ("waiting", 3, 3, self.user))
         zpl = bytes(job.payload).decode()
         self.assertTrue(zpl.startswith("^XA^PW456^LL256^LH0,0^FO0,0^GFA,"))
         self.assertTrue(zpl.endswith("^PQ3^XZ"))
@@ -120,28 +120,27 @@ class QueueTests(TestCase):
         return PrintJob.objects.create(printer=self.zebra, medium=self.labels.stock, layout_key="test",
                                        subject_type="printer", payload=b"^XA^XZ", **fields)
 
-    def test_a_job_is_claimed_once(self):
+    def test_a_job_is_taken_once_and_only_by_its_printer(self):
         job = self.job()
-        self.assertTrue(services.claim(job.pk, "worker"))
-        self.assertFalse(services.claim(job.pk, "other"))
+        self.assertIsNone(services.take(self.brother, "worker"))  # for the Zebra
+        self.assertEqual(services.take(self.zebra, "worker"), job)
+        self.assertIsNone(services.take(self.zebra, "other"))
         job.refresh_from_db()
         self.assertEqual((job.status, job.claimed_by), ("processing", "worker"))
 
     def test_stale_jobs_expire_and_lost_ones_fail(self):
         old = timezone.now() - timedelta(seconds=200)
-        waiting, lost, fresh = self.job(), self.job(status="processing"), self.job()
-        PrintJob.objects.filter(pk=waiting.pk).update(ready_at=old)
+        waiting, lost, fresh = self.job(expires_at=old), self.job(status="processing"), self.job()
         PrintJob.objects.filter(pk=lost.pk).update(claimed_at=old)
-        self.assertFalse(services.claim(waiting.pk, "worker"))
         services.expire_stale()
         statuses = dict(PrintJob.objects.values_list("pk", "status"))
-        self.assertEqual((statuses[waiting.pk], statuses[lost.pk], statuses[fresh.pk]), ("expired", "failed", "pending"))
+        self.assertEqual((statuses[waiting.pk], statuses[lost.pk], statuses[fresh.pk]), ("expired", "failed", "waiting"))
         self.assertEqual(PrintJob.objects.get(pk=lost.pk).message, "The print worker or agent did not report back.")
         self.assertIsNone(PrintJob.objects.get(pk=waiting.pk).payload)
 
     def test_finish_records_the_result_and_the_printer_status(self):
-        job = self.job()
-        services.claim(job.pk, "worker")
+        self.job()
+        job = services.take(self.zebra, "worker")
         status = {"language": "zpl", "errors": ["paper_out"], "ok": False}
         job = services.finish(job, Result("failed", "paper_out", printer_status=status))
         self.assertEqual((job.status, job.code, job.message), ("failed", "paper_out", "The printer is out of labels."))
@@ -155,18 +154,19 @@ class QueueTests(TestCase):
         self.assertEqual(job.message, "24 mm tape is loaded, but 12 mm was chosen.")
 
     def test_agent_gets_the_oldest_job_of_its_printers(self):
-        agent = PrintAgent(name="pi")
+        agent = PrintAgent(name="pi", last_seen=timezone.now())
         agent.new_token()
         agent.save()
         Printer.objects.filter(pk=self.zebra.pk).update(transport="agent", agent=agent)
-        older, newer = self.job(), self.job()
-        PrintJob.objects.filter(pk=older.pk).update(created_at=timezone.now() - timedelta(seconds=10))
+        newer, older = self.job(), self.job()
+        PrintJob.objects.filter(pk=older.pk).update(ready_at=timezone.now() - timedelta(seconds=10))
         other = PrintJob.objects.create(printer=self.brother, medium=self.tape.stock, layout_key="test",
                                         subject_type="printer", payload=b"x")
-        self.assertEqual(services.next_for_agent(agent), older)
-        self.assertEqual(services.next_for_agent(agent), newer)
-        self.assertIsNone(services.next_for_agent(agent))
-        self.assertEqual(PrintJob.objects.get(pk=other.pk).status, "pending")
+        self.assertEqual(services.jobs_for_agent(agent), [older])  # one at a time for its one printer
+        self.assertEqual(services.jobs_for_agent(agent), [newer])
+        self.assertEqual(services.jobs_for_agent(agent), [])
+        self.assertEqual(services.jobs_for_agent(agent, busy=["zebra"]), [])
+        self.assertEqual(PrintJob.objects.get(pk=other.pk).status, "waiting")
         self.assertEqual(PrintJob.objects.get(pk=older.pk).agent, agent)
 
 

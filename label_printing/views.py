@@ -51,13 +51,13 @@ def job_data(job):
 @login_required
 def job_status(request, pk):
     """How a job is getting on, for the print dialog; users see their own jobs, admins every job. A waiting job
-    is printed here as soon as a printer can (without a broker nobody else looks while no agent asks)."""
+    is offered to the network printers here (without a broker nobody else does; agents take theirs)."""
     services.expire_stale()
     job = get_object_or_404(PrintJob, pk=pk)
     if job.user_id != request.user.pk and not request.user.has_perm("label_printing.view_printjob"):
         raise Http404
-    if job.status == PrintJob.Status.WAITING:
-        services.dispatch_waiting(refresh=not services.with_broker())  # else the worker asks the printers
+    if job.status == PrintJob.Status.WAITING and not services.with_broker():
+        services.offer_to_network_printers()
         job.refresh_from_db()
     return JsonResponse(job_data(job))
 
@@ -87,8 +87,8 @@ def batch_status(request, batch):
         jobs = jobs.filter(user=request.user)
     if not jobs:
         raise Http404
-    if any(job.status == PrintJob.Status.WAITING for job in jobs):
-        services.dispatch_waiting(refresh=not services.with_broker())  # else the worker asks the printers
+    if not services.with_broker() and any(job.status == PrintJob.Status.WAITING for job in jobs):
+        services.offer_to_network_printers()
     return JsonResponse(batch_data(batch, list(jobs.all())))
 
 
@@ -136,7 +136,7 @@ class PrintLabelsView(PermissionRequiredMixin, View):
                         jobs.append(services.submit_outcome(
                             outcome, subject_type=outcome.layout.subject_type, subjects=[subject],
                             copies=form.cleaned_data["copies"], user=request.user, request_id=request_id,
-                            wait=True, batch=batch))
+                            wait=True, batch=batch, printer=form.cleaned_data.get("printer")))
                     form.remember_labels()
             except services.PrintError as error:
                 jobs = []

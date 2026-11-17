@@ -26,8 +26,10 @@ Brother gets P-touch raster data. The code is in the app `label_printing`.
     shown, those of priority 0 under **more labels**, unless none ranks higher.
   * Each choice has a preview and either the printer it would print on or why no printer can
     print it now.
-  * The server picks the printer: active, reachable, with these labels and, as far as it
-    reported, with them loaded. The default printer comes first.
+  * No printer is picked when printing: the job is offered to the printers, and the first one that is free
+    and can print it takes it (active, reachable, with these labels loaded as far as it reported). The
+    dialog names a printer that can print it now; **Printer** (shown with more than one active printer)
+    leaves the job to that printer only ("Any printer with these labels" by default).
   * Labels no printer can print now are greyed but can still be previewed. Printing them puts the
     job in a queue (the dialog says so beside the button **Wait for a printer**): it waits up to five
     minutes (`PRINT_WAIT_MAX`) and is printed as soon as a printer can (a print agent back online,
@@ -375,12 +377,21 @@ on, whoever held them (also on the agent's display).
 ## How jobs travel
 
 ```
-dialog / admin → services.submit(): renders the labels, builds the printer's bytes,
-                 saves PrintJob(status=pending)
-  network printer → Celery task label_printing.tasks.process_job (queue label_printing)
-  agent printer   → waits until the print agent fetches it (POST /print/api/agent/poll)
+dialog / admin print actions → services.submit_outcome(): PrintJob(status=waiting), the label and its
+                 subjects, optionally for one printer; nothing rendered yet
+test label, label IDs, reprint → services.submit(): rendered for the given printer and labels at once,
+                 PrintJob(status=waiting) for that printer only
+a free printer takes the oldest waiting job it can print now (services.take): rendered for it (if not yet),
+                 status processing
+  agent printer   → with the print agent's poll, one job per free printer (POST /print/api/agent/poll)
+  network printer → the dispatcher (services.offer_to_network_printers: when a job comes, when one is done,
+                    and every 10 s while jobs wait), printed by the Celery task label_printing.tasks.process_job
 both: devices.run.run_job(): status first, then the data, then wait for "printed"
 ```
+
+The queue is an offering: a job is not bound to a printer before one takes it. So a busy printer's long
+queue does not hold up labels another printer with the same labels could print, and a printer that comes
+back or gets other labels just takes what it can print.
 
 * **Status check** before printing: Brother `ESC i S` (no tape, cover open, overheated, and the
   loaded tape width, which must match the job's tape: "24 mm tape is loaded, but 12 mm was chosen").
@@ -392,9 +403,10 @@ both: devices.run.run_job(): status first, then the data, then wait for "printed
   nothing is sent.
 * **After sending:** Brother reports each printed page; a Zebra is polled until its buffer is
   empty. No answer in time: *sent, not confirmed*.
-* **Statuses:** waiting → printing → printed / sent, not confirmed / failed / expired. A job
-  not picked up within `PRINT_JOB_MAX_AGE` seconds expires (the person has moved on); one
-  without result after `PRINT_JOB_LEASE` seconds fails. A printer that cannot be reached is
+* **Statuses:** waiting for a printer → printing → printed / sent, not confirmed / failed / expired. A
+  job no printer took in time expires (the person has moved on): one of the dialog after
+  `PRINT_WAIT_MAX` seconds, one for a given printer after `PRINT_JOB_MAX_AGE`; one without result after
+  `PRINT_JOB_LEASE` seconds fails. A printer that cannot be reached is
   tried again a few times; anything else is never repeated, so nothing is printed twice. The
   dialog's request ID makes a repeated submission return the same job.
 * The printer's last status is kept and shown in the dialog; for a Brother, the label material with the
@@ -458,11 +470,11 @@ is no longer supported.)
    errors, and what is loaded: Brother tape width, tape and print colour; Zebra label length and
    direct thermal or thermal transfer. The admin and the print dialog show it; for a Brother,
    the dialog preselects the label material of the loaded tape (width and colours).
-4. **Jobs:** agents get the jobs of their active printers (`POST /print/api/agent/poll`,
-   every 2 seconds), one for each printer that is not busy (agents report the busy ones), and report
-   each result. A printer whose agent has not asked for 30 seconds
+4. **Jobs:** with each poll (`POST /print/api/agent/poll`, every 2 seconds) each active printer of the
+   agent that is not busy (agents report the busy ones) takes the oldest waiting job it can print now,
+   rendered for it; the agent reports each result. A printer whose agent has not asked for 30 seconds
    (`PRINT_AGENT_OFFLINE_AFTER`), or whose agent is deactivated, is offline: the dialog says so.
-   Agents before version 5 get one job per poll, as before.
+   Agents before version 6 are refused ("update the print agent", HTTP 426).
 5. **Pausing and aborting:** the agent sends the data label by label. Each poll lists the jobs it holds
    and whether they are paused: their lease (`PRINT_JOB_LEASE`) starts again, so a paused job is not taken
    for lost. The answer carries the admin's commands for them (pause, go on, abort), sent until the agent
@@ -533,11 +545,11 @@ The tests start the simulator on free ports (`label_printing/tests/helpers.py`).
 | Setting | Default | Meaning |
 |---|---|---|
 | `CELERY_BROKER_URL` | empty | broker for the worker; empty: jobs run in the request |
-| `PRINT_JOB_MAX_AGE` | 120 | seconds a job may wait to be picked up |
+| `PRINT_JOB_MAX_AGE` | 120 | seconds a job for a given printer (test label, label IDs, reprint) may wait for it |
 | `PRINT_JOB_LEASE` | 180 | seconds a job may be printing without a result |
 | `PRINT_AGENT_OFFLINE_AFTER` | 30 | seconds after an agent's last request that its printers count as offline |
 | `PRINT_MAX_COPIES` | 20 | most copies per job |
-| `PRINT_WAIT_MAX` | 300 | seconds a label no printer can print now may wait for one |
+| `PRINT_WAIT_MAX` | 300 | seconds a job of the print dialog may wait for a printer to take it |
 | `PRINT_AGENT_MAX_PRINTERS` | 20 | new printers an agent may report |
 | `PRINT_STATUS_TICK` | 15 | seconds between looks for network printers due for a status check (with a broker) |
 

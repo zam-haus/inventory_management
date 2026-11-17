@@ -133,8 +133,10 @@ def discovered(agent, uid, report):
 @agent_api
 def poll(request, agent, data):
     """Heartbeat with the printers found and their status. Answers the agent's printers, a job for each that is not
-    busy (now claimed for the agent), the commands for the jobs it holds and the labels waiting to be loaded.
-    Agents before version 5 (no "busy") get their active printers and one job, or none."""
+    busy (each the oldest it can print now, rendered for it and claimed for the agent), the commands for the jobs
+    it holds and the labels waiting to be loaded. Agents before version 6 are refused: they must be updated."""
+    if not version_at_least(data.get("version"), 6):
+        return JsonResponse({"error": "update the print agent (version 6 or later)"}, status=426)
     agent.last_seen = timezone.now()
     agent.version = str(data.get("version", ""))[:32]
     agent.hostname = str(data.get("hostname", agent.hostname))[:255]
@@ -148,23 +150,24 @@ def poll(request, agent, data):
             printer = discovered(agent, str(uid), report)
             if printer is not None and isinstance(report.get("status"), dict):
                 printer.remember_status(report["status"])
-    if "busy" not in data:  # agents before version 5: one job at a time
-        printers = {printer.uid or printer.slug: {"language": printer.language, "check_status": printer.reports_status}
-                    for printer in agent.printers.filter(is_active=True)}
-        services.dispatch_waiting(refresh=False)  # the agent's printers may just have come back or got other tape
-        job = services.next_for_agent(agent)
-        return JsonResponse({"printers": printers, "job": job and job_data(job)})
     printing = data.get("printing") if isinstance(data.get("printing"), dict) else {}
-    busy = [str(uid) for uid in data["busy"] if ID_PATTERN.match(str(uid))] if isinstance(data["busy"], list) else []
+    busy = [str(uid) for uid in data["busy"] if ID_PATTERN.match(str(uid))] if isinstance(data.get("busy"), list) else []
     commands = services.keep_printing(agent, printing)
     held = [str(uid) for uid in data["held"]] if isinstance(data.get("held"), list) else None  # agents since 5.1
     printer_commands = services.held_printers(agent, held) if held is not None else {}
     found = {}  # the outcomes of waiting jobs, worked out once for both
-    services.dispatch_waiting(refresh=False, found=found)
-    jobs = services.jobs_for_agent(agent, busy)
+    jobs = services.jobs_for_agent(agent, busy, found)
     return JsonResponse({"printers": services.agent_printers(agent), "jobs": [job_data(job) for job in jobs],
                          "commands": {str(pk): command for pk, command in commands.items()},
                          "printer_commands": printer_commands, "waiting": services.material_waits(agent, found)})
+
+
+def version_at_least(version, major):
+    """Whether an agent's version ("6.0") is `major` or later."""
+    try:
+        return int(str(version).split(".")[0]) >= major
+    except ValueError:
+        return False
 
 
 def job_data(job):

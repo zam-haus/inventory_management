@@ -187,12 +187,16 @@ def find(subject_type, key):
     return next((outcome for outcome in outcomes(subject_type) if outcome.key == key), None)
 
 
-def waited_for(found, job):
+def waited_for(found, job, printer=None):
     """The outcome a waiting job waits for, among `found` (by key): its own, or, for a template that no printer
     had labels for when the job was queued, the template on the labels a printer has now (a template has one
-    size)."""
+    size). Preferred: one a printer can print now (the job's printer, if it is for one; printer: that one)."""
+    def printable(outcome):
+        return any(not target.reason and job.printer_id in (None, target.printer.pk)
+                   and (printer is None or target.printer.pk == printer.pk) for target in outcome.targets)
+
     outcome = found.get(job.outcome)
-    if outcome is not None and outcome.target():
+    if outcome is not None and printable(outcome):
         return outcome
-    return next((other for other in found.values() if other.layout.key == job.layout_key and other.target()),
+    return next((other for other in found.values() if other.layout.key == job.layout_key and printable(other)),
                 outcome)

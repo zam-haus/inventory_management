@@ -56,8 +56,8 @@ class AgentAccessAndPrinterTests(TestCase):
                                 headers=headers)
 
     def poll(self, printers=None, token=None):
-        return self.post("print_agent_poll", {"version": "4", "hostname": "pi-lager", "printers": printers or {}},
-                         token=token)
+        return self.post("print_agent_poll", {"version": "6.0", "hostname": "pi-lager", "printers": printers or {},
+                                              "busy": []}, token=token)
 
     def test_only_agents_created_in_the_admin_are_let_in(self):
         self.assertEqual(self.client.post("/print/api/agent/register", "{}", content_type="application/json")
@@ -67,7 +67,9 @@ class AgentAccessAndPrinterTests(TestCase):
         self.assertIn("create the agent in the admin", response.json()["error"])
         self.assertEqual(self.client.post(reverse("print_agent_poll"), "{}", content_type="application/json")
                          .status_code, 401)
-        self.assertEqual(self.poll().json(), {"printers": {}, "job": None})
+        self.assertEqual((self.poll().json()["printers"], self.poll().json()["jobs"]), ({}, []))
+        old = self.post("print_agent_poll", {"version": "5.3", "busy": []})
+        self.assertEqual((old.status_code, old.json()["error"]), (426, "update the print agent (version 6 or later)"))
         self.agent.refresh_from_db()
         self.assertEqual(self.agent.hostname, "pi-lager")
         PrintAgent.objects.filter(pk=self.agent.pk).update(is_active=False)
@@ -93,7 +95,8 @@ class AgentAccessAndPrinterTests(TestCase):
         status = {"language": "ptouch", "ok": True, "errors": [], "media_width_mm": 24, "tape_color": "gelb",
                   "text_color": "schwarz"}
         report = {"usb-04f9-2085-A1B2C3": {"device": "/dev/usb/lp0", "info": BROTHER_INFO, "status": status}}
-        self.assertEqual(self.poll(report).json(), {"printers": {}, "job": None})
+        answer = self.poll(report).json()
+        self.assertEqual(([entry["active"] for entry in answer["printers"].values()], answer["jobs"]), ([False], []))
         printer = Printer.objects.get(uid="usb-04f9-2085-A1B2C3")
         self.assertEqual((printer.name, printer.language, printer.model, printer.dpi, printer.is_active,
                           printer.transport, printer.agent), ("Brother PT-P900W", "ptouch", "P900W", 360, False,
@@ -124,10 +127,11 @@ class AgentAccessAndPrinterTests(TestCase):
         job = services.submit(printer=printer, medium=medium, layout_key="test", subject_type="printer",
                               subjects=[printer])
         answer = self.poll().json()
-        self.assertEqual(answer["printers"], {"usb-04f9-2085-A1B2C3": {"language": "ptouch", "check_status": True}})
-        self.assertEqual((answer["job"]["id"], answer["job"]["printer"], answer["job"]["expected_tape_mm"]),
-                         (job.pk, "usb-04f9-2085-A1B2C3", 24))
-        self.assertIsNone(answer["job"]["expected_length"])  # Zebra only: [height in mm, dpi]
+        self.assertEqual(answer["printers"], {"usb-04f9-2085-A1B2C3": {
+            "name": "Brother PT-P900W", "active": True, "language": "ptouch", "check_status": True}})
+        sent, = answer["jobs"]
+        self.assertEqual((sent["id"], sent["printer"], sent["expected_tape_mm"]), (job.pk, "usb-04f9-2085-A1B2C3", 24))
+        self.assertIsNone(sent["expected_length"])  # Zebra only: [height in mm, dpi]
 
     def test_unknown_brother_model_must_be_chosen_before_activating(self):
         self.poll({"usb-04f9-20c7-X": {"info": {**BROTHER_INFO, "model": ""}}})
@@ -178,6 +182,9 @@ class AgentApiTests(TestCase):
         return self.client.post(reverse(name, kwargs=kwargs), json.dumps(data or {}), content_type="application/json",
                                 headers={"Authorization": f"Bearer {token or self.token}"})
 
+    def poll(self):
+        return self.post("print_agent_poll", {"version": "6.0", "busy": []}).json()
+
     def queue(self):
         self.printer.refresh_from_db()
         return services.submit(printer=self.printer, medium=self.medium, layout_key="test", subject_type="printer",
@@ -192,9 +199,9 @@ class AgentApiTests(TestCase):
 
     def test_job_round_trip(self):
         job = self.queue()
-        answer = self.post("print_agent_poll").json()["job"]
+        answer, = self.poll()["jobs"]
         self.assertEqual((answer["printer"], base64.b64decode(answer["payload"])), (self.printer.uid, bytes(job.payload)))
-        self.assertIsNone(self.post("print_agent_poll").json()["job"])  # claimed once
+        self.assertEqual(self.poll()["jobs"], [])  # claimed once
         result = {"status": "failed", "code": "head_open", "detail": {}, "printer_status": {"errors": ["head_open"]}}
         self.assertEqual(self.post("print_agent_result", result, pk=job.pk).json(), {"ok": True})
         job.refresh_from_db()
@@ -203,7 +210,7 @@ class AgentApiTests(TestCase):
 
     def test_only_the_claiming_agent_reports(self):
         job = self.queue()
-        self.post("print_agent_poll")
+        self.poll()
         _other, other_token = create_agent("other")
         self.assertEqual(self.post("print_agent_result", {"status": "done"}, token=other_token, pk=job.pk).status_code, 404)
         self.assertEqual(self.post("print_agent_result", {"status": "maybe"}, pk=job.pk).status_code, 400)

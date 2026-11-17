@@ -528,8 +528,9 @@ class Medium:
 
 
 class PrintJob(models.Model):
-    """One print request: the printer-ready data and what became of it. A job asked for while no printer can
-    print it waits (WAITING) without printer and data, until one can (services.dispatch_waiting) or it expires."""
+    """One print request and what became of it. It waits (WAITING) until a printer that is free and can print it
+    takes it (services.take) or it expires: one of the print dialog without data, rendered then for that printer
+    (printer set while waiting: only that one); one for a given printer and labels with its data already."""
 
     class Meta:
         verbose_name = _("print job")
@@ -540,7 +541,6 @@ class PrintJob(models.Model):
 
     class Status(models.TextChoices):
         WAITING = "waiting", _("waiting for a printer")
-        PENDING = "pending", _("waiting")
         PROCESSING = "processing", _("printing")
         DONE = "done", _("printed")
         SENT = "sent", _("sent, not confirmed")
@@ -566,7 +566,7 @@ class PrintJob(models.Model):
     pages = models.PositiveSmallIntegerField(_("labels"), default=1)
     quality = models.CharField(_("print quality"), max_length=16, choices=Quality.choices, default=Quality.STANDARD)
     payload = models.BinaryField(null=True, blank=True, editable=False)
-    status = models.CharField(_("status"), max_length=16, choices=Status.choices, default=Status.PENDING)
+    status = models.CharField(_("status"), max_length=16, choices=Status.choices, default=Status.WAITING)
     code = models.CharField(_("result"), max_length=64, blank=True)
     detail = models.JSONField(default=dict, blank=True)
     printer_status = models.JSONField(_("printer status"), null=True, blank=True)
@@ -586,12 +586,13 @@ class PrintJob(models.Model):
     request_id = models.UUIDField(null=True, blank=True, unique=True, editable=False)
     # The jobs of one print from the dialog's overview (one job per label), followed together
     batch = models.UUIDField(_("batch"), null=True, blank=True, editable=False, db_index=True)
-    # A waiting job: the label outcome asked for (outcomes.py), its subjects and options, until when it waits.
+    # A job of the print dialog: the label outcome asked for (outcomes.py), its subjects and options; until when a
+    # job waits for a printer.
     outcome = models.CharField(_("label"), max_length=96, blank=True)
     request = models.JSONField(default=dict, blank=True, editable=False)
     expires_at = models.DateTimeField(_("waits until"), null=True, blank=True)
     created_at = models.DateTimeField(_("created at"), auto_now_add=True)
-    # When its data was ready for the printer: picked up within PRINT_JOB_MAX_AGE from then.
+    # When it was offered to the printers: the oldest is taken first.
     ready_at = models.DateTimeField(default=timezone.now, editable=False)
     claimed_at = models.DateTimeField(_("picked up at"), null=True, blank=True)
     finished_at = models.DateTimeField(_("finished at"), null=True, blank=True)

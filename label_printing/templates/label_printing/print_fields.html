@@ -83,6 +83,17 @@
         <div class="form-text" id="label-print-remember-help-{{ subject_type }}">{% trans "The chosen label is preselected the next time this location is printed (in the overview: each location's)." %}</div>
     </div>
     {% endif %}
+    {% if print_options.printers|length > 1 %}
+    <div class="mb-3">
+        <label class="form-label" for="label-print-printer-{{ subject_type }}">{% trans "Printer" %}</label>
+        <select class="form-select{% if form.printer.errors %} is-invalid{% endif %}" id="label-print-printer-{{ subject_type }}" name="printer" aria-describedby="label-print-printer-help-{{ subject_type }}">
+            <option value="">{% trans "Any printer with these labels" %}</option>
+            {% for printer in print_options.printers %}<option value="{{ printer.id }}"{% if form.printer.value|stringformat:"s" == printer.id|stringformat:"s" %} selected{% endif %}>{{ printer.name }}</option>{% endfor %}
+        </select>
+        <div class="form-text" id="label-print-printer-help-{{ subject_type }}">{% trans "The first free printer that has the labels loaded takes the job; choose one to have only it print." %}</div>
+        <div class="invalid-feedback" data-error-for="printer">{{ form.printer.errors|join:" " }}</div>
+    </div>
+    {% endif %}
     <div class="mb-3">
         <label class="form-label" for="label-print-copies-{{ subject_type }}">{% trans "Copies per label" %}</label>
         <input class="form-control label-print-copies{% if form.copies.errors %} is-invalid{% endif %}" type="number" id="label-print-copies-{{ subject_type }}" name="copies" value="1" min="1" max="{{ print_options.max_copies }}" inputmode="numeric" required>

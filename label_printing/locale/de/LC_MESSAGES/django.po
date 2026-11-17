@@ -2194,3 +2194,20 @@ msgstr ""
 "einem Druckagenten: auf seinem Display). Sein Material (Wachs, Wachs/Harz, "
 "Harz) wird mit dem verglichen, was die eingelegten Etiketten brauchen, und "
 "das Display des Druckagenten warnt, wenn es nicht passt."
+
+#: dialog.py:318 services.py:399
+#, python-format
+msgid "%(printer)s does not take these labels."
+msgstr "%(printer)s nimmt diese Etiketten nicht."
+
+#: templates/label_printing/print_fields.html:88
+msgid "Any printer with these labels"
+msgstr "Jeder Drucker mit diesen Etiketten"
+
+#: templates/label_printing/print_fields.html:91
+msgid ""
+"The first free printer that has the labels loaded takes the job; choose one "
+"to have only it print."
+msgstr ""
+"Der erste freie Drucker, in dem die Etiketten eingelegt sind, übernimmt den "
+"Auftrag; wähle einen, damit nur er druckt."

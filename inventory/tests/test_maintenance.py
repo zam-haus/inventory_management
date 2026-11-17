@@ -38,7 +38,8 @@ class LabelPrintingTests(TestCase):
 
     def print_selected(self, **data):
         self.client.force_login(self.admin)
-        with translation.override("en"), patch("label_printing.tasks.process_job.delay"):
+        with translation.override("en"), patch("label_printing.tasks.process_job.delay"), \
+                self.captureOnCommitCallbacks(execute=True):  # a free printer takes what it can print
             response = self.client.post(reverse("admin:inventory_location_changelist"), {
                 "action": "print_labels_action", "_selected_action": [location.pk for location in self.locations],
                 **data}, follow=True)

@@ -23,6 +23,7 @@ from inventory.label_ids import naming as label_id_naming
 from inventory.models import Item, LabelId, Location, UniqueItem
 from . import editor, label_urls, outcomes, selection
 from .label_urls import ItemAt
+from .models import Printer
 
 SUBJECT_TYPES = ("location", "item", "uniqueitem", "labelid", "items")
 
@@ -225,6 +226,9 @@ def options(subject_type, obj):
                          for outcome in found],
             "rows": [row(subject_type, subject, found, rules, last_labels) for subject in rows],
             "max_copies": settings.PRINT_MAX_COPIES, "wait_minutes": settings.PRINT_WAIT_MAX // 60,
+            # to have only one of them print (empty: any that has the labels and is free)
+            "printers": [{"id": printer.pk, "name": str(printer) + (f" ({printer.agent})" if printer.agent_id else "")}
+                         for printer in Printer.objects.filter(is_active=True).select_related("agent")],
             "submit_url": reverse("print_labels", args=[subject_type, obj.pk]),
             "status_url": reverse("print_job_status", args=[0]),
             "batch_url": reverse("print_batch_status", args=[uuid.UUID(int=0)])}
@@ -265,6 +269,8 @@ class PrintForm(forms.Form):
     children = forms.BooleanField(label=_("Also the sub-locations"), required=False)
     # A location's label preselected from now on (selection.remember_label); printing alone changes nothing
     remember = forms.BooleanField(label=_("Preselect from now on"), required=False)
+    # Only this printer may take the jobs; empty: any printer that has the labels and is free
+    printer = forms.ModelChoiceField(Printer.objects.filter(is_active=True), label=_("Printer"), required=False)
     request_id = forms.UUIDField(required=False, widget=forms.HiddenInput)
 
     def __init__(self, *args, subject_type, obj, **kwargs):
@@ -309,11 +315,14 @@ class PrintForm(forms.Form):
             return data
         found = {outcome.key: outcome for outcome in dialog_outcomes(self.subject_type)}
         kind = label_kind(self.subject_type)
+        printer = data.get("printer")
         for _index, subject, key in wanted:
             outcome = found.get(key)
             if outcome is None or outcome.layout.template.pk not in selection.priorities(
                     kind, subject, [outcome.layout.template]):
                 problem = _("These labels cannot be printed here.")
+            elif printer is not None and not any(target.printer.pk == printer.pk for target in outcome.targets):
+                problem = _("%(printer)s does not take these labels.") % {"printer": printer}
             elif not outcome.target() and not outcome.can_wait:  # else it waits for a printer
                 problem = outcome.why_not
             else:

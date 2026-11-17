@@ -1,6 +1,6 @@
 """The print dialog offers labels (outcomes), not printers; a label no printer can print now may wait for one."""
 from datetime import timedelta
-from unittest.mock import patch
+from unittest.mock import call, patch
 
 from django.test import TestCase, override_settings
 from django.urls import reverse
@@ -161,7 +161,7 @@ class WaitingTests(InventoryData, TestCase):
             status = self.client.get(url).json()
         job.refresh_from_db()
         self.assertEqual((job.status, job.printer, job.medium, job.snapshot[0]["code"]),
-                         ("pending", self.brother, self.tape.stock, "R303.a"))
+                         ("processing", self.brother, self.tape.stock, "R303.a"))  # taken by the worker
         self.assertTrue(bytes(job.payload))
         process.assert_called_once_with(job.pk)
         self.assertEqual(status["printer"], "P-touch Werkstatt")
@@ -182,9 +182,9 @@ class WaitingTests(InventoryData, TestCase):
         job = services.submit_outcome(found[on_usb], subject_type="location", subjects=[self.part],
                                       user=self.user, wait=True)
         self.assertEqual(job.status, "waiting")
-        answer = self.client.post(reverse("print_agent_poll"), {}, content_type="application/json",
-                                  headers={"Authorization": f"Bearer {token}"}).json()
-        self.assertEqual(answer["job"]["id"], job.pk)  # back: the job is drawn for it and handed over at once
+        answer = self.client.post(reverse("print_agent_poll"), {"version": "6.0", "busy": []},
+                                  content_type="application/json", headers={"Authorization": f"Bearer {token}"}).json()
+        self.assertEqual([entry["id"] for entry in answer["jobs"]], [job.pk])  # back: it takes the job, drawn for it
         job.refresh_from_db()
         self.assertEqual((job.status, job.printer), ("processing", printer))
 
@@ -209,7 +209,7 @@ class WaitingTests(InventoryData, TestCase):
         with patch("label_printing.services.process"), self.captureOnCommitCallbacks(execute=True):
             self.client.get(reverse("print_job_status", args=[job.pk]))
         job.refresh_from_db()
-        self.assertEqual((job.status, job.printer, job.medium), ("pending", self.zebra, large.stock))
+        self.assertEqual((job.status, job.printer, job.medium), ("processing", self.zebra, large.stock))
 
     def test_without_active_printers_nothing_waits(self):
         template = LocationLabelTemplate.objects.create(name="Groß", description="label 100 x 50\ntext {{ location.unique_identifier }}")
@@ -224,11 +224,16 @@ class WaitingTests(InventoryData, TestCase):
         self.brother.remember_status(TAPE_24)
         outcome = {outcome.key: outcome for outcome in outcomes.outcomes("location")}[self.on_tape]
         with override_settings(CELERY_TASK_ALWAYS_EAGER=False), \
-                patch("label_printing.tasks.dispatch_waiting_jobs.apply_async") as schedule, \
-                self.captureOnCommitCallbacks(execute=True):
-            for _job in range(2):
-                services.submit_outcome(outcome, subject_type="location", subjects=[self.part], wait=True)
-        schedule.assert_called_once_with(countdown=services.DISPATCH_EVERY)
+                patch("label_printing.tasks.dispatch_waiting_jobs.apply_async") as schedule:
+            with self.captureOnCommitCallbacks(execute=True):
+                for _job in range(2):
+                    services.submit_outcome(outcome, subject_type="location", subjects=[self.part], wait=True)
+            self.assertEqual(schedule.call_args_list, [call(countdown=0)] * 2)  # a new job: offered at once
+            schedule.reset_mock()
+            with patch("label_printing.services.ask_network_printers"), self.captureOnCommitCallbacks(execute=True):
+                for _look in range(2):
+                    services.offer_to_network_printers()  # nobody has the 12 mm tape
+            schedule.assert_called_once_with(countdown=services.DISPATCH_EVERY)
 
     def test_templates_print_in_their_quality(self):
         template = LocationLabelTemplate.objects.create(name="Fein", quality="draft", description="label 57 x 32\ntext {{ location.unique_identifier }}")
@@ -239,8 +244,39 @@ class WaitingTests(InventoryData, TestCase):
                               subject_type="location", subjects=[self.part])  # the admin's print actions too
         self.assertEqual(job.quality, "draft")
 
+    def test_the_first_free_printer_with_the_labels_takes_it(self):
+        second = Printer.objects.create(name="Zebra Büro", slug="zebra-2", language="zpl", dpi=203, host="127.0.0.1",
+                                        loaded_medium=self.labels.stock)
+        found = {outcome.key: outcome for outcome in outcomes.outcomes("location")}
+        older, newer = [services.submit_outcome(found[self.on_labels], subject_type="location", subjects=[self.part],
+                                                wait=True) for _job in range(2)]
+        self.assertEqual((older.status, older.printer), ("waiting", None))  # not taken before the commit
+        self.assertEqual(services.take(self.brother, "worker"), None)  # no 57 × 32 labels in it
+        self.assertEqual(services.take(second, "worker"), older)
+        self.assertEqual(services.take(self.zebra, "worker"), newer)
+        older.refresh_from_db()
+        self.assertEqual((older.printer, older.medium, older.snapshot[0]["code"]), (second, self.labels.stock, "R303.a"))
+
+    def test_a_job_for_one_printer_waits_for_it(self):
+        second = Printer.objects.create(name="Zebra Büro", slug="zebra-2", language="zpl", dpi=203, host="127.0.0.1",
+                                        loaded_medium=self.labels.stock)
+        data = self.client.post(reverse("print_labels", args=["location", self.part.pk]),
+                                {"outcome": self.on_labels, "copies": 1, "printer": second.pk},
+                                headers={"Accept": "application/json"}).json()
+        job = PrintJob.objects.get(pk=data["job"]["id"])
+        self.assertEqual(job.printer, second)
+        self.assertIsNone(services.take(self.zebra, "worker"))  # not for it
+        self.assertEqual(services.take(second, "worker"), job)
+        response = self.client.post(reverse("print_labels", args=["location", self.part.pk]),
+                                    {"outcome": self.on_labels, "copies": 1, "printer": self.brother.pk},
+                                    headers={"Accept": "application/json"})
+        self.assertEqual(response.json()["errors"]["outcome"][0]["message"],
+                         "P-touch Werkstatt does not take these labels.")
+        page = self.client.get(reverse("print_labels", args=["location", self.part.pk]))
+        self.assertContains(page, "Any printer with these labels")
+
     def test_printable_labels_print_at_once(self):
         with patch("label_printing.services.process"):
             data = self.post({"outcome": self.on_labels, "copies": 1}).json()
         job = PrintJob.objects.get(pk=data["job"]["id"])
-        self.assertEqual((job.status, job.printer), ("pending", self.zebra))
+        self.assertEqual((job.status, job.printer), ("processing", self.zebra))  # taken by the Zebra at once

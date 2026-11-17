@@ -1,8 +1,10 @@
 """
-The print queue: submitting jobs and moving them on (pending → processing → done/sent/failed/expired).
-
-Network printers are served by the Celery task label_printing.tasks.process_job (or at once in the
-request without a broker), printers on a print agent by the agent fetching its jobs (api.py).
+The print queue, an offering: every job waits for a printer (waiting → processing → done/sent/failed/expired)
+until a printer that is free and can print it takes it (take): a print agent for its printers with each poll
+(api.py), the network dispatcher for network printers (offer_to_network_printers; the Celery task
+label_printing.tasks.process_job prints, or the request at once without a broker). A job from the print dialog
+is rendered when a printer takes it, for that printer and the labels in it; one for a given printer (test
+labels, label IDs, reprints) is rendered when submitted and waits for that printer only.
 """
 import time
 import uuid
@@ -13,7 +15,7 @@ from django.conf import settings
 from django.core.cache import cache
 from django.core.exceptions import ObjectDoesNotExist
 from django.db import IntegrityError, transaction
-from django.db.models import Min
+from django.db.models import Q
 from django.utils import timezone
 from django.utils.translation import gettext as _
 
@@ -74,8 +76,9 @@ def render(layout, subjects, medium, preview=False, user=None, quality=Quality.S
 
 def submit(*, printer, medium, layout_key, subject_type, subjects, copies=1, user=None, request_id=None,
            quality=None, batch=None):
-    """Queue labels for `subjects` (all of `subject_type`); a known request_id returns its job instead.
-    Without a quality, the layout's (a label template's), else the medium's."""
+    """Labels for `subjects` (all of `subject_type`) on this printer and medium: rendered now, waiting for the
+    printer to take them (PRINT_JOB_MAX_AGE); a known request_id returns its job instead. Without a quality, the
+    layout's (a label template's), else the medium's."""
     if request_id and (job := PrintJob.objects.filter(request_id=request_id).first()):
         return job
     if medium is None or medium.printer_id != printer.pk:
@@ -105,7 +108,8 @@ def submit(*, printer, medium, layout_key, subject_type, subjects, copies=1, use
     try:
         with transaction.atomic():
             job = PrintJob.objects.create(
-                user=user if user is not None and user.is_authenticated else None,
+                user=user if user is not None and user.is_authenticated else None, status=PrintJob.Status.WAITING,
+                expires_at=timezone.now() + timedelta(seconds=settings.PRINT_JOB_MAX_AGE),
                 printer=printer, medium=medium.stock, layout_key=layout_key, subject_type=subject_type,
                 # Label IDs are known by their code (label_code), not a number.
                 subject_id=pk if isinstance(pk := getattr(subjects[0], "pk", None), int) else None,
@@ -118,33 +122,78 @@ def submit(*, printer, medium, layout_key, subject_type, subjects, copies=1, use
             return PrintJob.objects.get(request_id=request_id)
         raise
     if printer.transport == Printer.Transport.NETWORK:
-        from .tasks import process_job
-
-        transaction.on_commit(lambda: process_job.delay(job.pk))
+        offer_soon()
     return job
 
 
 def expire_stale(now=None):
-    """Jobs nobody picked up in time are not printed any more, nor those no printer could print while they
-    waited; jobs without a result count as failed."""
+    """Jobs no printer took in time are not printed any more; jobs without a result count as failed."""
     now = now or timezone.now()
-    PrintJob.objects.filter(
-        status=PrintJob.Status.PENDING, ready_at__lt=now - timedelta(seconds=settings.PRINT_JOB_MAX_AGE),
-    ).update(status=PrintJob.Status.EXPIRED, code="expired", finished_at=now, payload=None)
     PrintJob.objects.filter(status=PrintJob.Status.WAITING, expires_at__lt=now).update(
-        status=PrintJob.Status.EXPIRED, code="wait_expired", finished_at=now)
+        status=PrintJob.Status.EXPIRED, code="wait_expired", finished_at=now, payload=None)
     PrintJob.objects.filter(
         status=PrintJob.Status.PROCESSING, claimed_at__lt=now - timedelta(seconds=settings.PRINT_JOB_LEASE),
     ).update(status=PrintJob.Status.FAILED, code="lease_expired", finished_at=now, payload=None)
 
 
-def claim(job_id, by, agent=None):
-    """Take a waiting job; only one worker or agent can, whatever the database."""
+def take(printer, by, agent=None, found=None):
+    """Offer the waiting jobs to a free printer: the oldest it can print now is claimed for `by` (and the agent)
+    and returned, rendered for this printer (processing); None if none fits. A job for another printer is left
+    out; one rendered for its printer when submitted is taken while the printer can print on its labels (its test
+    and calibration labels: while it is available at all); one of the print dialog when the printer has the
+    labels of its outcome loaded and can print (outcomes.Target). found: outcomes worked out in this request."""
+    from . import outcomes
+
+    waiting = list(PrintJob.objects.filter(status=PrintJob.Status.WAITING)
+                   .filter(Q(printer__isnull=True) | Q(printer=printer)).select_related("user", "medium")
+                   .order_by("ready_at", "pk")[:50])
+    if not waiting:
+        return None
+    found = waiting_outcomes({job.subject_type for job in waiting if job.payload is None}, found)
+    for job in waiting:
+        if job.payload is not None:
+            medium = Medium(printer, job.medium) if job.medium_id else None
+            if (printer.unavailable_code() if job.layout_key in OWN_LABELS or medium is None
+                    else outcomes.unavailable(printer, medium)[0]):
+                continue
+            changes = {}
+        else:
+            outcome = outcomes.waited_for(found.get(job.subject_type, {}), job, printer)
+            target = outcome and next((target for target in outcome.targets
+                                       if target.printer.pk == printer.pk and not target.reason), None)
+            if target is None:
+                continue
+            changes = rendered_for(job, outcome, target)
+            if changes is None:
+                continue  # failed: not to be printed
+        now = timezone.now()
+        if PrintJob.objects.filter(pk=job.pk, status=PrintJob.Status.WAITING).update(
+                status=PrintJob.Status.PROCESSING, claimed_by=by, claimed_at=now, agent=agent, **changes):
+            return PrintJob.objects.select_related("printer", "medium").get(pk=job.pk)
+    return None
+
+
+def rendered_for(job, outcome, target):
+    """The fields of a job of the print dialog rendered for the target (printer and labels); None if it cannot be
+    rendered (the job failed: its subject is gone, or the label does not come out)."""
     now = timezone.now()
-    return PrintJob.objects.filter(
-        pk=job_id, status=PrintJob.Status.PENDING, payload__isnull=False,
-        ready_at__gte=now - timedelta(seconds=settings.PRINT_JOB_MAX_AGE),
-    ).update(status=PrintJob.Status.PROCESSING, claimed_by=by, claimed_at=now, agent=agent) == 1
+    still_waiting = PrintJob.objects.filter(pk=job.pk, status=PrintJob.Status.WAITING)
+    try:
+        subjects = subjects_of_refs(job.request.get("subjects", []))
+    except (LookupError, ObjectDoesNotExist):
+        still_waiting.update(status=PrintJob.Status.FAILED, code="subject_gone", finished_at=now)
+        return None
+    quality = print_quality(outcome.layout, target.printer, job.quality)
+    try:
+        rendered = render(outcome.layout, subjects, target.medium, user=job.user, quality=quality)
+        payload, pages = build_payload(target.printer, target.medium, rendered, job.copies, quality)
+    except PrintError as error:
+        still_waiting.update(status=PrintJob.Status.FAILED, code="not_rendered", detail={"error": str(error)},
+                             finished_at=now)
+        return None
+    return {"printer": target.printer, "medium": target.medium.stock, "layout_key": outcome.layout.key,
+            "payload": payload, "pages": pages, "quality": quality, "label_code": rendered[0].label_code,
+            "snapshot": [label.snapshot for label in rendered]}
 
 
 def finish(job, result):
@@ -171,14 +220,16 @@ def layout_name(job):
 
 
 def process(job_id, attempts=3, wait=2.0):
-    """Print a job on a network printer (Celery task). A printer that was not reached is tried again a
-    few times, as nothing was sent; anything else is never repeated, so no label is printed twice."""
+    """Print a job a network printer took (Celery task). A printer that was not reached is tried again a few
+    times, as nothing was sent; anything else is never repeated, so no label is printed twice. Then the printer
+    takes its next job."""
     expire_stale()
-    if not claim(job_id, "worker"):
+    job = PrintJob.objects.select_related("printer", "medium").filter(
+        pk=job_id, status=PrintJob.Status.PROCESSING, agent__isnull=True).first()
+    if job is None:
         return None
-    job = PrintJob.objects.select_related("printer", "medium").get(pk=job_id)
     printer = job.printer
-    deadline = job.ready_at + timedelta(seconds=settings.PRINT_JOB_MAX_AGE)
+    deadline = job.claimed_at + timedelta(seconds=settings.PRINT_JOB_MAX_AGE)
     for attempt in range(attempts):
         result = run_job(TcpDevice(printer.host, printer.port), printer.language, bytes(job.payload),
                          expected_tape_mm=expected_tape_mm(job),
@@ -186,36 +237,21 @@ def process(job_id, attempts=3, wait=2.0):
         if not result.retryable or attempt == attempts - 1 or timezone.now() + timedelta(seconds=wait) > deadline:
             break
         time.sleep(wait)
-    return finish(job, result)
+    job = finish(job, result)
+    offer_soon()
+    return job
 
 
-def next_for_agent(agent):
-    """The oldest waiting job for one of the agent's printers, now claimed by it; None if there is none."""
-    jobs = jobs_for_agent(agent, limit=1)
-    return jobs[0] if jobs else None
-
-
-def jobs_for_agent(agent, busy=(), limit=None):
-    """The oldest waiting job of each of the agent's active printers but the `busy` ones (by uid or short name),
-    now claimed by the agent: each printer prints on its own."""
+def jobs_for_agent(agent, busy=(), found=None):
+    """A job for each of the agent's active printers but the `busy` ones (by uid or short name), each the oldest
+    it can print now (take), now claimed by the agent: each printer prints on its own."""
     expire_stale()
     if not agent.is_active:
         return []
-    waiting = (PrintJob.objects.filter(status=PrintJob.Status.PENDING, printer__agent=agent,
-                                       printer__transport=Printer.Transport.AGENT, printer__is_active=True)
-               .exclude(printer__uid__in=busy).exclude(printer__slug__in=busy))
-    # by printer, the one waiting longest first: a long queue of one printer does not hide the others' jobs
-    printers = (waiting.order_by().values("printer_id").annotate(first=Min("ready_at"))
-                .order_by("first").values_list("printer_id", flat=True))
-    jobs = []
-    for printer_id in printers:
-        if limit and len(jobs) >= limit:
-            break
-        for job_id in waiting.filter(printer_id=printer_id).order_by("ready_at").values_list("pk", flat=True)[:10]:
-            if claim(job_id, agent.name, agent):  # else another request claimed it: the next one
-                jobs.append(PrintJob.objects.select_related("printer", "medium").get(pk=job_id))
-                break
-    return jobs
+    printers = (agent.printers.filter(is_active=True, transport=Printer.Transport.AGENT)
+                .exclude(uid__in=busy).exclude(slug__in=busy).select_related("loaded_medium", "loaded_ribbon"))
+    found = {} if found is None else found
+    return [job for printer in printers if (job := take(printer, agent.name, agent, found))]
 
 
 def keep_printing(agent, printing):
@@ -267,7 +303,7 @@ def control(job, command):
     next poll; a job no printer has taken yet is simply not printed when aborted. Returns a message, or raises
     PrintError."""
     job.refresh_from_db()
-    if command == PrintJob.Command.ABORT and job.status in (PrintJob.Status.WAITING, PrintJob.Status.PENDING):
+    if command == PrintJob.Command.ABORT and job.status == PrintJob.Status.WAITING:
         if PrintJob.objects.filter(pk=job.pk, status=job.status).update(
                 status=PrintJob.Status.FAILED, code="aborted", detail={"by": "admin"}, finished_at=timezone.now(),
                 payload=None):
@@ -286,19 +322,23 @@ def control(job, command):
 def material_waits(agent, found=None):
     """Labels waiting for one of the agent's printers that is online, but has other labels loaded (or none left):
     [{"printer": uid, "medium": pk, "material", "reason", "jobs"}], one entry per printer and labels, for its
-    display. found: the outcomes dispatch_waiting worked out in the same request (waiting_outcomes)."""
+    display. found: the outcomes jobs_for_agent worked out in the same request (waiting_outcomes)."""
     from . import outcomes
 
-    waiting = list(PrintJob.objects.filter(status=PrintJob.Status.WAITING).order_by("created_at")[:50])
+    waiting = list(PrintJob.objects.filter(status=PrintJob.Status.WAITING, payload__isnull=True)
+                   .order_by("created_at")[:50])
     if not waiting:
         return []
     found = waiting_outcomes({job.subject_type for job in waiting}, found)
     entries = {}
     for job in waiting:
         outcome = outcomes.waited_for(found[job.subject_type], job)
-        if outcome is None or outcome.target():
+        if outcome is None:
             continue
-        for target in outcome.targets:
+        targets = [target for target in outcome.targets if job.printer_id in (None, target.printer.pk)]
+        if any(not target.reason for target in targets):
+            continue  # a printer can print it now
+        for target in targets:
             if target.printer.agent_id != agent.pk or target.missing != "material":
                 continue
             key = (target.printer.pk, target.medium.pk)
@@ -337,19 +377,20 @@ def agent_printers(agent):
 
 def set_ribbon(printer, ribbon):
     """The ribbon now in a Zebra (set on its print agent's display), or None: none. Jobs waiting for its colour
-    go out."""
+    are taken with the agent's next poll."""
     Printer.objects.filter(pk=printer.pk).update(loaded_ribbon=ribbon)
     printer.loaded_ribbon = ribbon
-    dispatch_waiting(refresh=False)
 
 
 def set_loaded(printer, stock):
-    """The labels (label material) now in a Zebra (set on its print agent's display); jobs waiting for them go out."""
+    """The labels (label material) now in a Zebra (set on its print agent's display, or the admin's for a network
+    Zebra); jobs waiting for them are taken by it next."""
     if reason := printer.takes(stock):
         raise PrintError(reason)
     Printer.objects.filter(pk=printer.pk).update(loaded_medium=stock)
     printer.loaded_medium = stock
-    dispatch_waiting(refresh=False)
+    if printer.transport == Printer.Transport.NETWORK:
+        offer_soon()
 
 
 # ---------------------------------------------------------------- label outcomes and jobs that wait
@@ -389,23 +430,24 @@ def subjects_of_refs(refs):
 
 
 def submit_outcome(outcome, *, subject_type, subjects, copies=1, user=None, request_id=None, quality=None,
-                   wait=False, batch=None):
-    """Print a label outcome (outcomes.py) on the printer that can print it now; else, with wait, queue a job
-    that waits for one (PRINT_WAIT_MAX)."""
+                   wait=False, batch=None, printer=None):
+    """Offer a label outcome (outcomes.py) to the printers: a job that waits until one that has its labels loaded
+    and is free takes it (PRINT_WAIT_MAX); printer: only that one. Without wait, only if a printer can print it
+    now."""
     if request_id and (job := PrintJob.objects.filter(request_id=request_id).first()):
         return job
-    target = outcome.target()
-    if target is not None:
-        return submit(printer=target.printer, medium=target.medium, layout_key=outcome.layout.key,
-                      subject_type=subject_type, subjects=subjects, copies=copies, user=user, request_id=request_id,
-                      quality=quality, batch=batch)
-    if not wait or not outcome.can_wait:
-        raise PrintError(outcome.why_not or _("No printer can print this label now."))
+    targets = [target for target in outcome.targets if printer is None or target.printer.pk == printer.pk]
+    if printer is not None and not targets:
+        raise PrintError(_("%(printer)s does not take these labels.") % {"printer": printer})
+    if not any(not target.reason for target in targets) and (
+            not wait or not (targets or (printer is None and outcome.waits_for_labels))):
+        raise PrintError((targets[0].reason if targets else outcome.why_not)
+                         or _("No printer can print this label now."))
     return queue_waiting(outcome, subject_type=subject_type, subjects=subjects, copies=copies, user=user,
-                         request_id=request_id, quality=quality, batch=batch)
+                         request_id=request_id, quality=quality, batch=batch, printer=printer)
 
 
-def queue_waiting(outcome, *, subject_type, subjects, copies, user, request_id, quality, batch=None):
+def queue_waiting(outcome, *, subject_type, subjects, copies, user, request_id, quality, batch=None, printer=None):
     if not 1 <= copies <= settings.PRINT_MAX_COPIES:
         raise PrintError(_("Print between 1 and %(max)d copies.") % {"max": settings.PRINT_MAX_COPIES})
     if quality and quality not in Quality.values:
@@ -414,7 +456,7 @@ def queue_waiting(outcome, *, subject_type, subjects, copies, user, request_id, 
     user = user if user is not None and user.is_authenticated else None
     try:
         job = PrintJob.objects.create(
-            user=user, layout_key=outcome.layout.key, subject_type=subject_type,
+            user=user, printer=printer, layout_key=outcome.layout.key, subject_type=subject_type,
             subject_id=pk if isinstance(pk := getattr(subjects[0], "pk", None), int) else None,
             subject_label=label[:255], copies=copies, pages=len(subjects) * copies,
             quality=quality or outcome.layout.quality or (outcome.targets[0].medium.quality if outcome.targets
@@ -427,19 +469,31 @@ def queue_waiting(outcome, *, subject_type, subjects, copies, user, request_id, 
         if request_id:
             return PrintJob.objects.get(request_id=request_id)
         raise
-    schedule_dispatch()
+    offer_soon()
     return job
 
 
-def schedule_dispatch():
-    """With a broker, look for printers for waiting jobs again in a few seconds (tasks.dispatch_waiting_jobs);
-    once at a time."""
+def offer_soon():
+    """Offer the waiting jobs to the network printers once the transaction is done: at once without a broker
+    (the request prints), else by the worker (agents take theirs with their next poll)."""
+    if not Printer.objects.filter(is_active=True, transport=Printer.Transport.NETWORK).exists():
+        return
+    if with_broker():
+        schedule_dispatch(countdown=0)
+    else:
+        transaction.on_commit(lambda: offer_to_network_printers(refresh=False))
+
+
+def schedule_dispatch(countdown=None):
+    """With a broker, offer the waiting jobs to the network printers again in a few seconds
+    (tasks.dispatch_waiting_jobs); once at a time. countdown 0: at once (a new job, a printer done)."""
     if not with_broker():
-        return  # no broker: the print dialog and the agents' requests look (job_status, api.poll)
-    if cache.add("label_printing:dispatch_scheduled", True, timeout=DISPATCH_EVERY):
+        return  # no broker: the print dialog's requests do (job_status)
+    countdown = DISPATCH_EVERY if countdown is None else countdown
+    if countdown == 0 or cache.add("label_printing:dispatch_scheduled", True, timeout=DISPATCH_EVERY):
         from .tasks import dispatch_waiting_jobs
 
-        transaction.on_commit(lambda: dispatch_waiting_jobs.apply_async(countdown=DISPATCH_EVERY))
+        transaction.on_commit(lambda: dispatch_waiting_jobs.apply_async(countdown=countdown))
 
 
 DISPATCH_EVERY = 10  # seconds between looks for printers for waiting jobs (with a broker)
@@ -485,17 +539,6 @@ def check_network_printers(now=None):
     return ask_network_printers(due)
 
 
-def refresh_network_statuses(outcomes_):
-    """Ask the network printers of these outcomes for their status if it is older than STATUS_FRESH: a job
-    waits for a tape to be changed or paper to be loaded."""
-    stale = timezone.now() - timedelta(seconds=STATUS_FRESH)
-    printers = {target.printer.pk: target.printer for outcome in outcomes_ for target in outcome.targets
-                if target.printer.transport == Printer.Transport.NETWORK and target.printer.reports_status
-                and not target.printer.unavailable_code()
-                and (target.printer.last_status_at is None or target.printer.last_status_at < stale)}
-    return bool(ask_network_printers(list(printers.values())))
-
-
 def waiting_outcomes(kinds, found=None):
     """{subject type: {outcome key: outcome}} for waiting jobs of these kinds, added to `found` (kept for the rest
     of a request: building the outcomes asks every printer what it takes)."""
@@ -507,62 +550,32 @@ def waiting_outcomes(kinds, found=None):
     return found
 
 
-def dispatch_waiting(refresh=True, found=None):
-    """Print waiting jobs whose label a printer can print now (rendered for that printer, then queued as usual).
-    refresh: ask network printers for their status first (not while answering a print agent, nor in requests
-    when a worker does it). found: outcomes to use and to keep (waiting_outcomes). Returns the number of jobs
-    dispatched; reschedules itself while jobs wait (with a broker)."""
-    from . import outcomes
-
+def offer_to_network_printers(refresh=True, found=None):
+    """The network dispatcher: each free active network printer takes the oldest waiting job it can print now
+    (take), printed by the worker (tasks.process_job; without a broker at once). refresh: ask the printers for
+    their status first. Returns the number of jobs taken; looks again in a while as long as jobs wait (with a
+    broker)."""
     expire_stale()
-    waiting = list(PrintJob.objects.filter(status=PrintJob.Status.WAITING).select_related("user").order_by("created_at")[:20])
-    if not waiting:
+    if not PrintJob.objects.filter(status=PrintJob.Status.WAITING).exists():
         return 0
-    found = waiting_outcomes({job.subject_type for job in waiting}, found)
-    layouts = {job.layout_key for job in waiting}
-    if refresh and refresh_network_statuses(
-            [outcome for kind in found.values() for outcome in kind.values() if outcome.layout.key in layouts]):
-        kinds = list(found)
-        found.clear()
-        waiting_outcomes(kinds, found)
-    dispatched = 0
-    for job in waiting:
-        outcome = outcomes.waited_for(found[job.subject_type], job)
-        target = outcome.target() if outcome else None
-        if target is None:
-            continue
-        dispatched += dispatch(job, outcome, target)
-    if PrintJob.objects.filter(status=PrintJob.Status.WAITING).exists():
-        schedule_dispatch()
-    return dispatched
-
-
-def dispatch(job, outcome, target):
-    """Render a waiting job for the target and queue it there; 1 if it was this call that did."""
-    now = timezone.now()
-    still_waiting = PrintJob.objects.filter(pk=job.pk, status=PrintJob.Status.WAITING)
-    try:
-        subjects = subjects_of_refs(job.request.get("subjects", []))
-    except (LookupError, ObjectDoesNotExist):
-        still_waiting.update(status=PrintJob.Status.FAILED, code="subject_gone", finished_at=now)
-        return 0
-    quality = print_quality(outcome.layout, target.printer, job.quality)
-    try:
-        rendered = render(outcome.layout, subjects, target.medium, user=job.user, quality=quality)
-        payload, pages = build_payload(target.printer, target.medium, rendered, job.copies, quality)
-    except PrintError as error:
-        still_waiting.update(status=PrintJob.Status.FAILED, code="not_rendered", detail={"error": str(error)},
-                             finished_at=now)
-        return 0
-    rows = still_waiting.update(
-        status=PrintJob.Status.PENDING, printer=target.printer, medium=target.medium.stock, payload=payload, pages=pages,
-        quality=quality, label_code=rendered[0].label_code, snapshot=[label.snapshot for label in rendered],
-        ready_at=now)
-    if rows and target.printer.transport == Printer.Transport.NETWORK:
+    printers = list(Printer.objects.filter(is_active=True, transport=Printer.Transport.NETWORK)
+                    .select_related("loaded_medium", "loaded_ribbon"))
+    busy = printing_now(printers)
+    printers = [printer for printer in printers if printer.pk not in busy]
+    if refresh:  # whether they are online and what is loaded, if not known of late
+        stale = timezone.now() - timedelta(seconds=STATUS_FRESH)
+        ask_network_printers([printer for printer in printers if printer.reports_status and (
+            printer.last_status_at is None or printer.last_status_at < stale)])
+    found = {} if found is None else found
+    taken = [job for printer in printers if (job := take(printer, "worker", found=found))]
+    if taken:
         from .tasks import process_job
 
-        transaction.on_commit(lambda: process_job.delay(job.pk))
-    return rows
+        for job in taken:
+            transaction.on_commit(lambda pk=job.pk: process_job.delay(pk))
+    if PrintJob.objects.filter(status=PrintJob.Status.WAITING).exists():
+        schedule_dispatch()
+    return len(taken)
 
 
 def check_status(printer):
