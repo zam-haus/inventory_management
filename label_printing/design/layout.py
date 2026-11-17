@@ -10,13 +10,17 @@ it fills the row or column unless given ("auto": as large as its content, e.g. a
 text beside a long name); then the row's or column's align places it. Elements with "at x y" (mm from the
 top left of their row or column) are placed there instead. A row or column that shows nothing (blank) is left
 out.
+
+A list shows one entry per line, as many as fit its box; the others go on on further labels, the whole design
+drawn again (render_labels), with page and pages to number them.
 """
 import functools
 import math
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from pathlib import Path
 from typing import Callable
 
+from django.template import Variable, VariableDoesNotExist
 from django.utils.translation import gettext as _
 from PIL import Image, ImageDraw, ImageOps
 
@@ -33,6 +37,7 @@ FONT_FILES = {
 }
 DEFAULT_TEXT_MM = 3
 DEFAULT_LINE_MM = 0.25
+MAX_LABELS = 20  # a list goes on on at most this many labels
 
 
 class TooSmall(Exception):
@@ -54,6 +59,10 @@ class Context:
     strict: bool = False
     problems: list = field(default_factory=list)
     rendered: dict = field(default_factory=dict)
+    lists: dict = field(default_factory=dict)  # the entries of each list, by line
+    start: int = 0  # the first entry of a list on this label
+    next: int | None = None  # the first entry that did not fit, for the next label
+    continued: Element | None = None  # the list that goes on
 
     def dots(self, mm):
         return max(0, round(mm * self.dpi / 25.4))
@@ -190,12 +199,14 @@ def text_natural(element, context, width, height):
 def draw_text(element, context, image, x, y, width, height):
     if not context.text(element):  # nothing at all: no inverted box either (e.g. the code of no location)
         return
-    if width < 1 or height < 1:  # crowded out by the other elements of its row or column
+    rotation = element.get("rotate", 0)
+    box_width, box_height = (height, width) if rotation in (90, 270) else (width, height)
+    # Crowded out by the other elements of its row or column: not even the smallest font fits (a sliver of a box
+    # would draw it too small to see)
+    if box_width < 1 or box_height < render.MIN_FONT_PX:
         if context.text(element).strip():
             context.problem(element, _("There is no room left for this text."))
         return
-    rotation = element.get("rotate", 0)
-    box_width, box_height = (height, width) if rotation in (90, 270) else (width, height)
     canvas = render.blank(box_width, box_height)
     loaded, lines, padding = text_layout(element, context, box_width, box_height)
     invert = bool(element.get("invert"))
@@ -207,6 +218,187 @@ def draw_text(element, context, image, x, y, width, height):
     if rotation:
         canvas = canvas.rotate(-rotation, expand=True)
     image.paste(canvas, (x, y))
+
+
+# ---------------------------------------------------------------- lists
+
+def entries(element, context):
+    """The entries of a list: its variable's value, e.g. {{ contents }} (design/variables.py Entry: amount, name and
+    label ID; other values show as their text)."""
+    if element.line not in context.lists:
+        name = element.content.strip("{} ")
+        try:
+            found = list(Variable(name).resolve(context.variables))
+        except (VariableDoesNotExist, TypeError):
+            found = None
+        context.lists[element.line] = found
+    found = context.lists[element.line]
+    if found is None:
+        context.problem(element, _("“%s” is not a list.") % element.content.strip("{} "))
+        return []
+    return found
+
+
+def entry_parts(entry):
+    """(amount, name, code, note) of an entry."""
+    return (str(getattr(entry, "amount", "")), str(getattr(entry, "name", entry)), str(getattr(entry, "code", "")),
+            str(getattr(entry, "note", "")))
+
+
+def code_width(look, code):
+    """Dots the label ID or code takes after the name."""
+    return round(render.text_width(look.code_font, code)) + look.space // 2 if code else 0
+
+
+@dataclass
+class ListLook:
+    font: object
+    code_font: object
+    line: int  # dots per line
+    gap: int  # between entries
+    space: int  # between the columns
+    amount: int  # width of the amounts' column (right-aligned)
+
+
+def list_look(element, context, found):
+    path, weight = font_for(element, context)
+    size = max(1, context.dots(element.get("size", DEFAULT_TEXT_MM)))
+    loaded = render.font(path, size, weight)
+    code_font = render.font(FONT_FILES["mono"], size, 700)
+    line = render.line_height(loaded)
+    return ListLook(loaded, code_font, line,
+                    context.dots(element.get("gap")) if "gap" in element.options else max(1, line // 6),
+                    round(render.text_width(loaded, "  ")),
+                    round(max((render.text_width(loaded, entry_parts(entry)[0]) for entry in found), default=0)))
+
+
+def name_width(look, width):
+    """Dots left for the names: the row less the amounts' column."""
+    return max(1, width - (look.amount + look.space if look.amount else 0))
+
+
+def name_lines(element, look, name, code, width):
+    """The name in at most `lines` lines, the last cut short with "…" so the label ID still fits after it."""
+    max_lines = element.get("lines", 1)
+    lines = render.wrap(name, look.font, width) if max_lines > 1 else [name]
+    if len(lines) > max_lines:
+        lines = lines[:max_lines - 1] + [" ".join(lines[max_lines - 1:])]
+    return lines[:-1] + [render.ellipsize(look.font, lines[-1], max(1, width - code_width(look, code)))]
+
+
+def entry_lines(element, look, name, code, note, width):
+    """(name lines, note lines): the note (whose a unique item is) on a line of its own below the name."""
+    return name_lines(element, look, name, code, width), [render.ellipsize(look.font, note, width)] if note else []
+
+
+def list_natural(element, context, width, height):
+    found = entries(element, context)[context.start:]
+    if not found:
+        return 0, 0
+    look = list_look(element, context, entries(element, context))
+    if width is None:
+        names = max(max(round(render.text_width(look.font, name)) + code_width(look, code),
+                        round(render.text_width(look.font, note)))
+                    for _amount, name, code, note in map(entry_parts, found))
+        width = (look.amount + look.space if look.amount else 0) + names
+    room = name_width(look, width)
+    used = sum(sum(map(len, entry_lines(element, look, *entry_parts(entry)[1:], room))) * look.line for entry in found)
+    used += look.gap * (len(found) - 1)
+    return width, used if height is None else min(used, height)
+
+
+def draw_list(element, context, image, x, y, width, height):
+    found = entries(element, context)
+    if context.start >= len(found):
+        return
+    look = list_look(element, context, found)
+    room = name_width(look, width)
+    left = x + (look.amount + look.space if look.amount else 0)
+    top, index = y, context.start
+    while index < len(found):
+        amount, name, code, note = entry_parts(found[index])
+        lines, notes = entry_lines(element, look, name, code, note, room)
+        if top + (len(lines) + len(notes)) * look.line > y + height:
+            break
+        if amount:
+            render.draw_lines(image, (x, top, look.amount, look.line), look.font, [amount], "right")
+        render.draw_lines(image, (left, top, room, len(lines) * look.line), look.font, lines)
+        if code:  # right after the name, on its baseline
+            after = left + round(render.text_width(look.font, lines[-1])) + look.space // 2
+            baseline = look.font.getmetrics()[0] - look.code_font.getmetrics()[0]
+            render.draw_lines(image, (after, top + (len(lines) - 1) * look.line + baseline, max(1, x + width - after),
+                                      look.line), look.code_font, [code])
+        if notes:  # below the name
+            render.draw_lines(image, (left, top + len(lines) * look.line, room, look.line), look.font, notes)
+        top += (len(lines) + len(notes)) * look.line + look.gap
+        index += 1
+    if index < len(found):
+        if index == context.start:  # not even one entry: it would go on forever
+            context.problem(element, _("There is no room left for this list."))
+        elif context.next is None:
+            context.next, context.continued = index, element
+
+
+# ---------------------------------------------------------------- barcodes
+
+def barcode_modules(element, context):
+    """The Code 128 modules of the element's text, with its quiet zone on each side; "" for no text."""
+    text = context.text(element)
+    if not text:
+        return ""
+    modules = render.code128(text)
+    if modules is None:
+        context.problem(element, _("A Code 128 barcode takes letters, digits and signs, not “%s”.") % text)
+        return ""
+    quiet = "0" * element.get("quiet", render.CODE128_QUIET)
+    return quiet + modules + quiet
+
+
+def barcode_scale(element, context, extent):
+    """(dots per module, the least it may be): whole dots, a multiple of squeeze across a tape (where the image is
+    squeezed); the least MIN_BAR_MM."""
+    across = element.get("rotate", 0) in (90, 270)
+    step = context.squeeze if across else 1
+    least = max(1, round(render.MIN_BAR_MM * context.dpi / step / 25.4)) * step
+    modules = len(barcode_modules(element, context))
+    scale = extent // modules if modules and extent is not None else least
+    return scale - scale % step, least
+
+
+def barcode_natural(element, context, width, height):
+    modules = barcode_modules(element, context)
+    if not modules:
+        return 0, 0
+    across = element.get("rotate", 0) in (90, 270)
+    scale, least = barcode_scale(element, context, height if across else width)
+    along = len(modules) * max(scale, least)
+    bars = (width if across else height) or context.dots(8)
+    return (bars, along) if across else (along, bars)
+
+
+def draw_barcode(element, context, image, x, y, width, height):
+    modules = barcode_modules(element, context)
+    if not modules or width < 1 or height < 1:
+        return
+    rotation = element.get("rotate", 0)
+    across = rotation in (90, 270)
+    scale, least = barcode_scale(element, context, height if across else width)
+    if scale < least:
+        context.problem(element, _("The barcode does not fit: it needs %(mm).1f mm at least.") % {
+            "mm": len(modules) * least * 25.4 / context.dpi})
+        return
+    if rotation in (180, 270):  # read from the other end
+        modules = modules[::-1]
+    start = ((height if across else width) - len(modules) * scale) // 2
+    start = render.align((y if across else x) + start, context.squeeze if across else 1)
+    draw = ImageDraw.Draw(image)
+    for index, dark in enumerate(modules):
+        if dark == "1":
+            offset = start + index * scale
+            if across:
+                draw.rectangle((x, offset, x + width - 1, offset + scale - 1), fill=0)
+            else:
+                draw.rectangle((offset, y, offset + scale - 1, y + height - 1), fill=0)
 
 
 # ---------------------------------------------------------------- QR codes, images, shapes
@@ -319,7 +511,10 @@ def draw_shape(element, context, image, x, y, width, height, horizontal):
                   "down": [(x, y), (right, y), ((x + right) / 2, bottom)],
                   "left": [(right, y), (right, bottom), (x, (y + bottom) / 2)],
                   "right": [(x, y), (x, bottom), (right, (y + bottom) / 2)]}[element.get("direction", "up")]
-        draw.polygon(points, fill=0)
+        if "border" in element.options:  # just the outline, e.g. to colour in by hand
+            draw.polygon(points, outline=0, width=max(1, context.dots(element.get("border"))))
+        else:
+            draw.polygon(points, fill=0)
 
 
 # ---------------------------------------------------------------- layout
@@ -337,11 +532,15 @@ def natural(element, context, width, height, horizontal=False):
 
 def natural_content(element, context, width, height, horizontal):
     if element.kind in ("row", "column"):
-        # As wide as its content, at most width; then as high as that needs, at most height.
+        # As wide as its content, at most width; then as high as that needs, at most height (with "height auto" in a
+        # column: only as high as its content, e.g. lines of text above a list that takes the rest).
         _placed, used_width, _height = arrange(element, context, None, height)
         if width is not None:
             used_width = min(used_width, width)
-        _placed, _width, used_height = arrange(element, context, used_width, height)
+        to_content = not horizontal and element.get("height") == ("auto",)
+        _placed, _width, used_height = arrange(element, context, used_width, None if to_content else height)
+        if height is not None:
+            used_height = min(used_height, height)
         return used_width, used_height
     if element.kind == "text":
         return text_natural(element, context, width, height)
@@ -349,6 +548,10 @@ def natural_content(element, context, width, height, horizontal):
         return qr_natural(element, context, width, height)
     if element.kind == "image":
         return image_natural(element, context, width, height)
+    if element.kind == "list":
+        return list_natural(element, context, width, height)
+    if element.kind == "barcode":
+        return barcode_natural(element, context, width, height)
     if element.kind == "line":
         thickness = line_thickness(element, context)
         return (thickness, height or 0) if horizontal else (width or 0, thickness)
@@ -545,6 +748,10 @@ def draw(element, context, image, x, y, width, height, horizontal=False):
         draw_qr(element, context, image, x, y, width, height)
     elif element.kind == "image":
         draw_image(element, context, image, x, y, width, height)
+    elif element.kind == "list":
+        draw_list(element, context, image, x, y, width, height)
+    elif element.kind == "barcode":
+        draw_barcode(element, context, image, x, y, width, height)
     elif element.kind in ("box", "line", "arrow"):
         draw_shape(element, context, image, x, y, width, height, horizontal)
 
@@ -565,8 +772,34 @@ def render_design(design, context, width=None, height=None):
             width = context.dots(design.max_length)
         if design.min_length:
             width = max(width, context.dots(design.min_length))
+    turned = design.rotate in (90, 270)
+    if turned:  # laid out across, turned clockwise onto the label
+        width, height = height, width
+        inner_height = max(0, height - top - bottom)
     image = render.blank(width, height)
     draw(root, context, image, left, top, max(0, width - left - right), inner_height)
     if design.rotate:
-        image = image.rotate(design.rotate)
+        image = image.rotate(-design.rotate, expand=True)
+    if design.invert:  # the whole label white (its colour) on black
+        image = ImageOps.invert(image.convert("L")).convert("1")
     return image
+
+
+def render_labels(design, context, width=None, height=None):
+    """The label, and the labels a list goes on on where its entries do not all fit (render_design each time,
+    with page and pages: worked out once, then drawn with their number): [image], at most MAX_LABELS."""
+    def labels(pages):
+        images, start = [], 0
+        while True:
+            page = replace(context, variables={**context.variables, "page": len(images) + 1, "pages": pages},
+                           rendered={}, start=start, next=None, continued=None)
+            images.append(render_design(design, page, width, height))
+            if page.next is None:
+                return images
+            if len(images) == MAX_LABELS:
+                page.problem(page.continued, _("The list does not fit on %d labels.") % MAX_LABELS)
+                return images
+            start = page.next
+
+    images = labels(1)
+    return labels(len(images)) if len(images) > 1 else images

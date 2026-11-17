@@ -166,7 +166,7 @@ class ChangeLogTests(TestCase):
 
         def job(**fields):
             return PrintJob.objects.create(
-                printer=zebra, medium=labels, layout_key="design:0", subject_type="item", copies=2,
+                printer=zebra, medium=labels.stock, layout_key="design:0", subject_type="item", copies=2,
                 user=self.member, status=PrintJob.Status.PROCESSING,
                 snapshot=[{"type": "item", "id": self.item.pk, "location_id": self.workshop.pk}], **fields)
         done = job()

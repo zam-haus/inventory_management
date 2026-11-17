@@ -10,13 +10,32 @@ import ptouch
 from PIL import Image
 from ptouch.connection import Connection
 
+
+
+class PTP710BT(ptouch.PTP750W):
+    """Brother PT-P710BT (Bluetooth and USB): the raster commands, print head and resolution of the PT-P750W
+    (raster command reference PT-E550W/P750W/P710BT)."""
+
+    USB_PRODUCT_ID = 0x20AF
+
+
+class PTP700(ptouch.PTP750W):
+    """Brother PT-P700 (USB only): the PT-P750W without WLAN, the same print head (128 pins, 180 dpi, up to 24 mm)
+    and raster commands. Its switch for P-Lite (Editor Lite) must be off: else it is a USB drive, not a printer."""
+
+    USB_PRODUCT_ID = 0x2061
+
+
 # Printer.model choices for P-touch printers → ptouch printer classes.
 PTOUCH_MODELS = {
     "E550W": ptouch.PTE550W,
+    "P700": PTP700,
     "P750W": ptouch.PTP750W,
+    "P710BT": PTP710BT,
     "P900": ptouch.PTP900,
     "P900W": ptouch.PTP900W,
     "P950NW": ptouch.PTP950NW,
+    "P910BT": ptouch.PTP910BT,
 }
 # Tape widths (mm, as on the cassette) → ptouch tape classes; 3.5 mm tape reports 4 mm.
 PTOUCH_TAPES = {

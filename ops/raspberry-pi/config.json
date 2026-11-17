@@ -5,5 +5,12 @@
  "poll_interval": 2,
  "status_interval": 30,
  "scan_interval": 10,
+ "display": "auto",
+ "backlight_timeout": 600,
+ "screen_rotation": 0,
+ "read_only": true,
+ "bluetooth": true,
+ "bluetooth_pairing": "confirm",
+ "bluetooth_scan_interval": 60,
  "static_printers": []
 }

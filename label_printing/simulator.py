@@ -286,8 +286,9 @@ def zebra_identity(dpi):
     return zebra.STX + f"GK420t,V61.17.17Z,{round(dpi / 25.4)},8176KB".encode() + zebra.ETX + b"\r\n"
 
 
-def zebra_status(state, formats=0, remaining=0):
-    first = ["030", "0", "0", f"{state.label_length_dots:04d}", f"{formats:03d}", "0", "0", "0", "000", "0", "0", "0"]
+def zebra_status(state, formats=0, remaining=0, paused=False):
+    first = ["030", "0", "1" if paused else "0", f"{state.label_length_dots:04d}", f"{formats:03d}", "0", "0", "0",
+             "000", "0", "0", "0"]
     second = ["001", "0", "0", "0", "0", "2", "6", "0", f"{remaining:08d}", "1", "000"]
     for code in state.errors:
         if code in ZEBRA_ERROR_FIELDS:
@@ -335,13 +336,25 @@ class ZebraPrinter:
         self.state, self.output, self.dpi, self.render = state, output, dpi, render
         self.seconds_per_label = seconds_per_label
         self.queue, self.remaining = [], 0
+        self.paused = False  # ~PP until ~PS
         self.lock = threading.Lock()
         self.wake, self.stopped = threading.Event(), threading.Event()
         threading.Thread(target=self.run, daemon=True).start()
 
     def status(self):
         with self.lock:
-            return zebra_status(self.state, len(self.queue), self.remaining)
+            return zebra_status(self.state, len(self.queue), self.remaining, self.paused)
+
+    def control(self, command):
+        """~PP pauses after the label being printed, ~PS goes on, ~JA drops every format waiting."""
+        with self.lock:
+            if command == "~PP":
+                self.paused = True
+            elif command == "~PS":
+                self.paused = False
+            elif command == "~JA":
+                self.queue.clear()
+        self.wake.set()
 
     def add(self, zpl):
         with self.lock:
@@ -354,7 +367,7 @@ class ZebraPrinter:
             self.wake.clear()
             self.state.refresh()
             with self.lock:
-                if self.state.errors or not self.queue:
+                if self.state.errors or self.paused or not self.queue:
                     continue
                 zpl = self.queue.pop(0)
                 self.remaining = zpl_label_count(zpl)
@@ -386,6 +399,9 @@ class ZebraHandler(socketserver.BaseRequestHandler):
                 state.refresh()
                 if not state.silent:
                     send(self.request, printer.status())
+            for command in re.findall(r"~(?:PP|PS|JA)", buffer):
+                printer.control(command)
+            buffer = re.sub(r"~(?:PP|PS|JA)", "", buffer)
             while "~HI" in buffer:
                 buffer = buffer.replace("~HI", "", 1)
                 if not state.silent:

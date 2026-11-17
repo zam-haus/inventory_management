@@ -11,8 +11,8 @@ from accounts.groups import local_group_name
 from inventory.models import Location, LocationLabelTemplate, LocationType
 from .. import services
 from ..devices.run import Result
-from ..models import LabelMedium, PrintAgent, Printer, PrintJob
-from .helpers import SETTINGS, SimulatedPrinters, create_printers, create_user
+from ..models import PrintAgent, Printer, PrintJob
+from .helpers import SETTINGS, SimulatedPrinters, create_printers, create_user, labels
 
 
 @override_settings(**SETTINGS)
@@ -66,7 +66,7 @@ class SubmitTests(TestCase):
 
     def test_refusals(self):
         cases = [
-            (dict(medium=self.tape), "Choose a label medium of this printer."),
+            (dict(medium=self.tape), "Choose labels for this printer."),
             (dict(copies=0), "Print between 1 and 20 copies."),
             (dict(copies=21), "Print between 1 and 20 copies."),
             (dict(layout_key="nope"), "Unknown layout."),
@@ -85,7 +85,7 @@ class SubmitTests(TestCase):
         agent.new_token()
         agent.save()
         printer = Printer.objects.create(name="USB", slug="usb", language="zpl", transport="agent", agent=agent)
-        medium = LabelMedium.objects.create(printer=printer, name="L", width_mm=50, height_mm=30)
+        medium = labels(printer, name="L", width_mm=50, height_mm=30)
         with self.assertRaisesMessage(services.PrintError, "The print agent of this printer is offline."):
             self.submit(printer, medium, subjects=[printer])
 
@@ -117,7 +117,7 @@ class QueueTests(TestCase):
         cls.zebra, cls.labels, cls.brother, cls.tape = create_printers()
 
     def job(self, **fields):
-        return PrintJob.objects.create(printer=self.zebra, medium=self.labels, layout_key="test",
+        return PrintJob.objects.create(printer=self.zebra, medium=self.labels.stock, layout_key="test",
                                        subject_type="printer", payload=b"^XA^XZ", **fields)
 
     def test_a_job_is_claimed_once(self):
@@ -161,7 +161,7 @@ class QueueTests(TestCase):
         Printer.objects.filter(pk=self.zebra.pk).update(transport="agent", agent=agent)
         older, newer = self.job(), self.job()
         PrintJob.objects.filter(pk=older.pk).update(created_at=timezone.now() - timedelta(seconds=10))
-        other = PrintJob.objects.create(printer=self.brother, medium=self.tape, layout_key="test",
+        other = PrintJob.objects.create(printer=self.brother, medium=self.tape.stock, layout_key="test",
                                         subject_type="printer", payload=b"x")
         self.assertEqual(services.next_for_agent(agent), older)
         self.assertEqual(services.next_for_agent(agent), newer)
@@ -255,7 +255,7 @@ class StatusCheckTests(SimulatedPrinters, TestCase):
         self.assertEqual(self.zebra.status_text, "The printer cannot be reached.")
 
     def test_printers_printing_now_are_left_alone(self):
-        PrintJob.objects.create(printer=self.brother, medium=self.tape, layout_key="test", subject_type="printer",
+        PrintJob.objects.create(printer=self.brother, medium=self.tape.stock, layout_key="test", subject_type="printer",
                                 status=PrintJob.Status.PROCESSING, claimed_at=timezone.now())
         self.assertEqual(self.checked(), ["zebra"])
         self.assertEqual(services.check_status(self.brother).code, "printing")  # the admin's action too
@@ -293,7 +293,7 @@ class JobStatusViewTests(TestCase):
         cls.zebra, cls.labels, *_ = create_printers()
         cls.user = create_user("owner")
         cls.other = create_user("other")
-        cls.job = PrintJob.objects.create(printer=cls.zebra, medium=cls.labels, layout_key="test", user=cls.user,
+        cls.job = PrintJob.objects.create(printer=cls.zebra, medium=cls.labels.stock, layout_key="test", user=cls.user,
                                           subject_type="printer", status="failed", code="paper_out")
 
     def test_owner_sees_the_job(self):

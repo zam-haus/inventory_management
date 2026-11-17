@@ -40,6 +40,8 @@ text "Eigentum Betreiberverein ZAM e.V."  font condensed  bold  center  height 4
 | `margin M` | white border: `margin 1` on all sides, `margin 1 2` top and bottom, left and right, `margin 1 2 1 0` top, right, bottom, left |
 | `min L`, `max L` | shortest and longest length of a label without width |
 | `rotate 180` | print upside down |
+| `invert` | printed inverted: the whole label in its colour on black (yellow polyester: yellow on black); QR codes come out light on dark, which the scanners read |
+| `rotate 90`, `270` | laid out across, printed turned clockwise by 90° (or 270°) on labels of height × width: `label 150 x 100  rotate 90` prints on 100 × 150 mm labels (a Zebra prints at most 104 mm wide); not on tape |
 
 The label itself lays out its elements like a column, from top to bottom.
 
@@ -116,6 +118,40 @@ border, around all its elements.)
 
 If the QR code cannot get at least two dots per module, the label is refused as too small.
 
+### barcode
+
+`barcode {{ label_id.code }}` is a Code 128 barcode (letters, digits and signs; set C for an even number of digits),
+with whole printer dots per bar, at least 0.13 mm (2 dots at 360 dpi, 1 at 180 or 203 dpi), centred with its quiet
+zone. It fills its box: the bars as long as the box is high.
+
+| Option | |
+|---|---|
+| `rotate 90`, `270` | across its row: on tape across the tape, the bars along it (cable wraps: the bars run round the cable, so it scans along the cable from every side); 180 and 270 read from the other end |
+| `quiet N` | white before and after the bars in modules (default 10); on tape the unprinted edges add to it |
+
+If the bars cannot get 0.13 mm, the label is refused as too small. The navbar's scanner opens what a scanned
+label ID's Code 128 belongs to, as a label's QR code does.
+
+### list
+
+`list {{ contents }}` lists what is at a location, one entry per line: first the locations in it (a pallet's
+cartons) with their code, then items with their amount right-aligned in a column of its own ("12 Stk", "~5 Stk";
+none for quick items) and unique items with a bullet there and their label ID right after the name in bold monospace and, where the
+owners differ, whose they are if not the ZAM's, on a line of their own below the name ("Fremdeigentum: Erika"; one
+owner: `owner`, said once). It fills what is left of its row or column. **What does not fit goes on on further
+labels:** the whole design is drawn again for the next entries, so a heading with the QR code repeats; `page` and
+`pages` number the labels (`"{% if pages > 1 %}{{ page }}/{{ pages }}{% endif %}"`), 1 and 1 on a label without
+more. At most 20 labels; one list per design.
+
+| Option | |
+|---|---|
+| `size S` | font size in mm (default 3) |
+| `lines N` | a long name wraps into at most N lines (default 1), the last cut short with "…" |
+| `font F`, `bold`, `weight W` | as for text |
+| `gap G` | space between the entries (default a sixth of a line) |
+
+In previews all labels show one below the other.
+
 ### image
 
 `image "ZAM Logo"` shows a label image (admin → Label printing → Label images) by its name. The original
@@ -137,7 +173,8 @@ and white for the printer.
 * `line` is a line across its row or column, upright in a row, flat in a column. `thickness T`
   defaults to 0.25 mm, at least one dot.
 * `arrow up` (or `down`, `left`, `right`) is a filled triangle pointing that way, e.g. to say which
-  side of a shelf a label is for.
+  side of a shelf a label is for; `arrow up  border 0.35` is just its outline (e.g. to colour in by hand the
+  one a label is for).
 
 ## Texts are Django templates
 
@@ -156,6 +193,11 @@ objects may be used, also along relations: `{{ location.parent_location.name }}`
 | `location.descriptive_identifier` where it is, with codes | | |
 | `location.locatable_identifier` code within its area | `location` where it is stored (the first location; may be none) | |
 | `location.purpose` | `label_id` its label ID as printed | |
+| `contents` for `list`: what is right at the location (numbers sorted by value) | | |
+| `responsible` the teams responsible for it, also from a location above it | | |
+| `owned` whether anything right at it has an owner (items or unique items, not just locations in it) | | |
+| `owner` whose it all is, if one owner's other than the ZAM: the first name; empty for the ZAM's | | |
+| `owners_differ` whether it belongs to different owners (then `contents` marks the unique items) | | |
 | `qr` the code via the label host | `qr` its label ID and the location's code (`…/K7R4XD/WH-1.R303.A`), leading to the item there | `qr` the ID via the label host |
 
 Locations on labels follow the rule of the pages ([how locations are shown](locations.md#how-locations-are-shown)):
@@ -168,8 +210,8 @@ Templates for **unique items** have `unique_item` (e.g. `unique_item.name`, its 
 first name if it is not the ZAM's; `unique_item.has_owner`), `item` (what it is), `location`, `label_id` (its
 label ID) and `qr` (the ID via the label host).
 
-All labels also have `label_id_name`, what label IDs are called (ZAMid). The template page lists the variables
-too.
+All labels also have `label_id_name`, what label IDs are called (ZAMid), and `page` and `pages` (see
+[list](#list)). The template page lists the variables too.
 
 * A variable alone needs no quotes; anything more is quoted. Quotes inside a template take the other kind:
   `text '{{ location.name|default:"–" }}'`.
@@ -188,21 +230,21 @@ page.
 
 A template is designed for a label size and prints only on labels of that size, on any printer (there is
 no resolution in a template):
-* Zebra labels of its width and height, within a millimetre (labels of unknown size: none);
-* Brother tape as wide as its height. Endless tape takes templates of any length; a medium with a
-  label length only templates of that length;
+* Zebra labels of its width and height, within a millimetre or up to 2.5 mm larger, drawn to the labels' size (a
+  100 × 150 mm template prints on 101.6 × 152.4 mm labels; labels of unknown size: none);
+* Brother tape as wide as its height. Endless tape takes templates of any length; tape with a
+  label length (its label material's height) only templates of that length;
 * and only where its QR codes come out big enough to scan at the printer's resolution, tried with a
   made-up record (every property two words of lorem ipsum): 9 mm tape templates, for example, are not
   offered on the E550W (180 dpi).
 
 A template may also say which labels of its size it is for (admin: **Labels**):
-* a **label stock**: only media of exactly that stock;
-* else **material** (e.g. Polyester; empty: any) and **print and background colour** as label stock names
-  them (default black on white; empty: any). Label stock without colours (Zebra labels) and media without
-  label stock count as black on white; media without label stock have no known material, so templates that
-  name one are not offered on them.
+* a **label material**: only that label material;
+* else **material** (e.g. Polyester; empty: any) and **print and background colour** as the label material
+  names them (default black on white; empty: any). Label material without colours counts as black on white;
+  a Zebra prints in the colour of its loaded ribbon.
 
-Media offer the fitting active templates of the kind being printed; the template decides, so label printing
+Label material on hand offers the fitting active templates of the kind being printed; the template decides, so label printing
 needs nothing of the inventory's templates. Deactivated templates are neither offered nor printed.
 
 Which of them are meant for a subject, and in which order, say the template's **rules**: conditions with the
@@ -235,7 +277,7 @@ row  gap 1.5
     text {{ label_id.code|slice:"3:" }}  font mono  bold  center
 ```
 
-A price tag for bulk items on 24 mm tape (template "Preisschild Band 24 mm"): the name, below it the price
+A price tag for bulk items on 24 mm tape (the former template "Preisschild"): the name, below it the price
 and the QR code.
 
 ```
@@ -248,7 +290,7 @@ row  gap 2  margin 0.5 0 0 0
   qr {{ qr }}  ecc M
 ```
 
-A bulk item on 57 × 32 mm labels (template "Name, Preis und QR-Code"): the price in a price tag frame
+A bulk item on 57 × 32 mm labels (template "Artikel"): the price in a price tag frame
 as wide as the price, below the name; for items without a price the frame is empty.
 
 ```
@@ -276,4 +318,29 @@ row  gap 2
     text {{ location.unique_identifier }}  font mono  bold  invert  height 11
     space
 text {{ location.descriptive_identifier }}  font condensed  center  height 3.5
+```
+
+The contents of a box, carton or pallet on 100 × 150 mm paper (template "Inhalt", on permanent or removable paper;
+across as "Inhalt, quer" with `rotate 90`): the code with the title beside it, the date below; who is
+responsible, and whose it is if it is all one owner's (else the list marks it); then the list, which goes on on
+further labels if it does not fit. `height auto` keeps those lines only as high as they need, so the list gets the
+rest:
+
+```
+# Changing contents of boxes, 100 × 150 mm removable paper: QR code, the code with the title right of it, below them
+# the date; then who is responsible, and whose it is if it is all one owner's (else the list says it at each unique
+# item that is not the ZAM's); below that what is right at the location; what does not fit goes on on further labels
+label 100 x 150  margin 2.5
+row  gap 3  height 22
+  qr {{ qr }}  ecc M
+  column  gap 1.5  align left  justify center
+    row  gap 2  height 9
+      text {{ location.unique_identifier }}  font mono  bold  invert  width auto
+      text {{ location.title }}  font condensed  bold
+    text "Inhalt, Stand {% now 'd.m.Y' %}{% if pages > 1 %} · {{ page }}/{{ pages }}{% endif %}"  font condensed  size 3.8
+column  gap 0.8  align left  height auto  margin 2 0 0 0
+  text "{% if responsible %}Zuständig: {{ responsible }}{% endif %}"  font condensed  size 3.8  lines 2
+  text "{% if owned and not owners_differ %}Eigentum: {{ owner|default:'Betreiberverein ZAM e.V.' }}{% endif %}"  font condensed  size 3.8
+line  thickness 0.3  margin 2 0 1.5 0
+list {{ contents }}  font condensed  size 3.8  lines 2
 ```

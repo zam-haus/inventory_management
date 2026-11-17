@@ -1,6 +1,8 @@
 #!/bin/sh
 # Prepare the boot partition of a Raspberry Pi OS SD card (mounted on this computer) to run the label
-# print agent: copies the agent and the service there and lets the Pi install it on its next boot.
+# print agent: copies the agent and the service there, switches SPI on (for a PiFace Control & Display)
+# and lets the Pi install it on its next boot. With "read_only": true in config.json (the default) the Pi makes
+# its system read-only once everything is installed (update.sh).
 #
 #   ops/raspberry-pi/prepare-boot.sh /Volumes/boot [SERVER TOKEN ...]
 #
@@ -17,9 +19,11 @@ here=$(cd "$(dirname "$0")" && pwd)
 repo=$(cd "$here/../.." && pwd)
 dest="$boot/label-agent"
 mkdir -p "$dest/label_printing/devices"
-cp "$repo/label_printing/__init__.py" "$repo/label_printing/agent.py" "$dest/label_printing/"
+cp "$repo/label_printing/__init__.py" "$repo/label_printing/agent.py" "$repo/label_printing/panel.py" \
+    "$repo/label_printing/touch.py" "$dest/label_printing/"
 cp "$repo"/label_printing/devices/*.py "$dest/label_printing/devices/"
-cp "$here/install.sh" "$here/update.sh" "$here/label-agent.service" "$dest/"
+cp "$here/install.sh" "$here/update.sh" "$here/keep.sh" "$here/label-agent.service" "$here/label-agent-keep.path" \
+    "$here/label-agent-keep.service" "$dest/"
 if [ $# -gt 0 ]; then
     servers=$(printf '{"url": "%s", "token": "%s"}, ' "$@"); servers=${servers%, }
     tr '\n' '\r' < "$here/config.json" | sed "s|\"servers\": \[[^]]*\]|\"servers\": [$servers]|" | tr '\r' '\n' \
@@ -38,6 +42,10 @@ case "$cmdline" in
     *) printf '%s systemd.run=%s/label-agent/install.sh systemd.run_success_action=reboot systemd.unit=kernel-command-line.target\n' \
            "$(printf '%s' "$cmdline" | tr -d '\n')" "$mount" > "$boot/cmdline.txt" ;;
 esac
+# SPI for the PiFace Control & Display (harmless without one); the Pi reads config.txt on boot.
+if ! grep -q '^dtparam=spi=on' "$boot/config.txt"; then
+    printf '\n[all]\n# label print agent: PiFace Control & Display\ndtparam=spi=on\n' >> "$boot/config.txt"
+fi
 # macOS keeps extended attributes on FAT as ._ files; the Pi does not need them.
 find "$dest" -name '._*' -delete
 echo "Prepared $boot: agent in label-agent/, servers: $(grep -o '"url": "[^"]*"' "$dest/config.json" | tr '\n' ' ')"

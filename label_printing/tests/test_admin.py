@@ -1,9 +1,11 @@
+from decimal import Decimal
+
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
 from django.test import TestCase, override_settings
 from django.urls import reverse
 
-from ..models import LabelMedium, Printer, PrintJob
+from ..models import LabelStock, Printer, PrintJob
 from .helpers import SETTINGS, SimulatedPrinters, create_printers
 
 
@@ -24,29 +26,65 @@ class PrinterValidationTests(TestCase):
                 Printer(name="Z", slug="z", language="zpl", transport=transport).clean()
             self.assertIn(field, raised.exception.message_dict)
 
-    def test_media_fit_their_printer(self):
-        zebra, _labels, brother, _tape = create_printers()
+    def test_label_material_needs_its_size(self):
         with self.assertRaises(ValidationError) as raised:
-            LabelMedium(printer=zebra, name="x").clean()
+            LabelStock(language="zpl", name="x").clean()
         self.assertEqual(set(raised.exception.message_dict), {"width_mm", "height_mm"})
         with self.assertRaises(ValidationError) as raised:
-            LabelMedium(printer=brother, name="x", ptouch_tape=36).clean()  # the E550W takes up to 24 mm
-        self.assertIn("ptouch_tape", raised.exception.message_dict)
+            LabelStock(language="ptouch", name="x").clean()
+        self.assertIn("tape_mm", raised.exception.message_dict)
 
-    def test_loaded_labels_are_the_printers_own(self):
+    def test_what_a_printer_takes_comes_from_its_model(self):
+        gk420t = Printer.objects.create(name="GK", slug="gk", language="zpl", model="GK420t-200dpi", host="h")
+        self.assertEqual((gk420t.max_width_mm, gk420t.core_mm, gk420t.winding, gk420t.thermal_transfer),
+                         (108, Decimal("25.4"), "outside", True))
+        label = dict(language="zpl", name="L", width_mm=70, height_mm=32, core_mm=Decimal("25.4"), winding="outside",
+                     method="transfer", ribbon="wax")
+        self.assertEqual(gk420t.takes(LabelStock(**label)), "")
+        self.assertEqual(gk420t.takes(LabelStock(**{**label, "width_mm": 110})),
+                         "The labels are wider than the printer takes (108 mm).")
+        self.assertEqual(gk420t.takes(LabelStock(**{**label, "core_mm": Decimal("76.2")})),
+                         "The roll core (76.2 mm) does not fit the printer (25.4 mm).")
+        self.assertEqual(gk420t.takes(LabelStock(**{**label, "winding": "inside"})),
+                         "The labels are wound inside, the printer takes them outside.")
+        self.assertEqual(gk420t.takes(LabelStock(**{**label, "core_mm": None, "winding": ""})), "")  # not known
+        gk420d = Printer.objects.create(name="GKd", slug="gkd", language="zpl", model="GK420d", host="h")
+        self.assertEqual(gk420d.takes(LabelStock(**label)),
+                         "These labels need a ribbon, the printer prints direct thermal only.")
+        self.assertEqual(gk420d.takes(LabelStock(**{**label, "method": "direct", "ribbon": ""})), "")
+        gk420d.model = "GK420t"  # another model is another printer
+        with self.assertRaises(ValidationError) as raised:
+            gk420d.clean()
+        self.assertIn("model", raised.exception.message_dict)
+        given = Printer.objects.create(name="GKt", slug="gkt", language="zpl", model="GK420t", host="h",
+                                       thermal_transfer=False, max_width_mm=104)
+        self.assertEqual((given.thermal_transfer, given.max_width_mm, given.core_mm), (False, 104, Decimal("25.4")))
+        e550w = Printer.objects.create(name="E", slug="e", language="ptouch", model="E550W", host="h")
+        self.assertEqual(e550w.max_width_mm, 24)
+        self.assertEqual(e550w.takes(LabelStock(language="ptouch", name="T", tape_mm=36)),
+                         "The printer does not take 36 mm tape.")
+        self.assertEqual(e550w.takes(LabelStock(language="ptouch", name="T", tape_mm=24)), "")
+        self.assertEqual(e550w.takes(LabelStock(**label)), "These labels are for another kind of printer.")
+
+    def test_loaded_labels_are_ones_the_printer_takes(self):
         zebra, labels, brother, tape = create_printers()
-        zebra.loaded_medium = tape
+        zebra.loaded_medium = tape.stock
         with self.assertRaises(ValidationError) as raised:
             zebra.clean()
         self.assertIn("loaded_medium", raised.exception.message_dict)
 
-    def test_one_default_printer_and_medium(self):
+    def test_one_default_printer(self):
         zebra, labels, brother, tape = create_printers()
         brother.is_default = True
         brother.save()
         self.assertEqual(list(Printer.objects.filter(is_default=True)), [brother])
-        second = LabelMedium.objects.create(printer=zebra, name="100 × 50", width_mm=100, height_mm=50, is_default=True)
-        self.assertEqual(list(zebra.media.filter(is_default=True)), [second])
+
+    def test_material_on_hand_is_offered(self):
+        zebra, on_hand, brother, tape = create_printers()
+        other = LabelStock.objects.create(language="zpl", name="100 × 50", width_mm=100, height_mm=50)
+        self.assertNotIn(other, [medium.stock for medium in zebra.media()])
+        self.assertIn(other, [medium.stock for medium in zebra.media(in_stock=False)])
+        self.assertEqual([medium.stock for medium in brother.media()], [tape.stock])
 
 
 @override_settings(**SETTINGS)
@@ -95,5 +133,7 @@ class PrinterAdminTests(SimulatedPrinters, TestCase):
     def test_loaded_labels_offer_the_printers_own(self):
         response = self.client.get(reverse("admin:label_printing_printer_change", args=[self.zebra.pk]))
         choices = list(response.context["adminform"].form.fields["loaded_medium"].queryset)
-        self.assertEqual(choices, [self.labels])
+        self.assertIn(self.labels.stock, choices)
+        self.assertNotIn(self.tape.stock, choices)  # a Brother tape
+        self.assertContains(response, "57 × 32 mm")  # the material on hand it takes
 

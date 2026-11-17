@@ -76,7 +76,7 @@ that is not personal, such as the change log without who acted, or location type
 | Internal documents | left out |
 | Label scans, admin log, sessions, thumbnail cache | left out |
 | Cleanup imports (uploaded proposals, who uploaded and applied them) | left out |
-| Printers, label media, print agents, print jobs | left out (network addresses, tokens, who printed what) |
+| Printers, print agents, print jobs | left out (network addresses, tokens, who printed what) |
 | Items, locations, photos, public documents, descriptions, unique item notes | kept (public on the website) |
 
 The rules are in [`inventory/public_export.py`](../inventory/public_export.py): every model is

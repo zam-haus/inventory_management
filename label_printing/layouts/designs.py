@@ -12,7 +12,7 @@ from django.utils.translation import gettext as _
 
 from inventory.models import LocationLabelTemplate
 from .. import label_urls
-from ..design import Context, TooSmall, check, parse, render_design
+from ..design import Context, TooSmall, check, parse, render_design, render_labels
 from ..design import variables as design_variables
 from . import Canvas, LabelTooSmall, Layout, NotRendered, Rendered
 
@@ -28,7 +28,15 @@ def close(size, wanted):
     return size is not None and wanted is not None and abs(size - wanted) <= SIZE_TOLERANCE_MM
 
 
-# Label stock without colours (Zebra labels, media without stock) is black on white.
+LARGER_MM = 2.5  # Zebra labels this much larger than a template take it too (101.6 × 152.4 mm: 100 × 150 mm)
+
+
+def takes(label, template):
+    """Whether Zebra labels of this size (mm) take a template of that size: as large, or a little larger."""
+    return close(template, label) or (label is not None and template is not None and template < label <= template + LARGER_MM)
+
+
+# Labels whose colours are not known (media without stock, a Zebra without ribbon set) are black on white.
 DEFAULT_PRINT_COLOR, DEFAULT_BACKGROUND_COLOR = "schwarz", "weiß"
 
 
@@ -40,21 +48,23 @@ def fits(template, medium):
 
 def stock_matches(template, medium):
     """Whether the medium's labels are those the template names: its label stock, else its material (labels of
-    unknown material: not) and colours (empty: any; label stock without colours is black on white)."""
+    unknown material: not) and colours (empty: any; label stock without colours is black on white; a Zebra prints
+    in the colour of its ribbon, Medium.colours)."""
     if template.label_stock_id:
         return medium.stock_id == template.label_stock_id
     stock = medium.stock if medium.stock_id else None
     if template.material and (stock is None or stock.material.casefold() != template.material.casefold()):
         return False
-    print_color = (stock.print_color if stock else "") or DEFAULT_PRINT_COLOR
-    background_color = (stock.background_color if stock else "") or DEFAULT_BACKGROUND_COLOR
+    print_color, background_color = medium.colours()
+    print_color, background_color = print_color or DEFAULT_PRINT_COLOR, background_color or DEFAULT_BACKGROUND_COLOR
     return ((not template.print_color or template.print_color.casefold() == print_color.casefold())
             and (not template.background_color
                  or template.background_color.casefold() == background_color.casefold()))
 
 
 def size_fits(template, medium):
-    """Whether the template is for labels of the medium's size. Zebra: labels of its width and height. Brother:
+    """Whether the template is for labels of the medium's size. Zebra: labels of its width and height, or up to 2.5 mm
+    larger (drawn to the labels' size). Brother:
     tape as wide as its height; endless tape takes any length, tape with a label length only templates of that
     length."""
     if template.label_height is None:
@@ -63,7 +73,7 @@ def size_fits(template, medium):
         if medium.ptouch_tape is None or template.label_height not in (medium.ptouch_tape, tape_width(medium)):
             return False
         return medium.height_mm is None or close(template.label_width, medium.height_mm)
-    return close(template.label_width, medium.width_mm) and close(template.label_height, medium.height_mm)
+    return takes(medium.width_mm, template.label_width) and takes(medium.height_mm, template.label_height)
 
 
 def blank_picture(name):
@@ -160,10 +170,10 @@ class DesignLayout(Layout):
         variables, snapshot, code = self.subject_data(subject, preview, user)
         context = Context(canvas.dpi, variables, images(), canvas.squeeze, strict=True)
         try:
-            image = render_design(design, context, canvas.width, canvas.height)
+            first, *more = render_labels(design, context, canvas.width, canvas.height)
         except TooSmall as error:
             raise LabelTooSmall(str(error)) from error
-        return Rendered(image=image, snapshot=snapshot, label_code=code)
+        return Rendered(image=first, snapshot=snapshot, label_code=code, more=more)
 
 
 def template_layouts(subject_type, printer, medium):

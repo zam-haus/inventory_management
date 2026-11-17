@@ -42,10 +42,15 @@ class Canvas:
 
 @dataclass
 class Rendered:
-    """One label: its image, and what is on it."""
+    """One subject's label: its image, and what is on it; more: the labels a list goes on on (design/layout.py)."""
     image: Image.Image | None = None
     snapshot: dict = field(default_factory=dict)
     label_code: str = ""
+    more: list = field(default_factory=list)
+
+    @property
+    def images(self):
+        return [self.image, *self.more]
 
 
 class LabelTooSmall(ValueError):

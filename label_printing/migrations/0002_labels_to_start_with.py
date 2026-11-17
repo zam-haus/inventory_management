@@ -77,7 +77,8 @@ def zebra_labels(apps, templates):
             description=description)
 
 
-TEMPLATES = Path(__file__).resolve().parent.parent / "catalog" / "label_templates.json"
+# The catalog as deployed with this migration; 0007 brings it up to date.
+TEMPLATES = Path(__file__).resolve().parent.parent / "catalog" / "label_templates_0002.json"
 QR = "{{ qr }}"
 CODE = "{{ location.unique_identifier }}"
 PATH = "{{ location.descriptive_identifier }}"

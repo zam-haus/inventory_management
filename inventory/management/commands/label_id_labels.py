@@ -6,22 +6,26 @@ from label_printing.models import Printer
 
 
 class Command(BaseCommand):
-    help = ("Print the reserved IDs of a batch on a printer of the inventory, with the medium's first ZAMid label "
-            "template; their printed at is set as the printer reports the jobs done.")
+    help = ("Print the reserved IDs of a batch on a printer of the inventory, with the first ZAMid label template "
+            "for its labels; their printed at is set as the printer reports the jobs done.")
 
     def add_arguments(self, parser):
         parser.add_argument("--batch", required=True)
         parser.add_argument("--print", dest="print_on", metavar="PRINTER", required=True,
                             help="the printer's short name")
-        parser.add_argument("--tape", type=int, help="the medium with this tape width (else the default medium)")
+        parser.add_argument("--tape", type=int,
+                            help="tape of this width (on hand); else the labels loaded or the tape it reports")
         parser.add_argument("--all", action="store_true", help="also IDs of the batch that were printed before")
 
     def handle(self, *args, batch, print_on, tape, all, **options):
         printer = Printer.objects.filter(slug=print_on).first()
         if printer is None:
             raise CommandError(f"no printer {print_on!r}; short names: {', '.join(Printer.objects.values_list('slug', flat=True))}")
-        media = printer.media.order_by("-is_default", "name")
-        medium = (media.filter(ptouch_tape=tape) if tape else media).first()
+        if tape:
+            medium = next((medium for medium in sorted(printer.media(), key=lambda medium: medium.name)
+                           if medium.ptouch_tape == tape), None)
+        else:
+            medium = printing.default_medium(printer)
         if medium is None:
             raise CommandError(f"{printer} has no labels{f' with {tape} mm tape' if tape else ''}")
         try:

@@ -8,8 +8,8 @@ from PIL import Image
 
 from inventory.models import Location, LocationLabelTemplate, LocationType
 from ..layouts import layouts_for
-from ..models import LabelMedium, LabelStock
-from .helpers import SETTINGS, create_printers, create_user, generated
+from ..models import LabelStock, Medium
+from .helpers import SETTINGS, create_printers, create_user, generated, labels
 
 
 @override_settings(**SETTINGS)
@@ -37,15 +37,15 @@ class LabelStockTests(TestCase):
         with self.assertRaises(ValidationError):
             LabelStock(language="zpl", name="Paper", width_mm=50, height_mm=25, method="direct", ribbon="wax").clean()
 
-    def test_medium_from_stock(self):
+    def test_medium_of_label_material(self):
         zebra, _labels, brother, _tape = create_printers()
-        tape = LabelMedium(printer=brother, stock=LabelStock.objects.get(code="TZe-S241"))
-        tape.full_clean()
-        tape.save()
-        self.assertEqual((tape.name, tape.ptouch_tape), (str(tape.stock), 18))
-        with self.assertRaises(ValidationError) as raised:
-            LabelMedium(printer=zebra, stock=tape.stock).full_clean()
-        self.assertIn("stock", raised.exception.message_dict)
+        stock = LabelStock.objects.get(code="TZe-S241")
+        tape = labels(brother, stock=stock)
+        self.assertEqual((tape.name, tape.ptouch_tape, tape.width_mm), (stock.name, 18, None))
+        self.assertNotIn(tape, brother.media())  # not on hand
+        LabelStock.objects.filter(pk=stock.pk).update(in_stock=True)
+        self.assertIn(tape, brother.media())
+        self.assertEqual(zebra.takes(stock), "These labels are for another kind of printer.")
 
     def test_templates_by_label_stock_material_and_colours(self):
         """A template prints on labels of its size, and of its label stock, material and colours if it names them;
@@ -64,24 +64,21 @@ class LabelStockTests(TestCase):
         own = template("Eigene", label_stock=paper_stock)
         keys = lambda printer, medium: {layout.template for layout in layouts_for("location", printer, medium)}
         self.assertEqual(keys(zebra, labels), {plain, any_colour})  # without stock: black on white, material unknown
-        labels.stock = paper_stock
-        labels.save()
-        self.assertEqual(keys(zebra, labels), {plain, any_colour, paper, own})
+        self.assertEqual(keys(zebra, Medium(zebra, paper_stock)), {plain, any_colour, paper, own})
         on_tape = [template(name, size="height 12", **criteria) for name, criteria in (
             ("Schlicht", {}), ("Beliebig", {"print_color": "", "background_color": ""}),
             ("Gelb", {"background_color": "gelb"}))]
-        tape.stock = LabelStock.objects.get(code="TZe-631")  # black on yellow
-        tape.save()
-        self.assertEqual(keys(brother, tape), set(on_tape[1:]))
+        black_on_yellow = Medium(brother, LabelStock.objects.get(code="TZe-631"))
+        self.assertEqual(keys(brother, black_on_yellow), set(on_tape[1:]))
 
     def test_preview_in_the_tape_colours(self):
         _zebra, _labels, brother, tape = create_printers()
         LocationLabelTemplate.objects.filter(pk=generated("location", "tape12").pk).update(background_color="")
-        tape.stock = LabelStock.objects.get(code="TZe-631")  # black on yellow
-        tape.save()
+        black_on_yellow = LabelStock.objects.get(code="TZe-631")
         location = Location.objects.create(name="Lager", short_name="WH", type=LocationType.objects.create(name="Room", unique=True))
         self.client.force_login(create_user("p", "label_printing.print_label"))
         response = self.client.get(reverse("print_preview", args=["location", location.pk]),
-                                   {"medium": tape.pk, "layout": f"design:{generated('location', 'tape12').pk}"})
+                                   {"medium": f"{brother.pk}:{black_on_yellow.pk}",
+                                    "layout": f"design:{generated('location', 'tape12').pk}"})
         image = Image.open(BytesIO(response.content)).convert("RGB")
         self.assertEqual(image.getpixel((image.width - 1, 0)), (255, 212, 0))

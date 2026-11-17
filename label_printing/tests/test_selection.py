@@ -1,5 +1,4 @@
 """Which templates are meant for a subject and which comes first: the templates' rules (selection.py)."""
-from decimal import Decimal
 from unittest.mock import patch
 
 from django.test import TestCase, override_settings
@@ -67,6 +66,16 @@ class RuleTests(InventoryData, TestCase):
                  for entry in selection.rank(outcomes.outcomes("location"), "location", self.part)]
         self.assertEqual(names[:2], [(self.plain.pk, True), (on_tape.pk, False)])
 
+    def test_labels_on_hand_before_labels_no_printer_has_among_equals(self):
+        """A successor of labels running out, with the same priority: offered, not preselected while the labels on
+        hand are there, even if they are not loaded just now."""
+        on_hand = self.template("Vorrat", [("", 5)])
+        successor = self.template("Nachfolger", [("", 5)], size="50.8 x 25.4")  # no printer has these labels
+        from ..models import Printer
+        Printer.objects.filter(pk=self.zebra.pk).update(loaded_medium=None)  # nothing printable now
+        names = [entry[0] for entry in self.ranked(self.part)]
+        self.assertLess(names.index(on_hand.name), names.index(successor.name))
+
     def test_conditions(self):
         self.assertIsNone(condition_error('location.type.category == "container" and location.name'))
         self.assertIn("Unexpected end of expression", condition_error("location.name =="))
@@ -90,10 +99,10 @@ class SubjectsTests(InventoryData, TestCase):
         ranked = selection.rank(found, subject_type, subject)
         return ranked[0].outcome.layout.template if ranked else None
 
-    def test_items_for_sale_get_price_tags_unique_ones_nothing(self):
+    def test_items_get_their_label_with_or_without_price_unique_ones_nothing(self):
         on_tape = generated("item", "tape12")
         LocationLabelTemplate.objects.filter(subject_type="item").exclude(label_width=None).update(is_active=False)
-        self.assertEqual(self.first("item", ItemAt(self.item, self.part)).name, "Preisschild")
+        self.assertEqual(self.first("item", ItemAt(self.item, self.part)), on_tape)  # with its price on it
         Item.objects.filter(pk=self.item.pk).update(for_sale=False, sale_price=None)
         self.item.refresh_from_db()
         self.assertEqual(self.first("item", ItemAt(self.item, self.part)), on_tape)
@@ -107,7 +116,7 @@ class SubjectsTests(InventoryData, TestCase):
                                           location=self.part)
         self.assertEqual(self.first("uniqueitem", drill).subject_type, "labelid")  # ZAMid, by its label ID
         drill.owner_first_name = "Robin"
-        self.assertEqual(self.first("uniqueitem", drill).name, "ZAMid mit Eigentum")
+        self.assertEqual(self.first("uniqueitem", drill).name, "ZAMid, Fremdeigentum")
         drill.save()
         # Printed with a label ID template, it gets its label ID now
         self.client.force_login(self.user)

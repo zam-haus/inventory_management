@@ -1,6 +1,6 @@
 """
 What the print dialog offers: label outcomes instead of printer, labels and layout. An outcome is a layout on labels
-of one size, e.g. the template "Preisschild" on 60 × 30 mm labels, or "QR-Code, Kennung, Name und Ort" on 12 mm
+of one size, e.g. the template "Preisschild" on 60 × 30 mm labels, or "Ort" on 12 mm
 tape. The server picks a printer with these labels that can print now (Outcome.target); if none can, a job may wait
 for one (services.wait).
 """
@@ -13,7 +13,7 @@ from . import messages
 from .devices.run import LENGTH_TOLERANCE_MM
 from .layouts import layouts_for
 from .layouts.designs import DesignLayout
-from .models import LabelMedium, Printer, loaded_text
+from .models import Printer, loaded_text
 
 
 
@@ -66,7 +66,7 @@ def unavailable(printer, medium):
 
 
 def material_name(medium):
-    return medium.stock.name if medium.stock_id else medium.name
+    return medium.name
 
 
 def labels_text(template):
@@ -149,8 +149,11 @@ class Outcome:
 def outcomes(subject_type):
     """The outcomes for subjects of this type: the active label templates by name and size."""
     found = {}
-    media = (LabelMedium.objects.filter(printer__is_active=True).select_related("printer__loaded_medium", "stock")
-             .order_by("-printer__is_default", "printer__name", "-is_default", "name"))
+    printers = list(Printer.objects.filter(is_active=True).select_related("loaded_medium", "loaded_ribbon").order_by(
+        "-is_default", "name"))
+    # A Zebra's loaded labels first, then by name
+    media = [medium for printer in printers for medium in sorted(
+        printer.media(), key=lambda medium: (medium.pk != printer.loaded_medium_id, medium.name))]
     for medium in media:
         reason, missing = unavailable(medium.printer, medium)
         for layout in layouts_for(subject_type, medium.printer, medium):
@@ -159,14 +162,12 @@ def outcomes(subject_type):
                 Target(medium.printer, medium, reason, missing))
     # Templates for labels no printer has: shown, not printable now; jobs may wait for the labels to be put in
     # (a Zebra: also set as loaded) while there are active printers.
-    printers = None
+    any_printer = bool(printers)
     for template in LocationLabelTemplate.objects.filter(subject_type=subject_type, is_active=True):
         key = f"design:{template.pk}"
         if not any(outcome.layout.key == key for outcome in found.values()):
-            if printers is None:
-                printers = Printer.objects.filter(is_active=True).exists()
             found[key] = Outcome(key, DesignLayout(template), template.size_text,
-                                 reason=_("No printer has labels of this size."), waits_for_labels=printers)
+                                 reason=_("No printer has labels of this size."), waits_for_labels=any_printer)
     return sorted(found.values(), key=lambda outcome: (outcome.name, size_order(outcome.layout)))
 
 

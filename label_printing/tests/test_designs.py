@@ -21,14 +21,15 @@ from PIL import Image, ImageDraw
 
 from inventory.models import LabelId, LocationLabelTemplate
 from .. import services
-from ..design import Context, Problem, check, parse, render_design
-from ..design.variables import Placeholder
+from ..design import Context, Problem, check, parse, render_design, render_labels
+from ..design.variables import Entry, Placeholder, location_contents, ownership
 from ..label_urls import ItemAt
 from ..image_import import import_images
 from ..layouts import get_layout, layouts_for
 from ..models import LabelImage
+from .. import selection
 from ..selection import remember_label
-from .helpers import GENERATED, SETTINGS, create_printers, create_user, generated
+from .helpers import GENERATED, SETTINGS, create_printers, create_user, generated, labels
 from .test_dialog import InventoryData
 
 
@@ -91,8 +92,8 @@ class LanguageTests(SimpleTestCase):
                                   'text "a"\n  text "b"\nrow  width 50%  gap x\ntext "open')
         self.assertEqual([(problem.line, problem.message) for problem in problems], [
             (2, "“heigth” is not an option of text. Did you mean “height”?"),
-            (3, "“imgae” is not an element. Did you mean “image”? Elements: row, column, text, qr, image, box, line, "
-                "arrow, space."),
+            (3, "“imgae” is not an element. Did you mean “image”? Elements: row, column, text, qr, barcode, list, image, "
+                "box, line, arrow, space."),
             (4, "text needs its content first: text in quotes or a {{ variable }}."),
             (5, "“ecc” is one of L, M, Q, H, not “X”."),
             (7, "Only row and column hold indented elements."),
@@ -100,6 +101,25 @@ class LanguageTests(SimpleTestCase):
             (9, "A quote is not closed."),
         ])
         self.assertEqual(parse("text {{ code }}")[1][0].line, 1)  # the size first
+
+    def test_a_list_takes_a_variable(self):
+        design, problems = parse("label 50 x 50\nlist {{ contents }}  size 3  lines 2  gap 1  font condensed  bold")
+        self.assertEqual((problems, design.children[0].options["weight"]), ([], 700))
+        _design, problems = parse('label 50 x 50\nlist "contents"')
+        self.assertEqual([problem.message for problem in problems],
+                         ["list needs the variable it lists first, e.g. {{ contents }}."])
+
+    def test_labels_turned_by_90_degrees(self):
+        """Laid out across, printed on labels of height × width; tape cannot turn."""
+        design, problems = parse('label 150 x 100  rotate 90\ntext "x"')
+        self.assertEqual((problems, design.width, design.height, design.rotate), ([], 100, 150, 90))
+        _design, problems = parse('label height 12  rotate 90\ntext "x"')
+        self.assertEqual([problem.message for problem in problems], ["Only labels of a fixed size turn by 90°."])
+
+    def test_a_barcode_takes_text(self):
+        design, problems = parse("label height 18\nbarcode {{ label_id.code }}  rotate 90  quiet 5  width 16")
+        self.assertEqual((problems, design.children[0].options), ([], {"rotate": 90, "quiet": 5, "width": ("mm", 16)}))
+        self.assertEqual(check(parse('label 50 x 20\nbarcode "{% nope %}"')[0], set())[0].line, 2)
 
     def test_template_syntax_and_unknown_images(self):
         design, _problems = parse('label 50 x 20\ntext {{ code }}\ntext "{% if code %}x{% endfi %}"\nimage "Logo"')
@@ -315,11 +335,91 @@ class LayoutTests(SimpleTestCase):
         _image, problems = draw("label 20 x 10\nrow\n  box  width 15\n  box  width 15", dpi=254)
         self.assertEqual(problems[0].message, "The elements are 10.0 mm too long for this row.")
 
+    def test_a_list_goes_on_on_further_labels(self):
+        """As many entries as fit on each label, the rest on the next, the whole design each time; page and pages
+        number them."""
+        design, _problems = parse('label 40 x 20  margin 1\ntext "{{ page }}/{{ pages }}"  size 4\n'
+                                  'list {{ contents }}  size 3  gap 1')
+        contents = [Entry(f"{number} Stk", f"Teil {number}") for number in range(1, 9)]
+        pages = render_labels(design, Context(254, {"contents": contents}))
+        lines = [len(blocks(black_rows(image), gap=2)) - 1 for image in pages]  # text rows less the page number
+        self.assertEqual((len(pages), sum(lines)), (3, 8))
+        self.assertEqual(lines[:2], [lines[0]] * 2)  # full labels, the rest on the last
+        self.assertEqual({image.size for image in pages}, {(400, 200)})
+        self.assertEqual(len(render_labels(design, Context(254, {"contents": contents[:2]}))), 1)
+
+    def test_a_list_shows_amounts_names_label_ids_and_notes(self):
+        image, problems = draw("label 60 x 20\nlist {{ contents }}  size 3", {"contents": [
+            Entry("12 Stk", "Schrauben"), Entry("", "Akkuschrauber", "K7R-4XD"),
+            Entry("", "Akkuschrauber", "K7R-4XD", "Fremdeigentum: Erika")]}, dpi=254)
+        self.assertEqual(problems, [])
+        first, second, third, note = blocks(black_rows(image), gap=2)
+        row = lambda block: black_columns(image.crop((0, block[0], 600, block[1] + 1)))
+        self.assertGreater(min(row(second)), min(row(first)))  # names after the amounts' column
+        self.assertEqual(row(third), row(second))  # the same name and label ID
+        self.assertAlmostEqual(min(row(note)), min(row(second)), delta=4)  # on a line of its own, below the name
+        _image, problems = draw("label 60 x 10\nlist {{ nothing }}", {})
+        self.assertEqual([problem.message for problem in problems], ["“nothing” is not a list."])
+
+    def test_a_list_without_room_for_one_entry_is_a_problem(self):
+        design, _problems = parse("label 40 x 5\nlist {{ contents }}  size 8")
+        context = Context(254, {"contents": [Entry("1", "Teil")]})
+        self.assertEqual(len(render_labels(design, context)), 1)
+        self.assertEqual([problem.message for problem in context.problems], ["There is no room left for this list."])
+
+    def test_code_128(self):
+        """Set B for text, set C for an even number of digits; the same modules as reportlab draws."""
+        from ..render import code128
+        self.assertEqual(code128("F3PND2"), "11010010000100011000101100101110011101110110101110001101011000100011001110"
+                                            "010110000100101100011101011")
+        self.assertEqual((len(code128("123456")), code128("1234")[:11]), (68, "11010011100"))  # start C
+        self.assertEqual((code128("Ä"), code128("")), (None, None))
+
+    def test_a_barcode_across_a_tape(self):
+        """rotate 90: across the tape, the bars along it, whole dots per module, centred with its quiet zone."""
+        image, problems = draw("label 20 x 16.5\nbarcode {{ code }}  rotate 90  quiet 5", {"code": "F3PND2"}, dpi=360)
+        self.assertEqual(problems, [])
+        column = [image.getpixel((100, y)) for y in range(image.height)]
+        dark = [y for y, value in enumerate(column) if value == 0]
+        self.assertEqual(dark[-1] - dark[0] + 1, 101 * 2)  # 101 modules of 2 dots, from the first bar to the last
+        self.assertEqual(dark[0], (image.height - 111 * 2) // 2 + 5 * 2)
+        self.assertTrue(all(image.getpixel((x, dark[0])) == 0 for x in range(image.width)))  # a bar along the tape
+        rows = [[image.getpixel((x, y)) for x in range(0, image.width, 37)] for y in range(image.height)]
+        self.assertEqual(rows, [[row[0]] * len(row) for row in rows])
+
+    def test_a_barcode_too_small_is_a_problem(self):
+        _image, problems = draw("label 20 x 9\nbarcode {{ code }}  rotate 90", {"code": "F3PND2"}, dpi=360)
+        self.assertEqual([problem.message for problem in problems],
+                         ["The barcode does not fit: it needs 17.1 mm at least."])
+        _image, problems = draw("label 40 x 9\nbarcode {{ code }}", {"code": "Ä"})
+        self.assertEqual([problem.message for problem in problems],
+                         ["A Code 128 barcode takes letters, digits and signs, not “Ä”."])
+
+    def test_a_label_printed_inverted(self):
+        """invert: the whole label white (its colour) on black, e.g. pallet rack slots."""
+        image, problems = draw("label 20 x 10  invert\nrow\n  box  width 5\n  space", dpi=254)
+        self.assertEqual(problems, [])
+        self.assertEqual((image.getpixel((10, 50)), image.getpixel((150, 50))), (255, 0))  # the box white, the rest black
+        self.assertTrue(parse("label 20 x 10  invert")[0].invert)
+
+    def test_a_label_turned_by_90_degrees(self):
+        """The design across (here a box at its left), turned clockwise: the box at the top of the label."""
+        image, problems = draw("label 40 x 20  rotate 90\nrow\n  box  width 10\n  space", dpi=254)
+        self.assertEqual((image.size, problems), ((200, 400), []))
+        self.assertEqual((black_rows(image)[0], black_rows(image)[-1]), (0, 99))
+        self.assertEqual((black_columns(image)[0], black_columns(image)[-1]), (0, 199))
+
     def test_text_crowded_out_is_a_problem_not_an_error(self):
         _image, problems = draw("label height 9  margin 1\ncolumn\n  text {{ code }}  invert\n  text {{ path }}  size 7",
                                 {"code": "A1", "path": "Raum / Regal"})
         self.assertEqual([(problem.line, problem.message) for problem in problems],
                          [(3, "There is no room left for this text.")])
+        # also when only a sliver is left for it (here 2 dots for the third text): too small to see
+        _image, problems = draw("label 16.5 x 16.5\nrow  gap 1.5  padding 0 1\n  text {{ code }}  rotate 270  font mono\n"
+                                '  text "ZAMid"  rotate 270  font sans  weight 800\n  text {{ code }}  rotate 270  font mono',
+                                {"code": "F3P-ND2"}, dpi=360)
+        self.assertEqual([(problem.line, problem.message) for problem in problems],
+                         [(5, "There is no room left for this text.")])
 
 
 @override_settings(**SETTINGS)
@@ -361,22 +461,31 @@ class TemplateTests(InventoryData, TestCase):
 
     def test_printed_on_matching_labels_only(self):
         from ..layouts.designs import fits
-        from ..models import LabelMedium
         fixed = self.template("label 57 x 32\ntext {{ location.unique_identifier }}")
         endless = self.template("label height 12\ntext {{ location.unique_identifier }}")
         long_tape = self.template("label 40 x 12\ntext {{ location.unique_identifier }}")
         narrow = self.template("label height 3.5\ntext {{ location.unique_identifier }}")
-        unknown = LabelMedium(printer=self.zebra, name="?")
+        unknown = labels(self.zebra, save=False, name="?")
         self.assertFalse(fits(fixed, unknown))  # labels of unknown size match no template
-        self.assertTrue(fits(fixed, LabelMedium(printer=self.zebra, name="a", width_mm=58, height_mm=32)))
-        self.assertFalse(fits(fixed, LabelMedium(printer=self.zebra, name="b", width_mm=57, height_mm=25)))
-        cut = LabelMedium(printer=self.brother, name="12 mm, 40 mm long", ptouch_tape=12, height_mm=40)
+        self.assertTrue(fits(fixed, labels(self.zebra, save=False, name="a", width_mm=58, height_mm=32)))
+        self.assertFalse(fits(fixed, labels(self.zebra, save=False, name="b", width_mm=57, height_mm=25)))
+        cut = labels(self.brother, save=False, name="12 mm, 40 mm long", ptouch_tape=12, height_mm=40)
         self.assertEqual((fits(endless, self.tape), fits(long_tape, self.tape)), (True, True))  # endless tape
         self.assertEqual((fits(endless, cut), fits(long_tape, cut)), (False, True))
-        self.assertTrue(fits(narrow, LabelMedium(printer=self.brother, name="3.5 mm", ptouch_tape=4)))
+        self.assertTrue(fits(narrow, labels(self.brother, save=False, name="3.5 mm", ptouch_tape=4)))
         with self.assertRaisesMessage(services.PrintError, "This layout does not fit"):
             services.submit(printer=self.zebra, medium=self.labels, layout_key=f"design:{endless.pk}",
                             subject_type="location", subjects=[self.part])
+
+    def test_slightly_larger_zebra_labels_take_a_template(self):
+        """Up to 2.5 mm larger, drawn to their size: 100 × 150 mm on 101.6 × 152.4 mm; not smaller, not much larger."""
+        from ..layouts.designs import size_fits
+        template = self.template("label 100 x 150\ntext {{ location.unique_identifier }}")
+        for (width, height), fits in (((100, 150), True), ((101.6, 152.4), True), ((99, 150), True),
+                                      ((98, 150), False), ((103, 150), False), ((101.6, 155), False)):
+            with self.subTest(width=width, height=height):
+                medium = labels(self.zebra, save=False, name="?", width_mm=width, height_mm=height)
+                self.assertEqual(size_fits(template, medium), fits)
 
     def test_printed_on_tape_as_long_as_the_content(self):
         template = self.template('label height 12  margin 0.5\nrow  gap 1\n  qr {{ qr }}\n  text {{ location.descriptive_identifier }}')
@@ -400,31 +509,29 @@ class TemplateTests(InventoryData, TestCase):
         rendered, = services.render(get_layout(f"design:{labelid.pk}"), [lid], self.labels, preview=True)
         self.assertEqual(rendered.label_code, "K7R4XD")
 
-    def test_price_tags(self):
+    def test_items_on_removable_labels_at_most_20_mm_high(self):
+        """One template for items and their prices ("Artikel"; the price tags are not offered any more): on 50 × 18 mm
+        removable paper, and on the 47 × 24 mm removable polyester while it lasts."""
         from inventory.models import LocationLabelTemplate as Template
-        from ..models import LabelMedium
-        card = LabelMedium.objects.create(printer=self.zebra, name="60 × 30", width_mm=60, height_mm=30)
-        tapes = {width: LabelMedium.objects.create(printer=self.brother, name=f"{width} mm", ptouch_tape=width)
-                 for width in (18, 24)}
-        tapes[12] = self.tape
-        price_tags = [((60, 30), card)] + [((None, width), tapes[width]) for width in (12, 18, 24)]
-        for (width, height), medium in price_tags:
-            template = Template.objects.get(name="Preisschild", label_width=width, label_height=height)
-            self.assertIn(f"design:{template.pk}", [layout.key for layout in layouts_for("item", medium.printer, medium)])
+        for width, height in ((50, 18), (47, 24)):
+            medium = labels(self.zebra, name=f"{width} × {height}", width_mm=width, height_mm=height)
+            offered = [layout.key for layout in layouts_for("item", medium.printer, medium)]
+            template = Template.objects.get(name="Artikel", label_width=width, label_height=height)
+            self.assertEqual(offered, [f"design:{template.pk}"])
             rendered, = services.render(get_layout(f"design:{template.pk}"), [ItemAt(self.item, self.part)], medium,
                                         preview=True)
             self.assertEqual(rendered.snapshot["price"], "0.15 € / Stk")
-        self.assertEqual(rendered.image.height, 128)  # E550W, 24 mm tape
+        self.assertFalse(Template.objects.filter(name="Preisschild", is_active=True).exists())
 
     def test_templates_for_every_label(self):
         """The migrations' templates: each kind for the Zebra labels in use and every Brother tape width."""
         from ..layouts.designs import problems_of
-        from ..models import LabelMedium, Printer
+        from ..models import Printer
         p900 = Printer.objects.create(name="P900W", slug="p900", language="ptouch", model="P900W", dpi=360,
                                       host="127.0.0.1")
-        media = {f"tape{width}": LabelMedium.objects.create(printer=p900, name=f"{width} mm", ptouch_tape=width)
+        media = {f"tape{width}": labels(p900, name=f"{width} mm", ptouch_tape=width)
                  for width in (9, 12, 18, 24, 36)}
-        media |= {f"{width}x{height}": LabelMedium.objects.create(printer=self.zebra, name=f"{width}x{height}",
+        media |= {f"{width}x{height}": labels(self.zebra, name=f"{width}x{height}",
                                                                   width_mm=width, height_mm=height)
                   for width, height in ((57, 32), (60, 30), (70, 32), (105, 52))}
         for kind in GENERATED:
@@ -435,6 +542,117 @@ class TemplateTests(InventoryData, TestCase):
                     offered = [layout.key for layout in layouts_for(template.subject_type, medium.printer, medium)]
                     # deactivated on the development server, e.g. items on 9 mm tape: not offered
                     self.assertEqual(f"design:{template.pk}" in offered, template.is_active)
+
+    def test_contents_of_a_location(self):
+        """What is right at it: the locations in it with their code, then by name (numbers by value) items with their
+        amount, quick items without one, unique items with their label ID and, where the owners differ, whose they are
+        if not the ZAM's (the public first name only); deleted items and what is further below are not."""
+        from inventory.models import Item, ItemLocation, Location, UniqueItem
+        for name, amount in (("Schraube 10", 5), ("Schraube 9", -3), ("Notiz", None)):
+            ItemLocation.objects.create(item=Item.objects.create(name=name, measurement_unit=self.unit),
+                                        location=self.shelf, amount=amount)
+        gone = Item.objects.create(name="Weg", measurement_unit=self.unit)
+        ItemLocation.objects.create(item=gone, location=self.shelf, amount=1)
+        gone.delete()
+        drill = Item.objects.create(name="Bohrer", measurement_unit=self.unit, kind=Item.Kind.SERIALIZED)
+        UniqueItem.objects.create(item=drill, name="rot", location=self.shelf)
+        UniqueItem.objects.create(item=drill, name="blau", location=self.shelf, owner_first_name="Erika")
+        UniqueItem.objects.create(item=drill, name="grün", location=self.shelf, owner_contact="Nur intern")
+        parts = [Location.objects.get(pk=pk) for pk in (self.part.pk, self.other_part.pk)]
+        self.assertEqual([str(entry) for entry in location_contents(self.shelf)],
+                         [f"Fach a {parts[0].unique_identifier}", f"Fach b {parts[1].unique_identifier}",
+                          "• Bohrer blau not the ZAM's: Erika", "• Bohrer grün not the ZAM's", "• Bohrer rot", "Notiz",
+                          "~3 Stk Schraube 9", "5 Stk Schraube 10"])
+        self.assertEqual(location_contents(parts[0]), [Entry("100 Stk", "Schrauben M4")])
+        # (owned, owner, differ): different owners here, the ZAM's items there; the label says it once
+        self.assertEqual((ownership(self.shelf), ownership(parts[0])), ((True, "", True), (True, "", False)))
+
+    def test_whose_the_contents_are_said_once_if_it_is_one_owner(self):
+        from inventory.models import Item, Location, LocationType, UniqueItem
+        box = Location.objects.create(name="Kiste 9", short_name="K9", type=LocationType.objects.create(name="Kiste"),
+                                      parent_location=self.shelf)
+        drill = Item.objects.create(name="Bohrer", measurement_unit=self.unit, kind=Item.Kind.SERIALIZED)
+        self.assertEqual(ownership(box), (False, "", False))  # nothing there: nothing to say
+        UniqueItem.objects.create(item=drill, name="blau", location=box, owner_first_name="Erika")
+        UniqueItem.objects.create(item=drill, name="rot", location=box, owner_first_name="Erika")
+        self.assertEqual(ownership(box), (True, "Erika", False))
+        self.assertEqual([str(entry) for entry in location_contents(box)], ["• Bohrer blau", "• Bohrer rot"])
+
+    def test_who_is_responsible(self):
+        from django.contrib.auth.models import Group
+        from accounts.models import Team
+        self.shelf.responsible_teams.add(Team.objects.create(group=Group.objects.create(name="Holzwerkstatt")),
+                                         Team.objects.create(group=Group.objects.create(name="Hausmeister")))
+        variables = selection.variables_for("location", self.shelf)
+        self.assertEqual(str(variables["responsible"]), "Hausmeister, Holzwerkstatt")
+
+    def test_a_contents_label_goes_on_on_further_labels_of_one_job(self):
+        from inventory.models import Item, ItemLocation
+        for number in range(30):
+            ItemLocation.objects.create(item=Item.objects.create(name=f"Teil {number}", measurement_unit=self.unit),
+                                        location=self.shelf, amount=number + 1)
+        template = self.template('label 57 x 32  margin 1\ntext "{{ location.unique_identifier }} {{ page }}/{{ pages }}"'
+                                 '  size 4\nlist {{ contents }}  size 3', name="Inhalt")
+        layout = get_layout(f"design:{template.pk}")
+        rendered, = services.render(layout, [self.shelf], self.labels, preview=True)
+        self.assertGreater(len(rendered.images), 1)
+        job = services.submit(printer=self.zebra, medium=self.labels, layout_key=layout.key, subject_type="location",
+                              subjects=[self.shelf], copies=2)
+        self.assertEqual((job.pages, len(job.snapshot)), (len(rendered.images) * 2, 1))
+        self.assertEqual(job.payload.count(b"^XA"), len(rendered.images))
+
+    def test_codes_are_printed_dot_exact(self):
+        """In the images sent to the printer (services.render: Zebra as drawn, Brother in high quality squeezed across
+        the tape) every QR module is a block of whole dots, all alike, and the barcode's bars are whole dots per
+        module, exactly the modules of its Code 128."""
+        from ..render import code128, qr
+
+        def check_qr(image, content):
+            matrix = qr(content).matrix
+            pixels = image.load()
+            x0 = next(x for x in range(image.width) if any(pixels[x, y] == 0 for y in range(image.height)))
+            y0 = next(y for y in range(image.height) if pixels[x0, y] == 0)
+            width = next(x for x in range(x0, image.width) if pixels[x, y0] != 0) - x0  # the finder: 7 modules
+            height = next(y for y in range(y0, image.height) if pixels[x0, y] != 0) - y0
+            self.assertEqual((width % 7, height % 7), (0, 0))
+            kx, ky = width // 7, height // 7
+            for row, line in enumerate(matrix):
+                for column, dark in enumerate(line):
+                    block = {pixels[x0 + column * kx + dx, y0 + row * ky + dy] == 0
+                             for dx in range(kx) for dy in range(ky)}
+                    self.assertEqual(block, {bool(dark & 1)}, (row, column))
+
+        def modules(values):
+            """The runs of one line of dots, as modules of the narrowest run's width."""
+            runs, start = [], 0
+            for index in range(1, len(values) + 1):
+                if index == len(values) or values[index] != values[start]:
+                    runs.append((values[start], index - start))
+                    start = index
+            runs = runs[1:-1]  # the white around the bars
+            narrowest = min(length for _value, length in runs)
+            self.assertTrue(all(length % narrowest == 0 for _value, length in runs))
+            return "".join(("1" if value == 0 else "0") * (length // narrowest) for value, length in runs)
+
+        def dark(image, points):
+            return [0 if image.getpixel(point) == 0 else 255 for point in points]
+
+        location = selection.variables_for("location", self.part)["qr"]
+        flat = self.template('label 57 x 32  margin 1\ncolumn  gap 1\n  qr {{ qr }}  quiet 1  max 18\n'
+                             '  barcode "1234"  quiet 2  height 8', name="Zebra")
+        rendered, = services.render(get_layout(f"design:{flat.pk}"), [self.part], self.labels, preview=True)
+        last = black_rows(rendered.image)[-1]  # the barcode's bottom, 8 mm below its top
+        check_qr(rendered.image.crop((0, 0, rendered.image.width, last - 70)), location)  # the QR code above it
+        bars = dark(rendered.image, [(x, last - 5) for x in range(rendered.image.width)])
+        self.assertEqual(modules(bars), code128("1234"))
+        tape = self.template('label height 12  margin 0 1\nrow  gap 1\n  qr {{ qr }}  quiet 1\n'
+                             '  barcode "1234"  rotate 90  quiet 2  width 6', name="Band")
+        rendered, = services.render(get_layout(f"design:{tape.pk}"), [self.part], self.tape, preview=True,
+                                    quality="high")
+        check_qr(rendered.image, location)
+        column = rendered.image.width - 20  # within the barcode, its bars along the tape
+        bars = dark(rendered.image, [(column, y) for y in range(rendered.image.height)])
+        self.assertEqual(modules([255] + bars + [255]), code128("1234"))
 
     def test_mistakes_and_too_small_labels_are_refused(self):
         broken = self.template('label 57 x 32\ntext "{% nope %}"')
@@ -499,7 +717,7 @@ class AdminTests(InventoryData, TestCase):
                 for data in re.findall(r'data-label-samples="([^"]+)"', response.content.decode())]
 
     def test_list_samples_are_random_records_of_the_kind(self):
-        samples = self.samples("Kennung")
+        samples = self.samples("descriptive_identifier")  # location templates showing the path
         self.assertTrue(samples)
         records = [name for _url, name in samples[0]]
         self.assertEqual(sorted(records), ["R303.a", "R303.b"])  # locations with a parent
@@ -515,20 +733,21 @@ class AdminTests(InventoryData, TestCase):
         from inventory.models import Item, ItemLocation
         unpriced = Item.objects.create(name="Wechselstift", measurement_unit=self.unit)
         ItemLocation.objects.create(item=unpriced, location=self.part, amount=5)
-        response = self.client.get(reverse("admin:inventory_locationlabeltemplate_changelist"), {"q": "Preis"})
         found = {}
-        for name, data in re.findall(r'<a href="[^"]+">([^<]+)</a></th><td class="field-sample"><img [^>]*'
-                                     r'data-label-samples="([^"]+)"', response.content.decode()):
-            found.setdefault(name, set()).update(record for _url, record in json.loads(html.unescape(data)))
+        for query in ("Preis", "Artikel"):
+            response = self.client.get(reverse("admin:inventory_locationlabeltemplate_changelist"), {"q": query})
+            for name, data in re.findall(r'<a href="[^"]+">([^<]+)</a></th><td class="field-sample"><img [^>]*'
+                                         r'data-label-samples="([^"]+)"', response.content.decode()):
+                found.setdefault(name, set()).update(record for _url, record in json.loads(html.unescape(data)))
         self.assertEqual(found["Preisschild"], {"Schrauben M4"})
-        self.assertEqual(found["Name, Preis und QR-Code"], {"Schrauben M4", "Wechselstift"})
+        self.assertEqual(found["Artikel"], {"Schrauben M4", "Wechselstift"})
 
     def test_preview_records_by_the_saved_rules(self):
         """While editing a saved template, its preview offers the records its saved rules are meant for."""
         from inventory.models import Item, ItemLocation
         unpriced = Item.objects.create(name="Wechselstift", measurement_unit=self.unit)
         ItemLocation.objects.create(item=unpriced, location=self.part, amount=5)
-        price_tag = LocationLabelTemplate.objects.get(name="Preisschild", label_width=60)
+        price_tag = LocationLabelTemplate.objects.get(name="Preisschild", label_width=60, label_height=30)
         description = "label 60 x 30\ntext {{ item.name }}"
         records = lambda **data: self.client.post(reverse("label_design_preview"), {
             "description": description, "subject_type": "item", **data}).json()["records"]
@@ -548,7 +767,7 @@ class AdminTests(InventoryData, TestCase):
         template = LocationLabelTemplate.objects.filter(subject_type="item").first()
         url = reverse("label_template_sample", args=[template.pk])
         self.assertEqual(self.client.get(url, {"record": self.item.pk}).status_code, 404)
-        self.assertTrue(self.samples("Kennung")[0][0][1])  # location labels are public
+        self.assertTrue(self.samples("descriptive_identifier")[0][0][1])  # location labels are public
 
     def test_preview_while_writing(self):
         url = reverse("label_design_preview")
@@ -597,35 +816,53 @@ class AdminTests(InventoryData, TestCase):
         self.assertEqual(self.client.get(item_url).status_code, 404)  # not public
 
 
-@override_settings(LANGUAGE_CODE="en")
-class LocationDisplayMigrationTests(TestCase):
-    """label_printing 0003: unchanged templates get the location display rule, changed ones stay."""
+class TemplateCatalogTests(SimpleTestCase):
+    """The templates label_printing 0002 brings (catalog/label_templates.json)."""
 
-    def test_unchanged_templates_are_updated(self):
+    def test_every_template_draws_without_mistakes(self):
+        from label_printing.migrations import __path__ as migrations_path
+        start = json.loads((Path(migrations_path[0]).parent / "catalog" / "label_templates.json").read_text())
+        for entry in start:
+            design, problems = parse(entry["description"])
+            self.assertEqual(problems, [], entry["name"])
+            self.assertEqual((design.width, design.height), (entry["label_width"], entry["label_height"]), entry["name"])
+        # the location display rule: what a location is called first, its code after it
+        card = next(entry["description"] for entry in start if entry["name"] == "Ort"
+                    and entry["label_width"] == 57)
+        self.assertLess(card.index("{{ location.title }}"), card.index("location.unique_identifier"))
+        # the colour rule: locations and ZAMids on any colour (yellow: permanent places and things), items on white;
+        # storage units and shelf levels printed inverted, white on black (70 × 32 mm paper, white tape; not yellow)
+        colours = {}
+        for entry in start:
+            if entry["is_active"]:
+                colours.setdefault(entry["subject_type"], set()).add((entry["print_color"], entry["background_color"]))
+        self.assertEqual(colours, {"location": {("schwarz", ""), ("schwarz", "weiß")}, "labelid": {("schwarz", "")},
+                                   "uniqueitem": {("schwarz", "")}, "item": {("schwarz", "weiß")}})
+        inverted = {(entry["name"], entry["label_width"]) for entry in start
+                    if entry["is_active"] and parse(entry["description"])[0].invert}
+        shelves = {"Lagermöbel", "Regalboden, Pfeile zum Ausmalen", "Regalboden, Pfeil hoch", "Regalboden, Pfeil runter"}
+        self.assertEqual(inverted, {(name, width) for name in shelves for width in (70, None)}
+                         | {("Ort, Palettenregal", 105), ("Ort, Palettenregal", 100)})
+        flags = sorted(entry["label_width"] for entry in start if entry["name"].startswith("Kabel, Fahne"))
+        self.assertEqual(flags, [55, 57, 60, 62, 63])  # 2 × 17 mm and 2 to 1.5 times cables of 10.5 to 19 mm
+        # cable wraps: about 1.2 times round the thickest cable of each class
+        wraps = sorted(entry["label_width"] for entry in start if entry["name"].startswith("Kabel, Wickel"))
+        self.assertEqual(wraps, [39.6, 45.1, 54.7, 64.1, 71.5])
+
+    def test_logo_without_wordmark(self):
+        """For small labels: the logo cut off at the first white row below the mark, above the wordmark."""
         import importlib
-        from django.apps import apps
-        migration = importlib.import_module("label_printing.migrations.0003_location_display")
-        changes = migration.changes()
-        card = next(change for change in changes if change["name"] == "QR-Code, Kennung, Name und Ort"
-                    and change["label_width"] == 57)
-        tape = next(change for change in changes if change["name"] == "QR-Code, Kennung, Name und Ort"
-                    and change["label_height"] == 12)
-        self.assertIn("{{ location.title }}", card["after"])
-        self.assertLess(card["after"].index("{{ location.title }}"), card["after"].index("location.unique_identifier"))
-        for change in changes:  # all of them draw without mistakes
-            self.assertEqual(parse(change["after"])[1], [], change["name"])
-
-        def template(change):
-            return LocationLabelTemplate.objects.get(name=change["name"], label_width=change["label_width"],
-                                                     label_height=change["label_height"])
-        self.assertEqual(template(card).description, card["after"])  # as the migrations left them
-        LocationLabelTemplate.objects.filter(pk=template(card).pk).update(description=card["before"])
-        LocationLabelTemplate.objects.filter(pk=template(tape).pk).update(description="label height 12\ntext \"own\"")
-        migration.forwards(apps, None)
-        self.assertEqual(template(card).description, card["after"])
-        self.assertEqual(template(tape).description, 'label height 12\ntext "own"')  # changed since: left alone
-        migration.backwards(apps, None)
-        self.assertEqual(template(card).description, card["before"])
+        migration = importlib.import_module("label_printing.migrations.0007_catalog_up_to_date")
+        image = Image.new("1", (40, 20), 1)
+        draw = ImageDraw.Draw(image)
+        draw.rectangle((0, 0, 39, 11), fill=0)  # the mark, rows 0–11
+        draw.rectangle((0, 15, 30, 18), fill=0)  # the wordmark, rows 15–18
+        out = io.BytesIO()
+        image.save(out, format="PNG")
+        self.assertEqual(migration.wordmark_cut(out.getvalue()), 8)  # rows 12–19 cut off
+        out = io.BytesIO()
+        Image.new("1", (40, 20), 0).save(out, format="PNG")
+        self.assertEqual(migration.wordmark_cut(out.getvalue()), 0)  # no gap: nothing to cut
 
 
 class ZplTemplatesMigrationTests(TransactionTestCase):
@@ -659,7 +896,7 @@ class ZplTemplatesMigrationTests(TransactionTestCase):
                 executor.migrate(latest)
                 apps = executor.loader.project_state(latest).apps
                 Template = apps.get_model("inventory", "LocationLabelTemplate")
-                mobile = Template.objects.get(name="Mobil, mit Logo und Eigentum", label_width=105)
+                mobile = Template.objects.get(name="Kiste", label_width=105)
                 own = Template.objects.get(name="Eigene")
                 self.assertIn('image "ZAM Logo"', mobile.description)
                 self.assertEqual(parse(mobile.description)[1], [])
@@ -672,15 +909,13 @@ class ZplTemplatesMigrationTests(TransactionTestCase):
                 start = json.loads((Path(migrations_path[0]).parent / "catalog" / "label_templates.json").read_text())
                 self.assertEqual(Template.objects.count(), len(start) + 1)
                 self.assertEqual(mobile.pk, mobile_zpl.pk)
-                updated = json.loads((Path(migrations_path[0]).parent / "catalog" / "location_display_0003.json")
-                                     .read_text())  # label_printing 0003
-                self.assertEqual(mobile.description, next(change["after"] for change in updated
-                                                          if change["name"] == mobile.name and change["label_width"] == 105))
-                item_9 = Template.objects.get(name="Name, Preis und QR-Code", label_height=9)
+                self.assertEqual(mobile.description, next(entry["description"] for entry in start
+                                                          if entry["name"] == mobile.name and entry["label_width"] == 105))
+                item_9 = Template.objects.get(name="Artikel", label_height=9)
                 self.assertFalse(item_9.is_active)
                 rules = apps.get_model("inventory", "LabelTemplateRule").objects
                 self.assertEqual(list(rules.filter(template=mobile).values_list("condition", "priority")),
-                                 [('location.type.category == "container"', 2), ("", 0)])
+                                 [('location.type.name == "Kiste"', 3), ("", 0)])
                 self.assertEqual(list(rules.filter(template=own).values_list("condition", "priority")), [("", 0)])
                 # the template chosen for the location: preselected as its last label
                 last = apps.get_model("label_printing", "LastLabel").objects
@@ -689,7 +924,9 @@ class ZplTemplatesMigrationTests(TransactionTestCase):
                 self.assertEqual(last.get(subject_type="location", subject_pk=str(room_2.pk)).layout_key,
                                  f"design:{mobile.pk}")
                 stock = apps.get_model("label_printing", "LabelStock")
-                self.assertEqual(sorted(stock.objects.filter(language="zpl").values_list("name", flat=True)),
+                # one per size of the ZPL templates ("Etikett …"; later migrations add labels bought since)
+                self.assertEqual(sorted(stock.objects.filter(language="zpl", name__startswith="Etikett ")
+                                        .values_list("name", flat=True)),
                                  ["Etikett 105 × 52 mm Polyester", "Etikett 50 × 25 mm"])
                 self.assertTrue(stock.objects.filter(language="ptouch").exists())
                 self.assertTrue(apps.get_model("auth", "Group").objects.get(name="ZAM-local").permissions.filter(
@@ -698,6 +935,9 @@ class ZplTemplatesMigrationTests(TransactionTestCase):
                 with Image.open(logo.image.path) as image:
                     self.assertEqual(image.size, (16, 4))
                     self.assertEqual([image.getpixel((x, 0)) for x in (0, 11, 12)], [0, 0, 255])  # FFF0
+                # nothing below the mark: the logo without wordmark is the whole logo (wordmark_cut)
+                mark = apps.get_model("label_printing", "LabelImage").objects.get(name="ZAM Logo ohne Wortmarke")
+                self.assertEqual((mark.image.name, mark.crop_bottom), (logo.image.name, 0))
         finally:
             executor = MigrationExecutor(connection)
             executor.migrate(latest)

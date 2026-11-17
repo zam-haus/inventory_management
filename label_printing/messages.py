@@ -39,6 +39,8 @@ MESSAGES = {
     "wait_expired": _("No printer could print it in time, so it was not printed."),
     "subject_gone": _("What the label was for no longer exists."),
     "not_rendered": _("The label could not be drawn: %(error)s"),
+    "aborted": _("The print was aborted."),
+    "paused_by_agent": _("Paused on the print agent."),
 }
 
 

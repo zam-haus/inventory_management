@@ -12,9 +12,10 @@ done
 sed -i 's| systemd.run=[^ ]*label-agent/install.sh||; s| systemd.run_success_action=[^ ]*||; s| systemd.unit=kernel-command-line.target||' "$boot/cmdline.txt"
 if mkdir -p /opt/label-agent \
         && cp "$boot/label-agent/update.sh" /opt/label-agent/update.sh \
-        && sh /opt/label-agent/update.sh \
-        && cp "$boot/label-agent/label-agent.service" /etc/systemd/system/label-agent.service \
-        && systemctl enable label-agent.service; then
+        && INSTALLING=1 sh /opt/label-agent/update.sh \
+        && cp "$boot/label-agent/label-agent.service" "$boot/label-agent/label-agent-keep.path" \
+              "$boot/label-agent/label-agent-keep.service" /etc/systemd/system/ \
+        && systemctl enable label-agent.service label-agent-keep.path; then
     echo "label-agent installed; it starts after the reboot"
 else
     echo "label-agent: installing failed, see above; run again with: sudo sh $boot/label-agent/install.sh"

@@ -1,3 +1,5 @@
+from unittest import mock
+
 from django.test import SimpleTestCase
 from PIL import Image, ImageChops, ImageDraw
 
@@ -50,6 +52,24 @@ class StatusParsingTests(SimpleTestCase):
         self.assertEqual(device_for("10.0.0.5").port, 9100)
         with self.assertRaises(ValueError):
             device_for("usb://0x04f9:0x2060")
+
+    def test_a_usb_printer_reported_ready_without_data_is_waited_for(self):
+        """usblp's poll says "readable" before the status reply is there (a read returns nothing, seen on a
+        PT-P700 and a PT-P900W): the status reply that follows a moment later is still read."""
+        reply = bytes.fromhex("8020423067300000000018010000000000000000000000000108000000000000")
+        reads = [b"", b"", reply]
+        device = UsbLpDevice("/dev/usb/lp0")
+        device.fd = 99
+        written = []
+        with mock.patch("label_printing.devices.io.select.select", side_effect=lambda r, w, x, t: (r, [], [])), \
+                mock.patch("label_printing.devices.io.os.read", side_effect=lambda fd, size: reads.pop(0)), \
+                mock.patch("label_printing.devices.io.os.write", side_effect=lambda fd, data: written.append(data) or len(data)), \
+                mock.patch.object(device, "open"), mock.patch.object(device, "close"), \
+                mock.patch("label_printing.devices.brother.snmp_status", return_value=None), \
+                mock.patch.object(device, "drain"):
+            status = brother.query(device)
+        self.assertEqual((status["media_width_mm"], status["errors"]), (24, []))
+        self.assertTrue(bytes(written[0]).endswith(b"\x1biS"))
 
 
 class RunJobTests(SimulatedPrinters, SimpleTestCase):

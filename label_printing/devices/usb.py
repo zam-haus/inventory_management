@@ -8,9 +8,12 @@ import os
 
 BROTHER, ZEBRA = 0x04F9, 0x0A5F
 LANGUAGES = {BROTHER: "ptouch", ZEBRA: "zpl"}
-# USB product IDs of the P-touch models the inventory prints on (as in the ptouch library).
-BROTHER_MODELS = {0x2060: "E550W", 0x2065: "P750W", 0x2083: "P900", 0x2085: "P900W", 0x2086: "P950NW"}
-BROTHER_DPI = {"E550W": 180, "P750W": 180, "P900": 360, "P900W": 360, "P950NW": 360}
+# USB product IDs of the P-touch models the inventory prints on (as in the ptouch library and ptouch-print; 0x2065 is
+# a P750W in P-Lite mode, which the library takes for it)
+BROTHER_MODELS = {0x2060: "E550W", 0x2061: "P700", 0x2062: "P750W", 0x2065: "P750W", 0x2083: "P900", 0x2085: "P900W",
+                  0x2086: "P950NW", 0x20AF: "P710BT", 0x20C7: "P910BT"}
+BROTHER_DPI = {"E550W": 180, "P700": 180, "P750W": 180, "P710BT": 180, "P900": 360, "P900W": 360, "P950NW": 360,
+               "P910BT": 360}
 
 
 def read(path):

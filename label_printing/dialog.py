@@ -21,7 +21,7 @@ from django.utils.safestring import mark_safe
 from inventory import location_display
 from inventory.label_ids import naming as label_id_naming
 from inventory.models import Item, LabelId, Location, UniqueItem
-from . import label_urls, outcomes, selection
+from . import editor, label_urls, outcomes, selection
 from .label_urls import ItemAt
 
 SUBJECT_TYPES = ("location", "item", "uniqueitem", "labelid", "items")
@@ -218,7 +218,7 @@ def options(subject_type, obj):
                           "missing": outcome.missing[0], "missing_name": outcome.missing[1],
                           "status": outcome.status,
                           "template": outcome.layout.template.pk,
-                          "query": urlencode({"medium": medium.pk, "layout": outcome.layout.key})
+                          "query": urlencode({"medium": editor.medium_key(medium), "layout": outcome.layout.key})
                           if (medium := outcome.sample_medium()) else "",
                           # the preview's dots per inch, to show it in its real size
                           "dpi": medium.printer.dpi if medium else preview_dpi(outcome.layout.template)}

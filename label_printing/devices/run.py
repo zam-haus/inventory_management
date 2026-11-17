@@ -1,6 +1,8 @@
 """Running one print job on a device: check the printer, send, wait until it is printed."""
 from __future__ import annotations  # Python 3.9 on older Raspberry Pi OS
 
+import threading
+import time
 from dataclasses import asdict, dataclass, field
 
 from . import brother, zebra
@@ -29,6 +31,55 @@ class Result:
     @classmethod
     def from_dict(cls, data):
         return cls(**{name: data[name] for name in cls.__dataclass_fields__ if name in data})
+
+
+class Aborted(Exception):
+    """The job was aborted (Control.abort) while it was being sent or printed."""
+
+
+class Control:
+    """Pausing and aborting a job from another thread (the print agent's display, the server).
+
+    The job's thread calls steer() between the pages it sends and while it waits for the printer: while
+    paused it stops there (a Zebra is also told to pause after the label it is printing, ~PP), and an
+    aborted job raises Aborted. A Brother prints what it already got."""
+
+    def __init__(self):
+        self.running = threading.Event()
+        self.running.set()
+        self.aborted = False
+        self.by = ""  # who aborted: "display", "server"
+        self.sent = 0  # labels (pages) sent so far, for the display
+
+    @property
+    def paused(self):
+        return not self.running.is_set()
+
+    def pause(self):
+        self.running.clear()
+
+    def resume(self):
+        self.running.set()
+
+    def abort(self, by=""):
+        self.aborted, self.by = True, by
+        self.running.set()
+
+    def steer(self, device, pause_command=b"", resume_command=b""):
+        """Stop here while paused; the seconds it was paused (to add to the job's timeout). Raises Aborted."""
+        if self.aborted:
+            raise Aborted
+        if not self.paused:
+            return 0.0
+        started = time.monotonic()
+        if pause_command:
+            device.write(pause_command)
+        self.running.wait()
+        if self.aborted:
+            raise Aborted
+        if resume_command:
+            device.write(resume_command)
+        return time.monotonic() - started
 
 
 # How far the label length a Zebra measures may be off the loaded labels' height
@@ -63,18 +114,20 @@ def query_status(device, language):
 
 
 def run_job(device, language, payload, *, expected_tape_mm=None, expected_length=None, pages=1, check_status=True,
-            timeout=None):
+            timeout=None, control=None):
     """Print `payload` (printer-ready bytes in `language`) on `device`.
 
     With check_status, the printer's status is read first (no data is sent if it cannot print, e.g.
     no paper, the wrong tape or labels of another length), and afterwards its notifications until all `pages`
-    are printed."""
+    are printed. The data goes out label by label, so a `control` can pause or abort the job in between."""
     protocol = PROTOCOLS[language]
+    control = control or Control()
     timeout = timeout or 20 + 5 * pages
     try:
         device.open()
     except DeviceError as error:
         return Result(FAILED, "unreachable", {"error": str(error)}, retryable=True)
+    status = None
     try:
         if check_status:
             status = protocol.query(device)
@@ -83,16 +136,25 @@ def run_job(device, language, payload, *, expected_tape_mm=None, expected_length
             if error := status_error(status, expected_tape_mm, expected_length):
                 return Result(FAILED, error[0], error[1], status)
         try:
-            device.write(payload)
+            for chunk in protocol.split_pages(payload):
+                control.steer(device, protocol.PAUSE, protocol.RESUME)
+                device.write(chunk)
+                control.sent += 1
         except DeviceError as error:
             return Result(FAILED, "write_failed", {"error": str(error)})
         if not check_status:
             return Result(SENT)
-        outcome, last = protocol.wait_until_printed(device, pages, timeout)
+        outcome, last = protocol.wait_until_printed(device, pages, timeout, control=control)
         if outcome == FAILED:
             code, detail = status_error(last) or ("printer_error", {})
             return Result(FAILED, code, detail, last)
         return Result(outcome, "" if outcome == DONE else "no_confirmation", printer_status=last or status)
+    except Aborted:
+        try:
+            protocol.cancel(device)
+        except DeviceError:
+            pass
+        return Result(FAILED, "aborted", {"by": control.by} if control.by else {}, status)
     except DeviceError as error:
         return Result(FAILED, "connection_lost", {"error": str(error)})
     finally:

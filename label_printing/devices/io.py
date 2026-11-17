@@ -1,5 +1,7 @@
-"""Connections to printers: raw TCP (port 9100) and USB printer devices (Linux usblp, /dev/usb/lp0)."""
+"""Connections to printers: raw TCP (port 9100), USB printer devices (Linux usblp, /dev/usb/lp0) and
+Bluetooth printers over RFCOMM (serial port profile)."""
 import os
+import re
 import select
 import socket
 import time
@@ -68,19 +70,16 @@ class Device:
         self.close()
 
 
-class TcpDevice(Device):
-    """A network printer. Some answer status requests only over SNMP (snmp_port), not on the print port."""
+class SocketDevice(Device):
+    """A printer behind a socket; open() connects it."""
+    sock = None
 
-    def __init__(self, host, port=DEFAULT_PORT, connect_timeout=3.0, snmp_port=161):
-        self.host, self.port, self.connect_timeout, self.snmp_port = host, port, connect_timeout, snmp_port
-        self.sock = None
-
-    def __str__(self):
-        return f"tcp://{self.host}:{self.port}"
+    def connect(self):
+        raise NotImplementedError
 
     def open(self):
         try:
-            self.sock = socket.create_connection((self.host, self.port), timeout=self.connect_timeout)
+            self.sock = self.connect()
         except OSError as error:
             raise DeviceError(f"{self}: {error}") from error
 
@@ -104,6 +103,41 @@ class TcpDevice(Device):
             return b""
         except OSError as error:
             raise DeviceError(f"{self}: {error}") from error
+
+
+class TcpDevice(SocketDevice):
+    """A network printer. Some answer status requests only over SNMP (snmp_port), not on the print port."""
+
+    def __init__(self, host, port=DEFAULT_PORT, connect_timeout=3.0, snmp_port=161):
+        self.host, self.port, self.connect_timeout, self.snmp_port = host, port, connect_timeout, snmp_port
+
+    def __str__(self):
+        return f"tcp://{self.host}:{self.port}"
+
+    def connect(self):
+        return socket.create_connection((self.host, self.port), timeout=self.connect_timeout)
+
+
+class RfcommDevice(SocketDevice):
+    """A Bluetooth printer (paired, see devices.bluetooth) on an RFCOMM channel of its serial port profile."""
+
+    def __init__(self, address, channel=1, connect_timeout=8.0):
+        self.address, self.channel, self.connect_timeout = address.upper(), channel, connect_timeout
+
+    def __str__(self):
+        return f"bt://{self.address}/{self.channel}"
+
+    def connect(self):
+        if not hasattr(socket, "AF_BLUETOOTH"):
+            raise OSError("this Python has no Bluetooth sockets")
+        sock = socket.socket(socket.AF_BLUETOOTH, socket.SOCK_STREAM, socket.BTPROTO_RFCOMM)
+        sock.settimeout(self.connect_timeout)
+        try:
+            sock.connect((self.address, self.channel))
+        except OSError:
+            sock.close()
+            raise
+        return sock
 
 
 class UsbLpDevice(Device):
@@ -136,17 +170,35 @@ class UsbLpDevice(Device):
             raise DeviceError(f"{self}: {error}") from error
 
     def read(self, size, timeout):
+        """What the printer sent, waiting up to `timeout` seconds. usblp's poll reports data where there is none yet
+        (the read then returns nothing): that is waited out too, else a status reply that comes a moment later is
+        missed ("the printer does not answer")."""
+        deadline = time.monotonic() + max(timeout, 0)
         try:
-            ready, _, _ = select.select([self.fd], [], [], max(timeout, 0))
-            return os.read(self.fd, size) if ready else b""
+            while True:
+                remaining = deadline - time.monotonic()
+                ready, _, _ = select.select([self.fd], [], [], max(remaining, 0))
+                chunk = os.read(self.fd, size) if ready else b""
+                if chunk or remaining <= 0:
+                    return chunk
+                time.sleep(min(0.02, remaining))
         except OSError as error:
             raise DeviceError(f"{self}: {error}") from error
 
 
+BLUETOOTH_ADDRESS = re.compile(r"^bt://((?:[0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2})(?:/(\d{1,2}))?$")
+
+
 def device_for(address):
-    """A device for "tcp://host[:port]", "host[:port]" or a device path ("/dev/usb/lp0")."""
+    """A device for "tcp://host[:port]", "host[:port]", a device path ("/dev/usb/lp0") or a Bluetooth printer
+    ("bt://AA:BB:CC:DD:EE:FF", RFCOMM channel 1, or "bt://AA:BB:CC:DD:EE:FF/2")."""
     if address.startswith("/"):
         return UsbLpDevice(address)
+    if address.startswith("bt://"):
+        match = BLUETOOTH_ADDRESS.match(address)
+        if not match:
+            raise ValueError(f"not a Bluetooth printer address: {address!r}")
+        return RfcommDevice(match.group(1), int(match.group(2) or 1))
     parts = urlsplit(address if "://" in address else f"tcp://{address}")
     if parts.scheme != "tcp" or not parts.hostname:
         raise ValueError(f"not a printer address: {address!r}")

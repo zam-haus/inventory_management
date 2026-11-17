@@ -11,10 +11,11 @@ from django.urls import reverse
 from django.utils import timezone, translation
 from django.templatetags.static import static
 
-from label_printing.models import LabelMedium, Printer, PrintJob
+from label_printing.models import Printer, PrintJob
 from ..models import Item, ItemImage, Location, LocationLabelTemplate, LocationType, MeasurementUnit
 from ..tasks import recognize_text
 from .test_documents_and_photos import MediaMixin, png
+from label_printing.tests.helpers import labels
 
 
 @override_settings(LANGUAGE_CODE="en", LABEL_ID_BASE_URL="https://i.zam.haus/", CELERY_TASK_ALWAYS_EAGER=True)
@@ -29,8 +30,8 @@ class LabelPrintingTests(TestCase):
         kind = LocationType.objects.create(name="Room", unique=True)
         cls.locations = [Location.objects.create(name=f"Room {n}", short_name=f"R{n}", type=kind) for n in (1, 2)]
         cls.printer = Printer.objects.create(name="Zebra", slug="zebra", language="zpl", host="192.0.2.1")
-        cls.medium = LabelMedium.objects.create(printer=cls.printer, name="57 × 32", width_mm=57, height_mm=32)
-        cls.printer.loaded_medium = cls.medium
+        cls.medium = labels(cls.printer, name="57 × 32", width_mm=57, height_mm=32)
+        cls.printer.loaded_medium = cls.medium.stock
         cls.printer.save()
         LocationLabelTemplate.objects.exclude(pk=template.pk).update(is_active=False)
         cls.admin = get_user_model().objects.create_superuser(username="admin")

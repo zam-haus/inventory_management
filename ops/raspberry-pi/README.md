@@ -1,9 +1,14 @@
 # Raspberry Pi as print agent
 
-A Raspberry Pi with Raspberry Pi OS runs the label print agent (`label_printing/agent.py`,
-[label printing](../../docs/label-printing.md)) as a service. It serves the inventories in its
-configuration, each with the token an admin gave it there, finds Brother and Zebra printers on
-its USB ports by itself and prints their jobs.
+A Raspberry Pi with Raspberry Pi OS (Lite is enough, 64 bit or not) runs the label print agent
+(`label_printing/agent.py`, [label printing](../../docs/label-printing.md)) as a service, started on
+boot. It serves the inventories in its configuration, each with the token an admin gave it there,
+finds Brother and Zebra printers on its USB ports and Brother P-touch printers over Bluetooth by itself
+and prints their jobs, several printers at the same time. A display is optional: the **Raspberry Pi Touch
+Display** (or another touch screen; see [the touch screen](#the-touch-screen)) shows the jobs, printers and
+connections, pauses and aborts jobs, sets a Zebra's labels and ribbon and searches, pairs and unpairs Bluetooth
+printers; a **PiFace Control & Display 2** does most of it on two lines (see [the PiFace display](#the-piface-display)).
+With `"read_only": true` the Pi's system runs read-only, to spare the SD card (see [read-only](#read-only)).
 
 ## Creating the agent in the inventory
 
@@ -25,28 +30,135 @@ This copies to `label-agent/` on the boot partition:
 
 | File | What |
 |---|---|
-| `label_printing/` | the agent (`agent.py`, `devices/`) |
+| `label_printing/` | the agent (`agent.py`, `panel.py`, `touch.py`, `devices/`) |
 | `config.json` | the servers given with their tokens (without servers, an existing file is kept) and the intervals |
-| `label-agent.service` | systemd service: `python3 -m label_printing.agent`, unprivileged (`DynamicUser`, group `lp` for `/dev/usb/lp*`), restarts on failure |
+| `label-agent.service` | systemd service: `python3 -m label_printing.agent`, as the unprivileged system user `label-agent` (created by `update.sh`; a fixed user, as D-Bus checks the group `bluetooth` of a user it can look up; groups `lp` for `/dev/usb/lp*`, `spi`/`gpio` for the PiFace, `bluetooth`, `video`/`render`/`input` for the touch screen), writing nowhere but `/run/label-agent`, restarts on failure |
+| `label-agent-keep.path`, `label-agent-keep.service`, `keep.sh` | save BlueZ's pairings on the boot partition (`label-agent/bluetooth.tgz`) whenever the agent paired or unpaired a printer |
 | `install.sh` | installs the service; added to `cmdline.txt` so the Pi runs it once on its next boot and reboots (like Raspberry Pi Imager's `firstrun.sh`) |
-| `update.sh` | copies the code from the boot partition to `/opt/label-agent` on every start of the service |
+| `update.sh` | on every start of the service: copies the code from the boot partition to `/opt/label-agent`, installs what is missing of `python3-spidev`, `python3-dbus`, `python3-gi`, `bluez`, `libnss-systemd`, `python3-pygame`, `fonts-dejavu-core`, `libegl1`, `libegl-mesa0`, `libgles2`, `libgl1-mesa-dri`, `libopengl0` (and `overlayroot` for read-only) with apt, keeps the service files, the log in RAM (`journald.conf.d/label-agent.conf`) and group `bluetooth`'s access to BlueZ (`/etc/dbus-1/system.d/label-agent-bluetooth.conf`) in place, lets group `video` switch the backlight, puts saved Bluetooth pairings back and switches read-only on or off |
+
+It also adds `dtparam=spi=on` to `config.txt` (for the display; harmless without one).
 
 The Pi needs a network connection to the servers; Python 3 comes with Raspberry Pi OS (3.9 on
 bullseye is enough). Works on an installed card as well as on a fresh image (with user, network
-and SSH set up as usual, e.g. by Raspberry Pi Imager).
+and SSH set up as usual, e.g. by Raspberry Pi Imager, also with its cloud-init files from trixie on).
+The packages are installed on the first start with network (the install boot has none); until then the
+agent runs without display and Bluetooth, and `systemctl restart label-agent` tries again. With
+`"read_only": true` the Pi then reboots once more into the read-only system.
 
 ## After the first boot
 
 1. The agent reports to each server: under **Print agents** it shows as online, with the Pi's
    host name and address.
 2. Plug in the printers. They appear under **Printers**, inactive: name them, check model and
-   resolution, **Activate**, and add the labels loaded (media, from the label stock).
+   resolution (what labels they take is filled in from the model), **Activate**, and mark the label
+   material there is as on hand (**Label material**).
 3. Print a test label (printer list, action **Print a test label**).
+
+## Bluetooth printers
+
+Brother P-touch printers with Bluetooth (PT-P710BT, PT-P910BT; others named `PT-…BT` are found too,
+with the model to choose in the admin) are looked for every `bluetooth_scan_interval` seconds (60). Switch
+the printer on and make it visible. A new one is paired:
+
+* with a display (`"bluetooth_pairing": "confirm"`, the default): once confirmed there ("Koppeln?");
+* without display, or with `"bluetooth_pairing": "auto"`: by itself.
+
+The agent pairs only with printers it found itself; a phone trying to pair with the Pi is refused.
+Paired printers appear in the admin like USB printers (ID `bt-` and the Bluetooth address) and are reached
+on RFCOMM channel 1 (`bluetooth_channel`). A printer that is off counts as not reachable; its jobs wait.
+`"bluetooth": false` switches Bluetooth off. On the touch screen (tab Bluetooth) printers are also searched for at
+once, paired after being declined, and unpaired; else unpairing: `bluetoothctl remove AA:BB:CC:DD:EE:FF`.
+Pairings made or removed by the agent are saved on the boot partition (`label-agent/bluetooth.tgz`, with the
+pairing keys) and put back on boot, so a read-only Pi keeps them.
+
+## The touch screen
+
+The Raspberry Pi Touch Display (7", 800 × 480, on the DSI connector; the Pi finds it by itself with
+`display_auto_detect=1` in `config.txt`, the default) or another screen with touch is used by itself
+(`"display": "auto"`: a touch screen first, else a PiFace display; `"touch"`: log an error if there is none).
+No desktop is needed: pygame draws straight on the display. Mounted upside down: `"screen_rotation": 180`.
+
+Tabs at the bottom; long pages scroll by dragging:
+
+| Tab | Shows and does |
+|---|---|
+| Aufträge | what needs someone first (labels to load in a printer, **Sind eingelegt** on a Zebra; a ribbon that does not suit a Zebra's labels, **Farbband wählen**), then each printer's jobs (the one printing with how many labels went out) with **Pausieren/Anhalten** or **Fortsetzen** and **Abbrechen** (asks again); **Alle anhalten** / **Alle fortsetzen** and **Alle abbrechen** (tap twice). The tab shows how many things need someone. |
+| Drucker | the printers with connection (USB, Bluetooth, network) and state; tap one for its page: state, model, what is loaded, ribbon, active on which server, its jobs, pause/go on, abort, **Etiketten wählen** and **Farbband wählen** (Zebra) |
+| Verbindung | each server (connected, or why not), the network addresses, Bluetooth, the agent's name and version, and whether the system is read-only |
+| Bluetooth | the printers paired and found, **Drucker suchen**, **Koppeln**, **Entkoppeln** (asks again) |
+
+A Bluetooth printer found asks in a dialog ("Koppeln" / "Nein") until answered. The backlight goes off after
+`backlight_timeout` seconds (600) without a touch, unless something prints, waits or asks; the first touch
+then only lights it.
+
+## The PiFace display
+
+A PiFace Control & Display 2 is found by itself if there is no touch screen (`"display": "auto"`; `"piface"`:
+log an error if it is missing; `"none"`). Its two lines show pages, one after another with the navigation switch (top right:
+tilt it), or with the buttons 2 and 3; long texts run:
+
+| Page | Shows |
+|---|---|
+| `! <printer>` | labels waiting for this printer to be loaded with them: which, how many jobs, what is loaded. New ones come first and light the display. On a Zebra, pressing the navigation switch sets them as loaded once they are in ("Ja, ist drin"). |
+| `! <printer>` (blinking) | a Zebra whose ribbon does not suit its labels (by material: wax, wax/resin, resin): what the labels need, what is loaded. It comes first, and the backlight blinks until another ribbon is set; the navigation switch opens the ribbons to choose from. |
+| host name | the Pi's address in the network (IPv4 first), servers connected, printers, how many print |
+| Netzwerk | all its addresses with their interfaces (`wlan0 192.0.2.23, eth0 …`) |
+| Bluetooth | looking for printers, or why not: packages missing, no access to BlueZ (with the error), no adapter, off |
+| each server | connected, not reachable (since when), token unknown, agent deactivated, server error |
+| each printer | its name from the admin; printing (paused), held, its error (cover open, no labels …), not in the admin yet, inactive, or ready with the loaded tape or labels |
+
+On a printer's page, the navigation switch opens its menu: **Pausieren/Anhalten** or **Fortsetzen**,
+**Abbrechen** (asks again), **Etiketten eingelegt** (Zebra: choose its labels from the label material on hand it takes),
+**Farbband eingelegt** (Zebra: choose its ribbon from the admin's ribbons, or none).
+
+Buttons below the display, from the left (text upright):
+
+| Button | |
+|---|---|
+| 1 | back: closes a menu, else the first page; "no" to a question |
+| 2, 3 | previous, next page |
+| 4 | pauses all printers at once; again: they go on |
+| 5 | aborts all jobs (press twice within 5 seconds) |
+
+Pausing holds a printer: the job being printed stops after the label being sent (a Zebra is also told to
+pause after the label it prints, `~PP`) and no other job starts. Aborting a Zebra job clears its buffer
+(`~JA`); a Brother prints what it already got. The admin can do the same (print jobs: **Pause**, **Go on**,
+**Abort**); the agent gets the command with its next poll. The backlight goes off after
+`backlight_timeout` seconds (600) without a button pressed, unless something prints, waits or asks.
+
+**Button test:** which switch the agent sees pressed (e.g. which way the navigation switch tilts):
+
+```
+sudo systemctl stop label-agent
+cd /opt/label-agent && python3 -m label_printing.devices.piface
+sudo systemctl start label-agent
+```
+
+## Read-only
+
+With `"read_only": true` in `config.json` (the default of `prepare-boot.sh`) the Pi runs read-only: raspi-config's
+overlay file system keeps the root file system in RAM, nothing is written to the SD card (the log too stays in
+RAM), and a power cut cannot damage it. The boot partition stays writable: `config.json`, the agent's code and the
+saved Bluetooth pairings live there, and the agent's code is copied from there on every start as before.
+
+`update.sh` takes care of it on every start of the agent:
+
+* writable and everything installed: switches read-only on (`raspi-config nonint enable_overlayfs`) and reboots;
+* read-only, but a package is missing, a service file changed (e.g. after an update with new files) or
+  `"read_only": false`: switches read-only off for a reboot, makes the change on the next start and, with
+  `"read_only": true`, switches it on again (another reboot).
+
+So updating the agent's code works as before; system updates (`apt upgrade`): set `"read_only": false` (on the
+card, or `sudo nano /boot/firmware/label-agent/config.json`), restart the agent (it reboots writable), update,
+set it back to `true` and restart. The touch screen's tab Verbindung shows whether the system is read-only.
 
 ## Updating and changing the configuration
 
-Run `prepare-boot.sh` again on the card (or copy files into `/boot/label-agent/` on the Pi) and
-restart the service: `sudo systemctl restart label-agent` (or reboot). `config.json` is read on
+Over SSH, from the repository: `ops/raspberry-pi/push.sh pi@pi-lager.local` copies the code and service
+files into `label-agent/` on the Pi's boot partition (not `config.json`) and restarts the agent. Without
+SSH: run `prepare-boot.sh` again on the card (or copy files into `/boot/firmware/label-agent/` on the Pi)
+and restart the service: `sudo systemctl restart label-agent` (or reboot). `config.json` is read on
 start.
 
 The tokens are on the card's boot partition, readable by whoever has the card or logs in on the
@@ -60,6 +172,7 @@ Pi. A lost card or Pi: deactivate the agent in the admin (or give it a new token
 | Log | `journalctl -u label-agent -f` |
 | Restart | `sudo systemctl restart label-agent` |
 | Printers the kernel sees | `ls -l /dev/usb/` |
+| Bluetooth devices | `bluetoothctl devices` |
 
 * **"unknown token"**: the token in `config.json` is not (or no longer) the agent's: create the
   agent in the admin, or give it a new token, and put that into `config.json`.
@@ -67,3 +180,7 @@ Pi. A lost card or Pi: deactivate the agent in the admin (or give it a new token
 * **"poll answered 404"**: the server does not have label printing yet.
 * **A printer does not show up**: it must appear as `/dev/usb/lp*` (kernel driver `usblp`). If
   CUPS is installed and has a queue for the printer, remove that queue.
+* **A Bluetooth printer does not show up**: `bluetoothctl devices` lists what the Pi has seen, `bluetoothctl
+  info AA:BB:…` whether it is paired; the log says "no Bluetooth: …" if a package or the adapter is missing.
+* **The display stays dark**: `ls /dev/spidev0.1` must exist (SPI on in `config.txt`, then reboot); the log
+  says "no display: …" with the reason.

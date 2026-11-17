@@ -5,8 +5,12 @@ An admin creates each agent and gives its token to it (in its configuration, nex
 nothing registers itself. Every request carries the token (Authorization: Bearer …): unknown tokens get 401,
 deactivated agents 403. With every poll an agent reports its host and the printers it found: new ones are
 created inactive for an admin to check and activate; a known one stays as it is, also when it has moved to
-another agent (it moves along). Agents get the next job of their active printers and report how it went
-(result).
+another agent (it moves along). Agents get the next job of each of their active printers that is not busy and
+report how it went (result). With every poll they report the jobs they hold (so these stay theirs, also while
+paused) and the printers held on them, and get the commands for them from the admin (pause, go on, abort; a held
+printer goes on), their printers' names and media,
+and the labels waiting for one of their printers to be loaded with them (for the display); on the display
+someone can set the labels and the ribbon loaded in a Zebra (loaded, ribbon).
 """
 import base64
 import json
@@ -14,6 +18,7 @@ import re
 
 from django.conf import settings
 from django.db import IntegrityError, transaction
+from django.db.models import Q
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
@@ -24,7 +29,7 @@ from ipware import get_client_ip
 
 from . import drivers, services
 from .devices.run import DONE, FAILED, SENT, Result
-from .models import PrintAgent, Printer, PrintJob
+from .models import LabelStock, PrintAgent, Printer, PrintJob, Ribbon
 
 ID_PATTERN = re.compile(r"^[A-Za-z0-9._:-]{1,128}$")
 
@@ -71,6 +76,26 @@ def unique(model, field, base, max_length):
     return candidate
 
 
+# How printers name their maker over USB → as people say it
+MANUFACTURERS = {"zebra technologies": "Zebra"}
+# Makers' abbreviations in front of the product ("ZTC GK420t": Zebra Technologies Corporation)
+PRODUCT_PREFIXES = ("ZTC ",)
+
+
+def printer_name(info):
+    """A new printer's name from what it reports: "Zebra GK420t" for "Zebra Technologies" and "ZTC GK420t",
+    "Brother PT-P900W"; the maker once."""
+    maker = str(info.get("manufacturer") or "").strip()
+    maker = MANUFACTURERS.get(maker.casefold(), maker)
+    product = str(info.get("product") or "").strip()
+    for prefix in PRODUCT_PREFIXES:
+        if product.startswith(prefix):
+            product = product[len(prefix):]
+    if maker and product.casefold().startswith(maker.casefold()):
+        maker = ""
+    return " ".join(part for part in (maker, product) if part)
+
+
 def discovered(agent, uid, report):
     """The printer with this ID: created inactive if it is new (an admin checks, names and activates it); a known
     one is kept as it is, active or not, also when it is found again after being unplugged or the agent's restart,
@@ -83,7 +108,7 @@ def discovered(agent, uid, report):
             return None
         model = str(info.get("model", ""))[:32]
         dpi = drivers.ptouch_dpi(model) if model in drivers.PTOUCH_MODELS else info.get("dpi") or 203
-        name = " ".join(part for part in (info.get("manufacturer"), info.get("product")) if part) or uid
+        name = printer_name(info) or uid
         try:
             with transaction.atomic():
                 return Printer.objects.create(
@@ -107,8 +132,9 @@ def discovered(agent, uid, report):
 
 @agent_api
 def poll(request, agent, data):
-    """Heartbeat with the printers found and their status. Answers the agent's active printers and the next job,
-    now claimed for the agent, or none."""
+    """Heartbeat with the printers found and their status. Answers the agent's printers, a job for each that is not
+    busy (now claimed for the agent), the commands for the jobs it holds and the labels waiting to be loaded.
+    Agents before version 5 (no "busy") get their active printers and one job, or none."""
     agent.last_seen = timezone.now()
     agent.version = str(data.get("version", ""))[:32]
     agent.hostname = str(data.get("hostname", agent.hostname))[:255]
@@ -122,20 +148,70 @@ def poll(request, agent, data):
             printer = discovered(agent, str(uid), report)
             if printer is not None and isinstance(report.get("status"), dict):
                 printer.remember_status(report["status"])
-    printers = {printer.uid or printer.slug: {"language": printer.language, "check_status": printer.reports_status}
-                for printer in agent.printers.filter(is_active=True)}
-    services.dispatch_waiting(refresh=False)  # the agent's printers may just have come back or got other tape
-    job = services.next_for_agent(agent)
-    return JsonResponse({"printers": printers, "job": job and {
+    if "busy" not in data:  # agents before version 5: one job at a time
+        printers = {printer.uid or printer.slug: {"language": printer.language, "check_status": printer.reports_status}
+                    for printer in agent.printers.filter(is_active=True)}
+        services.dispatch_waiting(refresh=False)  # the agent's printers may just have come back or got other tape
+        job = services.next_for_agent(agent)
+        return JsonResponse({"printers": printers, "job": job and job_data(job)})
+    printing = data.get("printing") if isinstance(data.get("printing"), dict) else {}
+    busy = [str(uid) for uid in data["busy"] if ID_PATTERN.match(str(uid))] if isinstance(data["busy"], list) else []
+    commands = services.keep_printing(agent, printing)
+    held = [str(uid) for uid in data["held"]] if isinstance(data.get("held"), list) else None  # agents since 5.1
+    printer_commands = services.held_printers(agent, held) if held is not None else {}
+    found = {}  # the outcomes of waiting jobs, worked out once for both
+    services.dispatch_waiting(refresh=False, found=found)
+    jobs = services.jobs_for_agent(agent, busy)
+    return JsonResponse({"printers": services.agent_printers(agent), "jobs": [job_data(job) for job in jobs],
+                         "commands": {str(pk): command for pk, command in commands.items()},
+                         "printer_commands": printer_commands, "waiting": services.material_waits(agent, found)})
+
+
+def job_data(job):
+    return {
         "id": job.pk,
         "printer": job.printer.uid or job.printer.slug,
         "language": job.printer.language,
         "payload": base64.b64encode(bytes(job.payload)).decode("ascii"),
         "pages": job.pages,
-        "expected_tape_mm": job.medium.ptouch_tape if job.medium else None,
+        "subject": job.subject_label,  # what it is for, for the agent's display (a location, item or label ID)
+        "expected_tape_mm": services.expected_tape_mm(job),
         "expected_length": services.expected_length(job),
         "check_status": job.printer.reports_status,
-    }})
+    }
+
+
+@agent_api
+def loaded(request, agent, data):
+    """The labels now loaded in one of the agent's Zebras, confirmed on its display."""
+    printer = agent_printer(agent, data)
+    if printer is None:
+        return JsonResponse({"error": "not a printer of this agent"}, status=404)
+    stock = LabelStock.objects.filter(pk=data.get("medium") if isinstance(data.get("medium"), int) else None).first()
+    if stock is None or printer.takes(stock):
+        return JsonResponse({"error": "not labels of this printer"}, status=400)
+    services.set_loaded(printer, stock)
+    return JsonResponse({"ok": True})
+
+
+@agent_api
+def ribbon(request, agent, data):
+    """The ribbon now in one of the agent's Zebras (null: none), confirmed on its display."""
+    printer = agent_printer(agent, data)
+    if printer is None:
+        return JsonResponse({"error": "not a printer of this agent"}, status=404)
+    loaded = None
+    if data.get("ribbon") is not None:
+        loaded = Ribbon.objects.filter(pk=data["ribbon"] if isinstance(data["ribbon"], int) else None).first()
+        if loaded is None:
+            return JsonResponse({"error": "unknown ribbon"}, status=400)
+    services.set_ribbon(printer, loaded)
+    return JsonResponse({"ok": True, "ribbon_problem": str(printer.ribbon_problem())})
+
+
+def agent_printer(agent, data):
+    return Printer.objects.filter(agent=agent).filter(
+        Q(uid=str(data.get("printer", ""))) | Q(slug=str(data.get("printer", "")))).first()
 
 
 @agent_api

@@ -14,8 +14,8 @@ from inventory.numbered_location_views import with_print_dialog
 from inventory.models import Item, ItemLocation, LabelId, Location, LocationLabelTemplate, LocationType, MeasurementUnit
 from .. import dialog, drivers, label_urls, services, simulator
 from ..layouts import Canvas, get_layout, layouts_for
-from ..models import LabelMedium, LastLabel, PrintJob
-from .helpers import SETTINGS, SimulatedPrinters, create_printers, create_user, generated, outcome_key
+from ..models import LastLabel, PrintJob
+from .helpers import SETTINGS, SimulatedPrinters, create_printers, create_user, generated, labels, outcome_key
 
 
 class InventoryData:
@@ -54,7 +54,7 @@ class LayoutTests(InventoryData, TestCase):
                         self.assertEqual(image.width, canvas.width)
 
     def test_labels_too_small_for_a_qr_code_are_not_offered(self):
-        tape = LabelMedium.objects.create(printer=self.brother, name="9 mm", ptouch_tape=9)
+        tape = labels(self.brother, name="9 mm", ptouch_tape=9)
         layout = self.layout("labelid", "tape9")
         self.assertFalse(layout.supports(self.brother, tape))  # 180 dpi: too few dots per module
         self.assertNotIn(layout.key, [found.key for found in layouts_for("labelid", self.brother, tape)])
@@ -220,7 +220,7 @@ class PrintDialogTests(SimulatedPrinters, InventoryData, TestCase):
         self.assertIn('name="row-0-print" aria-label="Print Kabelbinder">', content)  # not preselected
         self.assertIn('name="row-1-print" aria-label="Print Muttern M4 (0.05 € / Stk)" checked>', content)
         key = outcome_key("item", "57x32")
-        preview = self.client.get(f"{options['rows'][1]['preview']}&medium={self.labels.pk}&layout={key.split('@')[0]}")
+        preview = self.client.get(f"{options['rows'][1]['preview']}&medium={self.zebra.pk}:{self.labels.pk}&layout={key.split('@')[0]}")
         self.assertEqual(preview["Content-Type"], "image/png")
         data = self.post("items", self.part, {"copies": 1, "row-1-print": "on", "row-1-outcome": key,
                                               "row-2-print": "on", "row-2-outcome": key}).json()
@@ -262,17 +262,17 @@ class PrintDialogTests(SimulatedPrinters, InventoryData, TestCase):
 
     def test_preview(self):
         url = reverse("print_preview", args=["item", self.item.pk])
-        response = self.client.get(url, {"medium": self.tape.pk, "layout": f"design:{generated('item', 'tape12').pk}",
+        response = self.client.get(url, {"medium": f"{self.brother.pk}:{self.tape.pk}", "layout": f"design:{generated('item', 'tape12').pk}",
                                          "location": self.part.pk})
         self.assertEqual(response["Content-Type"], "image/png")
         image = Image.open(BytesIO(response.content))
         self.assertEqual(image.height, drivers.ptouch_print_pins("E550W", 12))
         self.assertFalse(LabelId.objects.exists())  # previews hand out no IDs
-        self.assertEqual(self.client.get(url, {"medium": self.tape.pk, "layout": "nope"}).status_code, 404)
+        self.assertEqual(self.client.get(url, {"medium": f"{self.brother.pk}:{self.tape.pk}", "layout": "nope"}).status_code, 404)
 
     def test_template_preview_as_the_printer_prints_it(self):
         url = reverse("print_preview", args=["location", self.part.pk])
-        response = self.client.get(url, {"medium": self.labels.pk, "layout": f"design:{self.template.pk}"})
+        response = self.client.get(url, {"medium": f"{self.zebra.pk}:{self.labels.pk}", "layout": f"design:{self.template.pk}"})
         self.assertEqual(Image.open(BytesIO(response.content)).size, (456, 256))
 
     def test_permission(self):

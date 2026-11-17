@@ -138,6 +138,35 @@ def text_box(image, box, text, path=SANS, weight=400, max_lines=1, align="left",
     return loaded
 
 
+# Code 128: the widths of bar, space, bar, … of each symbol value (103–105 start A, B, C; 106 stop).
+CODE128 = ("212222", "222122", "222221", "121223", "121322", "131222", "122213", "122312", "132212", "221213", "221312",
+           "231212", "112232", "122132", "122231", "113222", "123122", "123221", "223211", "221132", "221231", "213212",
+           "223112", "312131", "311222", "321122", "321221", "312212", "322112", "322211", "212123", "212321", "232121",
+           "111323", "131123", "131321", "112313", "132113", "132311", "211313", "231113", "231311", "112133", "112331",
+           "132131", "113123", "113321", "133121", "313121", "211331", "231131", "213113", "213311", "213131", "311123",
+           "311321", "331121", "312113", "312311", "332111", "314111", "221411", "431111", "111224", "111422", "121124",
+           "121421", "141122", "141221", "112214", "112412", "122114", "122411", "142112", "142211", "241211", "221114",
+           "413111", "241112", "134111", "111242", "121142", "121241", "114212", "124112", "124211", "411212", "421112",
+           "421211", "212141", "214121", "412121", "111143", "111341", "131141", "114113", "114311", "411113", "411311",
+           "113141", "114131", "311141", "411131", "211412", "211214", "211232", "2331112")
+CODE128_QUIET = 10  # modules of white before and after the bars
+MIN_BAR_MM = 0.13  # narrowest bar scanners read well: 2 dots at 360 dpi, 1 at 180 or 203 dpi
+
+
+def code128(text):
+    """The modules of a Code 128 barcode of the text ("1" bar, "0" space), in set C for an even number of digits
+    (half as long), else set B (ASCII 32–126); None for other characters or no text."""
+    if text and text.isdigit() and len(text) % 2 == 0:
+        values = [105] + [int(text[index:index + 2]) for index in range(0, len(text), 2)]
+    elif text and all(32 <= ord(character) <= 126 for character in text):
+        values = [104] + [ord(character) - 32 for character in text]
+    else:
+        return None
+    values += [(values[0] + sum(position * value for position, value in enumerate(values[1:], start=1))) % 103, 106]
+    return "".join(("1" if index % 2 == 0 else "0") * int(width)
+                   for value in values for index, width in enumerate(CODE128[value]))
+
+
 def qr(content, error="l"):
     """A QR code; uppercase content in its alphanumeric mode keeps it small (see label_printing.label_urls)."""
     return segno.make(content, error=error, micro=False, boost_error=False)
@@ -191,6 +220,21 @@ def coloured(image, background="", ink=""):
     if not (background or ink):
         return image
     return ImageOps.colorize(image.convert("L"), colour(ink, "#1a1a1a"), colour(background, "#ffffff"))
+
+
+def stack(images, gap):
+    """Labels one below the other, `gap` dots apart (transparent there), for previews of a list that goes on on
+    further labels; a single label as it is. info["labels"]: how many."""
+    if len(images) == 1:
+        return images[0]
+    sheet = Image.new("RGBA", (max(image.width for image in images), sum(image.height for image in images)
+                               + gap * (len(images) - 1)), (0, 0, 0, 0))
+    top = 0
+    for image in images:
+        sheet.paste(image.convert("RGBA"), (0, top))
+        top += image.height + gap
+    sheet.info["labels"] = len(images)
+    return sheet
 
 
 def align(value, step):

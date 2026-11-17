@@ -11,6 +11,8 @@ import time
 
 STATUS_REQUEST = b"~HS"
 STX, ETX = b"\x02", b"\x03"
+# Pause after the label being printed, go on, cancel every format in the buffer (control commands: at once)
+PAUSE, RESUME, CANCEL = b"~PP", b"~PS", b"~JA"
 
 
 def lines(data: bytes):
@@ -97,9 +99,22 @@ def query(device, timeout=3.0):
         return None
 
 
-def wait_until_printed(device, pages, timeout, interval=0.3):
+def split_pages(payload: bytes):
+    """The formats (^XA…^XZ) one by one, so a job can be paused or aborted between them."""
+    parts = [part + b"^XZ" for part in payload.split(b"^XZ")]
+    parts[-1] = parts[-1][:-3]
+    return [part for part in parts if part.strip()] or [payload]
+
+
+def cancel(device):
+    """Drop what is left of the job and leave the printer ready (not paused)."""
+    device.write(CANCEL + RESUME)
+
+
+def wait_until_printed(device, pages, timeout, interval=0.3, control=None):
     """Poll ~HS after a job: ("done", status) once the printer is idle again, ("failed", status)
-    on an error, ("sent", last status or None) if the time ran out.
+    on an error, ("sent", last status or None) if the time ran out. While a `control` holds the job, the
+    printer is paused (~PP) and the time stands still.
 
     ~HS is answered at once, possibly before the printer parsed the job; so "idle" counts only after
     it was seen busy, or after it stayed idle for a few polls."""
@@ -107,6 +122,8 @@ def wait_until_printed(device, pages, timeout, interval=0.3):
     seen_busy, idle_polls, last = False, 0, None
     while time.monotonic() < deadline:
         time.sleep(interval)
+        if control is not None:
+            deadline += control.steer(device, PAUSE, RESUME)
         status = query(device, timeout=min(3.0, max(deadline - time.monotonic(), 0.1)))
         if status is None:
             continue

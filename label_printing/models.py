@@ -2,6 +2,7 @@
 import hashlib
 import io
 import secrets
+from decimal import Decimal
 from datetime import timedelta
 
 from django.conf import settings
@@ -57,6 +58,31 @@ class PrintAgent(models.Model):
         return self.last_seen is not None and self.last_seen > self.online_since()
 
 
+class Winding(models.TextChoices):
+    """How labels sit on a Zebra roll: printed side out or in."""
+    OUTSIDE = "outside", _("outside")
+    INSIDE = "inside", _("inside")
+
+
+# What Zebra models take, by the model name they report (~HI, e.g. "GK420t"; matched by its start): filled into a
+# printer's fields when it is found or its model is set.
+ZEBRA_MODELS = {
+    "GK420T": {"max_width_mm": 108, "core_mm": Decimal("25.4"), "winding": Winding.OUTSIDE, "thermal_transfer": True},
+    "GK420D": {"max_width_mm": 108, "core_mm": Decimal("25.4"), "winding": Winding.OUTSIDE, "thermal_transfer": False},
+}
+
+
+def model_capabilities(language, model):
+    """What a printer model takes, for the printer's fields ({} if the model is not known). Brother: the widest tape
+    of its print head (ptouch); Zebra: ZEBRA_MODELS."""
+    if language == "ptouch":
+        if model not in drivers.PTOUCH_MODELS:
+            return {}
+        return {"max_width_mm": round(max(tape.width_mm for tape in drivers.PTOUCH_MODELS[model].PIN_CONFIGS))}
+    name = (model or "").upper()
+    return next((dict(values) for key, values in ZEBRA_MODELS.items() if name.startswith(key)), {})
+
+
 class Printer(models.Model):
     class Meta:
         verbose_name = _("printer")
@@ -81,7 +107,7 @@ class Printer(models.Model):
     language = models.CharField(_("printer language"), max_length=16, choices=Language.choices)
     model = models.CharField(
         _("model"), max_length=32, blank=True,
-        help_text=_("Brother: E550W, P750W, P900, P900W or P950NW. Zebra: for information only."),
+        help_text=_("Brother: E550W, P700, P750W, P710BT, P900, P900W, P950NW or P910BT. Zebra: for information only."),
     )
     dpi = models.PositiveSmallIntegerField(_("resolution (dpi)"), default=203,
                                            help_text=_("Zebra: 203, 300 or 600. Brother: set by the model."))
@@ -113,24 +139,56 @@ class Printer(models.Model):
         help_text=_("Brother: the last label stays in the printer and the next job goes on from there, which "
                     "saves tape; cut it off with the printer's cutter button. Off: the printer feeds and cuts "
                     "after every job."))
-    # Zebra: which of its media is loaded; a Zebra measures only the labels' length (checked), not their width
+    # Calibration, for all its labels
+    offset_x = models.SmallIntegerField(_("offset x (dots)"), default=0, help_text=_("Zebra: label home (^LH)."))
+    offset_y = models.SmallIntegerField(
+        _("offset y (dots)"), default=0,
+        help_text=_("Zebra: label home (^LH). Brother: moves the print across the tape, positive = down, if the "
+                    "top or bottom is cut off (print the calibration label to measure)."))
+    # What labels it takes: filled in from its model (model_capabilities); empty: not checked
+    max_width_mm = models.PositiveSmallIntegerField(
+        _("widest labels (mm)"), null=True, blank=True,
+        help_text=_("Zebra: the widest labels; Brother: the widest tape. Filled in from the model."))
+    core_mm = models.DecimalField(
+        _("roll core (mm)"), max_digits=4, decimal_places=1, null=True, blank=True,
+        help_text=_("Zebra: the core of the label rolls it holds, e.g. 25.4 (1 inch). Filled in from the model."))
+    winding = models.CharField(
+        _("labels wound"), max_length=8, choices=Winding.choices, blank=True,
+        help_text=_("Zebra: the labels on the roll it takes, outside or inside; empty: either. Filled in from the "
+                    "model."))
+    thermal_transfer = models.BooleanField(
+        _("prints thermal transfer"), default=True,
+        help_text=_("Zebra: has a ribbon; off for direct thermal models (e.g. GK420d). Filled in from the model."))
+    # Zebra: which labels are loaded; a Zebra measures only the labels' length (checked), not their width
     loaded_medium = models.ForeignKey(
-        "LabelMedium", verbose_name=_("loaded labels"), null=True, blank=True, on_delete=models.SET_NULL,
+        "LabelStock", verbose_name=_("loaded labels"), null=True, blank=True, on_delete=models.SET_NULL,
         related_name="+",
         help_text=_("Zebra: the labels in the printer now; set it when changing labels. Only these are printed, "
                     "after comparing their height with the label length the printer measured (it cannot tell "
                     "their width)."))
+    loaded_ribbon = models.ForeignKey(
+        "Ribbon", verbose_name=_("loaded ribbon"), null=True, blank=True, on_delete=models.SET_NULL, related_name="+",
+        help_text=_("Zebra: the ribbon in the printer now; set it when changing ribbons. Its material (wax, "
+                    "wax/resin, resin) is compared with what the loaded labels need, and the print agent's display "
+                    "warns if it does not suit them."))
     is_active = models.BooleanField(_("active"), default=True)
     is_default = models.BooleanField(_("default printer"), default=False,
                                      help_text=_("Used by the print actions in the admin."))
     last_status = models.JSONField(_("last status"), null=True, blank=True, editable=False)
     last_status_at = models.DateTimeField(_("last status at"), null=True, blank=True, editable=False)
+    # held on its print agent (on the display, or by pausing a job): no job starts there until it goes on, whoever
+    # held it and whatever became of the jobs; the agent reports it with each poll
+    held_at = models.DateTimeField(_("held since"), null=True, blank=True, editable=False)
+    resume_requested = models.BooleanField(_("asked to go on"), default=False, editable=False)
 
     def __str__(self):
         return self.name
 
     def clean(self):
         errors = {}
+        before = Printer.objects.filter(pk=self.pk).values("language", "model").first() if self.pk else None
+        if before and (before["language"], before["model"]) != (self.language, self.model):
+            errors["model"] = _("The model of a printer cannot be changed: delete the printer and add it anew.")
         if self.language == self.Language.PTOUCH:
             if self.model not in drivers.PTOUCH_MODELS:
                 errors["model"] = _("Choose one of %(models)s.") % {"models": ", ".join(drivers.PTOUCH_MODELS)}
@@ -140,16 +198,52 @@ class Printer(models.Model):
             errors["host"] = _("Network printers need a host.")
         if self.transport == self.Transport.AGENT and not self.agent_id:
             errors["agent"] = _("Choose the print agent the printer is connected to.")
-        if self.loaded_medium_id and (self.pk is None or self.loaded_medium.printer_id != self.pk):
-            errors["loaded_medium"] = _("Choose labels of this printer.")
+        if self.loaded_medium_id and (reason := self.takes(self.loaded_medium)):
+            errors["loaded_medium"] = reason
         if errors:
             raise ValidationError(errors)
 
     def save(self, *args, **kwargs):
+        if self._state.adding:  # what its model takes, where not given otherwise (the model is fixed: clean)
+            for field, value in model_capabilities(self.language, self.model).items():
+                if getattr(self, field) == Printer._meta.get_field(field).get_default():
+                    setattr(self, field, value)
         with transaction.atomic():
             if self.is_default:
                 Printer.objects.exclude(pk=self.pk).filter(is_default=True).update(is_default=False)
             super().save(*args, **kwargs)
+
+    def takes(self, stock):
+        """Why the printer cannot take these labels, in words, or "": by kind of printer; Brother: the tape width
+        (its print head, the widest tape); Zebra: label width, roll core, winding, printing method. What is not known
+        is not checked."""
+        if stock.language != self.language:
+            return _("These labels are for another kind of printer.")
+        if self.language == self.Language.PTOUCH:
+            known = self.model in drivers.PTOUCH_MODELS
+            if stock.tape_mm and ((known and drivers.ptouch_tape(stock.tape_mm)
+                                   not in drivers.PTOUCH_MODELS[self.model].PIN_CONFIGS)
+                                  or (self.max_width_mm and stock.tape_mm > self.max_width_mm)):
+                return _("The printer does not take %(width)s tape.") % {"width": stock.get_tape_mm_display()}
+            return ""
+        if self.max_width_mm and stock.width_mm and stock.width_mm > self.max_width_mm:
+            return _("The labels are wider than the printer takes (%(max)s mm).") % {"max": self.max_width_mm}
+        if self.core_mm and stock.core_mm and stock.core_mm != self.core_mm:
+            return _("The roll core (%(core)s mm) does not fit the printer (%(printer)s mm).") % {
+                "core": stock.core_mm, "printer": self.core_mm}
+        if self.winding and stock.winding and stock.winding != self.winding:
+            return _("The labels are wound %(labels)s, the printer takes them %(printer)s.") % {
+                "labels": stock.get_winding_display(), "printer": self.get_winding_display()}
+        if stock.method == LabelStock.Method.TRANSFER and not self.thermal_transfer:
+            return _("These labels need a ribbon, the printer prints direct thermal only.")
+        return ""
+
+    def media(self, in_stock=True):
+        """The labels the printer takes, each as a Medium: of the label materials on hand (in_stock=False: of all)."""
+        stocks = LabelStock.objects.filter(language=self.language)
+        if in_stock:
+            stocks = stocks.filter(in_stock=True)
+        return [Medium(self, stock) for stock in stocks if not self.takes(stock)]
 
     def unavailable_code(self):
         """Why jobs cannot be printed now ("inactive", "agent_offline"), or ""."""
@@ -171,6 +265,12 @@ class Printer(models.Model):
             status = {**status, "label_length_mm": round(status["label_length_dots"] * 25.4 / self.dpi)}
         self.last_status, self.last_status_at = status, timezone.now()
         Printer.objects.filter(pk=self.pk).update(last_status=status, last_status_at=self.last_status_at)
+
+    def ribbon_problem(self):
+        """Zebra: why the loaded ribbon does not suit the loaded labels, or "" (see ribbon_problem)."""
+        if self.language != self.Language.ZPL:
+            return ""
+        return ribbon_problem(self.loaded_medium, self.loaded_ribbon)
 
     @property
     def status_text(self):
@@ -210,12 +310,12 @@ class Quality(models.TextChoices):
 
 
 class LabelStock(models.Model):
-    """A kind of labels or tape (catalog): Brother tapes with their colours, Zebra labels with their size,
-    printing method and ribbon. Printers' media are set up from them."""
+    """Label material (catalog): Brother tapes with their colours, Zebra labels with their size, roll, printing
+    method and ribbon. A printer prints on the material on hand that it takes (Printer.takes, Printer.media)."""
 
     class Meta:
-        verbose_name = _("label stock")
-        verbose_name_plural = _("label stock")
+        verbose_name = _("label material")
+        verbose_name_plural = _("label material")
         ordering = ("language", "tape_mm", "width_mm", "height_mm", "code", "name")
         constraints = [models.UniqueConstraint(fields=["code"], condition=~models.Q(code=""),
                                                name="label_stock_unique_code")]
@@ -240,7 +340,9 @@ class LabelStock(models.Model):
     length_m = models.DecimalField(_("length (m)"), max_digits=6, decimal_places=2, null=True, blank=True)
     # Zebra
     width_mm = models.PositiveSmallIntegerField(_("width (mm)"), null=True, blank=True)
-    height_mm = models.PositiveSmallIntegerField(_("height (mm)"), null=True, blank=True)
+    height_mm = models.PositiveSmallIntegerField(
+        _("height (mm)"), null=True, blank=True,
+        help_text=_("Zebra: the label height. Brother: a fixed label length; empty for as long as the content."))
     method = models.CharField(_("printing method"), max_length=16, choices=Method.choices, blank=True,
                               help_text=_("Zebra: direct thermal labels need no ribbon. Empty: not known."))
     ribbon = models.CharField(_("ribbon"), max_length=16, choices=Ribbon.choices, blank=True,
@@ -248,6 +350,19 @@ class LabelStock(models.Model):
     material = models.CharField(_("material"), max_length=64, blank=True,
                                 help_text=_("e.g. paper, polypropylene, polyester"))
     url = models.URLField(_("product page"), blank=True)
+    in_stock = models.BooleanField(_("on hand"), default=False,
+                                   help_text=_("Only material on hand is offered for printing and waited for."))
+    quality = models.CharField(
+        _("print quality"), max_length=16, choices=Quality.choices, default=Quality.STANDARD,
+        help_text=_("Unless the label template sets it. Brother: draft printing or high resolution; Zebra: print "
+                    "speed."))
+    # Zebra
+    core_mm = models.DecimalField(_("roll core (mm)"), max_digits=4, decimal_places=1, null=True, blank=True,
+                                  help_text=_("Zebra: inner diameter of the core, e.g. 25.4 (1 inch)."))
+    winding = models.CharField(_("labels wound"), max_length=8, choices=Winding.choices, blank=True,
+                               help_text=_("Zebra: printed side outside or inside on the roll."))
+    zpl_darkness = models.SmallIntegerField(_("darkness"), null=True, blank=True,
+                                            help_text=_("Zebra: -30 to 30 (^MD); empty for the printer's setting."))
 
     def __str__(self):
         if self.language == Printer.Language.PTOUCH:
@@ -281,99 +396,95 @@ class LabelStock(models.Model):
                 errors["ribbon"] = _("Thermal transfer labels need a ribbon: choose which.")
             if self.method != self.Method.TRANSFER and self.ribbon:
                 errors["ribbon"] = _("Only thermal transfer labels take a ribbon.")
+            if self.zpl_darkness is not None and not -30 <= self.zpl_darkness <= 30:
+                errors["zpl_darkness"] = _("Between -30 and 30.")
         if errors:
             raise ValidationError(errors)
 
 
-class LabelMedium(models.Model):
-    """Labels or tape loaded in a printer."""
+class Ribbon(models.Model):
+    """A kind of thermal transfer ribbon (catalog): material, width and colour; changed in a Zebra like its labels
+    (Printer.loaded_ribbon)."""
 
     class Meta:
-        verbose_name = _("label medium")
-        verbose_name_plural = _("label media")
-        ordering = ("printer", "name")
+        verbose_name = _("ribbon")
+        verbose_name_plural = _("ribbons")
+        ordering = ("width_mm", "color", "material")
+        constraints = [models.UniqueConstraint(fields=["material", "width_mm", "color"], name="ribbon_unique")]
 
-    TAPE_CHOICES = TAPE_CHOICES
-
-    printer = models.ForeignKey(Printer, verbose_name=_("printer"), on_delete=models.CASCADE, related_name="media")
-    stock = models.ForeignKey(LabelStock, verbose_name=_("label stock"), null=True, blank=True,
-                              on_delete=models.SET_NULL, related_name="media",
-                              help_text=_("Fills in name, size and tape; colours and material come from it."))
-    name = models.CharField(_("name"), max_length=128, blank=True)
-    width_mm = models.PositiveSmallIntegerField(_("width (mm)"), null=True, blank=True,
-                                                help_text=_("Zebra: the label width."))
-    height_mm = models.PositiveSmallIntegerField(
-        _("height / length (mm)"), null=True, blank=True,
-        help_text=_("Zebra: the label height. Brother: a fixed label length; empty for as long as the content."),
-    )
-    ptouch_tape = models.PositiveSmallIntegerField(_("tape width"), choices=TAPE_CHOICES, null=True, blank=True,
-                                                   help_text=_("Brother only."))
-    offset_x = models.SmallIntegerField(_("offset x (dots)"), default=0, help_text=_("Zebra: label home (^LH)."))
-    offset_y = models.SmallIntegerField(
-        _("offset y (dots)"), default=0,
-        help_text=_("Zebra: label home (^LH). Brother: moves the print across the tape, positive = down, if the "
-                    "top or bottom is cut off (print the calibration label to measure)."),
-    )
-    zpl_darkness = models.SmallIntegerField(_("darkness"), null=True, blank=True,
-                                            help_text=_("Zebra: -30 to 30 (^MD); empty for the printer's setting."))
-    quality = models.CharField(
-        _("print quality"), max_length=16, choices=Quality.choices, default=Quality.STANDARD,
-        help_text=_("Preselected in the print dialog. Brother: draft printing or high resolution; "
-                    "Zebra: print speed."),
-    )
-    is_default = models.BooleanField(_("default medium"), default=False)
+    material = models.CharField(_("material"), max_length=16, choices=LabelStock.Ribbon.choices)
+    width_mm = models.PositiveSmallIntegerField(_("width (mm)"))
+    color = models.CharField(_("colour"), max_length=64, default="schwarz",
+                             help_text=_("What a Zebra prints in with this ribbon (label templates and previews)."))
 
     def __str__(self):
-        return f"{self.printer}: {self.name}"
+        return f"{self.get_material_display()} {self.width_mm} mm, {self.color}"
 
-    def take_from_stock(self):
-        """Fill what is empty from the label stock."""
-        stock = self.stock
-        if stock is None:
-            return
-        self.name = self.name or str(stock)[:128]
-        self.width_mm = self.width_mm or stock.width_mm
-        self.height_mm = self.height_mm or stock.height_mm
-        self.ptouch_tape = self.ptouch_tape or stock.tape_mm
 
-    def clean(self):
-        printer = getattr(self, "printer", None)
-        if printer is None:
-            return
-        self.take_from_stock()
-        errors = {}
-        if self.stock is not None and self.stock.language != printer.language:
-            errors["stock"] = _("These labels are for another kind of printer.")
-        if not self.name:
-            errors["name"] = _("Name the medium or choose a label stock.")
-        if printer.language == Printer.Language.ZPL:
-            if not self.width_mm:
-                errors["width_mm"] = _("Zebra labels need a width.")
-            if not self.height_mm:
-                errors["height_mm"] = _("Zebra labels need a height.")
-        else:
-            if not self.ptouch_tape:
-                errors["ptouch_tape"] = _("Choose the tape width.")
-            elif printer.model in drivers.PTOUCH_MODELS and \
-                    drivers.ptouch_tape(self.ptouch_tape) not in drivers.PTOUCH_MODELS[printer.model].PIN_CONFIGS:
-                errors["ptouch_tape"] = _("The printer does not take this tape.")
-        if self.zpl_darkness is not None and not -30 <= self.zpl_darkness <= 30:
-            errors["zpl_darkness"] = _("Between -30 and 30.")
-        if errors:
-            raise ValidationError(errors)
+# The ribbons that print well on labels made for a kind of ribbon (LabelStock.ribbon): a stronger one mostly
+# does; a weaker one smears or rubs off, and resin does not hold on paper labels made for wax.
+RIBBON_FITS = {
+    LabelStock.Ribbon.WAX: {LabelStock.Ribbon.WAX, LabelStock.Ribbon.WAX_RESIN},
+    LabelStock.Ribbon.WAX_RESIN: {LabelStock.Ribbon.WAX_RESIN, LabelStock.Ribbon.RESIN},
+    LabelStock.Ribbon.RESIN: {LabelStock.Ribbon.RESIN},
+}
 
-    def save(self, *args, **kwargs):
-        self.take_from_stock()
-        with transaction.atomic():
-            if self.is_default:
-                LabelMedium.objects.filter(printer=self.printer_id, is_default=True).exclude(pk=self.pk).update(
-                    is_default=False)
-            super().save(*args, **kwargs)
+
+def ribbon_problem(stock, ribbon):
+    """Why the ribbon does not suit the labels (label material), in words, or "": compared by material only, and only
+    when both are known (labels for thermal transfer with their ribbon, a ribbon set as loaded)."""
+    if stock is None or ribbon is None or stock.method != LabelStock.Method.TRANSFER or not stock.ribbon:
+        return ""
+    if ribbon.material in RIBBON_FITS[stock.ribbon]:
+        return ""
+    return _("The ribbon does not suit the labels: %(labels)s need a %(needed)s, the loaded one is a %(ribbon)s.") % {
+        "labels": stock.name, "needed": stock.get_ribbon_display(), "ribbon": ribbon}
+
+
+class Medium:
+    """Labels of a label material on a printer: what is drawn and printed on. Not stored: the material's size,
+    colours, darkness and quality with the printer's calibration (offsets)."""
+
+    def __init__(self, printer, stock):
+        self.printer, self.stock = printer, stock
+
+    def __eq__(self, other):
+        return isinstance(other, Medium) and (self.printer.pk, self.stock.pk) == (other.printer.pk, other.stock.pk)
+
+    def __hash__(self):
+        return hash((self.printer.pk, self.stock.pk))
+
+    def __repr__(self):
+        return f"<Medium {self.printer} – {self.stock.name}>"
+
+    def __str__(self):
+        return self.name
+
+    pk = property(lambda self: self.stock.pk)
+    stock_id = property(lambda self: self.stock.pk)
+    printer_id = property(lambda self: self.printer.pk)
+    name = property(lambda self: self.stock.name or str(self.stock))
+    ptouch_tape = property(lambda self: self.stock.tape_mm if self.is_tape else None)
+    width_mm = property(lambda self: None if self.is_tape else self.stock.width_mm)
+    height_mm = property(lambda self: self.stock.height_mm)  # Brother: a fixed label length, or None
+    offset_x = property(lambda self: self.printer.offset_x)
+    offset_y = property(lambda self: self.printer.offset_y)
+    zpl_darkness = property(lambda self: self.stock.zpl_darkness)
+    quality = property(lambda self: self.stock.quality)
 
     @property
     def is_tape(self):
         return self.printer.language == Printer.Language.PTOUCH
 
+    def colours(self):
+        """(print colour, background colour) of the labels, "" where not known: as the label material says, but a
+        Zebra prints in the colour of its loaded ribbon (unless the labels are direct thermal)."""
+        stock, printer = self.stock, self.printer
+        print_color, background = stock.print_color, stock.background_color
+        if (printer.language == Printer.Language.ZPL and printer.loaded_ribbon_id
+                and stock.method != LabelStock.Method.DIRECT):
+            print_color = printer.loaded_ribbon.color
+        return print_color, background
 
 
 class PrintJob(models.Model):
@@ -402,7 +513,7 @@ class PrintJob(models.Model):
                              on_delete=models.SET_NULL, related_name="+")
     printer = models.ForeignKey(Printer, verbose_name=_("printer"), null=True, blank=True, on_delete=models.PROTECT,
                                 related_name="jobs")
-    medium = models.ForeignKey(LabelMedium, verbose_name=_("label medium"), null=True, blank=True,
+    medium = models.ForeignKey(LabelStock, verbose_name=_("label material"), null=True, blank=True,
                                on_delete=models.SET_NULL, related_name="+")
     layout_key = models.CharField(_("layout"), max_length=64)
     subject_type = models.CharField(_("subject type"), max_length=32)
@@ -422,6 +533,16 @@ class PrintJob(models.Model):
     agent = models.ForeignKey(PrintAgent, verbose_name=_("print agent"), null=True, blank=True,
                               on_delete=models.SET_NULL, related_name="+")
     claimed_by = models.CharField(_("processed by"), max_length=64, blank=True)
+
+    class Command(models.TextChoices):
+        PAUSE = "pause", _("pause")
+        RESUME = "resume", _("go on")
+        ABORT = "abort", _("abort")
+
+    # For the print agent printing it, from the admin: sent with its polls until it did so.
+    command = models.CharField(_("command for the print agent"), max_length=8, choices=Command.choices, blank=True)
+    # Since when the agent holds the job (paused on its display or by a command); None while it prints.
+    paused_at = models.DateTimeField(_("paused since"), null=True, blank=True)
     request_id = models.UUIDField(null=True, blank=True, unique=True, editable=False)
     # The jobs of one print from the dialog's overview (one job per label), followed together
     batch = models.UUIDField(_("batch"), null=True, blank=True, editable=False, db_index=True)
@@ -444,7 +565,9 @@ class PrintJob(models.Model):
 
     @property
     def message(self):
-        """The outcome in words: the error, or the plain status."""
+        """The outcome in words: the error, or the plain status (paused on its print agent)."""
+        if self.status == self.Status.PROCESSING and self.paused_at:
+            return str(messages.describe("paused_by_agent"))
         return messages.describe(self.code, self.detail) or self.get_status_display()
 
 

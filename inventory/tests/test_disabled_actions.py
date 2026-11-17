@@ -4,8 +4,9 @@ from django.test import SimpleTestCase, TestCase
 from django.urls import reverse
 from django.utils import translation
 
-from label_printing.models import LabelMedium, Printer
+from label_printing.models import Printer
 from ..models import Item, ItemLocation, Location, LocationType, MeasurementUnit
+from label_printing.tests.helpers import labels
 
 
 class DisabledActionTagTests(SimpleTestCase):
@@ -37,7 +38,7 @@ class UnavailableActionsStayVisibleTests(TestCase):
         ItemLocation.objects.create(item=cls.item, location=cls.shelf, amount=10)
         # A printer for location labels, so printing them is available to whoever may print.
         printer = Printer.objects.create(name="Zebra", slug="zebra", language="zpl", host="192.0.2.1")
-        LabelMedium.objects.create(printer=printer, name="57 × 32", width_mm=57, height_mm=32)
+        labels(printer, name="57 × 32", width_mm=57, height_mm=32)
 
     def assertDisabled(self, response, name):
         self.assertContains(response, f'aria-disabled="true" aria-label="{name}"')

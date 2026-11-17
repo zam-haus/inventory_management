@@ -1,5 +1,5 @@
 // Label ID fields (widgets.LabelCodeInput): the QR button beside each scans a label; what it holds (the label's URL
-// or its ID) goes into the field, which reads the ID from it when the form is saved, and the pre-printed label is
+// or its ID; a cable wrap's Code 128 holds the ID) goes into the field, which reads the ID from it when the form is saved, and the pre-printed label is
 // chosen. Without a camera the button stays disabled and says why (barcode_scanner.js).
 (() => {
     function fill(button, value) {
@@ -22,7 +22,7 @@
         let target = null;
         // One scanner for all fields; it fills the field whose button opened it.
         const scanner = window.createBarcodeScanner({
-            formats: ['qr_code'],
+            formats: ['qr_code', 'code_128'],
             labels: {title: labels.title, hint: labels.hint, added: labels.added, duplicate: labels.duplicate},
             onDetect: value => {
                 scanner.close();

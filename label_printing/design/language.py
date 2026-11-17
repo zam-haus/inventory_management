@@ -54,13 +54,15 @@ class Element:
 
 @dataclass
 class Design:
-    """A label: fixed size (width and height in mm), or a height and as long as its content (width None)."""
+    """A label: fixed size (width and height in mm), or a height and as long as its content (width None). Width and
+    height are the labels' it prints on: a design turned by 90° or 270° (rotate) is laid out across, height × width."""
     width: float | None = None
     height: float | None = None
     margin: tuple = (0, 0, 0, 0)  # top, right, bottom, left
     min_length: float | None = None
     max_length: float | None = None
     rotate: int = 0
+    invert: bool = False  # printed white (the label's colour) on black
     children: list = field(default_factory=list)
 
     def elements(self):
@@ -99,15 +101,21 @@ SPEC = {
                          "rotate": choice(*ROTATIONS), **COMMON}},
     "qr": {"content": "text", "flags": ALIGN,
            "options": {"ecc": choice("L", "M", "Q", "H"), "size": SIDE, "max": LENGTH, "quiet": INT, **COMMON}},
+    # A Code 128 barcode; rotate 90 or 270 puts it across the row (on tape: across the tape, bars along it).
+    "barcode": {"content": "text", "options": {"quiet": INT, "rotate": choice(*ROTATIONS), **COMMON}},
+    # One line per entry of a list variable ({{ contents }}); what does not fit goes on on further labels.
+    "list": {"content": "variable", "flags": {"bold": "bold"},
+             "options": {"size": LENGTH, "lines": INT, "weight": INT, "font": choice(*FONTS), "gap": LENGTH,
+                         **COMMON}},
     "image": {"content": "name", "flags": {"dither": "dither", "invert": "invert", **ALIGN},
               "options": {"threshold": INT, "rotate": choice(*ROTATIONS), **COMMON}},
     "box": {"options": {"border": LENGTH, **COMMON}},
     "line": {"options": {"thickness": LENGTH, **COMMON}},
     "arrow": {"flags": {"up": "direction", "down": "direction", "left": "direction", "right": "direction"},
-              "options": COMMON},
+              "options": {"border": LENGTH, **COMMON}},
     "space": {"argument": SIZE, "options": COMMON},
 }
-LABEL_OPTIONS = {"margin": SIDES, "min": LENGTH, "max": LENGTH, "rotate": choice(0, 180)}
+LABEL_OPTIONS = {"margin": SIDES, "min": LENGTH, "max": LENGTH, "rotate": choice(0, 90, 180, 270)}
 
 
 class LineError(Exception):
@@ -206,7 +214,7 @@ def options(words, spec, kind):
             close = difflib.get_close_matches(token[1].lower(), known, n=1)
             hint = _(" Did you mean “%s”?") % close[0] if close else ""
             raise LineError((_("“%(word)s” is not an option of %(kind)s.") % {"word": token[1], "kind": kind}) + hint)
-    if kind == "text" and found.get("bold"):
+    if kind in ("text", "list") and found.get("bold"):
         found.setdefault("weight", 700)
     return found
 
@@ -222,7 +230,10 @@ def element(words, number):
     rest = words[1:]
     item = Element(kind, number)
     if "content" in spec:
-        if not rest or rest[0][0] not in ("string", "variable") and not (spec["content"] == "name" and rest[0][0] == "word"):
+        if spec["content"] == "variable":
+            if not rest or rest[0][0] != "variable":
+                raise LineError(_("%s needs the variable it lists first, e.g. {{ contents }}.") % kind)
+        elif not rest or rest[0][0] not in ("string", "variable") and not (spec["content"] == "name" and rest[0][0] == "word"):
             raise LineError(_("%s needs its content first: text in quotes or a {{ variable }}.") % kind
                             if spec["content"] == "text" else _("image needs the name of a label image first."))
         item.content, rest = rest[0][1], rest[1:]
@@ -250,10 +261,15 @@ def label(words, design):
                           "(as long as the content).")) from None
     if words[used:used + 1] and words[used][1].lower() == "mm":
         used += 1
-    found = options(words[used:], {"options": LABEL_OPTIONS}, "label")
+    found = options(words[used:], {"options": LABEL_OPTIONS, "flags": {"invert": "invert"}}, "label")
     design.margin = found.get("margin", (0, 0, 0, 0))
     design.min_length, design.max_length = found.get("min"), found.get("max")
     design.rotate = found.get("rotate", 0)
+    design.invert = bool(found.get("invert"))
+    if design.rotate in (90, 270):  # laid out as given, printed turned: on labels of height × width
+        if design.width is None:
+            raise LineError(_("Only labels of a fixed size turn by 90°."))
+        design.width, design.height = design.height, design.width
 
 
 def parse(text):

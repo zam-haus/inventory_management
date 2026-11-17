@@ -41,11 +41,11 @@ EXCLUDED_MODELS = {
     "contenttypes.contenttype": "created by migrate",
     "thumbnail.kvstore": "thumbnail cache, rebuilt on demand",
     "label_printing.printer": "addresses in the local network; each installation sets up its own printers",
-    "label_printing.labelmedium": "belongs to the printers",
     "label_printing.printagent": "access tokens of the print agents",
     "label_printing.printjob": "who printed what when",
     "label_printing.lastlabel": "which template was chosen for each location, this installation's choices",
     "label_printing.labelstock": "label catalog, filled by migrations; local entries are configuration",
+    "label_printing.ribbon": "ribbon catalog, filled by migrations; local entries are configuration",
 }
 
 

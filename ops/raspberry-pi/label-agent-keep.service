@@ -1,0 +1,6 @@
+[Unit]
+Description=Save BlueZ's pairings on the boot partition (label print agent, keep.sh)
+
+[Service]
+Type=oneshot
+ExecStart=/bin/sh /opt/label-agent/keep.sh

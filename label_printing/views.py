@@ -24,11 +24,11 @@ from django.utils.translation import gettext
 from django.views.decorators.http import require_POST, require_safe
 
 from inventory.models import LocationLabelTemplate
-from . import dialog, editor, selection, services
+from . import dialog, drivers, editor, selection, services
 from .design import variables as design_variables
-from .render import coloured
+from .render import coloured, stack
 from .layouts import get_layout
-from .models import LabelMedium, PrintJob
+from .models import PrintJob
 
 
 def job_data(job):
@@ -163,7 +163,9 @@ class PrintLabelsView(PermissionRequiredMixin, View):
 def preview(request, subject_type, pk):
     """The first label as PNG, as the printer gets it (dots), in the colours of its label stock."""
     obj = dialog.subject_object(subject_type, pk)
-    medium = get_object_or_404(LabelMedium.objects.select_related("printer", "stock"), pk=request.GET.get("medium") or 0)
+    medium = editor.medium_for(request.GET.get("medium"))
+    if medium is None:
+        raise Http404
     try:
         layout = get_layout(request.GET.get("layout", ""))
     except ValueError:
@@ -180,10 +182,9 @@ def preview(request, subject_type, pk):
         rendered, = services.render(layout, [subject], medium, preview=True)
     except services.PrintError as error:
         return HttpResponse(str(error), status=422, content_type="text/plain; charset=utf-8")
-    image = rendered.image
-    if medium.stock is not None:
-        image = coloured(image, medium.stock.background_color, medium.stock.print_color)
-    return png_response(image, medium.printer.dpi)
+    print_color, background = medium.colours()
+    labels = [coloured(image, background, print_color) for image in rendered.images]
+    return png_response(stack(labels, drivers.mm_to_dots(3, medium.printer.dpi)), medium.printer.dpi)
 
 
 def png(image, dpi):
@@ -274,15 +275,19 @@ def design_preview(request):
         variables = selection.variables_for(subject_type, records[int(request.POST.get("record") or 0)][1])
     except (IndexError, ValueError):
         variables = design_variables.placeholders(subject_type)
-    medium = LabelMedium.objects.select_related("printer", "stock").filter(pk=request.POST.get("medium") or 0).first()
+    medium = editor.medium_for(request.POST.get("medium"))
     image, problems, canvas = editor.preview(request.POST.get("description", ""), variables, medium)
     data = {"problems": [{"line": problem.line, "message": problem.message} for problem in problems],
             "records": [name for name, _subject in records], "image": None}
     if image is not None:
         data["image"] = "data:image/png;base64," + base64.b64encode(png(image, canvas.dpi)).decode("ascii")
+        labels = image.info.get("labels", 1)  # a list that goes on on further labels: one below the other
+        height = (image.height - canvas.dots(3) * (labels - 1)) // labels
         data["size"] = gettext("%(width)s × %(height)s dots at %(dpi)s dpi: %(width_mm).1f × %(height_mm).1f mm") % {
-            "width": image.width, "height": image.height, "dpi": canvas.dpi,
-            "width_mm": image.width * 25.4 / canvas.dpi, "height_mm": image.height * 25.4 / canvas.dpi}
+            "width": image.width, "height": height, "dpi": canvas.dpi,
+            "width_mm": image.width * 25.4 / canvas.dpi, "height_mm": height * 25.4 / canvas.dpi}
+        if labels > 1:
+            data["size"] += " · " + gettext("%(labels)d labels") % {"labels": labels}
     return JsonResponse(data)
 
 

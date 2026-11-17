@@ -2,7 +2,7 @@ from django.contrib.auth import get_user_model
 
 from inventory.models import LocationLabelTemplate
 from .. import simulator
-from ..models import LabelMedium, Printer
+from ..models import LabelStock, Medium, Printer
 
 SETTINGS = dict(LANGUAGE_CODE="en", DEFAULT_URL="https://inv.zam.haus", LABEL_ID_BASE_URL="https://i.zam.haus/",
                 PRINT_JOB_MAX_AGE=120, PRINT_JOB_LEASE=180, PRINT_AGENT_OFFLINE_AFTER=30,
@@ -35,17 +35,26 @@ class SimulatedPrinters:
         self.brother_output.printed.clear()
 
 
+def labels(printer, name="57 × 32", width_mm=None, height_mm=None, ptouch_tape=None, stock=None, save=True, **fields):
+    """Label material on hand for the printer's kind (of `stock`, else made), as the printer's Medium."""
+    if stock is None:
+        stock = LabelStock(language=printer.language, name=name, width_mm=width_mm, height_mm=height_mm,
+                           tape_mm=ptouch_tape, in_stock=True, **fields)
+        if save:
+            stock.save()
+    return Medium(printer, stock)
+
+
 def create_printers(zebra_port=9100, brother_port=9100):
     """A Zebra with 57 × 32 mm labels (loaded) and a Brother PT-E550W with 12 mm tape, both network printers."""
     zebra = Printer.objects.create(name="Zebra Lager", slug="zebra", language="zpl", dpi=203,
                                    host="127.0.0.1", port=zebra_port, is_default=True)
-    zebra_labels = LabelMedium.objects.create(printer=zebra, name="57 × 32 mm", width_mm=57, height_mm=32,
-                                              is_default=True)
-    zebra.loaded_medium = zebra_labels
+    zebra_labels = labels(zebra, name="57 × 32 mm", width_mm=57, height_mm=32)
+    zebra.loaded_medium = zebra_labels.stock
     zebra.save()
     brother = Printer.objects.create(name="P-touch Werkstatt", slug="ptouch", language="ptouch", model="E550W",
                                      dpi=180, host="127.0.0.1", port=brother_port)
-    brother_tape = LabelMedium.objects.create(printer=brother, name="12 mm", ptouch_tape=12, is_default=True)
+    brother_tape = labels(brother, name="12 mm", ptouch_tape=12)
     return zebra, zebra_labels, brother, brother_tape
 
 
@@ -61,10 +70,10 @@ def create_user(username="printer-user", *permissions):
 
 # The label templates the migrations make for every label size (label_printing 0002, catalog/label_templates.json)
 GENERATED = {
-    "location": "QR-Code, Kennung, Name und Ort",
-    "item": "Name, Preis und QR-Code",
+    "location": "Ort",
+    "item": "Artikel",
     "labelid": "ZAMid",
-    "uniqueitem": "ZAMid mit Eigentum",
+    "uniqueitem": "ZAMid, Fremdeigentum",
 }
 
 

@@ -21,7 +21,6 @@ from label_printing import admin_printing, editor as label_editor, selection as 
 from label_printing.dialog import BatchPrintForm
 from label_printing.design import variables as label_variables
 from label_printing.layouts import designs as label_designs
-from label_printing.models import LabelMedium
 
 from . import icons, models
 from .numbered_location_views import create_numbered_container
@@ -250,10 +249,10 @@ class LocationLabelTemplateAdmin(admin.ModelAdmin):
         return {"description": self.STARTER, **super().get_changeform_initial_data(request)}
 
     def render_change_form(self, request, context, add=False, change=False, form_url="", obj=None):
-        media = LabelMedium.objects.filter(printer__is_active=True).select_related("printer").order_by("printer__name", "name")
         context["label_editor"] = {
             "preview_url": reverse("label_design_preview"),
-            "media": [{"id": medium.pk, "name": f"{medium.printer} – {medium.name}"} for medium in media],
+            "media": [{"id": label_editor.medium_key(medium), "name": f"{medium.printer} – {medium.name}"}
+                      for medium in label_editor.active_media()],
             # A saved template's records to preview: those its saved rules are meant for
             "template": obj.pk if obj and obj.pk else None,
         }

@@ -6,12 +6,13 @@ from django.test import TestCase, override_settings
 from django.urls import reverse
 from inventory.label_ids import services as label_ids
 from inventory.label_ids.testing import make_id
-from inventory.models import Item, LabelId, Location, LocationType, MeasurementUnit, UniqueItem
-from .. import services
+from inventory.models import (Item, LabelId, LocationLabelTemplate, Location, LocationType, MeasurementUnit,
+                              UniqueItem)
+from .. import selection, services
 from ..design import parse
 from ..layouts import Canvas, get_layout, layouts_for
-from ..models import LabelMedium, PrintJob
-from .helpers import SETTINGS, SimulatedPrinters, create_printers, create_user, generated, outcome_key
+from ..models import PrintJob
+from .helpers import SETTINGS, SimulatedPrinters, create_printers, create_user, generated, labels, outcome_key
 
 
 @override_settings(**SETTINGS)
@@ -25,10 +26,20 @@ class LabelIdLayoutTests(TestCase):
         return [layout.key for layout in layouts_for("labelid", printer, medium)]
 
     def test_zamid_templates_for_every_label(self):
-        for printer, medium, size in ((self.brother, self.tape, "tape12"), (self.zebra, self.labels, "57x32")):
-            self.assertEqual(self.keys(printer, medium), [f"design:{generated('labelid', size).pk}"])
-        wide = LabelMedium.objects.create(printer=self.brother, name="36", ptouch_tape=36)
+        logo = LocationLabelTemplate.objects.get(name="ZAMid, ZAM-Eigentum", label_height=12)  # its logo is not there:
+        self.assertEqual(sorted(self.keys(self.brother, self.tape)),  # offered all the same
+                         sorted([f"design:{generated('labelid', 'tape12').pk}", f"design:{logo.pk}"]))
+        self.assertEqual(self.keys(self.zebra, self.labels), [f"design:{generated('labelid', '57x32').pk}"])
+        wide = labels(self.brother, name="36", ptouch_tape=36)
         self.assertEqual(self.keys(self.brother, wide), [])  # the E550W has no 36 mm profile
+
+    def test_a_template_whose_image_is_missing_is_not_preselected(self):
+        from ..models import LabelImage
+        logo = LocationLabelTemplate.objects.get(name="ZAMid, ZAM-Eigentum", label_height=12)
+        best = lambda: selection.best_layout("labelid", self.lid, layouts_for("labelid", self.brother, self.tape)).key
+        self.assertEqual(best(), f"design:{generated('labelid', 'tape12').pk}")  # its priority 3 counts as 0
+        LabelImage.objects.create(name="ZAM Logo ohne Wortmarke", image="zam-logo.png")
+        self.assertEqual(best(), f"design:{logo.pk}")
 
     def test_zamid_on_every_tape_width_with_a_margin(self):
         for tape in (9, 12, 18, 24, 36):
@@ -108,7 +119,7 @@ class LabelIdPrintingTests(SimulatedPrinters, TestCase):
         self.assertRedirects(response, reverse("label_id_info", args=[self.lid.code]), fetch_redirect_response=False)
         self.assertEqual(len(self.brother_output.printed), 2)
         preview = self.client.get(reverse("print_preview", args=["labelid", self.lid.code]),
-                                  {"medium": self.tape.pk, "layout": self.zamid})
+                                  {"medium": f"{self.brother.pk}:{self.tape.pk}", "layout": self.zamid})
         self.assertEqual(preview["Content-Type"], "image/png")
         self.assertEqual(self.client.get(reverse("print_labels", args=["labelid", "NOPE00"])).status_code, 404)
 

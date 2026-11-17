@@ -2,7 +2,8 @@
 Which label templates are meant for a subject, and which comes first: the rules of each template
 (inventory.LabelTemplateRule: a condition over the subject's variables, and the print priority while it holds).
 A template is meant for a subject while one of its rules holds; its priority is the highest of those (without
-rules: for every subject of its kind, priority 0). The print
+rules: for every subject of its kind, priority 0; a template showing a label image that is not there at most 0,
+so it is printed on request only). The print
 dialog preselects the template of the highest priority (a location's: the one chosen for it, LastLabel, set in the
 print dialog with "preselect from now on"), shows those above 0 and the others on request, unless none ranks higher.
 """
@@ -12,8 +13,8 @@ from django.utils import timezone
 
 from inventory.models import LabelId, LabelTemplateRule, LocationLabelTemplate, UniqueItem
 from . import label_urls
-from .design import texts, variables as design_variables
-from .models import LastLabel
+from .design import parse, texts, variables as design_variables
+from .models import LabelImage, LastLabel
 
 # The kinds of templates for a kind of subject: unique items also by their label ID.
 KINDS = {"location": ("location",), "item": ("item",), "uniqueitem": ("uniqueitem", "labelid"),
@@ -46,11 +47,21 @@ def variables_for(kind, subject):
 
 
 def rules_of(templates):
-    """{template pk: [(condition, priority)]}, in one query."""
+    """{template pk: [(condition, priority)]}, in two queries; the priorities of templates whose label images are not
+    all there at most 0 (e.g. "ZAMid, ZAM-Eigentum" on an installation without the ZAM logo: offered, never preselected)."""
     found = {}
     for rule in LabelTemplateRule.objects.filter(template__in=[template.pk for template in templates]):
         found.setdefault(rule.template_id, []).append((rule.condition, rule.priority))
-    return found
+    missing = without_images([template for template in templates if template.pk in found])
+    return {pk: [(condition, min(priority, 0)) for condition, priority in rules] if pk in missing else rules
+            for pk, rules in found.items()}
+
+
+def without_images(templates):
+    """The pks of those of `templates` showing a label image that is not there."""
+    shown = {template.pk: set(parse(template.description)[0].images()) for template in templates}
+    there = set(LabelImage.objects.filter(name__in=set().union(*shown.values())).values_list("name", flat=True))
+    return {pk for pk, names in shown.items() if names - there}
 
 
 def priorities(subject_type, subject, templates, rules=None):
@@ -131,15 +142,17 @@ class Ranked:
 
 
 def rank(outcomes, subject_type, subject, rules=None, last_labels=None):
-    """The outcomes (outcomes.py) meant for the subject, the preselected first, then by priority (those that
-    can be printed now first among equals), each marked shown or on request. For many subjects, `rules`
+    """The outcomes (outcomes.py) meant for the subject, the preselected first, then by priority (among equals those
+    that can be printed now, then those of labels on hand), each marked shown or on request. For many subjects, `rules`
     (rules_of) and `last_labels` (last_template_pks) are read once."""
     templates = {outcome.layout.template.pk: outcome.layout.template for outcome in outcomes
                  if getattr(outcome.layout, "template", None) is not None}
     found = priorities(subject_type, subject, list(templates.values()), rules)
     ranked = [Ranked(outcome, found[outcome.layout.template.pk]) for outcome in outcomes
               if getattr(outcome.layout, "template", None) is not None and outcome.layout.template.pk in found]
-    ranked.sort(key=lambda entry: (-entry.priority, entry.outcome.target() is None))
+    # Among equals: those that can be printed now, then those of labels on hand (a printer has them, just not loaded),
+    # then labels no printer has (e.g. a successor not bought yet)
+    ranked.sort(key=lambda entry: (-entry.priority, entry.outcome.target() is None, not entry.outcome.targets))
     if not ranked:
         return []
     top = ranked[0].priority

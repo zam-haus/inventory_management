@@ -21,7 +21,7 @@ How the ZAM inventory works, feature by feature. Setup is covered in the
 * [Cleaning up items and categories](item-cleanup.md): export for outside processing, proposals reviewed change by change and applied
 * [Camera scanning](camera-scanning.md): QR and barcode scanning in the browser
 * [Permissions](permissions.md): model permissions, the local group and network detection
-* [Label printing](label-printing.md): printers, label media, the print queue, print agent and simulator;
+* [Label printing](label-printing.md): printers, label material and ribbons, the print queue, print agent and simulator;
   a Raspberry Pi as print agent: [ops/raspberry-pi/](../ops/raspberry-pi/README.md)
 * [Installable app](installable-app.md): manifest, offline page and its service worker
 * [Error pages](error-pages.md): 404, 403, the failed form check, 400 and 500; which stand alone

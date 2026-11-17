@@ -13,9 +13,10 @@ from django.utils import timezone
 
 from .. import services
 from ..agent import Link, Printers, Refused, servers_of
+from ..api import printer_name
 from ..devices import usb
-from ..models import LabelMedium, PrintAgent, Printer
-from .helpers import SETTINGS, SimulatedPrinters
+from ..models import PrintAgent, Printer
+from .helpers import SETTINGS, SimulatedPrinters, labels
 
 BROTHER_INFO = {"language": "ptouch", "model": "P900W", "manufacturer": "Brother", "product": "PT-P900W",
                 "serial": "A1B2C3", "usb_id": "04f9:2085", "dpi": 360}
@@ -32,7 +33,7 @@ def create_agent(name="pi-lager", active=True):
 def usb_zebra(agent, uid="usb-0a5f-00a0-ZEBRA1", slug="zebra-usb"):
     printer = Printer.objects.create(name="Zebra USB", slug=slug, uid=uid, language="zpl", transport="agent",
                                      agent=agent)
-    medium = LabelMedium.objects.create(printer=printer, name="57 × 32", width_mm=57, height_mm=32)
+    medium = labels(printer, name="57 × 32", width_mm=57, height_mm=32)
     return printer, medium
 
 
@@ -101,15 +102,25 @@ class AgentAccessAndPrinterTests(TestCase):
         self.assertEqual(printer.status_text, "Ready. Loaded: 24 mm tape, schwarz on gelb.")
         self.assertEqual(printer.unavailable_code(), "inactive")
 
+    def test_names_of_new_printers(self):
+        zebra = {"language": "zpl", "manufacturer": "Zebra Technologies", "product": "ZTC GK420t"}
+        self.poll({"usb-0a5f-0081-Z1": {"info": zebra}, "bt-a1b2c3d4e5f6": {
+            "info": {"language": "ptouch", "manufacturer": "Brother", "product": "PT-P710BT6522"}},
+            "usb-0a5f-0081-Z2": {"info": {"language": "zpl"}}})
+        self.assertEqual(dict(Printer.objects.values_list("uid", "name")), {
+            "usb-0a5f-0081-Z1": "Zebra GK420t", "bt-a1b2c3d4e5f6": "Brother PT-P710BT6522",
+            "usb-0a5f-0081-Z2": "usb-0a5f-0081-Z2"})
+        self.assertEqual(printer_name({"manufacturer": "Zebra", "product": "Zebra ZD421"}), "Zebra ZD421")
+
     def test_activated_printer_gets_jobs(self):
         self.poll({"usb-04f9-2085-A1B2C3": {"info": BROTHER_INFO}})
         self.client.force_login(get_user_model().objects.create_superuser("admin"))
         printer = Printer.objects.get()
         response = self.client.post(reverse("admin:label_printing_printer_changelist"),
                                     {"action": "activate", "_selected_action": [printer.pk]}, follow=True)
-        self.assertContains(response, "Brother PT-P900W is active. Add the labels loaded in it.")
+        self.assertContains(response, "Brother PT-P900W is active. It takes no label material on hand.")
         printer.refresh_from_db()
-        medium = LabelMedium.objects.create(printer=printer, name="24 mm", ptouch_tape=24)
+        medium = labels(printer, name="24 mm", ptouch_tape=24)
         job = services.submit(printer=printer, medium=medium, layout_key="test", subject_type="printer",
                               subjects=[printer])
         answer = self.poll().json()
@@ -215,13 +226,14 @@ class UsbDiscoveryTests(SimpleTestCase):
         return os.path.join(root, "class")
 
     def test_brother_and_zebra_with_stable_ids(self):
-        sysfs = self.fake_sysfs([("04f9", "2085", "A1B2C3"), ("0a5f", "00a0", None), ("03f0", "1234", "HP")])
+        sysfs = self.fake_sysfs([("04f9", "2085", "A1B2C3"), ("0a5f", "00a0", None), ("03f0", "1234", "HP"),
+                                 ("04f9", "2061", "P7SERIAL")])
         found = usb.find_printers(sysfs, "/dev/usb")
-        self.assertEqual([(p["uid"], p["device"], p["language"], p["model"]) for p in found], [
-            ("usb-04f9-2085-A1B2C3", "/dev/usb/lp0", "ptouch", "P900W"),
-            ("usb-0a5f-00a0-1-1.3", "/dev/usb/lp1", "zpl", ""),  # no serial number: the USB port
+        self.assertEqual([(p["uid"], p["device"], p["language"], p["model"], p.get("dpi")) for p in found], [
+            ("usb-04f9-2085-A1B2C3", "/dev/usb/lp0", "ptouch", "P900W", 360),
+            ("usb-0a5f-00a0-1-1.3", "/dev/usb/lp1", "zpl", "", None),  # no serial number: the USB port
+            ("usb-04f9-2061-P7SERIAL", "/dev/usb/lp3", "ptouch", "P700", 180),
         ])
-        self.assertEqual(found[0]["dpi"], 360)
 
 
 class AgentConfigurationTests(SimpleTestCase):
@@ -255,7 +267,7 @@ class AgentTests(SimulatedPrinters, LiveServerTestCase):
     def activate(self, uid):
         Printer.objects.filter(uid=uid).update(is_active=True)
         printer = Printer.objects.get(uid=uid)
-        return printer, LabelMedium.objects.create(printer=printer, name="57 × 32", width_mm=57, height_mm=32)
+        return printer, labels(printer, name="57 × 32", width_mm=57, height_mm=32)
 
     def test_report_activate_print(self):
         self.brother_state.tape_color = 0x06  # yellow tape
@@ -272,6 +284,7 @@ class AgentTests(SimulatedPrinters, LiveServerTestCase):
         job = services.submit(printer=zebra, medium=medium, layout_key="test", subject_type="printer",
                               subjects=[zebra], copies=2)
         self.assertTrue(self.link.poll_once())
+        self.printers.wait_idle()  # each printer prints in a thread of its own
         job.refresh_from_db()
         self.assertEqual((job.status, job.claimed_by), ("done", "pi-lager"))  # the agent's name in the admin
         self.assertEqual(len(self.zebra_output.printed), 1)
@@ -294,5 +307,6 @@ class AgentTests(SimulatedPrinters, LiveServerTestCase):
         self.printers.static.clear()
         self.printers.scan()
         self.link.poll_once()
+        self.printers.wait_idle()
         job.refresh_from_db()
         self.assertEqual((job.status, job.code), ("failed", "unreachable"))

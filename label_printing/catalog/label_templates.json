@@ -1,6 +1,6 @@
 [
  {
-  "name": "Fester Standort, Pfeil hoch",
+  "name": "Regalboden, Pfeil hoch",
   "replaces": "70x32 static up",
   "subject_type": "location",
   "label_width": 70.0,
@@ -10,21 +10,21 @@
   "label_stock": null,
   "material": "",
   "print_color": "schwarz",
-  "background_color": "weiß",
+  "background_color": "",
   "rules": [
    [
-    "location.type.category == \"storage_unit\"",
-    1
+    "location.type.name == \"Fach\"",
+    2
    ],
    [
     "",
     0
    ]
   ],
-  "description": "# Fixed locations, 70 × 32 mm paper; arrow up to the shelf\nlabel 70 x 32  margin 1\nline  thickness 0.15\nrow  gap 2\n  qr {{ qr }}  ecc Q\n  column\n    space\n    arrow up  width 14  height 6\n    space 1\n    text {{ location.unique_identifier }}  font mono  bold  invert  height 11\n    space\ntext {{ location.descriptive_identifier }}  font condensed  center  height 3.5\n"
+  "description": "# Shelf levels, 70 × 32 mm paper on hand (boards of 4 cm; 2 cm boards: 18 mm tape), printed inverted (white on\n# black): QR code, the code, the title and where it is; right of the code an arrow up to the shelf level above\nlabel 70 x 32  margin 1.5 1.5 1.5 2.5  invert\nrow  gap 2\n  qr {{ qr }}  ecc Q  quiet 1  max 27\n  column  gap 1  align left\n    row  height 38%\n      text {{ location.unique_identifier }}  font mono  bold  invert  width auto\n      space 3\n      arrow up  width 7  height 6\n    text {{ location.title }}  font condensed  bold  lines 2  height 34%\n    text {{ location.descriptive_identifier }}  font condensed  lines 2  height 20%\n"
  },
  {
-  "name": "Fester Standort, Pfeil runter",
+  "name": "Regalboden, Pfeil runter",
   "replaces": "70x32 static down",
   "subject_type": "location",
   "label_width": 70.0,
@@ -34,21 +34,21 @@
   "label_stock": null,
   "material": "",
   "print_color": "schwarz",
-  "background_color": "weiß",
+  "background_color": "",
   "rules": [
    [
-    "location.type.category == \"storage_unit\"",
-    1
+    "location.type.name == \"Fach\"",
+    2
    ],
    [
     "",
     0
    ]
   ],
-  "description": "# Fixed locations, 70 × 32 mm paper; arrow down to the shelf\nlabel 70 x 32  margin 1\nline  thickness 0.15\nrow  gap 2\n  qr {{ qr }}  ecc Q\n  column\n    space\n    text {{ location.unique_identifier }}  font mono  bold  invert  height 11\n    space 1\n    arrow down  width 14  height 6\n    space\ntext {{ location.descriptive_identifier }}  font condensed  center  height 3.5\n"
+  "description": "# Shelf levels, 70 × 32 mm paper on hand (boards of 4 cm; 2 cm boards: 18 mm tape), printed inverted (white on\n# black): QR code, the code, the title and where it is; right of the code an arrow down to the shelf level below\nlabel 70 x 32  margin 1.5 1.5 1.5 2.5  invert\nrow  gap 2\n  qr {{ qr }}  ecc Q  quiet 1  max 27\n  column  gap 1  align left\n    row  height 38%\n      text {{ location.unique_identifier }}  font mono  bold  invert  width auto\n      space 3\n      arrow down  width 7  height 6\n    text {{ location.title }}  font condensed  bold  lines 2  height 34%\n    text {{ location.descriptive_identifier }}  font condensed  lines 2  height 20%\n"
  },
  {
-  "name": "Mobil, mit Logo und Eigentum",
+  "name": "Kiste",
   "replaces": "60x30 mobile",
   "subject_type": "location",
   "label_width": 60.0,
@@ -58,10 +58,10 @@
   "label_stock": null,
   "material": "",
   "print_color": "schwarz",
-  "background_color": "weiß",
+  "background_color": "",
   "rules": [
    [
-    "location.type.category == \"container\"",
+    "location.type.name == \"Kiste\"",
     2
    ],
    [
@@ -69,10 +69,10 @@
     0
    ]
   ],
-  "description": "# Mobile locations, 60 × 30 mm paper\r\nlabel 60 x 30  margin 1\r\nrow  gap 2\r\n  qr {{ qr }}  ecc Q\r\n  column  gap 1.5\r\n    text {{ location.unique_identifier }}  font mono  bold  invert  height 11\r\n    image \"ZAM Logo\" margin 1\r\ntext \"Eigentum Betreiberverein ZAM e.V.\"  font condensed  center  height 2.6"
+  "description": "# Mobile locations, 60 × 30 mm paper\nlabel 60 x 30  margin 1\nrow  gap 2\n  qr {{ qr }}  ecc Q\n  column  gap 1.5\n    text {{ location.unique_identifier }}  font mono  bold  invert  height 11\n    image \"ZAM Logo\" margin 1\ntext \"Eigentum Betreiberverein ZAM e.V.\"  font condensed  center  height 2.6"
  },
  {
-  "name": "Fester Standort",
+  "name": "Lagermöbel",
   "replaces": "70x32 static",
   "subject_type": "location",
   "label_width": 70.0,
@@ -82,21 +82,21 @@
   "label_stock": null,
   "material": "",
   "print_color": "schwarz",
-  "background_color": "weiß",
+  "background_color": "",
   "rules": [
    [
-    "location.type.category != \"container\"",
-    2
+    "location.type.category == \"storage_unit\"",
+    3
    ],
    [
     "",
     0
    ]
   ],
-  "description": "# Fixed locations, 70 × 32 mm paper\nlabel 70 x 32  margin 1\nline  thickness 0.15\nrow  gap 2\n  qr {{ qr }}  ecc Q\n  column\n    space\n    text {{ location.unique_identifier }}  font mono  bold  invert  height 11\n    space\ntext {{ location.descriptive_identifier }}  font condensed  center  height 3.5\n"
+  "description": "# Storage units (shelves, cabinets, drawers, tables), 70 × 32 mm paper on hand, printed inverted (white on black):\n# QR code, the code, the title (purpose, else name) and where it is\nlabel 70 x 32  margin 1.5 1.5 1.5 2.5  invert\nrow  gap 2\n  qr {{ qr }}  ecc Q  quiet 1  max 27\n  column  gap 1  align left\n    text {{ location.unique_identifier }}  font mono  bold  invert  height 38%  width auto\n    text {{ location.title }}  font condensed  bold  lines 2  height 34%\n    text {{ location.descriptive_identifier }}  font condensed  lines 2  height 20%\n"
  },
  {
-  "name": "Mobil, mit Logo und Eigentum",
+  "name": "Kiste",
   "replaces": "105x52 mobile",
   "subject_type": "location",
   "label_width": 105.0,
@@ -106,18 +106,18 @@
   "label_stock": null,
   "material": "",
   "print_color": "schwarz",
-  "background_color": "weiß",
+  "background_color": "",
   "rules": [
    [
-    "location.type.category == \"container\"",
-    2
+    "location.type.name == \"Kiste\"",
+    3
    ],
    [
     "",
     0
    ]
   ],
-  "description": "# Mobile locations, 105 × 52 mm polyester\r\nlabel 105 x 52  margin 1\r\nrow  gap 3\r\n  qr {{ qr }}  ecc Q  max 32\r\n  column  gap 4\r\n    text {{ location.unique_identifier }}  font condensed  bold  invert  height 18\r\n    image \"ZAM Logo\" height 20\r\ntext \"Eigentum Betreiberverein ZAM e.V.\"  font condensed  bold  center  height 4.5"
+  "description": "# Boxes, 105 × 52 mm yellow polyester on hand, while it lasts (then 18 mm tape, TZe-S641)\nlabel 105 x 52  margin 1\nrow  gap 3\n  qr {{ qr }}  ecc Q  max 32\n  column  gap 4\n    text {{ location.unique_identifier }}  font mono  bold  invert  height 18\n    image \"ZAM Logo\" height 20\ntext \"Eigentum Betreiberverein ZAM e.V.\"  font condensed  bold  center  height 4.5"
  },
  {
   "name": "ZAMid",
@@ -129,7 +129,7 @@
   "label_stock": null,
   "material": "",
   "print_color": "schwarz",
-  "background_color": "weiß",
+  "background_color": "",
   "rules": [
    [
     "",
@@ -148,7 +148,7 @@
   "label_stock": null,
   "material": "",
   "print_color": "schwarz",
-  "background_color": "weiß",
+  "background_color": "",
   "rules": [
    [
     "",
@@ -162,12 +162,12 @@
   "subject_type": "labelid",
   "label_width": 105.0,
   "label_height": 52.0,
-  "is_active": true,
+  "is_active": false,
   "quality": "standard",
   "label_stock": null,
   "material": "",
   "print_color": "schwarz",
-  "background_color": "weiß",
+  "background_color": "",
   "rules": [
    [
     "",
@@ -181,7 +181,7 @@
   "subject_type": "item",
   "label_width": 60.0,
   "label_height": 30.0,
-  "is_active": true,
+  "is_active": false,
   "quality": "standard",
   "label_stock": null,
   "material": "",
@@ -200,7 +200,7 @@
   "subject_type": "item",
   "label_width": null,
   "label_height": 12.0,
-  "is_active": true,
+  "is_active": false,
   "quality": "standard",
   "label_stock": null,
   "material": "",
@@ -219,7 +219,7 @@
   "subject_type": "item",
   "label_width": null,
   "label_height": 18.0,
-  "is_active": true,
+  "is_active": false,
   "quality": "standard",
   "label_stock": null,
   "material": "",
@@ -231,14 +231,14 @@
     2
    ]
   ],
-  "description": "# Price tag for bulk items on 18 mm tape, as long as the name needs: the name, below it price and QR code\nlabel height 18  margin 0.5\ntext {{ item.name|default:'_______________' }}  font condensed  bold  height 30%\nrow  gap 2  margin 0.5 0 0 0\n  row  border 0.5  shape bulge  padding 0.3 0  width auto\n    text \"€ {{ item.sale_price|floatformat:2 }}\"  font condensed  bold\n    text \"/ {{ item.measurement_unit.short }}\"  font condensed  height 40%  margin 0 0 0 1  bottom\n  qr {{ qr }}  ecc M\n"
+  "description": "# Price tag for bulk items on 18 mm tape, as long as the name needs: the name, below it price and QR code\nlabel height 18  margin 0.5 2.5 0.5 0.5\ntext {{ item.name|default:'_______________' }}  font condensed  bold  height 30%\nrow  gap 2  margin 0.5 0 0 0\n  row  border 0.5  shape bulge  padding 0.3 0  width auto\n    text \"€ {{ item.sale_price|floatformat:2 }}\"  font condensed  bold\n    text \"/ {{ item.measurement_unit.short }}\"  font condensed  height 40%  margin 0 0 0 1  bottom\n  qr {{ qr }}  ecc M\n"
  },
  {
   "name": "Preisschild",
   "subject_type": "item",
   "label_width": null,
   "label_height": 24.0,
-  "is_active": true,
+  "is_active": false,
   "quality": "standard",
   "label_stock": null,
   "material": "",
@@ -250,10 +250,10 @@
     2
    ]
   ],
-  "description": "# Price tag for bulk items on 24 mm tape, as long as the name needs: the name, below it price and QR code\nlabel height 24  margin 0.5\ntext {{ item.name|default:'_______________' }}  font condensed  bold  height 30%\nrow  gap 2  margin 0.5 0 0 0\n  row  border 0.5  shape bulge  padding 0.3 0  width auto\n    text \"€ {{ item.sale_price|floatformat:2 }}\"  font condensed  bold\n    text \"/ {{ item.measurement_unit.short }}\"  font condensed  height 40%  margin 0 0 0 1  bottom\n  qr {{ qr }}  ecc M\n"
+  "description": "# Price tag for bulk items on 24 mm tape, as long as the name needs: the name, below it price and QR code\nlabel height 24  margin 0.5 2.5 0.5 0.5\ntext {{ item.name|default:'_______________' }}  font condensed  bold  height 30%\nrow  gap 2  margin 0.5 0 0 0\n  row  border 0.5  shape bulge  padding 0.3 0  width auto\n    text \"€ {{ item.sale_price|floatformat:2 }}\"  font condensed  bold\n    text \"/ {{ item.measurement_unit.short }}\"  font condensed  height 40%  margin 0 0 0 1  bottom\n  qr {{ qr }}  ecc M\n"
  },
  {
-  "name": "QR-Code, Kennung, Name und Ort",
+  "name": "Ort",
   "subject_type": "location",
   "label_width": 57.0,
   "label_height": 32.0,
@@ -262,17 +262,17 @@
   "label_stock": null,
   "material": "",
   "print_color": "schwarz",
-  "background_color": "weiß",
+  "background_color": "",
   "rules": [
    [
     "",
     1
    ]
   ],
-  "description": "# Locations on 57 × 32 mm labels: QR code, code, name and path\nlabel 57 x 32  margin 1.5\nrow  gap 2\n  qr {{ qr }}  max 25.65\n  column  gap 1\n    text {{ location.unique_identifier }}  font mono  bold  invert  height 30%\n    text {{ location.name }}  font condensed  lines 2  height 30%\n    text {{ location.descriptive_identifier }}  lines 3\n"
+  "description": "# Locations on 57 × 32 mm labels: QR code, title (purpose, else name), code and path\nlabel 57 x 32  margin 1.5\nrow  gap 2\n  qr {{ qr }}  max 25.65\n  column  gap 1  align left\n    text {{ location.title }}  font condensed  bold  lines 2  height 30%\n    text {{ location.unique_identifier }}  font mono  bold  invert  height 30%  width auto\n    text {{ location.descriptive_identifier }}  lines 3\n"
  },
  {
-  "name": "Name, Preis und QR-Code",
+  "name": "Artikel",
   "subject_type": "item",
   "label_width": 57.0,
   "label_height": 32.0,
@@ -288,7 +288,7 @@
     1
    ]
   ],
-  "description": "# Bulk items on 57 × 32 mm labels: name, price, ID and location, QR code\nlabel 57 x 32  margin 1.5\nrow  gap 2\n  column  gap 0.5  align left\n    text {{ item.name|default:'_______________' }}  bold  lines 3  height 50%\n    row  border 0.4  shape bulge  padding 0.2 0  width auto  height 25%\n      text \"{% if item.sale_price is not None %}€ {{ item.sale_price|floatformat:2 }}{% else %}{{ ''|ljust:10 }}{% endif %}\"  font condensed  bold\n      text \"{% if item.sale_price is not None %}/ {{ item.measurement_unit.short }}{% endif %}\"  font condensed  height 45%  margin 0 0 0 0.5  bottom\n    text \"{{ label_id }}  {{ location.unique_identifier }}\"  font mono  height 15%  bottom\n  qr {{ qr }}  max 22.8\n"
+  "description": "# Bulk items on 57 × 32 mm labels: name, price, ID and location, QR code\nlabel 57 x 32  margin 1.5\nrow  gap 2\n  column  gap 0.5  align left\n    text {{ item.name|default:'_______________' }}  bold  lines 3  height 50%\n    row  border 0.4  shape bulge  padding 0.2 0  width auto  height 25%\n      text \"{% if item.sale_price is not None %}€ {{ item.sale_price|floatformat:2 }}{% else %}{{ ''|ljust:10 }}{% endif %}\"  font condensed  bold\n      text \"{% if item.sale_price is not None %}/ {{ item.measurement_unit.short }}{% endif %}\"  font condensed  height 45%  margin 0 0 0 0.5  bottom\n    row  gap 1.5  height 15%\n      text {{ label_id }}  font mono  bold\n      text {{ location.unique_identifier }}  font mono  bold  invert\n  qr {{ qr }}  max 22.8\n"
  },
  {
   "name": "ZAMid",
@@ -300,7 +300,7 @@
   "label_stock": null,
   "material": "",
   "print_color": "schwarz",
-  "background_color": "weiß",
+  "background_color": "",
   "rules": [
    [
     "",
@@ -310,8 +310,27 @@
   "description": "# ZAMid on 57 × 32 mm labels, like the Brother design\nlabel 57 x 32  margin 1.5\nrow  gap 1.5\n  text {{ label_id_name }}  rotate 270  font sans  weight 800\n  qr {{ qr }}  quiet 1\n  column\n    text {{ label_id.code|slice:\":3\" }}  font mono  bold  center\n    line  thickness 0.8  width 9.6\n    text {{ label_id.code|slice:\"3:\" }}  font mono  bold  center\n"
  },
  {
-  "name": "QR-Code, Kennung, Name und Ort",
+  "name": "Ort",
   "subject_type": "location",
+  "label_width": 60.0,
+  "label_height": 30.0,
+  "is_active": true,
+  "quality": "standard",
+  "label_stock": null,
+  "material": "",
+  "print_color": "schwarz",
+  "background_color": "",
+  "rules": [
+   [
+    "",
+    1
+   ]
+  ],
+  "description": "# Locations on 60 × 30 mm labels: QR code, title (purpose, else name), code and path\nlabel 60 x 30  margin 1.5\nrow  gap 2\n  qr {{ qr }}  max 27\n  column  gap 1  align left\n    text {{ location.title }}  font condensed  bold  lines 2  height 30%\n    text {{ location.unique_identifier }}  font mono  bold  invert  height 30%  width auto\n    text {{ location.descriptive_identifier }}  lines 3\n"
+ },
+ {
+  "name": "Artikel",
+  "subject_type": "item",
   "label_width": 60.0,
   "label_height": 30.0,
   "is_active": true,
@@ -322,33 +341,14 @@
   "background_color": "weiß",
   "rules": [
    [
-    "",
-    1
-   ]
-  ],
-  "description": "# Locations on 60 × 30 mm labels: QR code, code, name and path\nlabel 60 x 30  margin 1.5\nrow  gap 2\n  qr {{ qr }}  max 27\n  column  gap 1\n    text {{ location.unique_identifier }}  font mono  bold  invert  height 30%\n    text {{ location.name }}  font condensed  lines 2  height 30%\n    text {{ location.descriptive_identifier }}  lines 3\n"
- },
- {
-  "name": "Name, Preis und QR-Code",
-  "subject_type": "item",
-  "label_width": 60.0,
-  "label_height": 30.0,
-  "is_active": true,
-  "quality": "standard",
-  "label_stock": null,
-  "material": "",
-  "print_color": "schwarz",
-  "background_color": "weiß",
-  "rules": [
-   [
     "item.kind == \"bulk\"",
     1
    ]
   ],
-  "description": "# Bulk items on 60 × 30 mm labels: name, price, ID and location, QR code\nlabel 60 x 30  margin 1.5\nrow  gap 2\n  column  gap 0.5  align left\n    text {{ item.name|default:'_______________' }}  bold  lines 3  height 50%\n    row  border 0.4  shape bulge  padding 0.2 0  width auto  height 25%\n      text \"{% if item.sale_price is not None %}€ {{ item.sale_price|floatformat:2 }}{% else %}{{ ''|ljust:10 }}{% endif %}\"  font condensed  bold\n      text \"{% if item.sale_price is not None %}/ {{ item.measurement_unit.short }}{% endif %}\"  font condensed  height 45%  margin 0 0 0 0.5  bottom\n    text \"{{ label_id }}  {{ location.unique_identifier }}\"  font mono  height 15%  bottom\n  qr {{ qr }}  max 24\n"
+  "description": "# Bulk items on 60 × 30 mm labels: name, price, ID and location, QR code\nlabel 60 x 30  margin 1.5\nrow  gap 2\n  column  gap 0.5  align left\n    text {{ item.name|default:'_______________' }}  bold  lines 3  height 50%\n    row  border 0.4  shape bulge  padding 0.2 0  width auto  height 25%\n      text \"{% if item.sale_price is not None %}€ {{ item.sale_price|floatformat:2 }}{% else %}{{ ''|ljust:10 }}{% endif %}\"  font condensed  bold\n      text \"{% if item.sale_price is not None %}/ {{ item.measurement_unit.short }}{% endif %}\"  font condensed  height 45%  margin 0 0 0 0.5  bottom\n    row  gap 1.5  height 15%\n      text {{ label_id }}  font mono  bold\n      text {{ location.unique_identifier }}  font mono  bold  invert\n  qr {{ qr }}  max 24\n"
  },
  {
-  "name": "QR-Code, Kennung, Name und Ort",
+  "name": "Ort",
   "subject_type": "location",
   "label_width": 70.0,
   "label_height": 32.0,
@@ -357,17 +357,17 @@
   "label_stock": null,
   "material": "",
   "print_color": "schwarz",
-  "background_color": "weiß",
+  "background_color": "",
   "rules": [
    [
     "",
     1
    ]
   ],
-  "description": "# Locations on 70 × 32 mm labels: QR code, code, name and path\r\nlabel 70 x 32  margin 1.5\r\nrow  gap 2\r\n  qr {{ qr }}  max 31.5\r\n  column  gap 1\r\n    text {{ location.unique_identifier }}  font mono  bold  invert  height 30%\r\n    text {{ location.name }}  font condensed  lines 2  height 30%\r\n    text {{ location.descriptive_identifier }}  lines 3"
+  "description": "# Locations on 70 × 32 mm labels: QR code, title (purpose, else name), code and path\nlabel 70 x 32  margin 1.5\nrow  gap 2\n  qr {{ qr }}  max 31.5\n  column  gap 1  align left\n    text {{ location.title }}  font condensed  bold  lines 2  height 30%\n    text {{ location.unique_identifier }}  font mono  bold  invert  height 30%  width auto\n    text {{ location.descriptive_identifier }}  lines 3"
  },
  {
-  "name": "Name, Preis und QR-Code",
+  "name": "Artikel",
   "subject_type": "item",
   "label_width": 70.0,
   "label_height": 32.0,
@@ -383,29 +383,29 @@
     1
    ]
   ],
-  "description": "# Bulk items on 70 × 32 mm labels: name, price, ID and location, QR code\nlabel 70 x 32  margin 1.5\nrow  gap 2\n  column  gap 0.5  align left\n    text {{ item.name|default:'_______________' }}  bold  lines 3  height 50%\n    row  border 0.4  shape bulge  padding 0.2 0  width auto  height 25%\n      text \"{% if item.sale_price is not None %}€ {{ item.sale_price|floatformat:2 }}{% else %}{{ ''|ljust:10 }}{% endif %}\"  font condensed  bold\n      text \"{% if item.sale_price is not None %}/ {{ item.measurement_unit.short }}{% endif %}\"  font condensed  height 45%  margin 0 0 0 0.5  bottom\n    text \"{{ label_id }}  {{ location.unique_identifier }}\"  font mono  height 15%  bottom\n  qr {{ qr }}  max 28\n"
+  "description": "# Bulk items on 70 × 32 mm labels: name, price and right of it the location, QR code\nlabel 70 x 32  margin 1.5\nrow  gap 2\n  column  gap 1  align left\n    text {{ item.name|default:'_______________' }}  bold  lines 3  height 60%\n    row  gap 1.5  height 30%\n      row  border 0.4  shape bulge  padding 0.2 0  width auto\n        text \"{% if item.sale_price is not None %}€ {{ item.sale_price|floatformat:2 }}{% else %}{{ ''|ljust:10 }}{% endif %}\"  font condensed  bold\n        text \"{% if item.sale_price is not None %}/ {{ item.measurement_unit.short }}{% endif %}\"  font condensed  height 45%  margin 0 0 0 0.5  bottom\n      text {{ location.unique_identifier }}  font mono  bold  invert  height 65%  width 15\n  qr {{ qr }}  max 25\n"
  },
  {
-  "name": "QR-Code, Kennung, Name und Ort",
+  "name": "Ort",
   "subject_type": "location",
   "label_width": 105.0,
   "label_height": 52.0,
-  "is_active": true,
+  "is_active": false,
   "quality": "standard",
   "label_stock": null,
   "material": "",
   "print_color": "schwarz",
-  "background_color": "weiß",
+  "background_color": "",
   "rules": [
    [
     "",
     1
    ]
   ],
-  "description": "# Locations on 105 × 52 mm labels: QR code, code, name and path\r\nlabel 105 x 52  margin 1.5\r\nrow  gap 2\r\n  qr {{ qr }}  max 47.25\r\n  column  gap 1\r\n    text {{ location.unique_identifier }}  font mono  bold  invert  height 30%\r\n    text \"{% if location.purpose %}{{ location.purpose }}{% else %}{{ location.name }}{% endif %}\"  font condensed  lines 2  height 30%\r\n    text {{ location.descriptive_identifier }}  lines 3"
+  "description": "# Locations on 105 × 52 mm labels: QR code, title (purpose, else name), code and path\nlabel 105 x 52  margin 1.5\nrow  gap 2\n  qr {{ qr }}  max 47.25\n  column  gap 1  align left\n    text {{ location.title }}  font condensed  bold  lines 2  height 30%\n    text {{ location.unique_identifier }}  font mono  bold  invert  height 30%  width auto\n    text {{ location.descriptive_identifier }}  lines 3"
  },
  {
-  "name": "Name, Preis und QR-Code",
+  "name": "Artikel",
   "subject_type": "item",
   "label_width": 105.0,
   "label_height": 52.0,
@@ -421,10 +421,10 @@
     1
    ]
   ],
-  "description": "# Bulk items on 105 × 52 mm labels: name, price, ID and location, QR code\nlabel 105 x 52  margin 1.5\nrow  gap 2\n  column  gap 0.5  align left\n    text {{ item.name|default:'_______________' }}  bold  lines 3  height 50%\n    row  border 0.4  shape bulge  padding 0.2 0  width auto  height 25%\n      text \"{% if item.sale_price is not None %}€ {{ item.sale_price|floatformat:2 }}{% else %}{{ ''|ljust:10 }}{% endif %}\"  font condensed  bold\n      text \"{% if item.sale_price is not None %}/ {{ item.measurement_unit.short }}{% endif %}\"  font condensed  height 45%  margin 0 0 0 0.5  bottom\n    text \"{{ label_id }}  {{ location.unique_identifier }}\"  font mono  height 15%  bottom\n  qr {{ qr }}  max 42\n"
+  "description": "# Bulk items on 105 × 52 mm labels: name, price, ID and location, QR code\nlabel 105 x 52  margin 1.5\nrow  gap 2\n  column  gap 0.5  align left\n    text {{ item.name|default:'_______________' }}  bold  lines 3  height 50%\n    row  border 0.4  shape bulge  padding 0.2 0  width auto  height 25%\n      text \"{% if item.sale_price is not None %}€ {{ item.sale_price|floatformat:2 }}{% else %}{{ ''|ljust:10 }}{% endif %}\"  font condensed  bold\n      text \"{% if item.sale_price is not None %}/ {{ item.measurement_unit.short }}{% endif %}\"  font condensed  height 45%  margin 0 0 0 0.5  bottom\n    row  gap 1.5  height 15%\n      text {{ label_id }}  font mono  bold\n      text {{ location.unique_identifier }}  font mono  bold  invert\n  qr {{ qr }}  max 42\n"
  },
  {
-  "name": "QR-Code, Kennung, Name und Ort",
+  "name": "Ort",
   "subject_type": "location",
   "label_width": null,
   "label_height": 9.0,
@@ -433,17 +433,17 @@
   "label_stock": null,
   "material": "",
   "print_color": "schwarz",
-  "background_color": "weiß",
+  "background_color": "",
   "rules": [
    [
     "",
     1
    ]
   ],
-  "description": "# Locations on 9 mm tape, as long as the path needs: QR code, code and path\r\nlabel height 9  margin 0 0.5\r\nrow  gap 1\r\n  qr {{ qr }}  quiet 1\r\n  column  gap 0.5\r\n    text {{ location.unique_identifier }} size 1.5 font mono  bold  invert\r\n    text \"{% if location.purpose %}{{ location.purpose }}{% else %}{{ location.name }}{% endif %}\" size 2 font condensed\r\n    text {{ location.descriptive_identifier }} size 1"
+  "description": "# Locations on 9 mm tape, as long as the path needs: QR code, title (purpose, else name), code and path\nlabel height 9  margin 0 2.5 0 1.5\nrow  gap 1\n  qr {{ qr }}  quiet 1\n  column  gap 0.5  align left\n    text {{ location.title }} size 2 font condensed  bold\n    text {{ location.unique_identifier }}  size 1.5 font mono  bold  invert  width auto\n    text {{ location.descriptive_identifier }} size 1"
  },
  {
-  "name": "Name, Preis und QR-Code",
+  "name": "Artikel",
   "subject_type": "item",
   "label_width": null,
   "label_height": 9.0,
@@ -471,18 +471,37 @@
   "label_stock": null,
   "material": "",
   "print_color": "schwarz",
-  "background_color": "weiß",
+  "background_color": "",
   "rules": [
    [
     "",
     2
    ]
   ],
-  "description": "# ZAMid on 9 mm tape, like the Brother design: the name turned, the QR code, the ID in two lines\r\nlabel height 9  margin 1\r\nrow  gap 0.72\r\n  text {{ label_id_name }}  rotate 270  font sans  weight 800\r\n  qr {{ qr }}  quiet 0\r\n  column\r\n    text {{ label_id.code|slice:\":3\" }}  font mono  bold  center\r\n    line  thickness 0.23  width 1.98\r\n    text {{ label_id.code|slice:\"3:\" }}  font mono  bold  center"
+  "description": "# ZAMid on 9 mm tape, like the Brother design: the name turned, the QR code, the ID in two lines\nlabel height 9  margin 1 3 1 1\nrow  gap 0.72\n  text {{ label_id_name }}  rotate 270  font sans  weight 800\n  qr {{ qr }}  quiet 0\n  column\n    text {{ label_id.code|slice:\":3\" }}  font mono  bold  center\n    line  thickness 0.23  width 1.98\n    text {{ label_id.code|slice:\"3:\" }}  font mono  bold  center"
  },
  {
-  "name": "QR-Code, Kennung, Name und Ort",
+  "name": "Ort",
   "subject_type": "location",
+  "label_width": null,
+  "label_height": 12.0,
+  "is_active": true,
+  "quality": "standard",
+  "label_stock": null,
+  "material": "",
+  "print_color": "schwarz",
+  "background_color": "",
+  "rules": [
+   [
+    "",
+    1
+   ]
+  ],
+  "description": "# Locations on 12 mm tape, as long as the path needs: QR code, title (purpose, else name), code and path\nlabel height 12  margin 0 2.5 0 1.5\nrow  gap 1\n  qr {{ qr }}  quiet 1\n  column  gap 0.5  align left\n    text {{ location.title }}  size 2.67  font condensed  bold\n    text {{ location.unique_identifier }}  size 2  font mono  bold  invert  width auto\n    text {{ location.descriptive_identifier }}  size 1.33"
+ },
+ {
+  "name": "Artikel",
+  "subject_type": "item",
   "label_width": null,
   "label_height": 12.0,
   "is_active": true,
@@ -493,30 +512,11 @@
   "background_color": "weiß",
   "rules": [
    [
-    "",
-    1
-   ]
-  ],
-  "description": "# Locations on 12 mm tape, as long as the path needs: QR code, code, name and path\r\nlabel height 12  margin 0 0.5\r\nrow  gap 1\r\n  qr {{ qr }}  quiet 1\r\n  column  gap 0.5\r\n    text {{ location.unique_identifier }}  size 2  font mono  bold  invert\r\n    text \"{% if location.purpose %}{{ location.purpose }}{% else %}{{ location.name }}{% endif %}\"  size 2.67  font condensed\r\n    text {{ location.descriptive_identifier }}  size 1.33"
- },
- {
-  "name": "Name, Preis und QR-Code",
-  "subject_type": "item",
-  "label_width": null,
-  "label_height": 12.0,
-  "is_active": true,
-  "quality": "standard",
-  "label_stock": null,
-  "material": "",
-  "print_color": "schwarz",
-  "background_color": "weiß",
-  "rules": [
-   [
     "item.kind == \"bulk\"",
     1
    ]
   ],
-  "description": "# Bulk items on 12 mm tape, as long as the name needs: QR code, name, price\nlabel height 12  margin 1 0.5\nrow  gap 1\n  qr {{ qr }}  quiet 1\n  column  align left\n    text {{ item.name|default:'_______________' }}  bold  height 55%\n    row  border 0.3  shape bulge  padding 0.1 0  width auto  height 45%\n      text \"{% if item.sale_price is not None %}€ {{ item.sale_price|floatformat:2 }}{% else %}{{ ''|ljust:10 }}{% endif %}\"  font condensed  bold\n      text \"{% if item.sale_price is not None %}/ {{ item.measurement_unit.short }}{% endif %}\"  font condensed  height 45%  margin 0 0 0 0.5  bottom\n"
+  "description": "# Bulk items on 12 mm tape, as long as the name needs: QR code, name, price\nlabel height 12  margin 1 2.5 1 1.5\nrow  gap 1\n  qr {{ qr }}  quiet 1\n  column  align left\n    text {{ item.name|default:'_______________' }}  bold  height 55%\n    row  border 0.3  shape bulge  padding 0.1 0  width auto  height 45%\n      text \"{% if item.sale_price is not None %}€ {{ item.sale_price|floatformat:2 }}{% else %}{{ ''|ljust:10 }}{% endif %}\"  font condensed  bold\n      text \"{% if item.sale_price is not None %}/ {{ item.measurement_unit.short }}{% endif %}\"  font condensed  height 45%  margin 0 0 0 0.5  bottom\n"
  },
  {
   "name": "ZAMid",
@@ -528,17 +528,17 @@
   "label_stock": null,
   "material": "",
   "print_color": "schwarz",
-  "background_color": "weiß",
+  "background_color": "",
   "rules": [
    [
     "",
     2
    ]
   ],
-  "description": "# ZAMid on 12 mm tape, like the Brother design: the name turned, the QR code, the ID in two lines\nlabel height 12  margin 1\nrow  gap 0.96\n  text {{ label_id_name }}  rotate 270  font sans  weight 800\n  qr {{ qr }}  quiet 1\n  column\n    text {{ label_id.code|slice:\":3\" }}  font mono  bold  center\n    line  thickness 0.3  width 2.64\n    text {{ label_id.code|slice:\"3:\" }}  font mono  bold  center\n"
+  "description": "# ZAMid on 12 mm tape, like the Brother design: the name turned, the QR code, the ID in two lines\nlabel height 12  margin 1 3 1 1\nrow  gap 0.96\n  text {{ label_id_name }}  rotate 270  font sans  weight 800\n  qr {{ qr }}  quiet 1\n  column\n    text {{ label_id.code|slice:\":3\" }}  font mono  bold  center\n    line  thickness 0.3  width 2.64\n    text {{ label_id.code|slice:\"3:\" }}  font mono  bold  center\n"
  },
  {
-  "name": "QR-Code, Kennung, Name und Ort",
+  "name": "Ort",
   "subject_type": "location",
   "label_width": null,
   "label_height": 18.0,
@@ -547,17 +547,17 @@
   "label_stock": null,
   "material": "",
   "print_color": "schwarz",
-  "background_color": "weiß",
+  "background_color": "",
   "rules": [
    [
     "",
     1
    ]
   ],
-  "description": "# Locations on 18 mm tape, as long as the path needs: QR code, code, name and path\r\nlabel height 18  margin 0 0.5\r\nrow  gap 1\r\n  qr {{ qr }}  quiet 1\r\n  column  gap 0.5\r\n    text {{ location.unique_identifier }}  size 3  font mono  bold  invert\r\n    text \"{% if location.purpose %}{{ location.purpose }}{% else %}{{ location.name }}{% endif %}\"  size 4  font condensed\r\n    text {{ location.descriptive_identifier }}  size 2"
+  "description": "# Locations on 18 mm tape, as long as the path needs: QR code, title (purpose, else name), code and path\nlabel height 18  margin 0 2.5 0 1.5\nrow  gap 1\n  qr {{ qr }}  quiet 1\n  column  gap 0.5  align left\n    text {{ location.title }}  size 4  font condensed  bold\n    text {{ location.unique_identifier }}  size 3  font mono  bold  invert  width auto\n    text {{ location.descriptive_identifier }}  size 2"
  },
  {
-  "name": "Name, Preis und QR-Code",
+  "name": "Artikel",
   "subject_type": "item",
   "label_width": null,
   "label_height": 18.0,
@@ -573,7 +573,7 @@
     1
    ]
   ],
-  "description": "# Bulk items on 18 mm tape, as long as the name needs: QR code, name, price\nlabel height 18  margin 1 0.5\nrow  gap 1\n  qr {{ qr }}  quiet 1\n  column  align left\n    text {{ item.name|default:'_______________' }}  bold  height 55%\n    row  border 0.3  shape bulge  padding 0.1 0  width auto  height 45%\n      text \"{% if item.sale_price is not None %}€ {{ item.sale_price|floatformat:2 }}{% else %}{{ ''|ljust:10 }}{% endif %}\"  font condensed  bold\n      text \"{% if item.sale_price is not None %}/ {{ item.measurement_unit.short }}{% endif %}\"  font condensed  height 45%  margin 0 0 0 0.5  bottom\n"
+  "description": "# Bulk items on 18 mm tape, as long as the name needs: QR code, name, price\nlabel height 18  margin 1 2.5 1 1.5\nrow  gap 1\n  qr {{ qr }}  quiet 1\n  column  align left\n    text {{ item.name|default:'_______________' }}  bold  height 55%\n    row  border 0.3  shape bulge  padding 0.1 0  width auto  height 45%\n      text \"{% if item.sale_price is not None %}€ {{ item.sale_price|floatformat:2 }}{% else %}{{ ''|ljust:10 }}{% endif %}\"  font condensed  bold\n      text \"{% if item.sale_price is not None %}/ {{ item.measurement_unit.short }}{% endif %}\"  font condensed  height 45%  margin 0 0 0 0.5  bottom\n"
  },
  {
   "name": "ZAMid",
@@ -585,17 +585,17 @@
   "label_stock": null,
   "material": "",
   "print_color": "schwarz",
-  "background_color": "weiß",
+  "background_color": "",
   "rules": [
    [
     "",
     2
    ]
   ],
-  "description": "# ZAMid on 18 mm tape, like the Brother design: the name turned, the QR code, the ID in two lines\nlabel height 18  margin 1\nrow  gap 1.44\n  text {{ label_id_name }}  rotate 270  font sans  weight 800\n  qr {{ qr }}  quiet 1\n  column\n    text {{ label_id.code|slice:\":3\" }}  font mono  bold  center\n    line  thickness 0.45  width 3.96\n    text {{ label_id.code|slice:\"3:\" }}  font mono  bold  center\n"
+  "description": "# ZAMid on 18 mm tape, like the Brother design: the name turned, the QR code, the ID in two lines\nlabel height 18  margin 1 3 1 1\nrow  gap 1.44\n  text {{ label_id_name }}  rotate 270  font sans  weight 800\n  qr {{ qr }}  quiet 1\n  column\n    text {{ label_id.code|slice:\":3\" }}  font mono  bold  center\n    line  thickness 0.45  width 3.96\n    text {{ label_id.code|slice:\"3:\" }}  font mono  bold  center\n"
  },
  {
-  "name": "QR-Code, Kennung, Name und Ort",
+  "name": "Ort",
   "subject_type": "location",
   "label_width": null,
   "label_height": 24.0,
@@ -604,17 +604,17 @@
   "label_stock": null,
   "material": "",
   "print_color": "schwarz",
-  "background_color": "weiß",
+  "background_color": "",
   "rules": [
    [
     "",
     1
    ]
   ],
-  "description": "# Locations on 24 mm tape, as long as the path needs: QR code, code, name and path\r\nlabel height 24  margin 0 0.5\r\nrow  gap 1\r\n  qr {{ qr }}  quiet 1\r\n  column  gap 0.5\r\n    text {{ location.unique_identifier }}  size 4  font mono  bold  invert\r\n    text \"{% if location.purpose %}{{ location.purpose }}{% else %}{{ location.name }}{% endif %}\"  size 5.33  font condensed\r\n    text {{ location.descriptive_identifier }}  size 2.67"
+  "description": "# Locations on 24 mm tape, as long as the path needs: QR code, title (purpose, else name), code and path\nlabel height 24  margin 0 2.5 0 1.5\nrow  gap 1\n  qr {{ qr }}  quiet 1\n  column  gap 0.5  align left\n    text {{ location.title }}  size 5.33  font condensed  bold\n    text {{ location.unique_identifier }}  size 4  font mono  bold  invert  width auto\n    text {{ location.descriptive_identifier }}  size 2.67"
  },
  {
-  "name": "Name, Preis und QR-Code",
+  "name": "Artikel",
   "subject_type": "item",
   "label_width": null,
   "label_height": 24.0,
@@ -630,7 +630,7 @@
     1
    ]
   ],
-  "description": "# Bulk items on 24 mm tape, as long as the name needs: QR code, name, price\nlabel height 24  margin 1 0.5\nrow  gap 1\n  qr {{ qr }}  quiet 1\n  column  align left\n    text {{ item.name|default:'_______________' }}  bold  height 55%\n    row  border 0.3  shape bulge  padding 0.1 0  width auto  height 45%\n      text \"{% if item.sale_price is not None %}€ {{ item.sale_price|floatformat:2 }}{% else %}{{ ''|ljust:10 }}{% endif %}\"  font condensed  bold\n      text \"{% if item.sale_price is not None %}/ {{ item.measurement_unit.short }}{% endif %}\"  font condensed  height 45%  margin 0 0 0 0.5  bottom\n"
+  "description": "# Bulk items on 24 mm tape, as long as the name needs: QR code, name, price\nlabel height 24  margin 1 2.5 1 1.5\nrow  gap 1\n  qr {{ qr }}  quiet 1\n  column  align left\n    text {{ item.name|default:'_______________' }}  bold  height 55%\n    row  border 0.3  shape bulge  padding 0.1 0  width auto  height 45%\n      text \"{% if item.sale_price is not None %}€ {{ item.sale_price|floatformat:2 }}{% else %}{{ ''|ljust:10 }}{% endif %}\"  font condensed  bold\n      text \"{% if item.sale_price is not None %}/ {{ item.measurement_unit.short }}{% endif %}\"  font condensed  height 45%  margin 0 0 0 0.5  bottom\n"
  },
  {
   "name": "ZAMid",
@@ -642,17 +642,17 @@
   "label_stock": null,
   "material": "",
   "print_color": "schwarz",
-  "background_color": "weiß",
+  "background_color": "",
   "rules": [
    [
     "",
     2
    ]
   ],
-  "description": "# ZAMid on 24 mm tape, like the Brother design: the name turned, the QR code, the ID in two lines\nlabel height 24  margin 1\nrow  gap 1.92\n  text {{ label_id_name }}  rotate 270  font sans  weight 800\n  qr {{ qr }}  quiet 1\n  column\n    text {{ label_id.code|slice:\":3\" }}  font mono  bold  center\n    line  thickness 0.6  width 5.28\n    text {{ label_id.code|slice:\"3:\" }}  font mono  bold  center\n"
+  "description": "# ZAMid on 24 mm tape, like the Brother design: the name turned, the QR code, the ID in two lines\nlabel height 24  margin 1 3 1 1\nrow  gap 1.92\n  text {{ label_id_name }}  rotate 270  font sans  weight 800\n  qr {{ qr }}  quiet 1\n  column\n    text {{ label_id.code|slice:\":3\" }}  font mono  bold  center\n    line  thickness 0.6  width 5.28\n    text {{ label_id.code|slice:\"3:\" }}  font mono  bold  center\n"
  },
  {
-  "name": "QR-Code, Kennung, Name und Ort",
+  "name": "Ort",
   "subject_type": "location",
   "label_width": null,
   "label_height": 36.0,
@@ -661,17 +661,17 @@
   "label_stock": null,
   "material": "",
   "print_color": "schwarz",
-  "background_color": "weiß",
+  "background_color": "",
   "rules": [
    [
     "",
     1
    ]
   ],
-  "description": "# Locations on 36 mm tape, as long as the path needs: QR code, code, name and path\r\nlabel height 36  margin 0 0.5\r\nrow  gap 1\r\n  qr {{ qr }}  quiet 1\r\n  column  gap 0.5\r\n    text {{ location.unique_identifier }}  size 6  font mono  bold  invert\r\n    text \"{% if location.purpose %}{{ location.purpose }}{% else %}{{ location.name }}{% endif %}\"  size 8  font condensed\r\n    text {{ location.descriptive_identifier }}  size 4"
+  "description": "# Locations on 36 mm tape, as long as the path needs: QR code, title (purpose, else name), code and path\nlabel height 36  margin 0 2.5 0 1.5\nrow  gap 1\n  qr {{ qr }}  quiet 1\n  column  gap 0.5  align left\n    text {{ location.title }}  size 8  font condensed  bold\n    text {{ location.unique_identifier }}  size 6  font mono  bold  invert  width auto\n    text {{ location.descriptive_identifier }}  size 4"
  },
  {
-  "name": "Name, Preis und QR-Code",
+  "name": "Artikel",
   "subject_type": "item",
   "label_width": null,
   "label_height": 36.0,
@@ -687,7 +687,7 @@
     1
    ]
   ],
-  "description": "# Bulk items on 36 mm tape, as long as the name needs: QR code, name, price\nlabel height 36  margin 1 0.5\nrow  gap 1\n  qr {{ qr }}  quiet 1\n  column  align left\n    text {{ item.name|default:'_______________' }}  bold  height 55%\n    row  border 0.3  shape bulge  padding 0.1 0  width auto  height 45%\n      text \"{% if item.sale_price is not None %}€ {{ item.sale_price|floatformat:2 }}{% else %}{{ ''|ljust:10 }}{% endif %}\"  font condensed  bold\n      text \"{% if item.sale_price is not None %}/ {{ item.measurement_unit.short }}{% endif %}\"  font condensed  height 45%  margin 0 0 0 0.5  bottom\n"
+  "description": "# Bulk items on 36 mm tape, as long as the name needs: QR code, name, price\nlabel height 36  margin 1 2.5 1 1.5\nrow  gap 1\n  qr {{ qr }}  quiet 1\n  column  align left\n    text {{ item.name|default:'_______________' }}  bold  height 55%\n    row  border 0.3  shape bulge  padding 0.1 0  width auto  height 45%\n      text \"{% if item.sale_price is not None %}€ {{ item.sale_price|floatformat:2 }}{% else %}{{ ''|ljust:10 }}{% endif %}\"  font condensed  bold\n      text \"{% if item.sale_price is not None %}/ {{ item.measurement_unit.short }}{% endif %}\"  font condensed  height 45%  margin 0 0 0 0.5  bottom\n"
  },
  {
   "name": "ZAMid",
@@ -699,17 +699,17 @@
   "label_stock": null,
   "material": "",
   "print_color": "schwarz",
-  "background_color": "weiß",
+  "background_color": "",
   "rules": [
    [
     "",
     2
    ]
   ],
-  "description": "# ZAMid on 36 mm tape, like the Brother design: the name turned, the QR code, the ID in two lines\nlabel height 36  margin 1\nrow  gap 2.88\n  text {{ label_id_name }}  rotate 270  font sans  weight 800\n  qr {{ qr }}  quiet 1\n  column\n    text {{ label_id.code|slice:\":3\" }}  font mono  bold  center\n    line  thickness 0.9  width 7.92\n    text {{ label_id.code|slice:\"3:\" }}  font mono  bold  center\n"
+  "description": "# ZAMid on 36 mm tape, like the Brother design: the name turned, the QR code, the ID in two lines\nlabel height 36  margin 1 3 1 1\nrow  gap 2.88\n  text {{ label_id_name }}  rotate 270  font sans  weight 800\n  qr {{ qr }}  quiet 1\n  column\n    text {{ label_id.code|slice:\":3\" }}  font mono  bold  center\n    line  thickness 0.9  width 7.92\n    text {{ label_id.code|slice:\"3:\" }}  font mono  bold  center\n"
  },
  {
-  "name": "ZAMid mit Eigentum",
+  "name": "ZAMid, Fremdeigentum",
   "subject_type": "uniqueitem",
   "label_width": 57.0,
   "label_height": 32.0,
@@ -718,17 +718,17 @@
   "label_stock": null,
   "material": "",
   "print_color": "schwarz",
-  "background_color": "weiß",
+  "background_color": "",
   "rules": [
    [
     "unique_item.has_owner",
     3
    ]
   ],
-  "description": "# ZAMid of a unique item that is not the ZAM's, on 57 × 32 mm labels: the ZAMid design, below it\n# the owner\nlabel 57 x 32  margin 1.5\nrow  gap 1.5  height 75%\n  text {{ label_id_name }}  rotate 270  font sans  weight 800\n  qr {{ qr }}  quiet 1\n  column\n    text {{ label_id.code|slice:\":3\" }}  font mono  bold  center\n    line  thickness 0.64  width 7.68\n    text {{ label_id.code|slice:\"3:\" }}  font mono  bold  center\ntext \"Eigentum: {{ unique_item.owner_first_name_display }}\"  font condensed  bold  center\n"
+  "description": "# ZAMid of a unique item that is not the ZAM's (Fremdeigentum), on 57 × 32 mm labels: the ZAMid design, below it\n# the owner\nlabel 57 x 32  margin 1.5\nrow  gap 1.5  height 75%\n  text {{ label_id_name }}  rotate 270  font sans  weight 800\n  qr {{ qr }}  quiet 1\n  column\n    text {{ label_id.code|slice:\":3\" }}  font mono  bold  center\n    line  thickness 0.64  width 7.68\n    text {{ label_id.code|slice:\"3:\" }}  font mono  bold  center\ntext \"Fremdeigentum: {{ unique_item.owner_first_name_display }}\"  font condensed  bold  center\n"
  },
  {
-  "name": "ZAMid mit Eigentum",
+  "name": "ZAMid, Fremdeigentum",
   "subject_type": "uniqueitem",
   "label_width": 60.0,
   "label_height": 30.0,
@@ -737,17 +737,17 @@
   "label_stock": null,
   "material": "",
   "print_color": "schwarz",
-  "background_color": "weiß",
+  "background_color": "",
   "rules": [
    [
     "unique_item.has_owner",
     3
    ]
   ],
-  "description": "# ZAMid of a unique item that is not the ZAM's, on 60 × 30 mm labels: the ZAMid design, below it\n# the owner\nlabel 60 x 30  margin 1.5\nrow  gap 1.5  height 75%\n  text {{ label_id_name }}  rotate 270  font sans  weight 800\n  qr {{ qr }}  quiet 1\n  column\n    text {{ label_id.code|slice:\":3\" }}  font mono  bold  center\n    line  thickness 0.6  width 7.2\n    text {{ label_id.code|slice:\"3:\" }}  font mono  bold  center\ntext \"Eigentum: {{ unique_item.owner_first_name_display }}\"  font condensed  bold  center\n"
+  "description": "# ZAMid of a unique item that is not the ZAM's (Fremdeigentum), on 60 × 30 mm labels: the ZAMid design, below it\n# the owner\nlabel 60 x 30  margin 1.5\nrow  gap 1.5  height 75%\n  text {{ label_id_name }}  rotate 270  font sans  weight 800\n  qr {{ qr }}  quiet 1\n  column\n    text {{ label_id.code|slice:\":3\" }}  font mono  bold  center\n    line  thickness 0.6  width 7.2\n    text {{ label_id.code|slice:\"3:\" }}  font mono  bold  center\ntext \"Fremdeigentum: {{ unique_item.owner_first_name_display }}\"  font condensed  bold  center\n"
  },
  {
-  "name": "ZAMid mit Eigentum",
+  "name": "ZAMid, Fremdeigentum",
   "subject_type": "uniqueitem",
   "label_width": 70.0,
   "label_height": 32.0,
@@ -756,17 +756,17 @@
   "label_stock": null,
   "material": "",
   "print_color": "schwarz",
-  "background_color": "weiß",
+  "background_color": "",
   "rules": [
    [
     "unique_item.has_owner",
     3
    ]
   ],
-  "description": "# ZAMid of a unique item that is not the ZAM's, on 70 × 32 mm labels: the ZAMid design, below it\n# the owner\nlabel 70 x 32  margin 1.5\nrow  gap 1.5  height 75%\n  text {{ label_id_name }}  rotate 270  font sans  weight 800\n  qr {{ qr }}  quiet 1\n  column\n    text {{ label_id.code|slice:\":3\" }}  font mono  bold  center\n    line  thickness 0.64  width 7.68\n    text {{ label_id.code|slice:\"3:\" }}  font mono  bold  center\ntext \"Eigentum: {{ unique_item.owner_first_name_display }}\"  font condensed  bold  center\n"
+  "description": "# ZAMid of a unique item that is not the ZAM's (Fremdeigentum), on 70 × 32 mm labels: the ZAMid design, below it\n# the owner\nlabel 70 x 32  margin 1.5\nrow  gap 1.5  height 75%\n  text {{ label_id_name }}  rotate 270  font sans  weight 800\n  qr {{ qr }}  quiet 1\n  column\n    text {{ label_id.code|slice:\":3\" }}  font mono  bold  center\n    line  thickness 0.64  width 7.68\n    text {{ label_id.code|slice:\"3:\" }}  font mono  bold  center\ntext \"Fremdeigentum: {{ unique_item.owner_first_name_display }}\"  font condensed  bold  center\n"
  },
  {
-  "name": "ZAMid mit Eigentum",
+  "name": "ZAMid, Fremdeigentum",
   "subject_type": "uniqueitem",
   "label_width": 105.0,
   "label_height": 52.0,
@@ -775,17 +775,17 @@
   "label_stock": null,
   "material": "",
   "print_color": "schwarz",
-  "background_color": "weiß",
+  "background_color": "",
   "rules": [
    [
     "unique_item.has_owner",
     3
    ]
   ],
-  "description": "# ZAMid of a unique item that is not the ZAM's, on 105 × 52 mm labels: the ZAMid design, below it\n# the owner\nlabel 105 x 52  margin 1.5\nrow  gap 1.5  height 75%\n  text {{ label_id_name }}  rotate 270  font sans  weight 800\n  qr {{ qr }}  quiet 1\n  column\n    text {{ label_id.code|slice:\":3\" }}  font mono  bold  center\n    line  thickness 1.04  width 12.48\n    text {{ label_id.code|slice:\"3:\" }}  font mono  bold  center\ntext \"Eigentum: {{ unique_item.owner_first_name_display }}\"  font condensed  bold  center\n"
+  "description": "# ZAMid of a unique item that is not the ZAM's (Fremdeigentum), on 105 × 52 mm labels: the ZAMid design, below it\n# the owner\nlabel 105 x 52  margin 1.5\nrow  gap 1.5  height 75%\n  text {{ label_id_name }}  rotate 270  font sans  weight 800\n  qr {{ qr }}  quiet 1\n  column\n    text {{ label_id.code|slice:\":3\" }}  font mono  bold  center\n    line  thickness 1.04  width 12.48\n    text {{ label_id.code|slice:\"3:\" }}  font mono  bold  center\ntext \"Fremdeigentum: {{ unique_item.owner_first_name_display }}\"  font condensed  bold  center\n"
  },
  {
-  "name": "ZAMid mit Eigentum",
+  "name": "ZAMid, Fremdeigentum",
   "subject_type": "uniqueitem",
   "label_width": null,
   "label_height": 9.0,
@@ -794,17 +794,17 @@
   "label_stock": null,
   "material": "",
   "print_color": "schwarz",
-  "background_color": "weiß",
+  "background_color": "",
   "rules": [
    [
     "unique_item.has_owner",
     3
    ]
   ],
-  "description": "# ZAMid of a unique item that is not the ZAM's, on 9 mm tape: the ZAMid design and the owner\r\nlabel height 9  margin 1\r\nrow  gap 0.72\r\n  text {{ label_id_name }}  rotate 270  font sans  weight 800\r\n  qr {{ qr }} quiet 0\r\n  column\r\n    text {{ label_id.code|slice:\":3\" }}  font mono  bold  center\r\n    line  thickness 0.23  width 1.98\r\n    text {{ label_id.code|slice:\"3:\" }}  font mono  bold  center\r\n  column  align left\r\n    text \"Eigentum\"  font condensed  height 35%\r\n    text {{ unique_item.owner_first_name_display }}  font condensed  bold  height 55%"
+  "description": "# ZAMid of a unique item that is not the ZAM's (Fremdeigentum), on 9 mm tape: the ZAMid design and the owner\nlabel height 9  margin 1 3 1 1\nrow  gap 0.72\n  text {{ label_id_name }}  rotate 270  font sans  weight 800\n  qr {{ qr }} quiet 0\n  column\n    text {{ label_id.code|slice:\":3\" }}  font mono  bold  center\n    line  thickness 0.23  width 1.98\n    text {{ label_id.code|slice:\"3:\" }}  font mono  bold  center\n  column  align left\n    text \"Fremdeigentum\"  font condensed  height 35%\n    text {{ unique_item.owner_first_name_display }}  font condensed  bold  height 55%"
  },
  {
-  "name": "ZAMid mit Eigentum",
+  "name": "ZAMid, Fremdeigentum",
   "subject_type": "uniqueitem",
   "label_width": null,
   "label_height": 12.0,
@@ -813,19 +813,756 @@
   "label_stock": null,
   "material": "",
   "print_color": "schwarz",
-  "background_color": "weiß",
+  "background_color": "",
+  "rules": [
+   [
+    "unique_item.has_owner",
+    4
+   ]
+  ],
+  "description": "# ZAMid of a unique item that is not the ZAM's (Fremdeigentum), on 12 mm tape: the ZAMid design, right of it\n# \"Fremdeigentum\" above the owner in two lines\nlabel height 12  margin 1 3 1 1\nrow  gap 0.96\n  text {{ label_id_name }}  rotate 270  font sans  weight 800\n  qr {{ qr }}  quiet 1\n  column  width auto  align center\n    text {{ label_id.code|slice:\":3\" }}  font mono  bold  left\n    line  thickness 0.3  width 2.64\n    text {{ label_id.code|slice:\"3:\" }}  font mono  bold  left\n  column  gap 0.3  align left  width 20  margin 0 0 0 0.7\n    text \"Fremdeigentum\"  font condensed  bold  height 2.3\n    text {{ unique_item.owner_first_name_display }}  font condensed  bold  lines 2\n"
+ },
+ {
+  "name": "ZAMid, Fremdeigentum",
+  "subject_type": "uniqueitem",
+  "label_width": null,
+  "label_height": 18.0,
+  "is_active": true,
+  "quality": "standard",
+  "label_stock": null,
+  "material": "",
+  "print_color": "schwarz",
+  "background_color": "",
+  "rules": [
+   [
+    "unique_item.has_owner",
+    4
+   ]
+  ],
+  "description": "# ZAMid of a unique item that is not the ZAM's (Fremdeigentum), on 18 mm tape: the ZAMid design, right of it\n# \"Fremdeigentum\" above the owner in two lines\nlabel height 18  margin 1 3 1 1\nrow  gap 1.44\n  text {{ label_id_name }}  rotate 270  font sans  weight 800\n  qr {{ qr }}  quiet 1\n  column  width auto  align center\n    text {{ label_id.code|slice:\":3\" }}  font mono  bold  left\n    line  thickness 0.45  width 3.96\n    text {{ label_id.code|slice:\"3:\" }}  font mono  bold  left\n  column  gap 0.5  align left  width 28  margin 0 0 0 1\n    text \"Fremdeigentum\"  font condensed  bold  height 3.5\n    text {{ unique_item.owner_first_name_display }}  font condensed  bold  lines 2\n"
+ },
+ {
+  "name": "ZAMid, Fremdeigentum",
+  "subject_type": "uniqueitem",
+  "label_width": null,
+  "label_height": 24.0,
+  "is_active": true,
+  "quality": "standard",
+  "label_stock": null,
+  "material": "",
+  "print_color": "schwarz",
+  "background_color": "",
   "rules": [
    [
     "unique_item.has_owner",
     3
    ]
   ],
-  "description": "# ZAMid of a unique item that is not the ZAM's, on 12 mm tape: the ZAMid design and the owner\nlabel height 12  margin 1\nrow  gap 0.96\n  text {{ label_id_name }}  rotate 270  font sans  weight 800\n  qr {{ qr }}  quiet 1\n  column\n    text {{ label_id.code|slice:\":3\" }}  font mono  bold  center\n    line  thickness 0.3  width 2.64\n    text {{ label_id.code|slice:\"3:\" }}  font mono  bold  center\n  column  align left\n    text \"Eigentum\"  font condensed  height 35%\n    text {{ unique_item.owner_first_name_display }}  font condensed  bold  height 55%\n"
+  "description": "# ZAMid of a unique item that is not the ZAM's (Fremdeigentum), on 24 mm tape: the ZAMid design and the owner\nlabel height 24  margin 1 3 1 1\nrow  gap 1.92\n  text {{ label_id_name }}  rotate 270  font sans  weight 800\n  qr {{ qr }}  quiet 1\n  column\n    text {{ label_id.code|slice:\":3\" }}  font mono  bold  center\n    line  thickness 0.6  width 5.28\n    text {{ label_id.code|slice:\"3:\" }}  font mono  bold  center\n  column  align left\n    text \"Fremdeigentum\"  font condensed  height 35%\n    text {{ unique_item.owner_first_name_display }}  font condensed  bold  height 55%\n"
  },
  {
-  "name": "ZAMid mit Eigentum",
+  "name": "ZAMid, Fremdeigentum",
   "subject_type": "uniqueitem",
   "label_width": null,
+  "label_height": 36.0,
+  "is_active": true,
+  "quality": "standard",
+  "label_stock": null,
+  "material": "",
+  "print_color": "schwarz",
+  "background_color": "",
+  "rules": [
+   [
+    "unique_item.has_owner",
+    3
+   ]
+  ],
+  "description": "# ZAMid of a unique item that is not the ZAM's (Fremdeigentum), on 36 mm tape: the ZAMid design and the owner\nlabel height 36  margin 1 3 1 1\nrow  gap 2.88\n  text {{ label_id_name }}  rotate 270  font sans  weight 800\n  qr {{ qr }}  quiet 1\n  column\n    text {{ label_id.code|slice:\":3\" }}  font mono  bold  center\n    line  thickness 0.9  width 7.92\n    text {{ label_id.code|slice:\"3:\" }}  font mono  bold  center\n  column  align left\n    text \"Fremdeigentum\"  font condensed  height 35%\n    text {{ unique_item.owner_first_name_display }}  font condensed  bold  height 55%\n"
+ },
+ {
+  "name": "Lagermöbel",
+  "replaces": null,
+  "subject_type": "location",
+  "label_width": 55.0,
+  "label_height": 15.0,
+  "is_active": false,
+  "quality": "standard",
+  "label_stock": null,
+  "material": "",
+  "print_color": "schwarz",
+  "background_color": "",
+  "rules": [
+   [
+    "location.type.category == \"storage_unit\"",
+    3
+   ],
+   [
+    "",
+    0
+   ]
+  ],
+  "description": "# Permanent places (shelf levels, compartments, small boxes), 55 × 15 mm yellow polyester: QR code, code\n# and title\nlabel 55 x 15  margin 1 1 1 2.4\nrow  gap 1.5\n  qr {{ qr }}  quiet 1\n  column  gap 0.5  align left\n    text {{ location.unique_identifier }}  font mono  bold  invert  height 55%  width auto\n    text {{ location.title }}  font condensed  bold  height 40%\n"
+ },
+ {
+  "name": "Regalboden, Pfeil hoch",
+  "replaces": null,
+  "subject_type": "location",
+  "label_width": 55.0,
+  "label_height": 15.0,
+  "is_active": false,
+  "quality": "standard",
+  "label_stock": null,
+  "material": "",
+  "print_color": "schwarz",
+  "background_color": "",
+  "rules": [
+   [
+    "location.type.name == \"Fach\"",
+    2
+   ],
+   [
+    "",
+    0
+   ]
+  ],
+  "description": "# Permanent places, 55 × 15 mm yellow polyester; arrow up to the shelf level above, right of the code, halfway between\n# the code's end and the edge\nlabel 55 x 15  margin 1 1 1 2.4\nrow  gap 1.5\n  qr {{ qr }}  quiet 1\n  column  gap 0.5  align left\n    row  height 55%\n      text {{ location.unique_identifier }}  font mono  bold  invert\n      space\n      arrow up  width 5  height 4\n      space\n    text {{ location.title }}  font condensed  bold  height 40%\n"
+ },
+ {
+  "name": "Regalboden, Pfeil runter",
+  "replaces": null,
+  "subject_type": "location",
+  "label_width": 55.0,
+  "label_height": 15.0,
+  "is_active": false,
+  "quality": "standard",
+  "label_stock": null,
+  "material": "",
+  "print_color": "schwarz",
+  "background_color": "",
+  "rules": [
+   [
+    "location.type.name == \"Fach\"",
+    2
+   ],
+   [
+    "",
+    0
+   ]
+  ],
+  "description": "# Permanent places, 55 × 15 mm yellow polyester; arrow down to the shelf level below, right of the code, halfway between\n# the code's end and the edge\nlabel 55 x 15  margin 1 1 1 2.4\nrow  gap 1.5\n  qr {{ qr }}  quiet 1\n  column  gap 0.5  align left\n    row  height 55%\n      text {{ location.unique_identifier }}  font mono  bold  invert\n      space\n      arrow down  width 5  height 4\n      space\n    text {{ location.title }}  font condensed  bold  height 40%\n"
+ },
+ {
+  "name": "Sortimentsfach",
+  "replaces": null,
+  "subject_type": "location",
+  "label_width": 15.0,
+  "label_height": 6.35,
+  "is_active": false,
+  "quality": "standard",
+  "label_stock": null,
+  "material": "",
+  "print_color": "schwarz",
+  "background_color": "",
+  "rules": [
+   [
+    "",
+    0
+   ]
+  ],
+  "description": "# Compartments of assortment boxes, 15 × 6.35 mm yellow polyester: only the code, readable\nlabel 15 x 6.35  margin 0.5\ntext {{ location.unique_identifier }}  font mono  bold  center\n"
+ },
+ {
+  "name": "ZAMid",
+  "replaces": null,
+  "subject_type": "labelid",
+  "label_width": 55.0,
+  "label_height": 15.0,
+  "is_active": true,
+  "quality": "standard",
+  "label_stock": null,
+  "material": "",
+  "print_color": "schwarz",
+  "background_color": "",
+  "rules": [
+   [
+    "",
+    3
+   ]
+  ],
+  "description": "# ZAMid on 55 × 15 mm yellow polyester, the standard for the ZAM's things: the name turned, the QR code, the ID\n# in two lines; right \"Eigentum\" above the ZAM logo (without the wordmark)\nlabel 55 x 15  margin 1\nrow  gap 1.5\n  text {{ label_id_name }}  rotate 270  font sans  weight 800\n  qr {{ qr }}  quiet 1\n  column  width auto\n    text {{ label_id.code|slice:\":3\" }}  font mono  bold  center\n    line  thickness 0.4  width 3.5\n    text {{ label_id.code|slice:\"3:\" }}  font mono  bold  center\n  column  gap 1  justify center  width 21\n    text \"Eigentum\"  font condensed  bold  center  height 3\n    image \"ZAM Logo ohne Wortmarke\"  height 6.5  margin 0 0 1 0\n"
+ },
+ {
+  "name": "ZAMid, Fremdeigentum",
+  "replaces": null,
+  "subject_type": "uniqueitem",
+  "label_width": 55.0,
+  "label_height": 15.0,
+  "is_active": true,
+  "quality": "standard",
+  "label_stock": null,
+  "material": "",
+  "print_color": "schwarz",
+  "background_color": "",
+  "rules": [
+   [
+    "unique_item.has_owner",
+    4
+   ]
+  ],
+  "description": "# ZAMid of a unique item that is not the ZAM's (Fremdeigentum), on 55 × 15 mm yellow polyester: the ZAMid\n# design and the owner, a long name in two lines\nlabel 55 x 15  margin 1\nrow  gap 1.2\n  text {{ label_id_name }}  rotate 270  font sans  weight 800\n  qr {{ qr }}  quiet 1\n  column  width auto  align center\n    text {{ label_id.code|slice:\":3\" }}  font mono  bold  left\n    line  thickness 0.4  width 3.5\n    text {{ label_id.code|slice:\"3:\" }}  font mono  bold  left\n  column  align left\n    text \"Fremdeigentum\"  font condensed  bold  height 3\n    text {{ unique_item.owner_first_name_display }}  font condensed  bold  lines 2\n"
+ },
+ {
+  "name": "Preisschild",
+  "replaces": null,
+  "subject_type": "item",
+  "label_width": 60.0,
+  "label_height": 40.0,
+  "is_active": false,
+  "quality": "standard",
+  "label_stock": null,
+  "material": "",
+  "print_color": "schwarz",
+  "background_color": "weiß",
+  "rules": [
+   [
+    "item.kind == \"bulk\" and item.sale_price is not None",
+    2
+   ]
+  ],
+  "description": "# Price tag for bulk items, 60 × 40 mm removable paper: the name across the whole label, below it the QR code and\n# the price large, the location below the price (both as high as the QR code)\nlabel 60 x 40  margin 1.5\ntext {{ item.name|default:'_______________' }}  font condensed  bold  lines 2  height 11\nrow  gap 2  margin 1 0 0 0\n  qr {{ qr }}  ecc M  max 23  quiet 1  left\n  column  gap 1.5  align left  height 23\n    row  border 0.5  shape bulge  padding 0.5 1  width auto  height 15\n      text \"€ {{ item.sale_price|floatformat:2 }}\"  font condensed  bold\n      text \"/ {{ item.measurement_unit.short }}\"  font condensed  size 3  margin 0 0 1 1  bottom\n    text {{ location.unique_identifier }}  font mono  bold  invert  height 6.5  width auto\n"
+ },
+ {
+  "name": "Kabel, Fahne bis 10,5 mm (3G1,5)",
+  "replaces": null,
+  "subject_type": "labelid",
+  "label_width": 55.0,
+  "label_height": 18.0,
+  "is_active": true,
+  "quality": "standard",
+  "label_stock": null,
+  "material": "",
+  "print_color": "schwarz",
+  "background_color": "",
+  "rules": [
+   [
+    "",
+    0
+   ]
+  ],
+  "description": "# Cable flag for cables up to 10.5 mm thick (H07RN-F 3G1,5), on 18 mm flexible tape\n# (TZe-FX641), on request (the cable wraps are the default): 21 mm around the cable, the ends stuck together back to\n# back; a QR code of the ZAMid on each side of the flag, fold lines, and around the cable the ID, the lettering and\n# the ID again, all upright, as on the cable wraps\nlabel 55 x 18  margin 0 1\nrow\n  qr {{ qr }}  quiet 1  max 14  width 16\n  line  thickness 0.15\n  space\n  row  gap 0.6  padding 0 0.3  width auto\n    text {{ label_id }}  rotate 270  font mono  bold  center  width 4\n    text {{ label_id_name }}  rotate 270  font sans  weight 800  center  width 5.8\n    text {{ label_id }}  rotate 270  font mono  bold  center  width 4\n  space\n  line  thickness 0.15\n  qr {{ qr }}  quiet 1  max 14  width 16\n"
+ },
+ {
+  "name": "Kabel, Fahne bis 12 mm (3G2,5, 5G1,5)",
+  "replaces": null,
+  "subject_type": "labelid",
+  "label_width": 57.0,
+  "label_height": 18.0,
+  "is_active": true,
+  "quality": "standard",
+  "label_stock": null,
+  "material": "",
+  "print_color": "schwarz",
+  "background_color": "",
+  "rules": [
+   [
+    "",
+    0
+   ]
+  ],
+  "description": "# Cable flag for cables up to 12 mm thick (H07RN-F 3G2,5 and 5G1,5), on 18 mm flexible tape\n# (TZe-FX641), on request (the cable wraps are the default): 23 mm around the cable, the ends stuck together back to\n# back; a QR code of the ZAMid on each side of the flag, fold lines, and around the cable the ID, the lettering and\n# the ID again, all upright, as on the cable wraps\nlabel 57 x 18  margin 0 1\nrow\n  qr {{ qr }}  quiet 1  max 14  width 16\n  line  thickness 0.15\n  space\n  row  gap 0.6  padding 0 0.3  width auto\n    text {{ label_id }}  rotate 270  font mono  bold  center  width 4\n    text {{ label_id_name }}  rotate 270  font sans  weight 800  center  width 5.8\n    text {{ label_id }}  rotate 270  font mono  bold  center  width 4\n  space\n  line  thickness 0.15\n  qr {{ qr }}  quiet 1  max 14  width 16\n"
+ },
+ {
+  "name": "Kabel, Fahne bis 14,5 mm (5G2,5, CEE 16 A)",
+  "replaces": null,
+  "subject_type": "labelid",
+  "label_width": 60.0,
+  "label_height": 18.0,
+  "is_active": true,
+  "quality": "standard",
+  "label_stock": null,
+  "material": "",
+  "print_color": "schwarz",
+  "background_color": "",
+  "rules": [
+   [
+    "",
+    0
+   ]
+  ],
+  "description": "# Cable flag for cables up to 14.5 mm thick (H07RN-F 5G2,5, CEE 16 A), on 18 mm flexible tape\n# (TZe-FX641), on request (the cable wraps are the default): 26 mm around the cable, the ends stuck together back to\n# back; a QR code of the ZAMid on each side of the flag, fold lines, and around the cable the ID, the lettering and\n# the ID again, all upright, as on the cable wraps\nlabel 60 x 18  margin 0 1\nrow\n  qr {{ qr }}  quiet 1  max 14  width 16\n  line  thickness 0.15\n  space\n  row  gap 0.6  padding 0 0.3  width auto\n    text {{ label_id }}  rotate 270  font mono  bold  center  width 4\n    text {{ label_id_name }}  rotate 270  font sans  weight 800  center  width 5.8\n    text {{ label_id }}  rotate 270  font mono  bold  center  width 4\n  space\n  line  thickness 0.15\n  qr {{ qr }}  quiet 1  max 14  width 16\n"
+ },
+ {
+  "name": "Kabel, Fahne bis 17 mm (5G4, CEE 32 A)",
+  "replaces": null,
+  "subject_type": "labelid",
+  "label_width": 62.0,
+  "label_height": 18.0,
+  "is_active": true,
+  "quality": "standard",
+  "label_stock": null,
+  "material": "",
+  "print_color": "schwarz",
+  "background_color": "",
+  "rules": [
+   [
+    "",
+    0
+   ]
+  ],
+  "description": "# Cable flag for cables up to 17 mm thick (H07RN-F 5G4, CEE 32 A), on 18 mm flexible tape\n# (TZe-FX641), on request (the cable wraps are the default): 28 mm around the cable, the ends stuck together back to\n# back; a QR code of the ZAMid on each side of the flag, fold lines, and around the cable the ID, the lettering and\n# the ID again, all upright, as on the cable wraps\nlabel 62 x 18  margin 0 1\nrow\n  qr {{ qr }}  quiet 1  max 14  width 16\n  line  thickness 0.15\n  space\n  row  gap 0.6  padding 0 0.3  width auto\n    text {{ label_id }}  rotate 270  font mono  bold  center  width 4\n    text {{ label_id_name }}  rotate 270  font sans  weight 800  center  width 5.8\n    text {{ label_id }}  rotate 270  font mono  bold  center  width 4\n  space\n  line  thickness 0.15\n  qr {{ qr }}  quiet 1  max 14  width 16\n"
+ },
+ {
+  "name": "Kabel, Fahne bis 19 mm (5G6, CEE 32 A)",
+  "replaces": null,
+  "subject_type": "labelid",
+  "label_width": 63.0,
+  "label_height": 18.0,
+  "is_active": true,
+  "quality": "standard",
+  "label_stock": null,
+  "material": "",
+  "print_color": "schwarz",
+  "background_color": "",
+  "rules": [
+   [
+    "",
+    0
+   ]
+  ],
+  "description": "# Cable flag for cables up to 19 mm thick (H07RN-F 5G6, CEE 32 A), on 18 mm flexible tape\n# (TZe-FX641), on request (the cable wraps are the default): 29 mm around the cable, the ends stuck together back to\n# back; a QR code of the ZAMid on each side of the flag, fold lines, and around the cable the ID, the lettering and\n# the ID again, all upright, as on the cable wraps\nlabel 63 x 18  margin 0 1\nrow\n  qr {{ qr }}  quiet 1  max 14  width 16\n  line  thickness 0.15\n  space\n  row  gap 0.6  padding 0 0.3  width auto\n    text {{ label_id }}  rotate 270  font mono  bold  center  width 4\n    text {{ label_id_name }}  rotate 270  font sans  weight 800  center  width 5.8\n    text {{ label_id }}  rotate 270  font mono  bold  center  width 4\n  space\n  line  thickness 0.15\n  qr {{ qr }}  quiet 1  max 14  width 16\n"
+ },
+ {
+  "replaces": null,
+  "is_active": true,
+  "quality": "standard",
+  "label_stock": null,
+  "material": "",
+  "print_color": "schwarz",
+  "background_color": "",
+  "name": "Kiste",
+  "subject_type": "location",
+  "label_width": 55.0,
+  "label_height": 15.0,
+  "rules": [
+   [
+    "location.type.name == \"Kiste\"",
+    2
+   ],
+   [
+    "",
+    0
+   ]
+  ],
+  "description": "# Small boxes and assortment boxes, 55 × 15 mm yellow polyester: QR code and code, right \"Eigentum\"\n# above the ZAM logo (without the wordmark), centred in the room right of them\nlabel 55 x 15  margin 1 1 1 2.4\nrow  gap 1.5\n  qr {{ qr }}  quiet 1\n  text {{ location.unique_identifier }}  font mono  bold  invert  height 8  width auto\n  space\n  column  gap 2  justify center  width 21\n    text \"Eigentum\"  font condensed  bold  center  height 3\n    image \"ZAM Logo ohne Wortmarke\"  height 6.5\n  space\n"
+ },
+ {
+  "replaces": null,
+  "is_active": true,
+  "quality": "standard",
+  "label_stock": null,
+  "material": "",
+  "print_color": "schwarz",
+  "background_color": "",
+  "name": "Karton",
+  "subject_type": "location",
+  "label_width": 70.0,
+  "label_height": 32.0,
+  "rules": [
+   [
+    "location.type.name == \"Karton\"",
+    3
+   ],
+   [
+    "",
+    0
+   ]
+  ],
+  "description": "# Cartons, 70 × 32 mm paper: QR code, title (purpose, else name) and code; no path, as they move\nlabel 70 x 32  margin 1.5\nrow  gap 2\n  qr {{ qr }}  max 31.5\n  column  gap 1.5  align left\n    text {{ location.title }}  font condensed  bold  lines 2  height 50%\n    text {{ location.unique_identifier }}  font mono  bold  invert  height 35%  width auto\n"
+ },
+ {
+  "name": "Regalboden, Pfeile zum Ausmalen",
+  "replaces": null,
+  "subject_type": "location",
+  "label_width": 55.0,
+  "label_height": 15.0,
+  "is_active": false,
+  "quality": "standard",
+  "label_stock": null,
+  "material": "",
+  "print_color": "schwarz",
+  "background_color": "",
+  "description": "# Shelf levels, 55 × 15 mm yellow polyester: QR code, code and title; right of the code an arrow up and an arrow\n# down as outlines, to colour in the one for the level the label is for\nlabel 55 x 15  margin 1 1 1 2.4\nrow  gap 1.5\n  qr {{ qr }}  quiet 1\n  column  gap 0.5  align left\n    row  height 55%\n      text {{ location.unique_identifier }}  font mono  bold  invert\n      space\n      arrow up  width 5  height 4  border 0.35\n      space 2\n      arrow down  width 5  height 4  border 0.35\n      space\n    text {{ location.title }}  font condensed  bold  height 40%\n",
+  "rules": [
+   [
+    "location.type.name == \"Fach\"",
+    4
+   ],
+   [
+    "",
+    0
+   ]
+  ]
+ },
+ {
+  "name": "Lagermöbel",
+  "replaces": null,
+  "subject_type": "location",
+  "label_width": null,
+  "label_height": 18.0,
+  "is_active": true,
+  "quality": "standard",
+  "label_stock": null,
+  "material": "",
+  "print_color": "schwarz",
+  "background_color": "weiß",
+  "description": "# Permanent places on white 18 mm tape (TZe-241), printed inverted (white on black, not yellow), for 2 cm boards\n# and where 70 × 32 mm does not fit, for storage units: QR code, code and title\nlabel height 18  margin 1 3 1 2  invert\nrow  gap 1.5\n  qr {{ qr }}  quiet 1\n  column  gap 0.5  align left\n    text {{ location.unique_identifier }}  font mono  bold  invert  height 55%  width auto\n    text {{ location.title }}  font condensed  bold  height 40%\n",
+  "rules": [
+   [
+    "location.type.category == \"storage_unit\"",
+    2
+   ],
+   [
+    "",
+    0
+   ]
+  ]
+ },
+ {
+  "name": "Regalboden, Pfeile zum Ausmalen",
+  "replaces": null,
+  "subject_type": "location",
+  "label_width": null,
+  "label_height": 18.0,
+  "is_active": true,
+  "quality": "standard",
+  "label_stock": null,
+  "material": "",
+  "print_color": "schwarz",
+  "background_color": "weiß",
+  "description": "# Permanent places on white 18 mm tape (TZe-241), printed inverted (white on black, not yellow), for 2 cm boards\n# and where 70 × 32 mm does not fit, for shelf levels: QR code, code and title; right of the code an arrow up and an arrow down as\n# light areas, to colour in (black) the one for the level the label is not for\nlabel height 18  margin 1 3 1 2  invert\nrow  gap 1.5\n  qr {{ qr }}  quiet 1\n  column  gap 0.5  align left\n    row  height 55%\n      text {{ location.unique_identifier }}  font mono  bold  invert\n      space 2\n      arrow up  width 5  height 4\n      space 2\n      arrow down  width 5  height 4\n    text {{ location.title }}  font condensed  bold  height 40%\n",
+  "rules": [
+   [
+    "location.type.name == \"Fach\"",
+    3
+   ],
+   [
+    "",
+    0
+   ]
+  ]
+ },
+ {
+  "name": "Regalboden, Pfeil hoch",
+  "replaces": null,
+  "subject_type": "location",
+  "label_width": null,
+  "label_height": 18.0,
+  "is_active": true,
+  "quality": "standard",
+  "label_stock": null,
+  "material": "",
+  "print_color": "schwarz",
+  "background_color": "weiß",
+  "description": "# Permanent places on white 18 mm tape (TZe-241), printed inverted (white on black, not yellow), for 2 cm boards\n# and where 70 × 32 mm does not fit, for shelf levels: QR code, code and title; right of the code an arrow up to the shelf level\n# above\nlabel height 18  margin 1 3 1 2  invert\nrow  gap 1.5\n  qr {{ qr }}  quiet 1\n  column  gap 0.5  align left\n    row  height 55%\n      text {{ location.unique_identifier }}  font mono  bold  invert\n      space 3\n      arrow up  width 5  height 4\n    text {{ location.title }}  font condensed  bold  height 40%\n",
+  "rules": [
+   [
+    "location.type.name == \"Fach\"",
+    1
+   ],
+   [
+    "",
+    0
+   ]
+  ]
+ },
+ {
+  "name": "Regalboden, Pfeil runter",
+  "replaces": null,
+  "subject_type": "location",
+  "label_width": null,
+  "label_height": 18.0,
+  "is_active": true,
+  "quality": "standard",
+  "label_stock": null,
+  "material": "",
+  "print_color": "schwarz",
+  "background_color": "weiß",
+  "description": "# Permanent places on white 18 mm tape (TZe-241), printed inverted (white on black, not yellow), for 2 cm boards\n# and where 70 × 32 mm does not fit, for shelf levels: QR code, code and title; right of the code an arrow down to the shelf level\n# below\nlabel height 18  margin 1 3 1 2  invert\nrow  gap 1.5\n  qr {{ qr }}  quiet 1\n  column  gap 0.5  align left\n    row  height 55%\n      text {{ location.unique_identifier }}  font mono  bold  invert\n      space 3\n      arrow down  width 5  height 4\n    text {{ location.title }}  font condensed  bold  height 40%\n",
+  "rules": [
+   [
+    "location.type.name == \"Fach\"",
+    1
+   ],
+   [
+    "",
+    0
+   ]
+  ]
+ },
+ {
+  "name": "ZAMid, ZAM-Eigentum",
+  "replaces": null,
+  "subject_type": "labelid",
+  "label_width": null,
+  "label_height": 18.0,
+  "is_active": true,
+  "quality": "standard",
+  "label_stock": null,
+  "material": "",
+  "print_color": "schwarz",
+  "background_color": "",
+  "rules": [
+   [
+    "",
+    3
+   ]
+  ],
+  "description": "# ZAMid with \"Eigentum\" and the ZAM logo on 18 mm tape (extra strong: TZe-S641), for the ZAM's things: the name\n# turned, the QR code, the ID in two lines, right \"Eigentum\" and the ZAM logo (without the wordmark), both upright\n# and centred\nlabel height 18  margin 1\nrow  gap 1.44\n  text {{ label_id_name }}  rotate 270  font sans  weight 800\n  qr {{ qr }}  quiet 1\n  column\n    text {{ label_id.code|slice:\":3\" }}  font mono  bold  center\n    line  thickness 0.45  width 3.96\n    text {{ label_id.code|slice:\"3:\" }}  font mono  bold  center\n  text \"Eigentum\"  font condensed  bold  rotate 270  width 3  center  margin 0 0 0 1\n  image \"ZAM Logo ohne Wortmarke\"  rotate 270  height 14  margin 0 1.5 0 0\n"
+ },
+ {
+  "name": "ZAMid, ZAM-Eigentum",
+  "replaces": null,
+  "subject_type": "labelid",
+  "label_width": null,
+  "label_height": 12.0,
+  "is_active": true,
+  "quality": "standard",
+  "label_stock": null,
+  "material": "",
+  "print_color": "schwarz",
+  "background_color": "",
+  "rules": [
+   [
+    "",
+    3
+   ]
+  ],
+  "description": "# ZAMid with \"Eigentum\" and the ZAM logo on 12 mm tape (extra strong: TZe-S631), for the ZAM's things: the name\n# turned, the QR code, the ID in two lines, right \"Eigentum\" and the ZAM logo (without the wordmark), both upright\n# and centred\nlabel height 12  margin 1\nrow  gap 0.96\n  text {{ label_id_name }}  rotate 270  font sans  weight 800\n  qr {{ qr }}  quiet 1\n  column\n    text {{ label_id.code|slice:\":3\" }}  font mono  bold  center\n    line  thickness 0.3  width 2.64\n    text {{ label_id.code|slice:\"3:\" }}  font mono  bold  center\n  text \"Eigentum\"  font condensed  bold  rotate 270  width 2.2  center  margin 0 0 0 0.7\n  image \"ZAM Logo ohne Wortmarke\"  rotate 270  height 9  margin 0 1.5 0 0\n"
+ },
+ {
+  "name": "Kiste",
+  "replaces": null,
+  "subject_type": "location",
+  "label_width": null,
+  "label_height": 18.0,
+  "is_active": true,
+  "quality": "standard",
+  "label_stock": null,
+  "material": "",
+  "print_color": "schwarz",
+  "background_color": "",
+  "rules": [
+   [
+    "location.type.name == \"Kiste\"",
+    3
+   ],
+   [
+    "",
+    0
+   ]
+  ],
+  "description": "# Boxes on 18 mm tape (extra strong: TZe-S641), the successor of 105 × 52 and 55 × 15 mm: QR code and\n# code, right of them \"Eigentum\" and the ZAM logo (without the wordmark), both upright and centred\nlabel height 18  margin 1 1 1 2\nrow  gap 1.5\n  qr {{ qr }}  quiet 1\n  text {{ location.unique_identifier }}  font mono  bold  invert  height 9  width auto\n  text \"Eigentum\"  font condensed  bold  rotate 270  width 3  center  margin 0 0 0 1\n  image \"ZAM Logo ohne Wortmarke\"  rotate 270  height 14  margin 0 1.5 0 0\n"
+ },
+ {
+  "name": "Inhalt",
+  "replaces": null,
+  "subject_type": "location",
+  "label_width": 100.0,
+  "label_height": 150.0,
+  "is_active": true,
+  "quality": "standard",
+  "label_stock": null,
+  "material": "",
+  "print_color": "schwarz",
+  "background_color": "",
+  "rules": [
+   [
+    "location.type.name == \"Kiste\" or location.type.name == \"Karton\" or location.type.name == \"Palette\"",
+    1
+   ],
+   [
+    "",
+    0
+   ]
+  ],
+  "description": "# Changing contents of boxes, 100 × 150 mm removable paper: QR code, the code with the title right of it, below them\n# the date; then who is responsible, and whose it is if it is all one owner's (else the list says it at each unique\n# item that is not the ZAM's); below that what is right at the location; what does not fit goes on on further labels\nlabel 100 x 150  margin 2.5\nrow  gap 3  height 22\n  qr {{ qr }}  ecc M\n  column  gap 1.5  align left  justify center\n    row  gap 2  height 9\n      text {{ location.unique_identifier }}  font mono  bold  invert  width auto\n      text {{ location.title }}  font condensed  bold\n    text \"Inhalt, Stand {% now 'd.m.Y' %}{% if pages > 1 %} · {{ page }}/{{ pages }}{% endif %}\"  font condensed  size 3.8\ncolumn  gap 0.8  align left  height auto  margin 2 0 0 0\n  text \"{% if responsible %}Zuständig: {{ responsible }}{% endif %}\"  font condensed  size 3.8  lines 2\n  text \"{% if owned and not owners_differ %}Eigentum: {{ owner|default:'Betreiberverein ZAM e.V.' }}{% endif %}\"  font condensed  size 3.8\nline  thickness 0.3  margin 2 0 1.5 0\nlist {{ contents }}  font condensed  size 3.8  lines 2\n"
+ },
+ {
+  "name": "Palette",
+  "replaces": null,
+  "subject_type": "location",
+  "label_width": 105.0,
+  "label_height": 52.0,
+  "is_active": true,
+  "quality": "standard",
+  "label_stock": null,
+  "material": "",
+  "print_color": "schwarz",
+  "background_color": "",
+  "rules": [
+   [
+    "location.type.name == \"Palette\"",
+    3
+   ],
+   [
+    "",
+    0
+   ]
+  ],
+  "description": "# Euro pallets, 105 × 52 mm yellow polyester (the block's face takes up to 110 × 80 mm): QR code and the code large,\n# right of them a frame for a removable 60 × 40 mm label (contents or rental); marks in the corners to staple it\nlabel 105 x 52\nbox  border 0.3  width 3  height 3  at 1.5 1.5\nbox  border 0.3  width 3  height 3  at 100.5 1.5\nbox  border 0.3  width 3  height 3  at 1.5 47.5\nbox  border 0.3  width 3  height 3  at 100.5 47.5\nrow  gap 2.5  margin 5 2.5 5 6\n  column  gap 1.5  align left  justify center\n    qr {{ qr }}  ecc Q  max 26  quiet 1  left\n    text {{ location.unique_identifier }}  font mono  bold  invert  height 13  width auto\n  column  border 0.3  shape round  radius 2  width 62  height 42  justify center  gap 1\n    text \"Ablösbares Etikett 60 × 40 mm\"  font condensed  center  size 2.8\n    text \"Inhalt oder Vermietung\"  font condensed  center  size 2.8\n"
+ },
+ {
+  "name": "Kabel, Wickel bis 10,5 mm (3G1,5)",
+  "replaces": null,
+  "subject_type": "labelid",
+  "label_width": 39.6,
+  "label_height": 18.0,
+  "is_active": true,
+  "quality": "standard",
+  "label_stock": null,
+  "material": "",
+  "print_color": "schwarz",
+  "background_color": "",
+  "rules": [
+   [
+    "",
+    1
+   ]
+  ],
+  "description": "# Cable wrap for cables up to 10.5 mm thick (H07RN-F 3G1,5), on 18 mm flexible tape\n# (TZe-FX641), 39.6 mm: about 1.2 times round the cable. The lettering at the start and at the end (the end covers\n# the start, on thinner cables a little more), the ID upright after and before it and in the middle, and between them\n# a Code 128 of the ZAMid across the tape, so its bars run round the cable and it scans along it from either side\nlabel 39.6 x 18\nrow  gap 0.6  padding 0 0.1 0 0.3\n    text {{ label_id_name }}  rotate 270  font sans  weight 800  center  width 5.8\n    text {{ label_id }}  rotate 270  font mono  bold  center  width 4\n    barcode {{ label_id.code }}  rotate 90  quiet 5\n    text {{ label_id }}  rotate 270  font mono  bold  center  width 4\n    barcode {{ label_id.code }}  rotate 90  quiet 5\n    text {{ label_id }}  rotate 270  font mono  bold  center  width 4\n    text {{ label_id_name }}  rotate 270  font sans  weight 800  center  width 5.8\n"
+ },
+ {
+  "name": "Kabel, Wickel bis 12 mm (3G2,5, 5G1,5)",
+  "replaces": null,
+  "subject_type": "labelid",
+  "label_width": 45.1,
+  "label_height": 18.0,
+  "is_active": true,
+  "quality": "standard",
+  "label_stock": null,
+  "material": "",
+  "print_color": "schwarz",
+  "background_color": "",
+  "rules": [
+   [
+    "",
+    1
+   ]
+  ],
+  "description": "# Cable wrap for cables up to 12 mm thick (H07RN-F 3G2,5 and 5G1,5), on 18 mm flexible tape\n# (TZe-FX641), 45.1 mm: about 1.2 times round the cable. The lettering at the start and at the end (the end covers\n# the start, on thinner cables a little more), the ID upright after and before it and in the middle, and between them\n# a Code 128 of the ZAMid across the tape, so its bars run round the cable and it scans along it from either side\nlabel 45.1 x 18\nrow  gap 0.6  padding 0 0.1 0 0.3\n    text {{ label_id_name }}  rotate 270  font sans  weight 800  center  width 5.8\n    text {{ label_id }}  rotate 270  font mono  bold  center  width 4\n    barcode {{ label_id.code }}  rotate 90  quiet 5\n    text {{ label_id }}  rotate 270  font mono  bold  center  width 4\n    barcode {{ label_id.code }}  rotate 90  quiet 5\n    text {{ label_id }}  rotate 270  font mono  bold  center  width 4\n    text {{ label_id_name }}  rotate 270  font sans  weight 800  center  width 5.8\n"
+ },
+ {
+  "name": "Kabel, Wickel bis 14,5 mm (5G2,5, CEE 16 A)",
+  "replaces": null,
+  "subject_type": "labelid",
+  "label_width": 54.7,
+  "label_height": 18.0,
+  "is_active": true,
+  "quality": "standard",
+  "label_stock": null,
+  "material": "",
+  "print_color": "schwarz",
+  "background_color": "",
+  "rules": [
+   [
+    "",
+    1
+   ]
+  ],
+  "description": "# Cable wrap for cables up to 14.5 mm thick (H07RN-F 5G2,5, CEE 16 A), on 18 mm flexible tape\n# (TZe-FX641), 54.7 mm: about 1.2 times round the cable. The lettering at the start and at the end (the end covers\n# the start, on thinner cables a little more), the ID upright after and before it and in the middle, and between them\n# a Code 128 of the ZAMid across the tape, so its bars run round the cable and it scans along it from either side\nlabel 54.7 x 18\nrow  gap 0.6  padding 0 0.1 0 0.3\n    text {{ label_id_name }}  rotate 270  font sans  weight 800  center  width 5.8\n    text {{ label_id }}  rotate 270  font mono  bold  center  width 4\n    barcode {{ label_id.code }}  rotate 90  quiet 5\n    text {{ label_id }}  rotate 270  font mono  bold  center  width 4\n    barcode {{ label_id.code }}  rotate 90  quiet 5\n    text {{ label_id }}  rotate 270  font mono  bold  center  width 4\n    text {{ label_id_name }}  rotate 270  font sans  weight 800  center  width 5.8\n"
+ },
+ {
+  "name": "Kabel, Wickel bis 17 mm (5G4, CEE 32 A)",
+  "replaces": null,
+  "subject_type": "labelid",
+  "label_width": 64.1,
+  "label_height": 18.0,
+  "is_active": true,
+  "quality": "standard",
+  "label_stock": null,
+  "material": "",
+  "print_color": "schwarz",
+  "background_color": "",
+  "rules": [
+   [
+    "",
+    1
+   ]
+  ],
+  "description": "# Cable wrap for cables up to 17 mm thick (H07RN-F 5G4, CEE 32 A), on 18 mm flexible tape\n# (TZe-FX641), 64.1 mm: about 1.2 times round the cable. The lettering at the start and at the end (the end covers\n# the start, on thinner cables a little more), the ID upright after and before it and in the middle, and between them\n# a Code 128 of the ZAMid across the tape, so its bars run round the cable and it scans along it from either side\nlabel 64.1 x 18\nrow  gap 0.6  padding 0 0.1 0 0.3\n    text {{ label_id_name }}  rotate 270  font sans  weight 800  center  width 5.8\n    text {{ label_id }}  rotate 270  font mono  bold  center  width 4\n    barcode {{ label_id.code }}  rotate 90  quiet 5\n    text {{ label_id }}  rotate 270  font mono  bold  center  width 4\n    barcode {{ label_id.code }}  rotate 90  quiet 5\n    text {{ label_id }}  rotate 270  font mono  bold  center  width 4\n    text {{ label_id_name }}  rotate 270  font sans  weight 800  center  width 5.8\n"
+ },
+ {
+  "name": "Kabel, Wickel bis 19 mm (5G6, CEE 32 A)",
+  "replaces": null,
+  "subject_type": "labelid",
+  "label_width": 71.5,
+  "label_height": 18.0,
+  "is_active": true,
+  "quality": "standard",
+  "label_stock": null,
+  "material": "",
+  "print_color": "schwarz",
+  "background_color": "",
+  "rules": [
+   [
+    "",
+    1
+   ]
+  ],
+  "description": "# Cable wrap for cables up to 19 mm thick (H07RN-F 5G6, CEE 32 A), on 18 mm flexible tape\n# (TZe-FX641), 71.5 mm: about 1.2 times round the cable. The lettering at the start and at the end (the end covers\n# the start, on thinner cables a little more), the ID upright after and before it and in the middle, and between them\n# a Code 128 of the ZAMid across the tape, so its bars run round the cable and it scans along it from either side\nlabel 71.5 x 18\nrow  gap 0.6  padding 0 0.1 0 0.3\n    text {{ label_id_name }}  rotate 270  font sans  weight 800  center  width 5.8\n    text {{ label_id }}  rotate 270  font mono  bold  center  width 4\n    barcode {{ label_id.code }}  rotate 90  quiet 5\n    text {{ label_id }}  rotate 270  font mono  bold  center  width 4\n    barcode {{ label_id.code }}  rotate 90  quiet 5\n    text {{ label_id }}  rotate 270  font mono  bold  center  width 4\n    text {{ label_id_name }}  rotate 270  font sans  weight 800  center  width 5.8\n"
+ },
+ {
+  "name": "Palette, Feld",
+  "replaces": null,
+  "subject_type": "location",
+  "label_width": 60.0,
+  "label_height": 40.0,
+  "is_active": true,
+  "quality": "standard",
+  "label_stock": null,
+  "material": "",
+  "print_color": "schwarz",
+  "background_color": "",
+  "rules": [
+   [
+    "location.type.name == \"Palette\"",
+    1
+   ],
+   [
+    "",
+    0
+   ]
+  ],
+  "description": "# For the frame of a pallet's yellow label, 60 × 40 mm removable paper: the code and the date, what it is for (its\n# purpose, else its name) large, who is responsible and whose it is, and the rental large (lines to write it on until\n# the inventory has rentals)\nlabel 60 x 40  margin 1.5\nrow  gap 1.5  height 5\n  text {{ location.unique_identifier }}  font mono  bold  invert  width auto\n  text \"Stand {% now 'd.m.Y' %}\"  font condensed  size 2.8\ntext {{ location.title }}  font condensed  bold  lines 2  height 10  margin 1 0 0 0\ncolumn  gap 0.4  align left  height auto  margin 0.5 0 0 0\n  text \"{% if responsible %}Zuständig: {{ responsible }}{% endif %}\"  font condensed  size 3\n  text \"{% if owned and not owners_differ %}Eigentum: {{ owner|default:'Betreiberverein ZAM e.V.' }}{% endif %}\"  font condensed  size 3\ncolumn  gap 1.5  align left  justify end\n  text \"Vermietet an ______________\"  font condensed  bold  size 4.5\n  text \"bis ________________________\"  font condensed  bold  size 4.5\n"
+ },
+ {
+  "name": "Inhalt, quer",
+  "replaces": null,
+  "subject_type": "location",
+  "label_width": 100.0,
+  "label_height": 150.0,
+  "is_active": true,
+  "quality": "standard",
+  "label_stock": null,
+  "material": "",
+  "print_color": "schwarz",
+  "background_color": "",
+  "rules": [
+   [
+    "location.type.name == \"Kiste\" or location.type.name == \"Karton\" or location.type.name == \"Palette\"",
+    1
+   ],
+   [
+    "",
+    0
+   ]
+  ],
+  "description": "# Contents of boxes, cartons and pallets across, on 100 × 150 mm labels turned (rotate 90): left the QR code, the\n# code with the title, the date, who is responsible and whose it is if it is all one owner's (else the list says it\n# at each unique item that is not the ZAM's); right of them what is right at the location; what does not fit goes on\n# on further labels, numbered\nlabel 150 x 100  margin 2.5  rotate 90\nrow  gap 3\n  column  gap 1.5  align left  width 42\n    qr {{ qr }}  ecc M  max 28  left\n    row  gap 1.5  height 7\n      text {{ location.unique_identifier }}  font mono  bold  invert  width auto\n      text {{ location.title }}  font condensed  bold\n    text \"Inhalt, Stand {% now 'd.m.Y' %}{% if pages > 1 %} · {{ page }}/{{ pages }}{% endif %}\"  font condensed  size 3.5\n    text \"{% if responsible %}Zuständig: {{ responsible }}{% endif %}\"  font condensed  size 3.5  lines 3\n    text \"{% if owned and not owners_differ %}Eigentum: {{ owner|default:'Betreiberverein ZAM e.V.' }}{% endif %}\"  font condensed  size 3.5  lines 2\n  line  thickness 0.3\n  list {{ contents }}  font condensed  size 3.8  lines 2\n"
+ },
+ {
+  "name": "Artikel",
+  "subject_type": "item",
+  "label_width": 50.0,
   "label_height": 18.0,
   "is_active": true,
   "quality": "standard",
@@ -835,16 +1572,16 @@
   "background_color": "weiß",
   "rules": [
    [
-    "unique_item.has_owner",
-    3
+    "item.kind == \"bulk\"",
+    2
    ]
   ],
-  "description": "# ZAMid of a unique item that is not the ZAM's, on 18 mm tape: the ZAMid design and the owner\nlabel height 18  margin 1\nrow  gap 1.44\n  text {{ label_id_name }}  rotate 270  font sans  weight 800\n  qr {{ qr }}  quiet 1\n  column\n    text {{ label_id.code|slice:\":3\" }}  font mono  bold  center\n    line  thickness 0.45  width 3.96\n    text {{ label_id.code|slice:\"3:\" }}  font mono  bold  center\n  column  align left\n    text \"Eigentum\"  font condensed  height 35%\n    text {{ unique_item.owner_first_name_display }}  font condensed  bold  height 55%\n"
+  "description": "# Bulk items (Artikel and price tag in one) on 50 × 18 mm removable paper (ERT-PA050X018Z1): the name in a line at the\n# top, below it the QR code left, the price in a price tag frame in the middle (empty without a price, to write it on)\n# and the location's code right\nlabel 50 x 18  margin 1\ntext {{ item.name|default:'_______________' }}  font condensed  bold  height 4.2\nrow  margin 0.6 0 0 0\n  qr {{ qr }}  quiet 1\n  space\n  row  border 0.3  shape bulge  padding 0.1 0  width auto  height 70%\n    text \"{% if item.sale_price is not None %}€ {{ item.sale_price|floatformat:2 }}{% else %}{{ ''|ljust:8 }}{% endif %}\"  font condensed  bold\n    text \"{% if item.sale_price is not None %}/ {{ item.measurement_unit.short }}{% endif %}\"  font condensed  height 45%  margin 0 0 0 0.5  bottom\n  space\n  text {{ location.unique_identifier }}  font mono  bold  invert  height 45%  width 11\n"
  },
  {
-  "name": "ZAMid mit Eigentum",
-  "subject_type": "uniqueitem",
-  "label_width": null,
+  "name": "Artikel",
+  "subject_type": "item",
+  "label_width": 47.0,
   "label_height": 24.0,
   "is_active": true,
   "quality": "standard",
@@ -854,29 +1591,62 @@
   "background_color": "weiß",
   "rules": [
    [
-    "unique_item.has_owner",
-    3
+    "item.kind == \"bulk\"",
+    2
    ]
   ],
-  "description": "# ZAMid of a unique item that is not the ZAM's, on 24 mm tape: the ZAMid design and the owner\nlabel height 24  margin 1\nrow  gap 1.92\n  text {{ label_id_name }}  rotate 270  font sans  weight 800\n  qr {{ qr }}  quiet 1\n  column\n    text {{ label_id.code|slice:\":3\" }}  font mono  bold  center\n    line  thickness 0.6  width 5.28\n    text {{ label_id.code|slice:\"3:\" }}  font mono  bold  center\n  column  align left\n    text \"Eigentum\"  font condensed  height 35%\n    text {{ unique_item.owner_first_name_display }}  font condensed  bold  height 55%\n"
+  "description": "# Bulk items (Artikel and price tag in one) on the Greiner 47 × 24 mm removable polyester on hand, while it lasts (two\n# side by side on the roll: one at a time leaves the other blank): the QR code, the name in two lines, below it the\n# price in a price tag frame (empty without a price, to write it on) and below that the location\nlabel 47 x 24  margin 1.2 1.2 1.2 5.2\nrow  gap 1.5\n  qr {{ qr }}  quiet 1  max 16\n  column  gap 0.6  align left\n    text {{ item.name|default:'_______________' }}  font condensed  bold  lines 2  height 40%\n    row  border 0.3  shape bulge  padding 0.1 0  width auto  height 33%\n      text \"{% if item.sale_price is not None %}€ {{ item.sale_price|floatformat:2 }}{% else %}{{ ''|ljust:8 }}{% endif %}\"  font condensed  bold\n      text \"{% if item.sale_price is not None %}/ {{ item.measurement_unit.short }}{% endif %}\"  font condensed  height 45%  margin 0 0 0 0.5  bottom\n    text {{ location.unique_identifier }}  font mono  bold  invert  height 20%  width auto\n"
  },
  {
-  "name": "ZAMid mit Eigentum",
-  "subject_type": "uniqueitem",
-  "label_width": null,
-  "label_height": 36.0,
+  "name": "Ort, Palettenregal",
+  "subject_type": "location",
+  "label_width": 105.0,
+  "label_height": 52.0,
   "is_active": true,
   "quality": "standard",
   "label_stock": null,
   "material": "",
   "print_color": "schwarz",
-  "background_color": "weiß",
+  "background_color": "",
+  "rules": [],
+  "description": "# Pallet rack slots, 105 × 52 mm, printed inverted: on the yellow polyester on hand yellow on black, while it lasts\n# (then white paper 100 × 50 mm): QR code, title (purpose, else name), code and path\nlabel 105 x 52  margin 1.5  invert\nrow  gap 2\n  qr {{ qr }}  max 47.25\n  column  gap 1  align left\n    text {{ location.title }}  font condensed  bold  lines 2  height 30%\n    text {{ location.unique_identifier }}  font mono  bold  invert  height 30%  width auto\n    text {{ location.descriptive_identifier }}  lines 3\n"
+ },
+ {
+  "name": "Ort, Palettenregal",
+  "subject_type": "location",
+  "label_width": 100.0,
+  "label_height": 50.0,
+  "is_active": true,
+  "quality": "standard",
+  "label_stock": null,
+  "material": "",
+  "print_color": "schwarz",
+  "background_color": "",
+  "rules": [],
+  "description": "# Pallet rack slots, 100 × 50 mm white paper (ERT-PP100X050Z1), printed inverted: white on black; QR code, title\n# (purpose, else name), code and path\nlabel 100 x 50  margin 1.5  invert\nrow  gap 2\n  qr {{ qr }}  max 45\n  column  gap 1  align left\n    text {{ location.title }}  font condensed  bold  lines 2  height 30%\n    text {{ location.unique_identifier }}  font mono  bold  invert  height 30%  width auto\n    text {{ location.descriptive_identifier }}  lines 3\n"
+ },
+ {
+  "name": "Regalboden, Pfeile zum Ausmalen",
+  "replaces": null,
+  "subject_type": "location",
+  "label_width": 70.0,
+  "label_height": 32.0,
+  "is_active": true,
+  "quality": "standard",
+  "label_stock": null,
+  "material": "",
+  "print_color": "schwarz",
+  "background_color": "",
   "rules": [
    [
-    "unique_item.has_owner",
-    3
+    "location.type.name == \"Fach\"",
+    4
+   ],
+   [
+    "",
+    0
    ]
   ],
-  "description": "# ZAMid of a unique item that is not the ZAM's, on 36 mm tape: the ZAMid design and the owner\nlabel height 36  margin 1\nrow  gap 2.88\n  text {{ label_id_name }}  rotate 270  font sans  weight 800\n  qr {{ qr }}  quiet 1\n  column\n    text {{ label_id.code|slice:\":3\" }}  font mono  bold  center\n    line  thickness 0.9  width 7.92\n    text {{ label_id.code|slice:\"3:\" }}  font mono  bold  center\n  column  align left\n    text \"Eigentum\"  font condensed  height 35%\n    text {{ unique_item.owner_first_name_display }}  font condensed  bold  height 55%\n"
+  "description": "# Shelf levels, 70 × 32 mm paper on hand (boards of 4 cm; 2 cm boards: 18 mm tape), printed inverted (white on\n# black): QR code, the code, the title and where it is; right of the code an arrow up and an arrow down as light\n# areas, to colour in (black) the one for the level the label is not for\nlabel 70 x 32  margin 1.5 1.5 1.5 2.5  invert\nrow  gap 2\n  qr {{ qr }}  ecc Q  quiet 1  max 27\n  column  gap 1  align left\n    row  height 38%\n      text {{ location.unique_identifier }}  font mono  bold  invert  width auto\n      space 3\n      arrow up  width 7  height 6\n      space 2.5\n      arrow down  width 7  height 6\n    text {{ location.title }}  font condensed  bold  lines 2  height 34%\n    text {{ location.descriptive_identifier }}  font condensed  lines 2  height 20%\n"
  }
 ]

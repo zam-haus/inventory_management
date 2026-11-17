@@ -1,0 +1,9 @@
+[Unit]
+Description=Save the label print agent's Bluetooth pairings when they change (keep.sh)
+
+[Path]
+# The agent (label_printing/agent.py, keep_pairings) leaves this file after pairing or unpairing
+PathExists=/run/label-agent/keep-bluetooth
+
+[Install]
+WantedBy=multi-user.target

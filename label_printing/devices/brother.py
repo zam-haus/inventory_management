@@ -12,7 +12,10 @@ STATUS_SIZE = 32
 # Network printers report the status record over SNMP (they do not answer ESC i S on port 9100).
 STATUS_OID = "1.3.6.1.4.1.2435.3.3.9.1.6.1.0"
 # Invalidate (clears a half-received job), initialize, then ask for the status.
-STATUS_REQUEST = b"\x00" * 100 + b"\x1b@" + b"\x1biS"
+RESET = b"\x00" * 100 + b"\x1b@"
+STATUS_REQUEST = RESET + b"\x1biS"
+# A P-touch has no pause command: a paused job stops sending after the label it sent last.
+PAUSE = RESUME = b""
 
 # Error information 1 (byte 8) and 2 (byte 9).
 ERRORS_1 = {
@@ -84,6 +87,45 @@ def parse(record: bytes) -> dict:
     }
 
 
+def command_size(data: bytes, i: int):
+    """The length of the raster command at data[i] (raster command reference), or None if unknown."""
+    first = data[i]
+    if first in (0x00, 0x0C, 0x1A, ord("Z")):
+        return 1
+    if first == ord("M"):
+        return 2
+    if first in (ord("G"), ord("g")):
+        return 3 + int.from_bytes(data[i + 1:i + 3], "little") if i + 3 <= len(data) else None
+    if first == 0x1B and i + 1 < len(data):
+        if data[i + 1] == ord("@"):
+            return 2
+        if data[i + 1] == ord("i") and i + 2 < len(data):
+            return {ord("S"): 3, ord("z"): 13, ord("d"): 5}.get(data[i + 2], 4)
+    return None
+
+
+def split_pages(payload: bytes):
+    """The job page by page (each up to its print command, FF or Ctrl-Z), so it can be paused or aborted
+    between labels; the whole job as one part if it is not raster data as expected."""
+    parts, start, i = [], 0, 0
+    while i < len(payload):
+        size = command_size(payload, i)
+        if size is None or i + size > len(payload):
+            return [payload]
+        if payload[i] in (0x0C, 0x1A):
+            parts.append(payload[start:i + size])
+            start = i + size
+        i += size
+    if start < len(payload):
+        parts.append(payload[start:])
+    return parts or [payload]
+
+
+def cancel(device):
+    """Throw away a half-sent page: the printer prints nothing of it."""
+    device.write(RESET)
+
+
 def split_records(data: bytes):
     """(status records, unread rest) of received bytes, skipping anything that is not a record."""
     found = []
@@ -142,17 +184,24 @@ def query(device, timeout=3.0):
     return replies[-1] if replies else None
 
 
-def wait_until_printed(device, pages, timeout):
+def wait_until_printed(device, pages, timeout, control=None):
     """Read the notifications after a job: ("done", status) once `pages` pages are printed,
-    ("failed", status) on an error, ("sent", last status or None) if the time ran out."""
+    ("failed", status) on an error, ("sent", last status or None) if the time ran out. A `control`
+    may abort the wait; while it pauses, the time stands still."""
     if getattr(device, "status_by_snmp", False):
-        return wait_by_snmp(device, timeout)
+        return wait_by_snmp(device, timeout, control=control)
     deadline = time.monotonic() + timeout
     completed, buffer, last = 0, b"", None
     while time.monotonic() < deadline:
-        chunk = device.read(4096, deadline - time.monotonic())
+        if control is not None:
+            deadline += control.steer(device)
+        wait = min(deadline - time.monotonic(), 0.5)
+        asked = time.monotonic()
+        chunk = device.read(4096, wait)
         if not chunk:
-            break
+            if time.monotonic() - asked < wait / 2:
+                break  # nothing at once: the connection was closed
+            continue
         found, buffer = split_records(buffer + chunk)
         for record in found:
             last = parse(record)
@@ -165,13 +214,15 @@ def wait_until_printed(device, pages, timeout):
     return "sent", last
 
 
-def wait_by_snmp(device, timeout, interval=0.5):
+def wait_by_snmp(device, timeout, interval=0.5, control=None):
     """Poll the status over SNMP: done once the printer was printing and is ready again (or stayed ready
     for a few polls: a short label can be printed between two polls)."""
     deadline = time.monotonic() + timeout
     seen_printing, ready_polls, last = False, 0, None
     while time.monotonic() < deadline:
         time.sleep(interval)
+        if control is not None:
+            deadline += control.steer(device)
         status = snmp_status(device)
         if status is None:
             continue

@@ -1,19 +1,34 @@
 [Unit]
 Description=Label print agent of the inventory (docs/label-printing.md)
-Wants=network-online.target
-After=network-online.target
+Wants=network-online.target bluetooth.service
+After=network-online.target bluetooth.service
 
 [Service]
 Type=simple
 # Code and configuration live on the SD card's boot partition (label-agent/): to update, copy new
-# files there (ops/raspberry-pi/prepare-boot.sh) and restart. As root ("+"): copy them into /opt.
+# files there (ops/raspberry-pi/prepare-boot.sh) and restart. As root ("+"): copy them into /opt and
+# install what the display and Bluetooth need (apt; may take a while on the first start).
 ExecStartPre=+/bin/sh /opt/label-agent/update.sh
+TimeoutStartSec=15min
 WorkingDirectory=/opt/label-agent
 ExecStart=/usr/bin/python3 -m label_printing.agent
 Environment=PYTHONUNBUFFERED=1 PYTHONDONTWRITEBYTECODE=1
-# An unprivileged user of its own; group lp may use /dev/usb/lp*. Its tokens are in config.json.
-DynamicUser=yes
-SupplementaryGroups=lp
+# An unprivileged user of its own (update.sh creates it; a fixed one, not DynamicUser: D-Bus checks the
+# groups of a user it can look up, for BlueZ); its tokens are in config.json. Group lp may use /dev/usb/lp*,
+# spi and gpio the PiFace Control & Display, bluetooth BlueZ on D-Bus, video and render the touch screen
+# (and its backlight), input its touches.
+User=label-agent
+Group=label-agent
+SupplementaryGroups=lp spi gpio bluetooth video render input
+# What DynamicUser gave: no writing anywhere but /run/label-agent, no home, no new privileges
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+NoNewPrivileges=yes
+RestrictSUIDSGID=yes
+RemoveIPC=yes
+# /run/label-agent: the agent asks there for its Bluetooth pairings to be saved (label-agent-keep.path)
+RuntimeDirectory=label-agent
 Restart=always
 RestartSec=10
 

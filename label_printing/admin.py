@@ -14,19 +14,39 @@ from inventory.models import LocationLabelTemplate
 from . import services
 from .messages import describe
 from .image_import import import_images
-from .models import LabelImage, LabelMedium, LabelStock, PrintAgent, Printer, PrintJob
+from .models import LabelImage, LabelStock, PrintAgent, Printer, PrintJob, Ribbon
 
 
 @admin.register(LabelStock)
 class LabelStockAdmin(admin.ModelAdmin):
-    list_display = ("__str__", "language", "size", "colours", "method_text", "material")
-    list_filter = ("language", "tape_mm", "method", "ribbon", "background_color", "print_color")
+    list_display = ("__str__", "in_stock", "language", "size", "colours", "method_text", "material", "printers")
+    list_filter = ("in_stock", "language", "tape_mm", "method", "ribbon", "background_color", "print_color")
     search_fields = ("code", "name", "description", "background_color", "print_color", "material")
     fieldsets = (
-        (None, {"fields": ("language", ("code", "name"), "description", "url")}),
-        (_("Brother P-touch"), {"fields": ("tape_mm", ("print_color", "background_color"), "length_m")}),
-        (_("Zebra"), {"fields": (("width_mm", "height_mm"), ("method", "ribbon"), "material")}),
+        (None, {"fields": ("language", ("code", "name"), "in_stock", "description", "url", "quality")}),
+        (_("Colours"), {"fields": (("print_color", "background_color"),),
+                        "description": _("A Zebra prints in the colour of its ribbon: give Zebra labels only their "
+                                         "background colour.")}),
+        (_("Brother P-touch"), {"fields": ("tape_mm", "length_m")}),
+        (_("Size"), {"fields": (("width_mm", "height_mm"),)}),
+        (_("Zebra"), {"fields": (("core_mm", "winding"), ("method", "ribbon"), "material", "zpl_darkness")}),
     )
+    actions = ["mark_in_stock", "mark_not_in_stock"]
+
+    @admin.display(description=_("printers"))
+    def printers(self, stock):
+        """The active printers that take it."""
+        return ", ".join(printer.name for printer in Printer.objects.filter(is_active=True, language=stock.language)
+                         if not printer.takes(stock)) or "–"
+
+    @admin.action(description=_("On hand"))
+    def mark_in_stock(self, request, queryset):
+        self.message_user(request, gettext("%(count)d label materials on hand.") % {"count": queryset.update(in_stock=True)})
+
+    @admin.action(description=_("Not on hand"))
+    def mark_not_in_stock(self, request, queryset):
+        self.message_user(request, gettext("%(count)d label materials not on hand.") % {
+            "count": queryset.update(in_stock=False)})
 
     @admin.display(description=_("size"))
     def size(self, stock):
@@ -41,6 +61,17 @@ class LabelStockAdmin(admin.ModelAdmin):
     @admin.display(description=_("printing method"))
     def method_text(self, stock):
         return stock.method_text or "–"
+
+
+@admin.register(Ribbon)
+class RibbonAdmin(admin.ModelAdmin):
+    list_display = ("__str__", "material", "width_mm", "color", "loaded_in")
+    list_filter = ("material", "width_mm", "color")
+    fields = ("material", "width_mm", "color")
+
+    @admin.display(description=_("loaded in"))
+    def loaded_in(self, ribbon):
+        return ", ".join(printer.name for printer in Printer.objects.filter(loaded_ribbon=ribbon)) or "–"
 
 
 class MultipleFileInput(forms.ClearableFileInput):
@@ -130,14 +161,6 @@ class LabelImageAdmin(admin.ModelAdmin):
         return TemplateResponse(request, "label_printing/admin/image_import.html", context)
 
 
-class LabelMediumInline(admin.StackedInline):
-    model = LabelMedium
-    extra = 0
-    fields = ("stock", ("name", "is_default"), ("width_mm", "height_mm", "ptouch_tape"),
-              ("offset_x", "offset_y", "zpl_darkness"), "quality")
-    autocomplete_fields = ("stock",)
-
-
 @admin.register(Printer)
 class PrinterAdmin(admin.ModelAdmin):
     list_display = ("name", "slug", "language", "model", "transport", "agent", "is_active", "is_default", "status",
@@ -145,27 +168,41 @@ class PrinterAdmin(admin.ModelAdmin):
     list_filter = ("is_active", "language", "transport", "agent")
     search_fields = ("name", "slug", "uid")
     prepopulated_fields = {"slug": ("name",)}
-    readonly_fields = ("status", "last_status_at", "uid", "reported", "discovered_at")
+    readonly_fields = ("status", "last_status_at", "uid", "reported", "discovered_at", "labels_taken")
     fieldsets = (
         (None, {"fields": ("name", "slug", ("language", "model", "dpi"), ("is_active", "is_default"))}),
         (_("Connection"), {"fields": ("transport", ("host", "port"), "agent", ("reports_status", "status_interval"))}),
-        (_("Zebra"), {"fields": ("loaded_medium",)}),
+        (_("Labels it takes"), {"fields": ("max_width_mm", ("core_mm", "winding"), "thermal_transfer", "labels_taken")}),
+        (_("Calibration"), {"fields": (("offset_x", "offset_y"),)}),
+        (_("Zebra"), {"fields": ("loaded_medium", "loaded_ribbon")}),
         (_("Brother P-touch"), {"fields": ("cut", "chain_printing")}),
         (_("Status"), {"fields": ("status", "last_status_at")}),
         (_("Reported by the print agent"), {"fields": ("uid", "reported", "discovered_at")}),
     )
-    inlines = [LabelMediumInline]
-    actions = ["activate", "test_print", "calibration_print", "check_status"]
+    actions = ["activate", "test_print", "calibration_print", "check_status", "resume_held"]
+
+    def get_readonly_fields(self, request, obj=None):
+        """The model is fixed: another model is another printer (delete it and add it anew)."""
+        fields = super().get_readonly_fields(request, obj)
+        return (*fields, "language", "model") if obj else fields
 
     def has_print_label_permission(self, request):
         """Printing labels is for who may (label_printing.print_label: the local group), also in the admin."""
         return request.user.has_perm("label_printing.print_label")
 
     def formfield_for_foreignkey(self, db_field, request, **kwargs):
-        if db_field.name == "loaded_medium":  # the printer's own labels
-            printer_id = request.resolver_match.kwargs.get("object_id")
-            kwargs["queryset"] = LabelMedium.objects.filter(printer_id=printer_id).order_by("name")
+        if db_field.name == "loaded_medium":  # label material it takes
+            printer = Printer.objects.filter(pk=request.resolver_match.kwargs.get("object_id")).first()
+            taken = [medium.stock.pk for medium in printer.media(in_stock=False)] if printer else []
+            kwargs["queryset"] = LabelStock.objects.filter(pk__in=taken).order_by("-in_stock", "name")
         return super().formfield_for_foreignkey(db_field, request, **kwargs)
+
+    @admin.display(description=_("label material on hand it takes"))
+    def labels_taken(self, printer):
+        if not printer.pk:
+            return "–"
+        return ", ".join(medium.name for medium in sorted(printer.media(), key=lambda medium: medium.name)) or _(
+            "none: mark label material as on hand (Label material) or check what the printer takes")
 
     @admin.display(description=_("reported details"))
     def reported(self, printer):
@@ -185,8 +222,8 @@ class PrinterAdmin(admin.ModelAdmin):
             note = ""
             if printer.agent is not None and not printer.agent.is_active:
                 note = " " + gettext("Its print agent %(agent)s is not active yet.") % {"agent": printer.agent}
-            if not printer.media.exists():
-                note += " " + gettext("Add the labels loaded in it.")
+            if not printer.media():
+                note += " " + gettext("It takes no label material on hand.")
             elif printer.language == Printer.Language.ZPL and not printer.loaded_medium_id:
                 note += " " + gettext("Set the labels loaded in it.")
             self.message_user(request, gettext("%(printer)s is active.") % {"printer": printer} + note)
@@ -194,7 +231,21 @@ class PrinterAdmin(admin.ModelAdmin):
     @admin.display(description=_("status"))
     def status(self, printer):
         reason = printer.unavailable_reason()
-        return reason or printer.status_text or "–"
+        text = reason or printer.status_text or "–"
+        if printer.held_at:
+            text = format_html("<strong>⏸ {}</strong> {}", gettext("Held on the print agent.")
+                               if not printer.resume_requested else gettext("Goes on with the next poll."), text)
+        if problem := printer.ribbon_problem():
+            return format_html("{} <strong>⚠ {}</strong>", text, problem)
+        return text
+
+    @admin.action(description=_("Go on (printers held on their print agent)"), permissions=["print_label"])
+    def resume_held(self, request, queryset):
+        for printer in queryset:
+            try:
+                self.message_user(request, services.resume_printer(printer))
+            except services.PrintError as error:
+                self.message_user(request, str(error), messages.ERROR)
 
     @admin.action(description=_("Print a test label"), permissions=["print_label"])
     def test_print(self, request, queryset):
@@ -293,7 +344,7 @@ class PrintJobAdmin(admin.ModelAdmin):
     list_display = ("created_at", "subject_label", "printer", "medium", "copies", "status", "message", "user",
                     "claimed_by", "outdated")
     list_filter = (OutdatedFilter, "status", "printer", "subject_type", "created_at")
-    actions = ["reprint"]
+    actions = ["reprint", "pause", "resume", "abort"]
 
     def has_print_label_permission(self, request):
         """Printing labels is for who may (label_printing.print_label: the local group), also in the admin."""
@@ -321,6 +372,25 @@ class PrintJobAdmin(admin.ModelAdmin):
                 self.message_user(request, str(error), messages.ERROR)
                 continue
             self.message_user(request, gettext("Job %(old)s printed again as job %(new)s.") % {"old": job.pk, "new": new.pk})
+
+    @admin.action(description=_("Pause (jobs a print agent is printing)"), permissions=["print_label"])
+    def pause(self, request, queryset):
+        self.control(request, queryset, PrintJob.Command.PAUSE)
+
+    @admin.action(description=_("Go on (paused jobs)"), permissions=["print_label"])
+    def resume(self, request, queryset):
+        self.control(request, queryset, PrintJob.Command.RESUME)
+
+    @admin.action(description=_("Abort"), permissions=["print_label"])
+    def abort(self, request, queryset):
+        self.control(request, queryset, PrintJob.Command.ABORT)
+
+    def control(self, request, queryset, command):
+        for job in queryset:
+            try:
+                self.message_user(request, services.control(job, command))
+            except services.PrintError as error:
+                self.message_user(request, str(error), messages.ERROR)
 
     def has_add_permission(self, request):
         return False
