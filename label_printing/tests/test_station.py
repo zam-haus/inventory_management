@@ -4,7 +4,8 @@ from unittest import mock
 
 from django.test import SimpleTestCase
 
-from ..agent import Connection, Printers
+from ..agent import RECENT_INTERVAL, Connection, Link, Printers
+from ..devices.run import Result
 from ..devices import bluetooth
 from ..devices.io import RfcommDevice, device_for
 from ..station import Station, addresses
@@ -14,8 +15,9 @@ class FakeLink:
     def __init__(self, server="https://inventar.zam.haus"):
         self.server = server
         self.state = {"code": "ok", "message": "", "since": 0.0}
-        self.settings, self.waiting, self.loaded = {}, [], []
-        self.asked, self.refusal = [], ""
+        self.settings, self.waiting, self.loaded, self.offered = {}, [], [], []
+        self.asked, self.refusal, self.calls = [], "", []
+        self.recent, self.detail = [], None
         self.started = self.stopped = False
 
     def start(self):
@@ -36,6 +38,27 @@ class FakeLink:
     def print_own_label(self, uid, label):
         self.asked.append((uid, label))
         return self.refusal
+
+    def cancel_job(self, job_id):
+        self.calls.append(("cancel", job_id))
+        self.offered = [entry for entry in self.offered if entry["id"] != job_id]
+        return ""
+
+    def extend_job(self, job_id):
+        self.calls.append(("extend", job_id))
+        return ""
+
+    def set_offsets(self, uid, offset_x, offset_y):
+        self.calls.append(("offsets", uid, offset_x, offset_y))
+        return ""
+
+    def job_detail(self, job_id):
+        self.calls.append(("detail", job_id))
+        return (self.detail, "") if self.detail is not None else (None, "Server nicht erreichbar")
+
+    def reprint_job(self, job_id):
+        self.calls.append(("reprint", job_id))
+        return (job_id + 100, "") if not self.refusal else (None, self.refusal)
 
 
 class FakeConnection:
@@ -98,6 +121,31 @@ class ConnectionTests(SimpleTestCase):
         self.printers.spooler(ZEBRA["uid"]).pause()
         station.switch_server(0)
         self.assertEqual((station.connection.index, station.note), (1, "✗ erst die Aufträge abwarten oder abbrechen"))
+
+
+class RecentJobsTests(SimpleTestCase):
+    def test_asked_for_now_and_then_and_after_a_job(self):
+        """The finished jobs come with a poll when asked for: at first, every RECENT_INTERVAL, after a job."""
+        printers = Printers([ZEBRA], find=lambda: [])
+        link = Link({"url": "http://192.0.2.10:8000", "token": "t"}, printers, {"report_interval": 60}, "pi")
+        asked = []
+
+        def request(path, data):
+            if path != "poll":
+                return 200, {}
+            asked.append(data.get("recent", False))
+            return 200, {"recent": [{"id": 3, "status": "done", "age": 10}]} if data.get("recent") else {}
+        link.request = request
+        with mock.patch("label_printing.agent.time.monotonic", return_value=500.0):
+            link.poll_once()
+            link.poll_once()
+        self.assertEqual(asked, [True, False])
+        self.assertEqual(link.recent, [{"id": 3, "status": "done", "age": 10, "finished": 490.0}])
+        with mock.patch("label_printing.agent.time.monotonic", return_value=500.0 + RECENT_INTERVAL):
+            link.poll_once()
+        link.report({"id": 4}, Result("done"))
+        link.poll_once()
+        self.assertEqual(asked, [True, False, True, True])
 
 
 class AddressTests(SimpleTestCase):

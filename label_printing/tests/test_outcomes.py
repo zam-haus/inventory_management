@@ -62,10 +62,12 @@ class OutcomeTests(InventoryData, TestCase):
         tape = self.found()[self.on_tape]
         self.assertEqual((tape.missing, tape.status), (("material", "12 mm"), "P-touch Werkstatt is online, but not "
                                                                               "with these labels: Loaded: 24 mm tape."))
-        self.brother.remember_status({"ok": False, "errors": ["cover_open"]})
+        self.brother.remember_status({"ok": False, "errors": ["overheating"]})
         tape = self.found()[self.on_tape]
-        self.assertEqual((tape.missing, tape.status), (("printer", "P-touch Werkstatt"),
-                                                       "No suitable printer is online: The cover is open."))
+        self.assertEqual(tape.missing, ("printer", "P-touch Werkstatt"))
+        self.assertTrue(tape.status.startswith("No suitable printer is online: "))
+        self.brother.remember_status({"ok": False, "errors": ["cover_open"]})  # its tape being changed
+        self.assertEqual(self.found()[self.on_tape].missing, ("material", "12 mm"))
         self.brother.remember_status({"ok": False, "errors": ["end_of_media"]})
         self.assertEqual(self.found()[self.on_tape].missing, ("material", "12 mm"))
         large = LocationLabelTemplate.objects.create(name="Groß", description="label 100 x 50\ntext {{ qr }}",

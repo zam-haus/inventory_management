@@ -61,6 +61,19 @@ STATUS_REPLY, PRINTING_COMPLETED, ERROR_OCCURRED, TURNED_OFF, NOTIFICATION, PHAS
 PHASE_EDITING, PHASE_PRINTING = 0, 1
 
 
+def feed_and_cut(p900=False):
+    """A job that prints nothing and is fed out and cut, as the printer's cutter button does: the label that
+    continuous printing left in the printer comes out, a few mm longer. One cut, after the page ("no chain
+    printing" feeds and cuts after the last page); auto cut stays off, which would also cut before it (the P900
+    cut twice, the label and an empty piece). The page is marked as the last (the P900 series waits for that),
+    its few raster lines as many as announced."""
+    lines = 8
+    info = b"\x1biz" + bytes([0x80, 0, 0, 0]) + lines.to_bytes(4, "little") + bytes([2 if p900 else 0, 0])
+    margin = (28 if p900 else 14).to_bytes(2, "little")  # 2 mm
+    return (b"\x00" * 200 + b"\x1b@" + b"\x1bia\x01" + info + b"\x1biM\x00" + b"\x1biK\x08" + b"\x1bid" + margin
+            + b"M\x02" + b"Z" * lines + b"\x1a")
+
+
 def is_status(record: bytes) -> bool:
     return len(record) == STATUS_SIZE and record[0] == 0x80 and record[1] == 0x20 and record[2] == ord("B")
 

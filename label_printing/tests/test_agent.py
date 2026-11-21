@@ -128,7 +128,8 @@ class AgentAccessAndPrinterTests(TestCase):
                               subjects=[printer])
         answer = self.poll().json()
         self.assertEqual(answer["printers"], {"usb-04f9-2085-A1B2C3": {
-            "name": "Brother PT-P900W", "active": True, "language": "ptouch", "check_status": True}})
+            "name": "Brother PT-P900W", "active": True, "language": "ptouch", "check_status": True,
+            "offset_x": 0, "offset_y": 0, "tapes": []}})
         sent, = answer["jobs"]
         self.assertEqual((sent["id"], sent["printer"], sent["expected_tape_mm"]), (job.pk, "usb-04f9-2085-A1B2C3", 24))
         self.assertIsNone(sent["expected_length"])  # Zebra only: [height in mm, dpi]

@@ -7,6 +7,7 @@ pygame is imported only here, so the agent runs without it (without screen). The
 video (the display; the backlight once ops/raspberry-pi/update.sh allowed it) and input (the touches).
 """
 import glob
+import io
 import logging
 import os
 
@@ -57,6 +58,7 @@ class TouchScreen:
         self.rotation = rotation
         self.canvas = pygame.Surface(self.size)
         self.fonts = {}
+        self.images = {}  # PNG bytes → surface (label previews), a few
         self.touch = self.has_touch()
         self.backlights = glob.glob("/sys/class/backlight/*")
         log.info("touch screen %d × %d (%s), touch: %s, backlight: %s", *self.size, pygame.display.get_driver(),
@@ -163,6 +165,17 @@ class TouchScreen:
                 canvas.blit(shade, (x, y))
             else:
                 pygame.draw.rect(canvas, color, (x, y, item.w, item.h), border_radius=10)
+        elif item.kind == "image":
+            surface = self.images.get(item.png)
+            if surface is None:
+                try:
+                    surface = pygame.image.load(io.BytesIO(item.png))
+                except (pygame.error, ValueError):
+                    return
+                if len(self.images) >= 32:
+                    self.images.clear()
+                self.images[item.png] = surface
+            canvas.blit(surface, (x, y))
         elif item.kind == "text":
             self.draw_text(item.text, x, y, item.w, item.size, PALETTE.get(item.color, PALETTE["text"]), item.bold,
                            item.align)

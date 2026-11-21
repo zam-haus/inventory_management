@@ -4,6 +4,7 @@ server's state in words, the network, and the actions (pause, go on, abort, labe
 test and calibration labels), run so that the display stays responsive. Plain Python, no Django; the texts are
 German, like the people standing at the printers.
 """
+import base64
 import logging
 import subprocess
 import threading
@@ -76,6 +77,9 @@ class Station:
         self.questions = []  # pairing requests (devices.bluetooth.PairRequest), shown until answered
         self.note, self.note_until = "", 0.0
         self.lock = threading.Lock()
+        # Jobs shown on their page, by id: {"loading": True} until the server answered, then {"job", "labels"
+        # (each with "png": the preview's PNG), "problem", "more"}, or {"problem"} if it did not
+        self.job_details = {}
 
     def attach(self, printers, connection, bluetooth=None):
         self.printers, self.connection, self.bluetooth = printers, connection, bluetooth
@@ -115,10 +119,16 @@ class Station:
             text = f"{status['media_width_mm']} mm"
             if status.get("text_color") and status.get("tape_color"):
                 text += f" {status['text_color']} auf {status['tape_color']}"
-            return text
+            tapes = self.settings(uid).get("tapes") or []
+            return text + (f" ({', '.join(tapes)})" if tapes else "")
         settings = self.settings(uid)
         medium = next((medium for medium in settings.get("media", []) if medium["id"] == settings.get("loaded")), None)
-        return medium["name"] if medium else ""
+        if settings.get("language") != "zpl":
+            return medium["name"] if medium else ""
+        # a Zebra: the labels set as loaded, and next to them the ribbon set as loaded
+        ribbon = next((entry["name"] for entry in settings.get("ribbons", []) if entry["id"] == settings.get("ribbon")),
+                      "kein Farbband gesetzt" if settings.get("thermal_transfer", True) else "")
+        return " · ".join(part for part in (medium["name"] if medium else "", ribbon) if part)
 
     def printer_text(self, uid, report):
         state = self.printers.state(uid)
@@ -130,6 +140,8 @@ class Station:
             return text + (f", {state['queued']} weitere" if state["queued"] else "")
         if state["held"]:
             return self.held_text
+        if report.get("missing"):
+            return "✗ nicht gefunden (Kabel, Strom, Bluetooth?)"
         if status.get("errors"):
             return "✗ " + ERRORS.get(status["errors"][0], status["errors"][0])
         if settings.get("ribbon_problem"):
@@ -141,6 +153,11 @@ class Station:
         loaded = self.loaded_text(uid, status)
         return "✓ bereit" + (f", {loaded}" if loaded else "")
 
+    def printer_names(self, uids, reports=None):
+        """Printers that would each do: "P-touch Werkstatt oder Brother PT-P700"."""
+        reports = reports or {}
+        return " oder ".join(self.printer_name(uid, reports.get(uid)) for uid in uids)
+
     def alerts(self, reports):
         """What needs someone at the printers: labels waiting for a printer that has other labels loaded (or none
         left), and a Zebra whose ribbon does not suit its labels."""
@@ -151,16 +168,25 @@ class Station:
         for entry in link.waiting:
             uid = entry.get("printer")
             count = entry.get("jobs", 1)
-            text = (f"{entry.get('material', '?')} einlegen: {count} Auftr{'äge' if count != 1 else 'ag'} warten."
-                    + (f" {entry['reason']}" if entry.get("reason") else ""))
-            if entry.get("ribbon_problem"):
-                text += f" Achtung: {entry['ribbon_problem']}"
+            steps = []
+            if entry.get("loaded"):
+                steps.append(f"{entry['loaded']} herausnehmen")
+            if entry.get("material"):
+                steps.append(f"{entry['material']} einlegen")
+            if entry.get("ribbon_out"):
+                steps.append(f"Farbband {entry['ribbon_out']} herausnehmen")
+            if entry.get("ribbon_in"):
+                steps.append(f"Farbband {entry['ribbon_in']} einlegen")
+            steps.append(f"{count} Auftr{'äge' if count != 1 else 'ag'} warten")
+            text = ". ".join(steps) + "."
             zebra = bool(entry.get("medium")) and self.settings(uid).get("language") == "zpl"
-            found.append(Alert(("waiting", uid, entry.get("medium")), "waiting", uid,
-                               self.printer_name(uid, reports.get(uid)), text,
+            ribbon_only = not entry.get("material") and entry.get("ribbon_in")
+            found.append(Alert(("waiting", uid, entry.get("medium")), "ribbon" if ribbon_only else "waiting", uid,
+                               self.printer_names(entry.get("printers") or [uid], reports), text,
                                medium=entry["medium"] if zebra else None, material=entry.get("material", "")))
+        asked = {alert.uid for alert in found if alert.kind == "ribbon"}
         for uid, settings in link.settings.items():
-            if settings.get("ribbon_problem") and uid in reports:
+            if settings.get("ribbon_problem") and uid in reports and uid not in asked:
                 found.append(Alert(("ribbon", uid), "ribbon", uid, self.printer_name(uid, reports[uid]),
                                    "Farbband passt nicht! " + settings["ribbon_problem"]))
         return found
@@ -206,7 +232,12 @@ class Station:
         link = self.link
 
         def run():
-            self.tell("gespeichert" if link.set_loaded(uid, medium) else "✗ nicht gespeichert")
+            if not link.set_loaded(uid, medium):
+                self.tell("✗ nicht gespeichert")
+            elif problem := link.settings.get(uid, {}).get("ribbon_problem"):
+                self.ribbon_needed(uid, problem)
+            else:
+                self.tell("gespeichert")
         self.background(run)
         self.tell("speichere ...", 10)
 
@@ -225,6 +256,10 @@ class Station:
     def refused(self, title, problem):
         self.tell(f"✗ {problem}", 8)
 
+    def ribbon_needed(self, uid, problem):
+        """New labels set as loaded that the ribbon in the printer does not suit: another ribbon is to be put in."""
+        self.tell(f"✗ {problem}", 8)
+
     def own_label_entries(self, uid):
         """(label, which) of the test and calibration label, if the printer is active on the server."""
         return list((label, which) for which, label in OWN_LABELS.items()) if self.settings(uid).get("active") else []
@@ -236,6 +271,98 @@ class Station:
             self.tell("✗ erst die Aufträge abwarten oder abbrechen", 5)
             return
         self.tell(f"verbinde mit {self.server_name(self.connection.servers[index]['url'])} ...", 5)
+
+    def report_with_expected(self, reports):
+        """The printers found here, and those the server expects here (active there) but not found since the
+        agent started (unplugged, switched off, a Bluetooth printer away): {uid: report}, those with "missing"."""
+        link = self.link
+        expected = {uid: {"missing": True} for uid, settings in (link.settings.items() if link else ())
+                    if settings.get("active") and uid not in reports}
+        return {**reports, **expected}
+
+    def cancel_job(self, uid, job_id):
+        """Abort one job of a printer here (being printed or waiting in it), in the background."""
+        def run():
+            self.printers.abort(uid, job_id=job_id)
+            self.tell(f"#{job_id} abgebrochen")
+        self.background(run)
+
+    def cancel_offered(self, job_id):
+        """Cancel a waiting job one of the printers here could print (on the server)."""
+        link = self.link
+
+        def run():
+            problem = link.cancel_job(job_id)
+            self.tell(f"✗ {problem}" if problem else f"#{job_id} abgebrochen", 5 if problem else 3)
+        self.tell("breche ab ...", 10)
+        self.background(run)
+
+    def extend_offered(self, job_id):
+        """Let a waiting job wait longer (its countdown tapped)."""
+        link = self.link
+
+        def run():
+            problem = link.extend_job(job_id)
+            self.tell(f"✗ {problem}" if problem else f"#{job_id} wartet länger", 5 if problem else 3)
+        self.background(run)
+
+    def load_job(self, job_id):
+        """A job with previews of its labels (job_details), from the server in the background."""
+        link = self.link
+        with self.lock:
+            self.job_details[job_id] = {"loading": True}
+
+        def run():
+            answer, problem = link.job_detail(job_id) if link is not None else (None, "nicht verbunden")
+            if answer is None:
+                entry = {"problem": problem}
+            else:
+                labels = []
+                for label in answer.get("labels") or []:
+                    try:
+                        labels.append({**label, "png": base64.b64decode(label.get("image") or "")})
+                    except ValueError:
+                        continue
+                entry = {"job": answer.get("job") or {}, "labels": labels, "problem": answer.get("problem") or "",
+                         "more": answer.get("more") or 0}
+            with self.lock:
+                self.job_details = {**{key: value for key, value in self.job_details.items()
+                                       if key == job_id or len(self.job_details) < 8}, job_id: entry}
+        self.background(run)
+
+    def reprint(self, job_id):
+        """Print a job again (on the server: services.again), in the background."""
+        link = self.link
+
+        def run():
+            new, problem = link.reprint_job(job_id) if link is not None else (None, "nicht verbunden")
+            if problem:
+                self.refused(f"#{job_id} nicht nochmal gedruckt", problem)
+            else:
+                self.tell(f"nochmal aufgegeben als #{new}", 5)
+        self.tell("gibt nochmal auf ...", 10)
+        self.background(run)
+
+    def cut(self, uid):
+        """Brother: feed and cut, in the background (the printer's cutter button, from here)."""
+        def run():
+            outcome = self.printers.cut(uid)
+            if outcome.status == "failed":
+                self.tell("✗ " + ("erst die Aufträge abwarten" if outcome.code == "printing" else
+                                  ERRORS.get(outcome.code, outcome.code or "nicht abgeschnitten")), 5)
+            else:
+                self.tell("abgeschnitten")
+        self.tell("schneide ab ...", 10)
+        self.background(run)
+
+    def set_offsets(self, uid, offset_x, offset_y):
+        """The printer's calibration in dots, saved on the server in the background."""
+        link = self.link
+
+        def run():
+            problem = link.set_offsets(uid, offset_x, offset_y)
+            self.tell(f"✗ {problem}" if problem else "Versatz gespeichert", 5 if problem else 3)
+        self.background(run)
 
     def do(self, action, uid, note):
         action(uid)

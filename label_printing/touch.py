@@ -26,6 +26,7 @@ HEADER, TABS = 48, 64
 CONTENT_TOP, CONTENT_BOTTOM = HEADER, HEIGHT - TABS
 PAD = 12
 ROW = 64  # the height of a button row: buttons a finger hits
+JOB_ROW = 48  # a job in a list, with its buttons
 TAP_SLOP = 12  # a touch moving less than this is a tap, else it scrolls
 
 TABS_SHOWN = (("queue", "Aufträge"), ("printers", "Drucker"), ("connection", "Verbindung"), ("bluetooth", "Bluetooth"))
@@ -46,6 +47,40 @@ class Box:
 
     def __init__(self, x, y, w, h, color="card"):
         self.x, self.y, self.w, self.h, self.color = x, y, w, h, color
+
+
+class Picture:
+    """A PNG (a label's preview from the server), drawn as it is: w × h pixels."""
+    kind = "image"
+
+    def __init__(self, x, y, png):
+        self.x, self.y, self.png = x, y, png
+        self.w, self.h = png_size(png)
+
+
+def png_size(png):
+    """(width, height) of a PNG, from its header; (0, 0) if it is none."""
+    if len(png) < 24 or png[:8] != b"\x89PNG\r\n\x1a\n":
+        return 0, 0
+    return int.from_bytes(png[16:20], "big"), int.from_bytes(png[20:24], "big")
+
+
+# A job's state in words, for its page and the list of finished ones
+JOB_STATES = {"waiting": "wartet auf einen Drucker", "processing": "druckt", "done": "gedruckt",
+              "sent": "gesendet, nicht bestätigt", "failed": "nicht gedruckt", "expired": "abgelaufen, nicht gedruckt"}
+FINISHED = ("done", "sent", "failed", "expired")
+
+
+def ago(seconds):
+    """"gerade eben", "vor 5 min", "vor 2 h", "vor 3 Tagen"."""
+    seconds = max(0, int(seconds))
+    if seconds < 60:
+        return "gerade eben"
+    if seconds < 3600:
+        return f"vor {seconds // 60} min"
+    if seconds < 86400:
+        return f"vor {seconds // 3600} h"
+    return f"vor {seconds // 86400} Tag{'en' if seconds >= 2 * 86400 else ''}"
 
 
 class Button:
@@ -101,10 +136,12 @@ class Touch(Station):
         self.measure = measure or (screen.measure if screen is not None else lambda text, size, bold=False:
                                    len(text) * size * 0.55)
         self.tab, self.detail, self.dialogs = "queue", None, []
+        self.job_page = None  # the job shown on its page (from the job list), by id
         self.scroll = {}  # view → pixels scrolled
         self.last_input = clock()
         self.lit = True
         self.confirm_all_until = 0.0
+        self.offsets = {}  # uid → (x, y) set here, until the server's settings say so too
         self.frame = None
 
     # ------------------------------------------------------------ text
@@ -156,6 +193,8 @@ class Touch(Station):
             text += f" · {job.get('sent', 0)}/{pages} Etiketten"
         else:
             text += f" · {plural(pages, 'Etikett', 'Etiketten')}"
+        if job.get("material"):
+            text += f" · {job['material']}"  # e.g. TZe-231
         return text
 
     def color_of(self, text):
@@ -169,11 +208,14 @@ class Touch(Station):
         reports = self.reports()
         alerts = self.alerts(reports)
         self.header(frame, reports)
-        if self.tab == "printers" and self.detail is not None and self.detail in reports:
-            self.printer_page(frame, self.detail, reports[self.detail])
+        expected = self.report_with_expected(reports)  # with the printers expected here but not found
+        if self.tab == "queue" and self.job_page is not None:
+            self.job_view(frame, reports)
+        elif self.tab == "printers" and self.detail is not None and self.detail in expected:
+            self.printer_page(frame, self.detail, expected[self.detail])
         elif self.tab == "printers":
             self.detail = None
-            self.printers_page(frame, reports)
+            self.printers_page(frame, expected)
         elif self.tab == "connection":
             self.connection_page(frame)
         elif self.tab == "bluetooth":
@@ -250,7 +292,7 @@ class Touch(Station):
             if not jobs and not state["held"]:
                 continue
             shown += 1
-            height = 16 + 30 + max(1, len(jobs)) * 28 + ROW
+            height = 16 + 30 + max(1, len(jobs)) * JOB_ROW + ROW
             self.card(items, y, height)
             items.append(Text(2 * PAD, y + 10, inner // 2, self.printer_name(uid, report), 22, bold=True))
             status = self.printer_text(uid, report)
@@ -258,16 +300,25 @@ class Touch(Station):
                               align="right"))
             row_y = y + 46
             for job in jobs:
+                items.append(Button(PAD, row_y, WIDTH - 2 * PAD - 70, JOB_ROW - 4, f"Auftrag #{job['id']}",
+                                    lambda job=job: self.show_job(job["id"]), "flat"))
                 mark = "⏸ " if job["paused"] and job["printing"] else "▶ " if job["printing"] else "· "
-                items.append(Text(2 * PAD, row_y, inner, mark + self.job_text(job), 20,
+                items.append(Text(2 * PAD, row_y + 8, inner - 70, mark + self.job_text(job), 20,
                                   "text" if job["printing"] else "muted"))
-                row_y += 28
+                items.append(Button(WIDTH - 2 * PAD - 60, row_y, 60, JOB_ROW - 4, "✕",
+                                    lambda uid=uid, job=job: self.open(Dialog(
+                                        f"#{job['id']} abbrechen?", "Was schon gedruckt ist, bleibt gedruckt.", [
+                                            ("Ja, abbrechen", lambda: self.cancel_job(uid, job["id"]), "danger"),
+                                            ("Nein", None, "normal")])), "danger", 22))
+                row_y += JOB_ROW
             if not jobs:
                 items.append(Text(2 * PAD, row_y, inner, "keine Aufträge; startet keine neuen", 20, "muted"))
                 row_y += 28
             self.printer_buttons(items, uid, state, bool(jobs), row_y + 2)
             y += height + PAD
-        if not shown and not alerts:
+        y = self.offered_list(items, y)
+        y = self.recent_list(items, y)
+        if not shown and not alerts and not (self.link and (self.link.offered or getattr(self.link, "recent", []))):
             printing = "Keine Aufträge" if reports else "Keine Drucker: USB- oder Bluetooth-Drucker anschließen"
             items.append(Text(PAD, y + 20, WIDTH - 2 * PAD, printing, 24, "muted", align="center"))
             y += 60
@@ -288,22 +339,180 @@ class Touch(Station):
                                                              ("Ja, abbrechen", lambda: self.abort(uid), "danger"),
                                                              ("Nein", None, "normal")])), "danger"))
 
+    def offered_list(self, items, y):
+        """The waiting jobs a printer here could print (with the right labels): which labels to put into which
+        printer, then the job; how long each still waits (tap: longer) and ✕ to cancel it."""
+        offered = self.link.offered if self.link is not None else []
+        if not offered:
+            return y
+        inner = WIDTH - 4 * PAD
+        items.append(Text(PAD, y, inner, "Warten auf einen Drucker", 22, bold=True))
+        y += 34
+        for entry in offered:
+            self.card(items, y, JOB_ROW + 12)
+            items.append(Button(PAD, y, WIDTH - 2 * PAD, JOB_ROW + 12, f"Auftrag #{entry['id']}",
+                                lambda entry=entry: self.show_job(entry["id"]), "flat"))
+            name = self.printer_names(entry.get("printers") or [entry.get("printer", "")])
+            material = entry.get("material")
+            items.append(Text(2 * PAD, y + 6, inner - 220, f"{material} einlegen · {name}" if material else name, 20,
+                              bold=True))
+            job = " · ".join(part for part in (entry.get("label"), entry.get("subject")) if part)
+            items.append(Text(2 * PAD, y + 34, inner - 220, f"#{entry['id']} {job}", 16, "muted"))
+            left = None if entry.get("until") is None else max(0, int(entry["until"] - self.clock()))
+            items.append(Button(WIDTH - 2 * PAD - 210, y + 6, 140, JOB_ROW - 4,
+                                "–" if left is None else f"noch {left // 60}:{left % 60:02d}",
+                                lambda entry=entry: self.extend_offered(entry["id"]), "normal", 20))
+            items.append(Button(WIDTH - 2 * PAD - 60, y + 6, 60, JOB_ROW - 4, "✕",
+                                lambda entry=entry: self.open(Dialog(
+                                    f"#{entry['id']} abbrechen?", f"{entry.get('subject', '')} wird nicht gedruckt.", [
+                                        ("Ja, abbrechen", lambda: self.cancel_offered(entry["id"]), "danger"),
+                                        ("Nein", None, "normal")])), "danger", 22))
+            y += JOB_ROW + 12 + PAD
+        return y
+
+    def recent_list(self, items, y):
+        """The last finished jobs (printed, failed, expired), the newest first: tapped, their page."""
+        recent = (getattr(self.link, "recent", None) or []) if self.link is not None else []
+        if not recent:
+            return y
+        inner = WIDTH - 4 * PAD
+        items.append(Text(PAD, y, inner, "Erledigt", 22, bold=True))
+        y += 34
+        for entry in recent:
+            self.card(items, y, JOB_ROW + 12)
+            items.append(Button(PAD, y, WIDTH - 2 * PAD, JOB_ROW + 12, f"Auftrag #{entry['id']}",
+                                lambda entry=entry: self.show_job(entry["id"]), "flat"))
+            printed = entry.get("status") in ("done", "sent")
+            items.append(Text(2 * PAD, y + 6, inner - 40, f"{'✓' if printed else '✗'} #{entry['id']} "
+                              f"{entry.get('subject', '')}", 20, "text" if printed else "error", bold=True))
+            items.append(Text(2 * PAD, y + 34, inner - 40, self.job_line(entry), 16, "muted"))
+            items.append(Text(WIDTH - 2 * PAD - 30, y + 14, 30, "›", 28, "muted", align="right"))
+            y += JOB_ROW + 12 + PAD
+        return y
+
+    def job_line(self, entry):
+        """A finished job in one line: "Ort (18-mm-Band) · P-touch Werkstatt · gedruckt vor 3 min"."""
+        state = JOB_STATES.get(entry.get("status"), entry.get("status", ""))
+        if entry.get("finished") is not None:
+            state += " " + ago(self.clock() - entry["finished"])
+        printer = self.printer_name(entry["printer"]) if entry.get("printer") else ""
+        return " · ".join(part for part in (entry.get("label"), printer, state) if part)
+
+    def known_job(self, job_id):
+        """What the lists here know of a job (finished, offered, a printer's), until its page has the server's."""
+        link = self.link
+        for entry in (getattr(link, "recent", None) or []) + (link.offered if link is not None else []):
+            if entry.get("id") == job_id:
+                return entry
+        for uid in self.printers.report() if self.printers is not None else {}:
+            for job in self.printers.jobs(uid):
+                if job["id"] == job_id:
+                    return {"id": job_id, "subject": job.get("subject", ""), "material": job.get("material", ""),
+                            "printer": uid, "status": "processing"}
+        return {"id": job_id}
+
+    def job_view(self, frame, reports):
+        """A job's page (show_job)."""
+        items, y, inner = frame.content, PAD, WIDTH - 4 * PAD
+        job_id = self.job_page
+        with self.lock:
+            detail = self.job_details.get(job_id, {})
+        known = self.known_job(job_id)
+        job = {**known, **(detail.get("job") or {})}
+        if known.get("finished") is not None:
+            job["finished"] = known["finished"]
+        items.append(Button(PAD, y, 160, ROW - 12, "‹ Zurück", self.back, "normal"))
+        items.append(Text(PAD + 176, y + 12, WIDTH - 176 - 2 * PAD, f"#{job_id} {job.get('label', '')}", 26,
+                          bold=True))
+        y += ROW
+        state = JOB_STATES.get(job.get("status"), job.get("status", "–"))
+        if job.get("finished") is not None:
+            state += " " + ago(self.clock() - job["finished"])
+        elif job.get("age") is not None:
+            state += " " + ago(job["age"])
+        lines = [("Für", job.get("subject") or "–"),
+                 ("Drucker", self.printer_names(job.get("printers") or [job["printer"]]) if job.get("printer")
+                  else "–"),
+                 ("Etiketten", job.get("material") or "–"), ("Zustand", state)]
+        if job.get("status") in ("failed", "expired") and job.get("message"):
+            lines.append(("Meldung", job["message"]))
+        for label, value in lines:
+            items.append(Text(2 * PAD, y, 170, label, 20, "muted"))
+            y = self.paragraph(items, 2 * PAD + 180, y, inner - 180, value, 20) + 4
+        if job.get("status") in FINISHED:
+            items.append(Button(2 * PAD, y + 4, 300, ROW - 12, "Nochmal drucken", lambda: self.reprint(job_id),
+                                "primary"))
+            y += ROW
+        y += 8
+        if detail.get("loading"):
+            items.append(Text(2 * PAD, y, inner, "lade Vorschau ...", 20, "muted"))
+            y += 32
+        elif detail.get("problem"):
+            y = self.paragraph(items, 2 * PAD, y, inner, detail["problem"], 20) + 8
+        for label in detail.get("labels") or []:
+            picture = Picture(2 * PAD, y, label["png"])
+            items.append(picture)
+            items.append(Text(2 * PAD + picture.w + 16, y + max(0, picture.h - 30) // 2, inner - picture.w - 16,
+                              f"× {label.get('count', 1)}", 24, bold=True))
+            items.append(Text(2 * PAD, y + picture.h + 6, inner, label.get("subject", ""), 16, "muted"))
+            y += picture.h + 34
+        if detail.get("more"):
+            items.append(Text(2 * PAD, y, inner, f"und {detail['more']} weitere", 20, "muted"))
+            y += 32
+        frame.height = y + PAD
+
     def printers_page(self, frame, reports):
         items, y, inner = frame.content, PAD, WIDTH - 4 * PAD
         for uid, report in self.sorted_printers(reports):
             status = self.printer_text(uid, report)
             self.card(items, y, 76)
             items.append(Button(PAD, y, WIDTH - 2 * PAD, 76, "", lambda uid=uid: self.show_printer(uid), "flat"))
-            items.append(Text(2 * PAD, y + 10, inner - 40, self.printer_name(uid, report), 22, bold=True))
+            quick = self.quick_button(uid, report, WIDTH - 2 * PAD - 40 - 200, y + 12)
+            width = inner - 40 - (210 if quick else 0)
+            items.append(Text(2 * PAD, y + 10, width, self.printer_name(uid, report), 22, bold=True))
             items.append(Text(WIDTH - 2 * PAD - 30, y + 24, 30, "›", 28, "muted", align="right"))
-            items.append(Text(2 * PAD, y + 42, inner - 40, f"{self.connection_of(report)} · {status}", 20,
-                              self.color_of(status)))
+            connection = "–" if report.get("missing") else self.connection_of(report)
+            items.append(Text(2 * PAD, y + 42, width, f"{connection} · {status}", 20, self.color_of(status)))
+            if quick:
+                items.append(quick)
             y += 76 + PAD
         if not reports:
             items.append(Text(PAD, y + 20, WIDTH - 2 * PAD, "Keine Drucker: USB- oder Bluetooth-Drucker anschließen",
                               24, "muted", align="center"))
             y += 60
         frame.height = y
+
+    def quick_button(self, uid, report, x, y):
+        """On a printer's card in the list: a Zebra's labels to choose, a Brother's cut; None for others."""
+        if report.get("missing"):
+            return None
+        settings = self.settings(uid)
+        if settings.get("language") == "zpl" and settings.get("active") and settings.get("media"):
+            return Button(x, y, 200, ROW - 12, "Etiketten", lambda: self.open(self.media_dialog(uid)))
+        if report.get("language", settings.get("language")) == "ptouch":
+            return Button(x, y, 200, ROW - 12, "Abschneiden", lambda: self.cut(uid))
+        return None
+
+    def offset_row(self, items, uid, y):
+        """The printer's calibration after a calibration label: offset y (and x for a Zebra) in dots, each tap of
+        − or + saved at once."""
+        settings = self.settings(uid)
+        x_value, y_value = self.offsets.get(uid, (settings.get("offset_x", 0), settings.get("offset_y", 0)))
+        axes = [("y", y_value)] if settings.get("language") == "ptouch" else [("x", x_value), ("y", y_value)]
+        items.append(Text(2 * PAD, y + 14, 200, "Versatz (Punkte)", 20, "muted"))
+        x = 2 * PAD + 200
+        for axis, value in axes:
+            items.append(Button(x, y, 64, ROW - 12, "−", lambda axis=axis: self.shift(uid, axis, -1)))
+            items.append(Text(x + 70, y + 12, 90, f"{axis} {value}", 22, bold=True, align="center"))
+            items.append(Button(x + 166, y, 64, ROW - 12, "+", lambda axis=axis: self.shift(uid, axis, 1)))
+            x += 250
+
+    def shift(self, uid, axis, step):
+        settings = self.settings(uid)
+        x_value, y_value = self.offsets.get(uid, (settings.get("offset_x", 0), settings.get("offset_y", 0)))
+        x_value, y_value = (x_value + step, y_value) if axis == "x" else (x_value, y_value + step)
+        self.offsets[uid] = (x_value, y_value)
+        self.set_offsets(uid, x_value, y_value)
 
     def printer_page(self, frame, uid, report):
         items, y, inner = frame.content, PAD, WIDTH - 4 * PAD
@@ -314,24 +523,26 @@ class Touch(Station):
         items.append(Button(PAD, y, 160, ROW - 12, "‹ Zurück", self.back, "normal"))
         items.append(Text(PAD + 176, y + 12, WIDTH - 176 - 2 * PAD, self.printer_name(uid, report), 26, bold=True))
         y += ROW
-        lines = [("Zustand", status), ("Verbindung", self.connection_of(report)),
+        lines = [("Zustand", status), ("Verbindung", "–" if report.get("missing") else self.connection_of(report)),
                  ("Modell", " ".join(str(part) for part in (info.get("manufacturer"), info.get("product") or
                                                             info.get("model")) if part) or "–")]
         loaded = self.loaded_text(uid, report.get("status") or {})
         if loaded:
             lines.append(("Eingelegt", loaded))
-        settings = self.settings(uid)
-        if settings.get("language") == "zpl":
-            ribbon = next((entry["name"] for entry in settings.get("ribbons", []) if entry["id"] == settings.get("ribbon")),
-                          None)
-            lines.append(("Farbband", ribbon or "keins gesetzt"))
+        settings = self.settings(uid)  # (a Zebra's ribbon: with its labels, "Eingelegt")
         for label, value in lines:
             items.append(Text(2 * PAD, y, 170, label, 20, "muted"))
             y = self.paragraph(items, 2 * PAD + 180, y, inner - 180, value, 20,
                                self.color_of(value) if label == "Zustand" else "text")
             y += 4
         y += 4
+        if report.get("missing"):  # not here: nothing to do with it but wait for it
+            frame.height = y + PAD
+            return
         self.printer_buttons(items, uid, state, bool(jobs), y)
+        quick = self.quick_button(uid, report, 3 * PAD + 2 * 230, y)
+        if quick and report.get("language", settings.get("language")) == "ptouch":
+            items.append(quick)  # (a Zebra's labels: below)
         y += ROW
         if settings.get("language") == "zpl" and settings.get("active"):
             x = 2 * PAD
@@ -341,10 +552,14 @@ class Touch(Station):
             if settings.get("ribbons"):
                 items.append(Button(x, y, 360, ROW - 12, "Farbband wählen", lambda: self.open(self.ribbon_dialog(uid))))
             y += ROW
-        for index, (label, which) in enumerate(self.own_label_entries(uid)):
+        own = self.own_label_entries(uid)
+        for index, (label, which) in enumerate(own):
             items.append(Button(2 * PAD + index % 2 * (360 + PAD), y, 360, ROW - 12, label + " drucken",
                                 lambda which=which: self.print_own_label(uid, which)))
             y += ROW if index % 2 else 0
+        if own:
+            self.offset_row(items, uid, y)
+            y += ROW
         if jobs:
             items.append(Text(2 * PAD, y, inner, "Aufträge", 22, bold=True))
             y += 32
@@ -494,10 +709,10 @@ class Touch(Station):
         if isinstance(result, Dialog):
             self.dialogs.append(result)
 
-    def choice_dialog(self, title, choices):
+    def choice_dialog(self, title, choices, text=""):
         """A list to choose from, (label, action, chosen) each; a long one opens scrolled to the chosen entry."""
-        dialog = Dialog(title, choices=[(("✓ " if chosen else "") + label, action, "normal")
-                                        for label, action, chosen in choices],
+        dialog = Dialog(title, text, choices=[(("✓ " if chosen else "") + label, action, "normal")
+                                              for label, action, chosen in choices],
                         buttons=[("Abbrechen", None, "normal")])
         chosen = [index for index, (_, _, chosen) in enumerate(choices) if chosen]
         if chosen:  # (kept within the list when drawn)
@@ -507,13 +722,14 @@ class Touch(Station):
     def media_dialog(self, uid):
         settings = self.settings(uid)
         return self.choice_dialog("Welche Etiketten sind eingelegt?", [
-            (medium["name"], lambda medium=medium: self.set_loaded(uid, medium["id"]),
+            (medium["name"] + (" · Farbband wechseln" if medium.get("ribbon_change") else ""),
+             lambda medium=medium: self.set_loaded(uid, medium["id"]),
              medium["id"] == settings.get("loaded"))
             for medium in settings.get("media", [])])
 
-    def ribbon_dialog(self, uid):
+    def ribbon_dialog(self, uid, text=""):
         settings = self.settings(uid)
-        return self.choice_dialog("Welches Farbband ist eingelegt?", [
+        return self.choice_dialog("Welches Farbband ist eingelegt?", text=text, choices=[
             (ribbon["name"], lambda ribbon=ribbon: self.set_ribbon(uid, ribbon["id"]),
              ribbon["id"] == settings.get("ribbon"))
             for ribbon in settings.get("ribbons", [])] + [
@@ -533,21 +749,32 @@ class Touch(Station):
 
     # ------------------------------------------------------------ actions
 
+    def ribbon_needed(self, uid, problem):
+        """New labels that the ribbon in the printer does not suit: which ribbon is put in now?"""
+        self.tell("", 0)
+        self.open(self.ribbon_dialog(uid, f"{problem} Bitte das Farbband wechseln."))
+
     def refused(self, title, problem):
         """In full: a reason from the server is longer than the note bar (whose "asking ..." goes)."""
         self.tell("", 0)
         self.open(Dialog(title, problem, [("OK", None, "normal")]))
 
     def show_tab(self, key):
-        self.tab, self.detail = key, None
+        self.tab, self.detail, self.job_page = key, None, None
         self.scroll[key] = 0
+
+    def show_job(self, job_id):
+        """A job's page: what it is, its state, previews of its labels (loaded from the server), print again."""
+        self.job_page = job_id
+        self.scroll[("job", job_id)] = 0
+        self.load_job(job_id)
 
     def show_printer(self, uid):
         self.detail = uid
         self.scroll[("printer", uid)] = 0
 
     def back(self):
-        self.detail = None
+        self.detail, self.job_page = None, None
 
     def pause_all(self):
         if any(self.printers.state(uid)["held"] for uid in self.printers.report()):
@@ -580,6 +807,8 @@ class Touch(Station):
     # ------------------------------------------------------------ touches
 
     def view_key(self):
+        if self.tab == "queue" and self.job_page is not None:
+            return ("job", self.job_page)
         return ("printer", self.detail) if self.tab == "printers" and self.detail is not None else self.tab
 
     def drag(self, dy):
@@ -612,7 +841,8 @@ class Touch(Station):
             content = [] if not CONTENT_TOP <= y < CONTENT_BOTTOM else [
                 (item, x, y - CONTENT_TOP + offset) for item in frame.content if item.kind == "button"]
             fixed = [(item, x, y) for item in frame.fixed if item.kind == "button"]
-            for item, tx, ty in fixed + content:  # the tabs and the note above the content
+            # the tabs and the note above the content; there, a button laid on another (a card's) comes first
+            for item, tx, ty in fixed + content[::-1]:
                 if item.hit(tx, ty):
                     item.action()
                     return True

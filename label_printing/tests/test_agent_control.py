@@ -1,14 +1,20 @@
 """Print agents of version 5: printers print at the same time, jobs can be paused and aborted (on the agent's display
 or in the admin), and agents learn which labels wait for one of their printers to be loaded with them."""
+import base64
+import io
 import json
 import threading
 import time
 from datetime import timedelta
 
+from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.test import LiveServerTestCase, SimpleTestCase, TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
+from PIL import Image
+
+from inventory.models import LocationLabelTemplate
 
 from .. import drivers, outcomes, services, simulator
 from ..agent import Link, Printers, Task
@@ -40,10 +46,11 @@ class PollTests(InventoryData, TestCase):
         return self.client.post(reverse(name, kwargs=kwargs), json.dumps(data), content_type="application/json",
                                 headers={"Authorization": f"Bearer {token or self.token}"})
 
-    def poll(self, busy=(), printing=None, held=None):
+    def poll(self, busy=(), printing=None, held=None, recent=False):
         return self.post("print_agent_poll", {"version": "6.0", "hostname": "pi", "printers": {}, "busy": list(busy),
                                               "printing": printing or {},
-                                              **({"held": list(held)} if held is not None else {})}).json()
+                                              **({"held": list(held)} if held is not None else {}),
+                                              **({"recent": True} if recent else {})}).json()
 
     def queue(self, printer, medium):
         return services.submit(printer=printer, medium=medium, layout_key="test", subject_type="printer",
@@ -58,13 +65,13 @@ class PollTests(InventoryData, TestCase):
         self.assertEqual([job["id"] for job in self.poll()["jobs"]], [second.pk])
         ribbons = answer["printers"][self.zebra.uid].pop("ribbons")
         media = answer["printers"][self.zebra.uid].pop("media")  # Zebra labels on hand (also those of migration 0002)
-        self.assertIn({"id": self.labels.pk, "name": "57 × 32"}, media)
+        self.assertIn({"id": self.labels.pk, "name": "57 × 32", "ribbon_change": False}, media)
         self.assertEqual([ribbon["name"] for ribbon in ribbons], [
             "wax ribbon 110 mm, schwarz", "wax/resin ribbon 110 mm, schwarz", "resin ribbon 110 mm, schwarz",
             "wax ribbon 110 mm, rot", "wax/resin ribbon 110 mm, rot", "resin ribbon 110 mm, rot"])  # migration 0005
         self.assertEqual(answer["printers"][self.zebra.uid], {
-            "name": "Zebra USB", "active": True, "language": "zpl", "check_status": True,
-            "loaded": self.labels.pk,
+            "name": "Zebra USB", "active": True, "language": "zpl", "check_status": True, "offset_x": 0, "offset_y": 0,
+            "thermal_transfer": True, "loaded": self.labels.pk,
             "ribbon": None, "ribbon_problem": ""})
         self.assertNotIn("media", answer["printers"][self.brother.uid])  # a Brother reports its tape itself
 
@@ -143,9 +150,10 @@ class PollTests(InventoryData, TestCase):
         services.submit_outcome(found[outcome_key("location", "60x30")], subject_type="location",
                                 subjects=[self.part], wait=True)
         answer = self.poll()
-        self.assertEqual(answer["waiting"], [{"printer": self.zebra.uid, "medium": small.pk,
-                                              "material": "60 × 30 (60 × 30 mm labels)",
-                                              "reason": "Loaded: 57 × 32.", "jobs": 2, "ribbon_problem": ""}])
+        self.assertEqual(answer["waiting"], [{"printer": self.zebra.uid, "printers": [self.zebra.uid],
+                                              "medium": small.pk, "material": "60 × 30",
+                                              "loaded": "57 × 32", "jobs": 2,
+                                              "ribbon_problem": "", "ribbon_out": "", "ribbon_in": ""}])
         other, other_token = create_agent("other")
         self.assertEqual(self.post("print_agent_poll", {"version": "6.0", "busy": []}, token=other_token)
                          .json()["waiting"], [])
@@ -154,7 +162,7 @@ class PollTests(InventoryData, TestCase):
         self.assertEqual(self.post("print_agent_loaded", {"printer": self.zebra.uid, "medium": self.tape.pk})
                          .status_code, 400)
         self.assertEqual(self.post("print_agent_loaded", {"printer": self.zebra.uid, "medium": small.pk}).json(),
-                         {"ok": True})
+                         {"ok": True, "ribbon_problem": ""})
         job.refresh_from_db()
         self.assertEqual((job.status, job.printer), ("waiting", None))  # until the Zebra takes it
         answer = self.poll()
@@ -163,12 +171,108 @@ class PollTests(InventoryData, TestCase):
         job.refresh_from_db()
         self.assertEqual((job.status, job.printer, job.medium), ("processing", self.zebra, small.stock))
 
+    def test_waiting_jobs_the_display_shows_extends_and_cancels(self):
+        labels(self.zebra, name="60 × 30", width_mm=60, height_mm=30)
+        found = {outcome.key: outcome for outcome in outcomes.outcomes("location")}
+        job = services.submit_outcome(found[outcome_key("location", "60x30")], subject_type="location",
+                                      subjects=[self.part], wait=True)  # the Zebra takes them, but has 57 × 32
+        offered, = self.poll()["offered"]
+        self.assertEqual((offered["id"], offered["printer"], offered["subject"], offered["material"]),
+                         (job.pk, self.zebra.uid, str(self.part), "60 × 30"))
+        self.assertTrue(0 < offered["expires_in"] <= settings.PRINT_WAIT_MAX)
+        other, other_token = create_agent("other")
+        self.assertEqual(self.post("print_agent_extend", {}, token=other_token, pk=job.pk).status_code, 404)
+        extended = self.post("print_agent_extend", {}, pk=job.pk).json()
+        self.assertTrue(settings.PRINT_WAIT_MAX < extended["expires_in"] <= 2 * settings.PRINT_WAIT_MAX)
+        self.assertEqual(self.post("print_agent_cancel", {}, pk=job.pk).json(), {"ok": True})
+        job.refresh_from_db()
+        self.assertEqual((job.status, job.code, job.detail), ("failed", "aborted", {"by": "display"}))
+        self.assertEqual(self.poll()["offered"], [])
+        self.assertEqual(self.post("print_agent_cancel", {}, pk=job.pk).status_code, 404)
+
+    def test_jobs_for_labels_no_printer_has_are_offered_too(self):
+        """Labels no printer has, loaded or on hand (18 mm tape): offered on one of the agent's printers that takes
+        them, to put them in there."""
+        template = LocationLabelTemplate.objects.create(
+            name="Ort 18", description="label height 18\ntext {{ location.unique_identifier }}")
+        found = {outcome.key: outcome for outcome in outcomes.outcomes("location")}
+        self.assertEqual(found[f"design:{template.pk}"].targets, [])
+        job = services.submit_outcome(found[f"design:{template.pk}"], subject_type="location", subjects=[self.part],
+                                      wait=True)
+        offered, = self.poll()["offered"]
+        self.assertEqual((offered["id"], offered["printer"]), (job.pk, self.brother.uid))
+        self.assertTrue(offered["label"].startswith("Ort 18 ("))
+        self.assertIn("18", offered["material"])  # the template's labels in words
+        # the Brother has 12 mm tape in it: its display says to change it
+        self.brother.remember_status({"media_width_mm": 12, "tape_color": "weiß", "text_color": "schwarz"})
+        waiting, = self.poll()["waiting"]
+        self.assertEqual((waiting["printer"], waiting["printers"], waiting["loaded"], waiting["material"],
+                          waiting["jobs"]), (self.brother.uid, [self.brother.uid], "12 mm", offered["material"], 1))
+        # another Brother of the agent that takes 18 mm tape: either will do
+        other = Printer.objects.create(name="P-touch Zwei", slug="ptouch-zwei", uid="usb-04f9-2061-B2",
+                                       language="ptouch", model="P700", dpi=180, transport="agent", agent=self.agent)
+        self.assertEqual(self.poll()["offered"][0]["printers"], [self.brother.uid])  # not connected yet
+        other.remember_status({"media_width_mm": 24, "tape_color": "weiß", "text_color": "schwarz"})
+        answer = self.poll()
+        self.assertEqual(answer["offered"][0]["printers"], [self.brother.uid, other.uid])
+        self.assertEqual(answer["waiting"][0]["printers"], [self.brother.uid, other.uid])
+        Printer.objects.filter(pk__in=[self.brother.pk, other.pk]).update(is_active=False)  # none takes them now
+        self.assertEqual(self.poll()["offered"], [])
+
+    def test_finished_jobs_shown_with_previews_and_printed_again(self):
+        """The display's job list goes on with the last finished jobs (asked for), each with previews of its labels
+        and printed again from there: a test label as one, a job that expired back into the queue."""
+        test = self.queue(self.zebra, self.labels)
+        labels(self.zebra, name="60 × 30", width_mm=60, height_mm=30)
+        found = {outcome.key: outcome for outcome in outcomes.outcomes("location")}
+        expired = services.submit_outcome(found[outcome_key("location", "60x30")], subject_type="location",
+                                          subjects=[self.part], copies=2, wait=True)
+        now = timezone.now()
+        PrintJob.objects.filter(pk=test.pk).update(status="done", finished_at=now - timedelta(minutes=5))
+        PrintJob.objects.filter(pk=expired.pk).update(status="expired", finished_at=now)
+        self.assertNotIn("recent", self.poll())  # only when asked for
+        recent = self.poll(recent=True)["recent"]
+        self.assertEqual([(entry["id"], entry["status"], entry["printer"]) for entry in recent],
+                         [(expired.pk, "expired", ""), (test.pk, "done", self.zebra.uid)])
+        self.assertTrue(299 <= recent[1]["age"] <= 302)
+
+        detail = self.post("print_agent_job_detail", {}, pk=expired.pk).json()
+        self.assertEqual((detail["job"]["id"], detail["problem"], len(detail["labels"])), (expired.pk, "", 1))
+        self.assertEqual((detail["labels"][0]["subject"], detail["labels"][0]["count"]), (str(self.part), 2))
+        image = Image.open(io.BytesIO(base64.b64decode(detail["labels"][0]["image"])))
+        self.assertEqual(image.height, 110)  # small enough for the display (60 × 30: wider than high)
+        other, other_token = create_agent("other")
+        self.assertEqual(self.post("print_agent_job_detail", {}, token=other_token, pk=test.pk).status_code, 404)
+        self.assertEqual(self.post("print_agent_reprint", {}, token=other_token, pk=test.pk).status_code, 404)
+
+        again = PrintJob.objects.get(pk=self.post("print_agent_reprint", {}, pk=test.pk).json()["job"])
+        self.assertEqual((again.layout_key, again.printer, again.status), ("test", self.zebra, "waiting"))
+        queued = PrintJob.objects.get(pk=self.post("print_agent_reprint", {}, pk=expired.pk).json()["job"])
+        self.assertEqual((queued.outcome, queued.printer, queued.copies, queued.status, queued.request),
+                         (expired.outcome, None, 2, "waiting", expired.request))
+
+    def test_offsets_set_on_the_display(self):
+        self.assertEqual(self.post("print_agent_offsets", {"printer": self.zebra.uid, "offset_x": 4, "offset_y": -8})
+                         .json(), {"ok": True})
+        self.zebra.refresh_from_db()
+        self.assertEqual((self.zebra.offset_x, self.zebra.offset_y), (4, -8))
+        printers = self.poll()["printers"]
+        self.assertEqual((printers[self.zebra.uid]["offset_x"], printers[self.zebra.uid]["offset_y"]), (4, -8))
+        self.assertEqual(self.post("print_agent_offsets", {"printer": self.zebra.uid, "offset_x": "4", "offset_y": 0})
+                         .status_code, 400)
+        self.brother.remember_status({"media_width_mm": 12, "tape_color": "weiß", "text_color": "schwarz"})
+        self.assertIn("TZe-231", self.poll()["printers"][self.brother.uid]["tapes"])
+
     def test_test_and_calibration_labels_asked_for_on_the_display(self):
         response = self.post("print_agent_own_label", {"printer": self.zebra.uid, "label": "calibration"})
         job = PrintJob.objects.get(pk=response.json()["job"])
-        self.assertEqual((job.printer, job.medium, job.layout_key, job.status),
-                         (self.zebra, self.labels.stock, "calibration", "waiting"))
+        self.assertEqual((job.printer, job.medium, job.layout_key, job.status, job.payload),
+                         (self.zebra, None, "calibration", "waiting", None))  # drawn when the Zebra takes it
+        small = labels(self.zebra, name="60 × 30", width_mm=60, height_mm=30)
+        Printer.objects.filter(pk=self.zebra.pk).update(loaded_medium=small.stock)  # labels changed meanwhile
         self.assertEqual([entry["id"] for entry in self.poll()["jobs"]], [job.pk])
+        job.refresh_from_db()
+        self.assertEqual((job.status, job.medium, job.snapshot[0]["medium"]), ("processing", small.stock, "60 × 30"))
         self.assertEqual(self.post("print_agent_own_label", {"printer": self.zebra.uid, "label": "x"}).json(),
                          {"error": "Unknown layout."})
         other, other_token = create_agent("other")
@@ -256,6 +360,30 @@ class RibbonTests(TestCase):
         self.assertEqual(Printer.objects.get(pk=self.zebra.pk).loaded_ribbon, self.resin)
         self.post("print_agent_ribbon", {"printer": self.zebra.uid, "ribbon": None})
         self.assertIsNone(Printer.objects.get(pk=self.zebra.pk).loaded_ribbon)
+
+    def test_not_printed_with_a_ribbon_that_does_not_suit(self):
+        from ..models import PrintAgent, suitable_ribbon
+
+        PrintAgent.objects.filter(pk=self.agent.pk).update(last_seen=timezone.now())
+        medium = self.on_polyester()  # needs a resin ribbon, a wax ribbon is in
+        reason, missing = outcomes.unavailable(medium.printer, medium)
+        self.assertEqual((missing, "need a resin ribbon" in reason), ("material", True))
+        with self.assertRaisesMessage(services.PrintError, "need a resin ribbon"):
+            services.print_own_label(medium.printer, "test")
+        narrow = Ribbon.objects.create(material="resin", width_mm=100)
+        self.assertEqual(ribbon_problem(self.polyester, narrow),
+                         "The ribbon (100 mm) is narrower than the labels 105 × 52 gelb (105 mm).")
+        suitable = suitable_ribbon(self.polyester)  # resin, at least as wide, the narrowest of them (catalog: 110)
+        self.assertEqual((suitable.material, suitable.width_mm), ("resin", 110))
+        self.assertIsNone(suitable_ribbon(LabelStock(name="direkt", method="direct")))
+        # Labels set as loaded on the display: whether the ribbon in it suits them
+        self.assertEqual(self.post("print_agent_loaded", {"printer": self.zebra.uid, "medium": self.paper.pk}).json(),
+                         {"ok": True, "ribbon_problem": ""})  # paper takes the wax ribbon
+        self.assertIn("need a resin ribbon", self.post("print_agent_loaded", {
+            "printer": self.zebra.uid, "medium": self.polyester.pk}).json()["ribbon_problem"])
+        Printer.objects.filter(pk=self.zebra.pk).update(loaded_ribbon=self.resin)
+        medium = self.on_polyester()
+        self.assertEqual(outcomes.unavailable(medium.printer, medium), ("", ""))
 
     def test_admin_warns(self):
         self.client.force_login(get_user_model().objects.create_superuser("admin"))
@@ -372,7 +500,8 @@ class AgentControlTests(SimulatedPrinters, LiveServerTestCase):
     def test_the_display_sets_the_labels_loaded_in_a_zebra(self):
         small = labels(self.zebra, name="60 × 30", width_mm=60, height_mm=30)
         self.link.poll_once()
-        self.assertIn({"id": small.pk, "name": "60 × 30"}, self.link.settings["zebra-lan"]["media"])
+        self.assertIn({"id": small.pk, "name": "60 × 30", "ribbon_change": False},
+                      self.link.settings["zebra-lan"]["media"])
         self.assertTrue(self.link.set_loaded("zebra-lan", small.pk))
         self.assertEqual(Printer.objects.get(pk=self.zebra.pk).loaded_medium, small.stock)
         self.assertFalse(self.link.set_loaded("zebra-lan", self.tape.pk))

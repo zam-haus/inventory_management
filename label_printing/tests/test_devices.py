@@ -80,6 +80,17 @@ class RunJobTests(SimulatedPrinters, SimpleTestCase):
         return run_job(TcpDevice("127.0.0.1", self.brother_server.port), "ptouch", payload,
                        expected_tape_mm=12, pages=pages, timeout=5, **kwargs)
 
+    def test_brother_feed_and_cut(self):
+        """The display's cut: an empty page, fed out and cut once (no auto cut, no chain printing), confirmed like a
+        job; the P900 series' marked last."""
+        result = self.run_brother(brother.feed_and_cut(), 1)
+        self.assertEqual((result.status, len(self.brother_output.printed)), ("done", 1))
+        payload = brother.feed_and_cut(p900=True)
+        info = payload[payload.index(b"\x1biz"):][:13]
+        self.assertEqual((info[11], int.from_bytes(info[7:11], "little"), payload.count(b"Z"), payload[-1]),
+                         (2, 8, 8, 0x1A))  # last page; as many lines as announced; print with feeding
+        self.assertEqual((payload[payload.index(b"\x1biM") + 3], payload[payload.index(b"\x1biK") + 3]), (0x00, 0x08))
+
     def test_brother_job_is_printed_and_confirmed(self):
         payload, pages = self.brother_job(copies=2)
         result = self.run_brother(payload, pages)
@@ -276,6 +287,26 @@ class QualityTests(SimpleTestCase):
             with self.subTest(model=model):
                 self.assertEqual(column[:thick + 1], [False] * thick + [True])  # the frame
                 self.assertEqual(column[20:20 + thick + 1], [False] * thick + [True])  # the line of row 20
+
+    def test_calibration_x_ruler_on_labels_of_a_given_width(self):
+        """A Zebra's calibration label also has an x ruler, a tick every 5 dots over the first 50; tape has none."""
+        from ..layouts import Canvas, get_layout
+        from ..models import LabelStock, Medium, Printer
+
+        printer = Printer(name="Z", language="zpl", dpi=203)
+        medium = Medium(printer, LabelStock(language="zpl", name="57 × 32", width_mm=57, height_mm=32))
+        rendered = get_layout("calibration").render(printer, Canvas.for_medium(medium), medium)
+        image = rendered.image
+        self.assertEqual((rendered.snapshot["rows"], rendered.snapshot["columns"]), (256, 456))
+        base = next(row for row in range(image.height // 2, image.height)
+                    if not any(image.getpixel((column, row)) for column in range(image.width)))  # the ruler's line
+        above = [not image.getpixel((column, base - 3)) for column in range(61)]
+        self.assertEqual([column for column, black in enumerate(above) if black], [0, 5, 10, 15, 20, 25, 30, 35, 40,
+                                                                                  45, 50, 60])
+        tape = Medium(Printer(name="P", language="ptouch", model="E550W", dpi=180),
+                      LabelStock(language="ptouch", name="24 mm", tape_mm=24))
+        self.assertIsNone(get_layout("calibration").render(tape.printer, Canvas.for_medium(tape), tape)
+                          .snapshot["columns"])
 
     def test_brother_page_flags(self):
         """ESC i z n9: the P900 series needs its last page marked (2), else it waits for more and hangs; the 128-pin

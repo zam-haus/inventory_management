@@ -26,7 +26,7 @@ from . import drivers, label_urls, messages, selection
 from .devices.io import TcpDevice
 from .devices.run import DONE, FAILED, SENT, Result, query_status, run_job
 from .layouts import Canvas, LabelTooSmall, NotRendered, get_layout, layouts_for
-from .models import LabelStock, Medium, PrintJob, Printer, Quality, Ribbon, ribbon_problem
+from .models import LabelStock, Medium, PrintJob, Printer, Quality, Ribbon, ribbon_problem, suitable_ribbon
 from .render import squeeze
 
 
@@ -153,10 +153,15 @@ def take(printer, by, agent=None, found=None):
     for job in waiting:
         if job.payload is not None:
             medium = Medium(printer, job.medium) if job.medium_id else None
-            if (printer.unavailable_code() if job.layout_key in OWN_LABELS or medium is None
+            if (printer.unavailable_code() or printer.ribbon_problem() if medium is None or job.layout_key in OWN_LABELS
                     else outcomes.unavailable(printer, medium)[0]):
                 continue
             changes = {}
+        elif job.layout_key in OWN_LABELS:  # on the labels in the printer now, whatever they are
+            medium = default_medium(printer)
+            if medium is None or printer.unavailable_code() or printer.ribbon_problem():
+                continue
+            changes = own_label_for(job, printer, medium)
         else:
             outcome = outcomes.waited_for(found.get(job.subject_type, {}), job, printer)
             target = outcome and next((target for target in outcome.targets
@@ -171,6 +176,16 @@ def take(printer, by, agent=None, found=None):
                 status=PrintJob.Status.PROCESSING, claimed_by=by, claimed_at=now, agent=agent, **changes):
             return PrintJob.objects.select_related("printer", "medium").get(pk=job.pk)
     return None
+
+
+def own_label_for(job, printer, medium):
+    """The fields of a printer's test or calibration label rendered for the labels in it now."""
+    layout = get_layout(job.layout_key)
+    quality = print_quality(layout, printer, layout.quality or medium.quality)
+    rendered = render(layout, [printer], medium, user=job.user, quality=quality)
+    payload, pages = build_payload(printer, medium, rendered, job.copies, quality)
+    return {"medium": medium.stock, "payload": payload, "pages": pages, "quality": quality,
+            "snapshot": [label.snapshot for label in rendered]}
 
 
 def rendered_for(job, outcome, target):
@@ -298,14 +313,14 @@ def resume_printer(printer):
     return _("%(printer)s goes on with the next poll of its print agent.") % {"printer": printer}
 
 
-def control(job, command):
-    """Pause, go on with or abort a job (admin). A job a print agent is printing gets the command with the agent's
+def control(job, command, by="admin"):
+    """Pause, go on with or abort a job (admin; by "display": a print agent's display, for a waiting job). A job a print agent is printing gets the command with the agent's
     next poll; a job no printer has taken yet is simply not printed when aborted. Returns a message, or raises
     PrintError."""
     job.refresh_from_db()
     if command == PrintJob.Command.ABORT and job.status == PrintJob.Status.WAITING:
         if PrintJob.objects.filter(pk=job.pk, status=job.status).update(
-                status=PrintJob.Status.FAILED, code="aborted", detail={"by": "admin"}, finished_at=timezone.now(),
+                status=PrintJob.Status.FAILED, code="aborted", detail={"by": by}, finished_at=timezone.now(),
                 payload=None):
             return _("Job %(job)s aborted before it was printed.") % {"job": job.pk}
         job.refresh_from_db()
@@ -321,8 +336,11 @@ def control(job, command):
 
 def material_waits(agent, found=None):
     """Labels waiting for one of the agent's printers that is online, but has other labels loaded (or none left):
-    [{"printer": uid, "medium": pk, "material", "reason", "jobs"}], one entry per printer and labels, for its
-    display. found: the outcomes jobs_for_agent worked out in the same request (waiting_outcomes)."""
+    [{"printer": uid, "printers": uids, "medium": pk, "material", "reason", "jobs"}], one entry per printer and
+    labels, for its display; labels no printer has, loaded or on hand: for the first of them that takes such
+    labels (as offered_jobs). printers: that one and, for a Brother, the other Brothers that would do (it reports
+    its tape: put into any, they are printed). found: the outcomes jobs_for_agent worked out in the same request
+    (waiting_outcomes)."""
     from . import outcomes
 
     waiting = list(PrintJob.objects.filter(status=PrintJob.Status.WAITING, payload__isnull=True)
@@ -330,7 +348,7 @@ def material_waits(agent, found=None):
     if not waiting:
         return []
     found = waiting_outcomes({job.subject_type for job in waiting}, found)
-    entries = {}
+    entries, taking, printers = {}, {}, None
     for job in waiting:
         outcome = outcomes.waited_for(found[job.subject_type], job)
         if outcome is None:
@@ -338,19 +356,59 @@ def material_waits(agent, found=None):
         targets = [target for target in outcome.targets if job.printer_id in (None, target.printer.pk)]
         if any(not target.reason for target in targets):
             continue  # a printer can print it now
-        for target in targets:
-            if target.printer.agent_id != agent.pk or target.missing != "material":
-                continue
-            key = (target.printer.pk, target.medium.pk)
-            entry = entries.setdefault(key, {
-                "printer": target.printer.uid or target.printer.slug, "medium": target.medium.pk,
-                "material": f"{outcomes.material_name(target.medium)} ({outcomes.size_text(target.medium)})",
-                "reason": str(target.reason), "jobs": 0,
-                # these labels with the ribbon in the printer now
-                "ribbon_problem": str(ribbon_problem(target.medium.stock, target.printer.loaded_ribbon))})
-            entry["jobs"] += 1
-            break  # the first printer of the agent that could print it
+        here = [(target.printer, target.medium, short_name(target.medium.stock)) for target in targets
+                if target.printer.agent_id == agent.pk and target.missing == "material"]
+        if not here and not outcome.targets and not job.printer_id:  # labels no printer has
+            printers = active_printers_of(agent) if printers is None else printers
+            here = [(printer, medium, labels_to_put_in(outcome.layout, medium))
+                    for printer, medium in printers_taking(outcome.layout, printers, taking)
+                    if outcomes.unavailable(printer, medium)[1] == "material"]  # online, without these labels
+        if not here:
+            continue
+        printer, medium, material = here[0]
+        key = (printer.pk, material)
+        if key not in entries:
+            stock = medium.stock
+            loaded = loaded_stock(printer)
+            change = loaded is None or loaded.pk != stock.pk  # else only the ribbon
+            problem = ribbon_problem(stock, printer.loaded_ribbon)
+            ribbon = suitable_ribbon(stock, printer) if problem else None
+            brothers = [other for other, _medium, _material in here
+                        if printer.language == other.language == Printer.Language.PTOUCH]
+            entries[key] = {
+                "printer": printer.uid or printer.slug, "printers": with_alternatives(printer, brothers),
+                "medium": stock.pk if change else None,
+                "material": material if change else "",
+                "loaded": short_name(loaded) if change and loaded else "",
+                # these labels with the ribbon in the printer now: which to take out, which to put in
+                "ribbon_problem": str(problem), "ribbon_out": str(printer.loaded_ribbon) if problem else "",
+                "ribbon_in": str(ribbon) if ribbon else (stock.get_ribbon_display() if problem else ""),
+                "jobs": 0}
+        entries[key]["jobs"] += 1
     return list(entries.values())
+
+
+def labels_to_put_in(layout, medium):
+    """What to put into the printer for a layout waiting for labels no printer has: the labels' article number or
+    name; a Brother, for a template that does not name its label stock: its labels in words ("18-mm-Band"), as
+    the tape it gets (of any colour the template allows) is reported by the printer."""
+    from . import outcomes
+
+    template = getattr(layout, "template", None)
+    if template is not None and not template.label_stock_id and medium.printer.language == Printer.Language.PTOUCH:
+        return outcomes.labels_text(template)
+    return short_name(medium.stock)
+
+
+def short_name(stock):
+    """Label material as people at a printer know it: its article number (TZe-231), else its name (57 × 32)."""
+    return stock.code or stock.name or str(stock)
+
+
+def loaded_stock(printer):
+    """The label material in a printer now (a Zebra's set as loaded, Brother: of the tape it reported), or None."""
+    ids = printer.loaded_stock_ids()
+    return LabelStock.objects.filter(pk=ids[0]).first() if ids else None  # the likeliest
 
 
 def agent_printers(agent):
@@ -363,16 +421,212 @@ def agent_printers(agent):
                                                   materials.index(ribbon.material)))]
     for printer in agent.printers.select_related("loaded_medium", "loaded_ribbon"):
         entry = {"name": printer.name, "active": printer.is_active, "language": printer.language,
-                 "check_status": printer.reports_status}
+                 "check_status": printer.reports_status, "offset_x": printer.offset_x, "offset_y": printer.offset_y}
+        if printer.language == Printer.Language.PTOUCH:  # the tape it reported, by article number (TZe-231)
+            ids = printer.loaded_stock_ids()  # the likeliest first
+            stocks = sorted(LabelStock.objects.filter(pk__in=ids), key=lambda stock: ids.index(stock.pk))
+            entry["tapes"] = list(dict.fromkeys(stock.code or stock.name for stock in stocks))
         if printer.language == Printer.Language.ZPL:
-            entry["media"] = [{"id": medium.pk, "name": medium.name} for medium in
-                              sorted(printer.media(), key=lambda medium: medium.name)]
+            # each with whether the ribbon in it now would have to be changed for them
+            entry["media"] = [{"id": medium.pk, "name": medium.name,
+                               "ribbon_change": bool(ribbon_problem(medium.stock, printer.loaded_ribbon))}
+                              for medium in sorted(printer.media(), key=lambda medium: medium.name)]
+            entry["thermal_transfer"] = printer.thermal_transfer
             entry["loaded"] = printer.loaded_medium_id
             entry["ribbons"] = ribbons
             entry["ribbon"] = printer.loaded_ribbon_id
             entry["ribbon_problem"] = str(printer.ribbon_problem())
         answer[printer.uid or printer.slug] = entry
     return answer
+
+
+def offered_jobs(agent, found=None, limit=30):
+    """The waiting jobs one of the agent's printers could print, given the right labels (those for one of its
+    printers, and those of the print dialog whose labels one of them takes; labels no printer has, loaded or on
+    hand: the first of them that takes such labels at all), for its display to show, extend and cancel:
+    [{"id", "subject", "label", "printer", "printers", "material", "expires_in"}], the oldest first; printers:
+    all of the agent's printers that would do (the first is printer); material: what to put in for it ("" if
+    any will do)."""
+    from . import outcomes
+
+    printers = {printer.pk: printer for printer in active_printers_of(agent)}
+    if not printers:
+        return []
+    waiting = list(PrintJob.objects.filter(status=PrintJob.Status.WAITING).filter(
+        Q(printer__isnull=True) | Q(printer__in=list(printers))).order_by("ready_at", "pk")[:200])
+    found = waiting_outcomes({job.subject_type for job in waiting if not job.printer_id}, found)
+    now, entries, taking = timezone.now(), [], {}
+    for job in waiting:
+        if job.printer_id:
+            printer, label = printers[job.printer_id], layout_name(job)
+            material, others = (short_name(job.medium) if job.medium_id else ""), []
+        else:
+            outcome = outcomes.waited_for(found.get(job.subject_type, {}), job)
+            if outcome is None:
+                continue
+            here = [(target.printer, short_name(target.medium.stock)) for target in outcome.targets
+                    if target.printer.pk in printers]
+            if not outcome.targets:  # waits for labels no printer has
+                here = [(printer, labels_to_put_in(outcome.layout, medium))
+                        for printer, medium in printers_taking(outcome.layout, list(printers.values()), taking)]
+            if not here:
+                continue
+            (printer, material), others = here[0], [other for other, _material in here]
+            label = f"{outcome.name} ({outcome.size})"
+        entries.append({"id": job.pk, "subject": job.subject_label, "label": str(label),
+                        "printer": printer.uid or printer.slug, "printers": with_alternatives(printer, others),
+                        "material": str(material),
+                        "expires_in": max(0, int((job.expires_at - now).total_seconds())) if job.expires_at else None})
+        if len(entries) >= limit:
+            break
+    return entries
+
+
+def active_printers_of(agent):
+    """The agent's active printers, those that reported a status first (connected to it at some time)."""
+    return sorted(agent.printers.filter(is_active=True), key=lambda printer: (
+        not printer.last_status, not printer.is_default, printer.name, printer.pk))
+
+
+def printers_taking(layout, printers, taking):
+    """[(printer, labels)]: each of the printers that takes labels the layout prints on, on hand or not, with the
+    likeliest such labels (likely_media); taking: the answers so far, by layout key."""
+    if layout.key not in taking:
+        taking[layout.key] = [(printer, medium) for printer in printers for medium in [next(
+            (medium for medium in likely_media(printer) if layout.supports(printer, medium)), None)] if medium]
+    return taking[layout.key]
+
+
+def likely_media(printer):
+    """All labels the printer takes, the likeliest to be put in first: loaded, on hand, standard tape, white."""
+    loaded = printer.loaded_stock_ids()
+    return sorted(printer.media(in_stock=False), key=lambda medium: (
+        loaded.index(medium.pk) if medium.pk in loaded else len(loaded), not medium.stock.in_stock,
+        not medium.stock.description.startswith("Standard"), medium.stock.background_color not in ("", "weiß"),
+        medium.pk))
+
+
+def with_alternatives(printer, others):
+    """The uids of the printer and of the others that would do as well, each once; of those, only printers that
+    reported a status (connected to their agent at some time)."""
+    uids = [printer.uid or printer.slug]
+    for other in others:
+        uid = other.uid or other.slug
+        if uid not in uids and other.last_status:
+            uids.append(uid)
+    return uids
+
+
+RECENT_JOBS = 25
+FINISHED = (PrintJob.Status.DONE, PrintJob.Status.SENT, PrintJob.Status.FAILED, PrintJob.Status.EXPIRED)
+
+
+def concerns(agent, job, printers=None, taking=None):
+    """Whether a job is one for the agent's display: for one of its printers, or, without a printer, for labels
+    one of its active printers takes (on hand or not)."""
+    if job.printer_id:
+        return job.printer.agent_id == agent.pk
+    try:
+        layout = get_layout(job.layout_key)
+    except ValueError:
+        return False
+    printers = active_printers_of(agent) if printers is None else printers
+    return bool(printers_taking(layout, printers, {} if taking is None else taking))
+
+
+def job_entry(job, now=None):
+    """A job for the agent's display: {"id", "subject", "label", "printer", "material", "status", "message", "copies",
+    "age" (seconds since it finished, or None)}."""
+    now = now or timezone.now()
+    return {"id": job.pk, "subject": job.subject_label, "label": str(layout_name(job)),
+            "printer": (job.printer.uid or job.printer.slug) if job.printer_id else "",
+            "material": short_name(job.medium) if job.medium_id else "", "status": job.status,
+            "message": str(job.message), "copies": job.copies,
+            "age": max(0, int((now - job.finished_at).total_seconds())) if job.finished_at else None}
+
+
+def recent_jobs(agent, limit=RECENT_JOBS):
+    """The agent's last finished jobs (printed, failed, expired), the newest first (job_entry each): those of its
+    printers, and those without a printer for labels one of them takes."""
+    printers, taking, now = active_printers_of(agent), {}, timezone.now()
+    jobs = (PrintJob.objects.filter(status__in=FINISHED).filter(Q(printer__agent=agent) | Q(printer__isnull=True))
+            .select_related("printer", "medium").order_by("-finished_at", "-pk")[:4 * limit])
+    return [job_entry(job, now) for job in jobs if concerns(agent, job, printers, taking)][:limit]
+
+
+def preview_target(agent, job):
+    """(layout, subjects, labels) to show a job's labels with, as they would print now: on its printer and
+    labels, else on labels one of the agent's printers takes; None if they cannot be shown (subjects gone)."""
+    try:
+        layout = get_layout(job.layout_key)
+    except ValueError:
+        return None
+    if job.layout_key in OWN_LABELS:
+        subjects = [job.printer] if job.printer_id else []
+    elif job.snapshot:
+        subjects = subjects_of(job)
+    else:
+        try:
+            subjects = subjects_of_refs(job.request.get("subjects", []))
+        except (LookupError, ObjectDoesNotExist):
+            subjects = []
+    medium = job_medium(job) or (default_medium(job.printer) if job.printer_id else None)
+    if medium is None:
+        taken = printers_taking(layout, active_printers_of(agent), {})
+        medium = taken[0][1] if taken else None
+    if not subjects or medium is None:
+        return None
+    return layout, subjects, medium
+
+
+def again(job):
+    """A job's labels again, from the agent's display; the new job. A printed one on its printer and labels, as
+    they are now (reprint); a test or calibration label as one; one that never got a printer (expired) back into
+    the queue. PrintError if it cannot be."""
+    if job.layout_key in OWN_LABELS and job.printer_id:
+        return print_own_label(job.printer, job.layout_key)
+    if job.printer_id and job.medium_id and job.snapshot:
+        return reprint(job)
+    if job.outcome and job.request.get("subjects"):
+        try:
+            subjects_of_refs(job.request["subjects"])
+        except (LookupError, ObjectDoesNotExist):
+            raise PrintError(_("Nothing of job %(job)s can be printed again.") % {"job": job.pk}) from None
+        new = PrintJob.objects.create(
+            printer=job.printer, layout_key=job.layout_key, subject_type=job.subject_type, subject_id=job.subject_id,
+            subject_label=job.subject_label, copies=job.copies, pages=job.pages, quality=job.quality,
+            status=PrintJob.Status.WAITING, outcome=job.outcome, request={"subjects": job.request["subjects"]},
+            expires_at=timezone.now() + timedelta(seconds=settings.PRINT_WAIT_MAX))
+        offer_soon()
+        return new
+    raise PrintError(_("Nothing of job %(job)s can be printed again.") % {"job": job.pk})
+
+
+def offered_to(agent, job):
+    """Whether a waiting job is one the agent's display may extend or cancel (offered_jobs)."""
+    return job.status == PrintJob.Status.WAITING and any(entry["id"] == job.pk for entry in offered_jobs(agent, limit=200))
+
+
+def extend(job):
+    """A waiting job waits PRINT_WAIT_MAX longer (from the agent's display), at most twelve times that from now."""
+    now = timezone.now()
+    step = timedelta(seconds=settings.PRINT_WAIT_MAX)
+    expires_at = min(max(job.expires_at or now, now) + step, now + 12 * step)
+    PrintJob.objects.filter(pk=job.pk, status=PrintJob.Status.WAITING).update(expires_at=expires_at)
+    return expires_at
+
+
+OFFSET_LIMIT = 999  # dots
+
+
+def set_offsets(printer, offset_x, offset_y):
+    """The printer's calibration (from its agent's display after a calibration label), in dots."""
+    for value in (offset_x, offset_y):
+        if not isinstance(value, int) or isinstance(value, bool) or abs(value) > OFFSET_LIMIT:
+            raise PrintError(_("Offsets are whole numbers of dots between -%(limit)d and %(limit)d.") % {
+                "limit": OFFSET_LIMIT})
+    Printer.objects.filter(pk=printer.pk).update(offset_x=offset_x, offset_y=offset_y)
+    printer.offset_x, printer.offset_y = offset_x, offset_y
 
 
 def set_ribbon(printer, ribbon):
@@ -595,8 +849,9 @@ def check_status(printer):
 def default_medium(printer):
     """The labels loaded in the printer (a Zebra's set as loaded, Brother: the tape it reported), else the first
     material on hand it takes, or None."""
-    loaded = set(printer.loaded_stock_ids())
-    media = sorted(printer.media(), key=lambda medium: (medium.pk not in loaded, medium.name))
+    loaded = printer.loaded_stock_ids()  # the likeliest first
+    media = sorted(printer.media(), key=lambda medium: (loaded.index(medium.pk) if medium.pk in loaded else len(loaded),
+                                                        medium.name))
     return media[0] if media else None
 
 
@@ -609,14 +864,23 @@ def no_material_text():
 
 
 def print_own_label(printer, layout_key, user=None):
-    """A printer's test or calibration label (the admin, the print agent's display), on the labels loaded in it."""
+    """A printer's test or calibration label (the admin, the print agent's display): waiting for that printer,
+    rendered when it takes it, on the labels loaded in it then (take)."""
     if layout_key not in OWN_LABELS:
         raise PrintError(_("Unknown layout."))
-    medium = default_medium(printer)
-    if medium is None:
+    if code := printer.unavailable_code():
+        raise PrintError(messages.describe(code))
+    if default_medium(printer) is None:
         raise PrintError(no_material_text())
-    return submit(printer=printer, medium=medium, layout_key=layout_key, subject_type="printer", subjects=[printer],
-                  user=user)
+    if problem := printer.ribbon_problem():
+        raise PrintError(problem)
+    job = PrintJob.objects.create(
+        user=user if user is not None and user.is_authenticated else None, printer=printer,
+        status=PrintJob.Status.WAITING, layout_key=layout_key, subject_type="printer", subject_id=printer.pk,
+        subject_label=str(printer)[:255], expires_at=timezone.now() + timedelta(seconds=settings.PRINT_JOB_MAX_AGE))
+    if printer.transport == Printer.Transport.NETWORK:
+        offer_soon()
+    return job
 
 
 def job_medium(job):

@@ -25,6 +25,25 @@ class LabelStockTests(TestCase):
         self.assertFalse(LabelStock.objects.filter(code__startswith="HSe-").exists())
         self.assertGreater(LabelStock.objects.filter(language="ptouch").count(), 100)
 
+    def test_the_likeliest_tape_a_brother_reported(self):
+        """A Brother reports width, colours and kind of its tape, not the article: of those that fit, the one on
+        hand first, else the standard tape."""
+        from ..models import Printer
+        printer = Printer.objects.create(name="P900W", slug="p900w", language="ptouch", model="P900W", dpi=360)
+        printer.remember_status({"media_width_mm": 12, "tape_color": "weiß", "text_color": "schwarz",
+                                 "media_type": "laminated"})
+
+        def codes():
+            return [LabelStock.objects.get(pk=pk).code for pk in printer.loaded_stock_ids()]
+        self.assertEqual(codes()[0], "TZe-231")
+        self.assertNotIn("TZe-N231", codes())  # not laminated
+        self.assertNotIn("TZe-R231", codes())  # fabric, reported as such
+        LabelStock.objects.filter(code="TZe-S231").update(in_stock=True)
+        self.assertEqual(codes()[0], "TZe-S231")
+        printer.remember_status({"media_width_mm": 12, "tape_color": "weiß", "text_color": "schwarz",
+                                 "media_type": "non_laminated"})
+        self.assertEqual(codes(), ["TZe-N231"])
+
     def test_zebra_printing_method_and_ribbon(self):
         stock = LabelStock(language="zpl", name="Polyester", width_mm=50, height_mm=25, method="transfer")
         with self.assertRaises(ValidationError) as raised:

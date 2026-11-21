@@ -13,7 +13,7 @@ from . import messages
 from .devices.run import LENGTH_TOLERANCE_MM
 from .layouts import layouts_for
 from .layouts.designs import DesignLayout
-from .models import Printer, loaded_text
+from .models import Printer, loaded_text, ribbon_problem
 
 
 
@@ -52,8 +52,9 @@ def not_loaded(printer, medium):
     return ""
 
 
-# Printer errors that are about its labels: the material is missing, not the printer
-MATERIAL_ERRORS = {"no_media", "end_of_media", "wrong_media", "paper_out", "ribbon_out"}
+# Printer errors that are about its labels: the material is missing, not the printer (a Brother's cover, a Zebra's
+# print head is open while its labels are changed: the change notice stays)
+MATERIAL_ERRORS = {"no_media", "end_of_media", "wrong_media", "paper_out", "ribbon_out", "cover_open", "head_open"}
 
 
 def unavailable(printer, medium):
@@ -64,6 +65,8 @@ def unavailable(printer, medium):
     if errors := (printer.last_status or {}).get("errors"):
         return str(messages.describe(errors[0])), "material" if errors[0] in MATERIAL_ERRORS else "printer"
     reason = not_loaded(printer, medium)
+    if not reason and printer.language == Printer.Language.ZPL:  # not printed with a ribbon that does not suit them
+        reason = str(ribbon_problem(medium.stock, printer.loaded_ribbon))
     return reason, "material" if reason else ""
 
 

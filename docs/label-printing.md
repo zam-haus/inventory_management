@@ -34,7 +34,8 @@ Brother gets P-touch raster data. The code is in the app `label_printing`.
     job in a queue (the dialog says so beside the button **Wait for a printer**): it waits up to five
     minutes (`PRINT_WAIT_MAX`) and is printed as soon as a printer can (a print agent back online,
     the right tape loaded, labels of that size put into a printer). Otherwise it expires unprinted.
-    The dialog follows the job as long as it waits. Without any active printer nothing waits.
+    The dialog follows the job as long as it waits, and can send more meanwhile (another label, the same
+    again; it then follows the last one sent). Without any active printer nothing waits.
   * **Preselect from now on** (locations only, off at first): the chosen label becomes the one preselected
     the next time this location is printed, in the overview each printed location's. Without it printing
     changes nothing, so a one-off label (e.g. a temporary tape) does not replace the location's label.
@@ -114,8 +115,10 @@ right, so taking out stays visible longest.
 ## Setting up (admin → Label printing)
 
 1. **Label material** is the catalog of labels and tapes. A printer always prints on the material loaded in
-   it: Brother the tape of the width it reported (of its colours where the catalog has them; a tape missing
-   from the catalog is added as "24 mm" etc. with the colours reported), a Zebra its loaded labels (see 2.).
+   it: Brother the tape of the width it reported (of its colours and kind, laminated or not, fabric, …, where
+   the catalog has them; a tape missing from the catalog is added as "24 mm" etc. with the colours reported),
+   a Zebra its loaded labels (see 2.). A Brother cannot tell TZe-231 from TZe-S231 or HGe-231V5: where it is
+   named (the agent's display, jobs), it is the one **on hand**, else the standard tape.
    **On hand** (field, or the list actions **On hand** / **Not on hand**) is for the material that is not
    loaded: only material on hand is offered for printing then, and waited for. Each printer prints on the
    material it takes (see 2.); there is nothing to set up per printer.
@@ -159,7 +162,10 @@ right, so taking out stays visible longest.
      page lists the material loaded and on hand it takes.
    * **Calibration:** offset x and y in dots, for all its labels (Zebra: label home `^LH`; Brother: offset y
      moves the print across the tape, positive = down, if the top or bottom is cut off: print the calibration
-     label to measure).
+     label to measure). The calibration label is a frame with rulers in dots: **y** down the left edge, lines
+     numbered by row (the first visible one tells how many rows are cut off at the top, the last at the
+     bottom); on labels of a given width (Zebra) also **x** across the middle, a tick every 5 dots over the
+     first 50 (numbered every 10), where a shift shows, further on every 10 or 20.
    * A Zebra cannot tell which labels are in it: set its **loaded labels** (label material it takes)
      whenever labels are changed: on its print agent's display (**Etiketten wählen**; in the admin the field
      is then read-only, as is the ribbon: the agent knows what is in its printers), for a network Zebra in
@@ -169,14 +175,21 @@ right, so taking out stays visible longest.
      job is sent (also by print agents). Set its **loaded ribbon** likewise when changing ribbons: its material is
      compared with the ribbon the loaded labels need (thermal transfer only, and only when both are
      known). Labels for wax take wax or wax/resin (resin does not hold on paper), labels for wax/resin take
-     wax/resin or resin, labels for resin only resin. A ribbon that does not suit them does not stop printing;
-     the printer list's status and the print agent's display warn (there the display blinks until another
-     ribbon is set), as does a request to load labels the ribbon does not suit.
+     wax/resin or resin, labels for resin only resin; a ribbon narrower than the labels does not suit them
+     either. Such a combination is not printed on: the printer takes no job for these labels (test and
+     calibration labels included; the admin refuses them with the reason) until another ribbon is set, and
+     the dialog says why. The printer list's status and the print agent's display warn (there the display
+     blinks until another ribbon is set). Labels chosen as loaded on the display that the ribbon in it does not
+     suit (marked "Farbband wechseln" in the list) make it ask for the ribbon put in at once; a change notice
+     names the ribbon to take out and one of the catalog to put in (of a material they take, wide enough,
+     black and the narrowest first). Without a ribbon set nothing is checked. The display shows the ribbon
+     set as loaded next to the labels ("57 × 32 · Wachsband 110 mm, schwarz", or "kein Farbband gesetzt").
    * Brother printers report the tape themselves; they set the **cutting**:
      * half cut between the labels of a job (default), a full cut after each label, or no cut;
      * **continuous printing** (default on): the last label stays in the printer and the next job
        goes on from there, saving the tape's leading margin. Cut it off with the printer's cutter
-       button. Off, the printer feeds and cuts after every job.
+       button or **Abschneiden** on the print agent's display (an empty page without auto cut, fed and cut
+       once after it: the label comes out a few mm longer). Off, the printer feeds and cuts after every job.
      * The **P700 and P710BT** cannot half cut (Brother's raster command references): they cut fully,
        and are added with a full cut and continuous printing off. Nor do they cut off the empty start of
        the tape between cutter and print head (24.3 mm, "no precut"), which other models do before a job:
@@ -486,14 +499,32 @@ is no longer supported.)
    for those an admin let go on. On the display, aborting runs in the background: reporting the dropped jobs
    may take long while the server cannot be reached.
 6. **For the display:** the poll's answer also names the agent's printers as in the admin, a Zebra's label material on hand
-   and which is loaded, and the labels waiting for one of its printers that is online but has other labels
-   loaded (or none left): printer, labels, how many jobs, what is loaded. On the display someone can set a
-   Zebra's loaded labels (`POST /print/api/agent/printers/loaded`); jobs waiting for them go out at once.
+   and which is loaded (a Brother's reported tape by article number, `tapes`, e.g. TZe-231), its offsets, and the
+   labels waiting for one of its printers that is online but has other labels loaded (or none left, or its
+   cover or print head open, as when labels are changed; labels no printer has, loaded or on hand: for the
+   first of its printers that takes them): printer (a Brother: also the other Brothers that would do, as it
+   reports its tape), what to take out, what to put in, how many jobs; the display says just that ("57 × 32 herausnehmen. 60 × 30
+   einlegen. 2 Aufträge warten."). On the display someone can set a Zebra's loaded labels (`POST /print/api/agent/printers/loaded`);
+   jobs waiting for them are taken next. Since agent version 6.1 the answer also lists the waiting jobs one of
+   its printers could print given the right labels (`offered`: subject, printer and all others of its printers that would do, the labels to put in, seconds left; for labels no
+   printer has, loaded or on hand, e.g. 18 mm tape nobody marked: the first of its printers that takes them,
+   preferring those that reported a status), which the display shows with a countdown: tapped, the job waits `PRINT_WAIT_MAX` longer (at most twelve times that from now,
+   `POST /print/api/agent/jobs/<id>/extend`), and ✕ cancels it (`…/cancel`). A job a printer here prints or
+   holds is cancelled on its own with its ✕. Since agent version 6.3 the list goes on with the last 25 finished
+   jobs (printed, failed, expired: those of its printers, and those without a printer for labels one of them
+   takes), sent when the agent asks (`"recent": true` in the poll, every 30 seconds and after a job). Each job,
+   tapped, shows its page: what it is for, printer, labels, state, and previews of its labels as they would
+   print now, each with its count (`POST /print/api/agent/jobs/<id>/detail`; on its labels, else on the
+   likeliest ones a printer here takes: loaded, on hand, standard white tape). A finished job is printed again
+   from there (**Nochmal drucken**, `…/reprint`): a printed one on its printer and labels as they are now, a
+   test or calibration label as one, one that expired back into the queue. After a calibration label the printer's page sets its offsets
+   (y; a Zebra also x) with − and + (`POST /print/api/agent/printers/offsets`). Printers the server expects at
+   the agent (active there) that it has not found since it started are listed as not found.
    A printer active on the server gets **Testetikett drucken** and **Kalibrieretikett drucken** on its page
    of the touch screen (since agent version 5.3): the agent asks for
    the label (`POST /print/api/agent/printers/own-label`, `{"printer": uid, "label": "test"}` or
-   `"calibration"`), which is queued like the admin's test print on the labels loaded in it and comes with
-   the next poll; a refusal (no label material it takes, printer inactive) is shown with its reason.
+   `"calibration"`), which waits for that printer and is drawn when it takes it, on the labels loaded in it then
+   (as the admin's test print); a refusal (no label material it takes, printer inactive) is shown with its reason.
    Each job carries its subject's name (`subject`, e.g. the location), which the touch screen lists with the
    printer's jobs.
 

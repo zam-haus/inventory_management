@@ -1,9 +1,12 @@
 """The print agent's touch screen (touch.py), without screen and pygame: what it lays out and what taps do."""
+import base64
+import io
 import os
 import tempfile
 from unittest import mock
 
 from django.test import SimpleTestCase
+from PIL import Image
 
 from .. import agent
 from ..agent import Printers, Task
@@ -94,7 +97,7 @@ class TouchTests(SimpleTestCase):
         self.assertIn("Keine Aufträge", self.texts())
         self.press("Drucker")
         self.assertIn("Zebra Lager", self.texts())
-        self.assertIn("USB · ✓ bereit, 57 × 32", self.texts())
+        self.assertIn("USB · ✓ bereit, 57 × 32 · kein Farbband gesetzt", self.texts())  # labels and ribbon loaded
         self.press("Verbindung")
         self.assertIn("✓ verbunden", self.texts())
         self.assertIn("192.0.2.23", self.texts())
@@ -103,9 +106,12 @@ class TouchTests(SimpleTestCase):
         self.assertIn("A1:B2:C3:D4:E5:F6 · gekoppelt", self.texts())
 
     def test_labels_waiting_come_first_and_are_confirmed(self):
-        self.link.waiting = [{"printer": ZEBRA["uid"], "medium": 2, "material": "60 × 30", "jobs": 2}]
+        self.link.waiting = [{"printer": ZEBRA["uid"], "medium": 2, "material": "60 × 30",
+                              "loaded": "57 × 32", "jobs": 2}]
         self.assertIn("Aufträge (1!)", self.labels())
         self.assertIn("! Zebra Lager", self.texts())
+        self.assertEqual(self.touch.alerts(self.touch.reports())[0].text,
+                         "57 × 32 herausnehmen. 60 × 30 einlegen. 2 Aufträge warten.")
         self.press("Sind eingelegt")
         self.assertEqual(self.link.loaded, [(ZEBRA["uid"], 2)])
 
@@ -127,6 +133,135 @@ class TouchTests(SimpleTestCase):
         self.press("Ja, abbrechen")
         self.assertEqual(aborted, [ZEBRA["uid"]])
 
+    def test_a_ribbon_to_change_with_the_labels(self):
+        def loaded_labels_the_ribbon_does_not_suit(uid, medium):
+            self.link.settings[uid]["ribbon_problem"] = "Das Farbband passt nicht zu den Etiketten."
+            return True
+        self.link.set_loaded = loaded_labels_the_ribbon_does_not_suit
+        self.link.settings[ZEBRA["uid"]]["media"][1]["ribbon_change"] = True
+        self.press("Drucker")
+        self.press("Etiketten")
+        self.assertIn("60 × 30 · Farbband wechseln", self.labels())
+        self.press("60 × 30 · Farbband wechseln")
+        self.assertIn("Welches Farbband ist eingelegt?", self.texts())  # asked at once
+        self.assertIn("Wachsband 110 mm, schwarz", self.labels())
+
+    def test_only_the_ribbon_to_change(self):
+        self.link.waiting = [{"printer": ZEBRA["uid"], "medium": None, "material": "", "ribbon_out": "Wachsband 84 mm",
+                              "ribbon_in": "Harzband 111 mm", "jobs": 1, "ribbon_problem": "passt nicht"}]
+        alert, = self.touch.alerts(self.touch.reports())
+        self.assertEqual((alert.kind, alert.text), ("ribbon", "Farbband Wachsband 84 mm herausnehmen. "
+                                                              "Farbband Harzband 111 mm einlegen. 1 Auftrag warten."))
+        self.assertIn("Farbband wählen", self.labels())
+
+    def test_one_job_cancelled(self):
+        self.queue_job()
+        aborted = []
+        self.printers.abort = lambda uid=None, by="display", job_id=None: aborted.append((uid, job_id))
+        self.press("✕")
+        self.assertIn("#7 abbrechen?", self.texts())
+        self.press("Ja, abbrechen")
+        self.assertEqual(aborted, [(ZEBRA["uid"], 7)])
+
+    def test_waiting_jobs_count_down_wait_longer_and_are_cancelled(self):
+        self.link.offered = [{"id": 9, "subject": "R303.b Fach b", "label": "Fach (60 × 30)", "material": "60 × 30",
+                              "printer": ZEBRA["uid"], "until": self.now + 125},
+                             {"id": 10, "subject": "Atrium", "label": "Ort (18-mm-Band)", "material": "18-mm-Band",
+                              "printer": "usb-04f9-2085-B1", "printers": ["usb-04f9-2085-B1", ZEBRA["uid"]],
+                              "until": self.now + 300}]
+        self.assertIn("Warten auf einen Drucker", self.texts())
+        self.assertIn("60 × 30 einlegen · Zebra Lager", self.texts())  # what to do first, the job below
+        self.assertIn("18-mm-Band einlegen · usb-04f9-2085-B1 oder Zebra Lager", self.texts())  # any of them
+        self.link.offered = self.link.offered[:1]
+        self.assertIn("#9 Fach (60 × 30) · R303.b Fach b", self.texts())
+        self.press("noch 2:05")
+        self.now += 5
+        self.assertIn("noch 2:00", self.labels())
+        self.press("✕")
+        self.press("Ja, abbrechen")
+        self.assertEqual(self.link.calls, [("extend", 9), ("cancel", 9)])
+        self.assertNotIn("Warten auf einen Drucker", self.texts())
+
+    def test_finished_jobs_and_a_job_page_with_previews(self):
+        """The job list goes on with the finished jobs; a job tapped shows its page: what it is, its state, previews
+        of its labels with how many each, and it is printed again from there."""
+        image = io.BytesIO()
+        Image.new("RGB", (120, 64), "white").save(image, format="PNG")
+        self.link.recent = [{"id": 31, "subject": "R303.b Fach b", "label": "Fach", "printer": ZEBRA["uid"],
+                             "status": "done", "finished": self.now - 300},
+                            {"id": 30, "subject": "Atrium", "label": "Ort", "printer": "", "status": "expired",
+                             "message": "Kein Drucker konnte ihn rechtzeitig drucken.", "finished": self.now - 4000}]
+        texts = self.texts()
+        self.assertIn("Erledigt", texts)
+        self.assertIn("✓ #31 R303.b Fach b", texts)
+        self.assertIn("Fach · Zebra Lager · gedruckt vor 5 min", texts)
+        self.assertIn("✗ #30 Atrium", texts)
+        self.link.detail = {"job": {"id": 31, "subject": "R303.b Fach b", "label": "Fach", "printer": ZEBRA["uid"],
+                                    "material": "57 × 32", "status": "done", "copies": 2},
+                            "labels": [{"subject": "R303.b Fach b", "count": 2,
+                                        "image": base64.b64encode(image.getvalue()).decode()}],
+                            "problem": "", "more": 0}
+        self.press("Auftrag #31")
+        texts = self.texts()
+        self.assertIn("#31 Fach", texts)
+        self.assertIn("gedruckt vor 5 min", texts)
+        self.assertIn("57 × 32", texts)
+        self.assertIn("× 2", texts)
+        picture, = self.items("image")
+        self.assertEqual((picture.w, picture.h), (120, 64))
+        self.press("Nochmal drucken")
+        self.assertEqual(self.link.calls, [("detail", 31), ("reprint", 31)])
+        self.assertEqual(self.touch.note, "nochmal aufgegeben als #131")
+        self.press("‹ Zurück")
+        self.assertIn("Erledigt", self.texts())
+        self.link.detail = None  # the server not reached: why, on the page
+        self.press("Auftrag #30")
+        self.assertIn("Server nicht erreichbar", self.texts())
+        self.assertIn("Kein Drucker konnte ihn rechtzeitig drucken.", self.texts())
+
+    def test_quick_buttons_in_the_printer_list(self):
+        brother = {"uid": "usb-04f9-2085-B1", "device": "/dev/usb/lp1", "language": "ptouch", "product": "PT-P900W",
+                   "dpi": 360, "status": {"media_width_mm": 12, "tape_color": "weiß", "text_color": "schwarz"}}
+        self.printers = Printers([ZEBRA, brother], find=lambda: [])
+        self.printers.scan()
+        self.printers.remember(brother["uid"], brother["status"])
+        self.touch.attach(self.printers, self.connection, self.bluetooth)
+        self.link.settings[brother["uid"]] = {"name": "P-touch Werkstatt", "active": True, "language": "ptouch",
+                                              "tapes": ["TZe-231"]}
+        cut = []
+        self.printers.cut = lambda uid: cut.append(uid) or agent.Result("done")
+        self.press("Drucker")
+        self.assertIn("USB · ✓ bereit, 12 mm schwarz auf weiß (TZe-231)", self.texts())
+        self.press("Abschneiden")
+        self.assertEqual((cut, self.touch.note), ([brother["uid"]], "abgeschnitten"))
+        self.press("Etiketten")  # the Zebra's
+        self.assertEqual(self.labels(), ["Abbrechen", "✓ 57 × 32", "60 × 30"])
+
+    def test_printers_expected_but_not_found(self):
+        self.link.settings["usb-0a5f-0081-GONE"] = {"name": "Zebra Büro", "active": True, "language": "zpl"}
+        self.link.settings["usb-0a5f-0081-OFF"] = {"name": "Zebra alt", "active": False, "language": "zpl"}
+        self.press("Drucker")
+        self.assertIn("Zebra Büro", self.texts())
+        self.assertIn("– · ✗ nicht gefunden (Kabel, Strom, Bluetooth?)", self.texts())
+        self.assertNotIn("Zebra alt", self.texts())  # not expected: inactive
+        self.touch.show_printer("usb-0a5f-0081-GONE")
+        self.assertNotIn("Anhalten", self.labels())
+
+    def test_offsets_after_a_calibration_label(self):
+        self.link.settings[ZEBRA["uid"]].update(offset_x=0, offset_y=2)
+        self.touch.show_tab("printers")
+        self.touch.show_printer(ZEBRA["uid"])
+        self.touch.drag(-10_000)
+        self.assertIn("y 2", self.texts())
+        buttons = [item for item in self.items("button") if item.label in ("−", "+")]
+        self.assertEqual(len(buttons), 4)  # x and y on a Zebra
+        buttons[3].action()  # y +
+        buttons[3].action()
+        buttons[0].action()  # x −
+        self.assertEqual(self.link.calls, [("offsets", ZEBRA["uid"], 0, 3), ("offsets", ZEBRA["uid"], 0, 4),
+                                           ("offsets", ZEBRA["uid"], -1, 4)])
+        self.assertIn("y 4", self.texts())
+
     def test_all_printers_paused_and_aborted(self):
         self.queue_job()
         self.press("Alle fortsetzen")
@@ -143,8 +278,7 @@ class TouchTests(SimpleTestCase):
     def test_printer_page_sets_labels_and_ribbon(self):
         self.press("Drucker")
         self.touch.show_printer(ZEBRA["uid"])
-        self.assertIn("Farbband", self.texts())
-        self.assertIn("keins gesetzt", self.texts())
+        self.assertIn("57 × 32 · kein Farbband gesetzt", self.texts())  # "Eingelegt": labels and ribbon
         self.press("Etiketten wählen")
         self.assertEqual(self.labels(), ["Abbrechen", "✓ 57 × 32", "60 × 30"])
         self.press("60 × 30")

@@ -342,9 +342,18 @@ function setUp(form, options) {
             current => showStatus(current.message, 'info'), followBatch);
     }
 
+    // Whether what is sent waits in the queue (no printer can print it now): once there, the dialog may send more
+    // (another label, the same again), the status of the last sent still shown.
+    function queuing() {
+        const items = overview() ? wanted().map(row => outcome(select(row).value)) : [chosen()];
+        return items.some(item => item && !item.printer);
+    }
+
     form.addEventListener('submit', async event => {
         event.preventDefault();
         if (pending) return;
+        window.clearTimeout(polling);  // the status of what was sent before is no longer followed
+        const queued = queuing();
         clearErrors();
         setBusy(true);
         showStatus(text.labelWaiting, 'info');
@@ -363,6 +372,7 @@ function setUp(form, options) {
         if (result && result.ok) {
             if (result.batch) followBatch(result.batch);
             else follow(result.job);
+            if (queued && pending) finish();
             return;
         }
         showStatus('', 'info');

@@ -2211,3 +2211,13 @@ msgid ""
 msgstr ""
 "Der erste freie Drucker, in dem die Etiketten eingelegt sind, übernimmt den "
 "Auftrag; wähle einen, damit nur er druckt."
+
+#: services.py:403
+#, python-format
+msgid "Offsets are whole numbers of dots between -%(limit)d and %(limit)d."
+msgstr "Versätze sind ganze Zahlen von Punkten zwischen -%(limit)d und %(limit)d."
+
+#: models.py:493
+#, python-format
+msgid "The ribbon (%(ribbon)s mm) is narrower than the labels %(labels)s (%(width)s mm)."
+msgstr "Das Farbband (%(ribbon)s mm) ist schmaler als die Etiketten %(labels)s (%(width)s mm)."

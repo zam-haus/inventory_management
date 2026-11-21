@@ -255,17 +255,21 @@ class Printer(models.Model):
 
     def loaded_stock_ids(self):
         """The label material in the printer: a Zebra's loaded labels; Brother: tape of the width it last reported
-        (of its colours, if any is; material without colours counts as of any)."""
+        (of its colours, if any is; material without colours counts as of any; of the kind it reported, laminated
+        or not, fabric, …, if any is), the likeliest first: on hand, then standard tape (it cannot tell TZe-231
+        from TZe-S231 or HGe-231V5)."""
         if self.language == self.Language.ZPL:
             return [self.loaded_medium_id] if self.loaded_medium_id else []
         tape = reported_tape(self.last_status)
         if not tape:
             return []
         stocks = list(LabelStock.objects.filter(language=self.language, tape_mm=tape["tape_mm"]).values(
-            "pk", "background_color", "print_color"))
-        coloured = [stock for stock in stocks if all(stock[key] in ("", tape[key])
-                                                     for key in ("background_color", "print_color"))]
-        return [stock["pk"] for stock in coloured or stocks]
+            "pk", "background_color", "print_color", "description", "in_stock").order_by("pk"))
+        stocks = [stock for stock in stocks if all(stock[key] in ("", tape[key])
+                                                   for key in ("background_color", "print_color"))] or stocks
+        stocks = [stock for stock in stocks if tape_kind_fits(stock["description"], tape["media_type"])] or stocks
+        stocks.sort(key=lambda stock: (not stock["in_stock"], not stock["description"].startswith("Standard")))
+        return [stock["pk"] for stock in stocks]
 
     def unavailable_code(self):
         """Why jobs cannot be printed now ("inactive", "agent_offline"), or ""."""
@@ -290,7 +294,8 @@ class Printer(models.Model):
         if self.language == self.Language.PTOUCH and (tape := reported_tape(status)) and not LabelStock.objects.filter(
                 language=self.Language.PTOUCH, tape_mm=tape["tape_mm"]).exists():
             # Loaded tape is printed on: it needs a label material (not on hand, so not offered once taken out)
-            LabelStock.objects.create(language=self.Language.PTOUCH, name=TAPE_NAMES[tape["tape_mm"]], **tape)
+            LabelStock.objects.create(language=self.Language.PTOUCH, name=TAPE_NAMES[tape["tape_mm"]],
+                                      **{key: value for key, value in tape.items() if key != "media_type"})
 
     def ribbon_problem(self):
         """Zebra: why the loaded ribbon does not suit the loaded labels, or "" (see ribbon_problem)."""
@@ -317,7 +322,27 @@ def reported_tape(status):
         return None
     colours = [(status.get(key) or "") for key in ("tape_color", "text_color")]
     colours = ["" if colour == "andere" else colour for colour in colours]
-    return {"tape_mm": tape_mm, "background_color": colours[0], "print_color": colours[1]}
+    return {"tape_mm": tape_mm, "background_color": colours[0], "print_color": colours[1],
+            "media_type": status.get("media_type") or ""}
+
+
+# The media types a Brother reports (devices/brother.py) and the words of the tape kinds in Brother's catalog (the
+# first line of a tape's description: "Standard, laminiert", "Textil, nicht laminiert", "Flexi-Tapes, laminiert")
+TAPE_KIND_WORDS = {"laminated": ("laminiert",), "non_laminated": ("nicht laminiert",), "fabric": ("Textil",),
+                   "flexible_id": ("Flexi",), "heat_shrink": ("Schrumpf",), "heat_shrink_3_1": ("Schrumpf",)}
+
+
+def tape_kind_fits(description, media_type):
+    """Whether a Brother tape of this description is of the media type its printer reported (unknown: yes)."""
+    words = TAPE_KIND_WORDS.get(media_type)
+    if not words:
+        return True
+    kind = (description or "").splitlines()[0] if description else ""
+    if media_type == "laminated" and "nicht laminiert" in kind:
+        return False
+    if media_type in ("laminated", "non_laminated") and ("Flexi" in kind or "Textil" in kind):
+        return False  # reported as their own types
+    return any(word in kind for word in words)
 
 
 def loaded_text(status):
@@ -471,14 +496,29 @@ RIBBON_FITS = {
 
 
 def ribbon_problem(stock, ribbon):
-    """Why the ribbon does not suit the labels (label material), in words, or "": compared by material only, and only
-    when both are known (labels for thermal transfer with their ribbon, a ribbon set as loaded)."""
+    """Why the ribbon does not suit the labels (label material), in words, or "": by material, and narrower than the
+    labels; only when both are known (labels for thermal transfer with their ribbon, a ribbon set as loaded). Such a
+    combination is not printed on (outcomes.unavailable)."""
     if stock is None or ribbon is None or stock.method != LabelStock.Method.TRANSFER or not stock.ribbon:
         return ""
-    if ribbon.material in RIBBON_FITS[stock.ribbon]:
-        return ""
-    return _("The ribbon does not suit the labels: %(labels)s need a %(needed)s, the loaded one is a %(ribbon)s.") % {
-        "labels": stock.name, "needed": stock.get_ribbon_display(), "ribbon": ribbon}
+    if ribbon.material not in RIBBON_FITS[stock.ribbon]:
+        return _("The ribbon does not suit the labels: %(labels)s need a %(needed)s, the loaded one is a "
+                 "%(ribbon)s.") % {"labels": stock.name, "needed": stock.get_ribbon_display(), "ribbon": ribbon}
+    if ribbon.width_mm and stock.width_mm and ribbon.width_mm < stock.width_mm:
+        return _("The ribbon (%(ribbon)s mm) is narrower than the labels %(labels)s (%(width)s mm).") % {
+            "ribbon": ribbon.width_mm, "labels": stock.name, "width": stock.width_mm}
+    return ""
+
+
+def suitable_ribbon(stock, printer=None):
+    """A ribbon of the catalog for these thermal transfer labels (of a material they take, at least as wide;
+    black and the narrowest first), or None."""
+    if stock is None or stock.method != LabelStock.Method.TRANSFER or not stock.ribbon:
+        return None
+    ribbons = [ribbon for ribbon in Ribbon.objects.filter(material__in=RIBBON_FITS[stock.ribbon])
+               if not ribbon_problem(stock, ribbon)
+               and not (printer is not None and printer.max_width_mm and ribbon.width_mm > printer.max_width_mm)]
+    return min(ribbons, key=lambda ribbon: (ribbon.color != "schwarz", ribbon.width_mm), default=None)
 
 
 class Medium:

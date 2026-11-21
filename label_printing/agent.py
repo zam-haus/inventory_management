@@ -42,11 +42,12 @@ import urllib.parse
 import urllib.request
 from concurrent.futures import ThreadPoolExecutor
 
-from .devices import usb, zebra
+from .devices import brother, usb, zebra
 from .devices.io import DeviceError, device_for
 from .devices.run import FAILED, Control, Result, query_status, run_job
 
-VERSION = "6.0"
+VERSION = "6.3"
+RECENT_INTERVAL = 30  # seconds: how often the display's list of finished jobs is asked for
 CONFIG_PATHS = ("/boot/label-agent/config.json", "/boot/firmware/label-agent/config.json",
                 "/etc/label-agent/config.json")
 DEFAULTS = {"servers": [], "poll_interval": 2, "status_interval": 30,
@@ -127,7 +128,8 @@ class Spooler(threading.Thread):
             tasks = ([self.current] if self.current else []) + self.queued
             return [{"id": task.id, "server": task.link.server, "pages": task.job.get("pages", 1),
                      "sent": task.control.sent if task is self.current else 0,
-                     "subject": task.job.get("subject", ""), "printing": task is self.current,
+                     "subject": task.job.get("subject", ""), "material": task.job.get("material", ""),
+                     "printing": task is self.current,
                      "paused": task.control.paused or self.held} for task in tasks]
 
     def tasks(self, link):
@@ -151,12 +153,15 @@ class Spooler(threading.Thread):
             self.condition.notify()
 
     def abort(self, by, job_id=None, link=None):
-        """Abort the job being printed and those waiting here (or only the job `job_id` of `link`)."""
+        """Abort the job being printed and those waiting here (or only the job `job_id`, of `link` if given)."""
+        def chosen(task):
+            return job_id is None or (task.id == job_id and link in (None, task.link))
+
         with self.condition:
-            dropped = [task for task in self.queued if job_id is None or (task.id, task.link) == (job_id, link)]
+            dropped = [task for task in self.queued if chosen(task)]
             self.queued = [task for task in self.queued if task not in dropped]
             current = self.current
-            if current and (job_id is None or (current.id, current.link) == (job_id, link)):
+            if current and chosen(current):
                 current.control.abort(by)
         for task in dropped:
             task.link.report(task.job, Result(FAILED, "aborted", {"by": by}))
@@ -344,11 +349,26 @@ class Printers:
             if uid is None or spooler.uid == uid:
                 spooler.resume()
 
-    def abort(self, uid=None, by="display"):
-        """Abort the jobs of a printer (or all printers): the one being printed and those waiting."""
+    def abort(self, uid=None, by="display", job_id=None):
+        """Abort the jobs of a printer (or all printers): the one being printed and those waiting; job_id: only
+        that one."""
         for spooler in self.all_spoolers():
             if uid is None or spooler.uid == uid:
-                spooler.abort(by)
+                spooler.abort(by, job_id)
+
+    def cut(self, uid):
+        """Brother: feed and cut, as its cutter button does (the label continuous printing left in it comes out);
+        not while it has jobs. A Result."""
+        printer = self.get(uid)
+        if printer is None or printer.get("language") != "ptouch":
+            return Result(FAILED, "unreachable", {"error": f"no Brother printer {uid}"})
+        if self.spooler(uid).busy:
+            return Result(FAILED, "printing")
+        with self.device_lock(uid):
+            outcome = run_job(device_for(printer["device"]), "ptouch",
+                              brother.feed_and_cut(printer.get("dpi") == 360), pages=1)
+        self.remember(uid, outcome.printer_status)
+        return outcome
 
     def wait_idle(self, timeout=30):
         """Until no printer prints or has jobs waiting (tests)."""
@@ -391,6 +411,10 @@ class Link(threading.Thread):
         self.settings = {}
         # Labels waiting for one of the agent's printers to get other labels: [{"printer", "material", …}]
         self.waiting = []
+        # The waiting jobs its printers could print: [{"id", "subject", "label", "printer", "until"}]
+        self.offered = []
+        # The last finished jobs (asked for every RECENT_INTERVAL and after a job): [{"id", …, "finished"}]
+        self.recent, self.recent_at, self.recent_due = [], None, True
         self.stopped = threading.Event()  # another server was chosen (Connection.switch)
 
     def stop(self):
@@ -436,14 +460,24 @@ class Link(threading.Thread):
         True if there were jobs."""
         if self.stopped.is_set():
             return False
+        now = time.monotonic()
+        recent = self.recent_due or self.recent_at is None or now - self.recent_at >= RECENT_INTERVAL
         status, answer = self.request("poll", {"version": VERSION, "hostname": self.hostname,
                                                "printers": self.printer_reports(), "busy": self.printers.busy(),
-                                               "held": self.printers.held(), "printing": self.printers.tasks_of(self)})
+                                               "held": self.printers.held(), "printing": self.printers.tasks_of(self),
+                                               **({"recent": True} if recent else {})})
         if status != 200 or answer is None:
             self.last_report = None  # send everything again next time
             raise ServerError(f"poll answered {status}")
         self.settings = answer.get("printers") or {}
         self.waiting = answer.get("waiting") or []
+        now = time.monotonic()  # the countdown of each offered job on this computer's clock
+        if isinstance(answer.get("recent"), list):  # (servers before 6.3 do not answer it)
+            self.recent = [{**entry, "finished": now - entry["age"] if entry.get("age") is not None else None}
+                           for entry in answer["recent"]]
+            self.recent_at, self.recent_due = now, False
+        self.offered = [{**entry, "until": now + entry["expires_in"] if entry.get("expires_in") is not None else None}
+                        for entry in answer.get("offered") or []]
         for job_id, command in (answer.get("commands") or {}).items():
             if self.printers.command(self, int(job_id), command):
                 log.info("%s: job %s: %s (from the server)", self.server, job_id, command)
@@ -464,6 +498,7 @@ class Link(threading.Thread):
         for attempt in range(attempts):
             try:
                 self.request(f"jobs/{job['id']}/result", outcome.to_dict())
+                self.recent_due = True  # among the finished ones now
                 return
             except (OSError, ValueError, Refused) as error:
                 log.warning("%s: result of job %s not reported: %s", self.server, job["id"], error)
@@ -479,8 +514,9 @@ class Link(threading.Thread):
         if status != 200:
             log.warning("%s: labels of %s not set: %s", self.server, uid, (answer or {}).get("error", status))
             return False
-        if uid in self.settings:
-            self.settings[uid] = {**self.settings[uid], "loaded": medium}
+        if uid in self.settings:  # and whether the ribbon in it suits them
+            self.settings[uid] = {**self.settings[uid], "loaded": medium,
+                                  "ribbon_problem": (answer or {}).get("ribbon_problem", "")}
         self.waiting = [entry for entry in self.waiting if entry.get("printer") != uid]
         log.info("%s: labels %s set as loaded in %s", self.server, medium, uid)
         return True
@@ -516,6 +552,56 @@ class Link(threading.Thread):
             return problem
         log.info("%s: %s label for %s queued", self.server, label, uid)
         return ""
+
+    def call(self, path, data, what):
+        """POST for the display: (answer, "") if the server took it, else (None, why not in words)."""
+        try:
+            status, answer = self.request(path, data)
+        except (OSError, ValueError, Refused) as error:
+            log.warning("%s: %s: %s", self.server, what, error)
+            return None, "Server nicht erreichbar"
+        if status != 200:
+            problem = (answer or {}).get("error") or ("Server kann das noch nicht" if status == 404 else
+                                                      f"Server antwortet {status}")
+            log.warning("%s: %s: %s", self.server, what, problem)
+            return None, problem
+        return answer or {}, ""
+
+    def cancel_job(self, job_id):
+        """Cancel a waiting job offered to the agent; "" if done, else why not."""
+        answer, problem = self.call(f"jobs/{job_id}/cancel", {}, f"job {job_id} not cancelled")
+        if answer is not None:
+            self.offered = [entry for entry in self.offered if entry["id"] != job_id]
+            self.recent_due = True
+        return problem
+
+    def extend_job(self, job_id):
+        """Let a waiting job offered to the agent wait longer; "" if done, else why not."""
+        answer, problem = self.call(f"jobs/{job_id}/extend", {}, f"job {job_id} not extended")
+        if answer is not None and answer.get("expires_in") is not None:
+            until = time.monotonic() + answer["expires_in"]
+            self.offered = [{**entry, "until": until} if entry["id"] == job_id else entry for entry in self.offered]
+        return problem
+
+    def job_detail(self, job_id):
+        """A job with previews of its labels, for the display: (answer, "") or (None, why not)."""
+        return self.call(f"jobs/{job_id}/detail", {}, f"job {job_id} not shown")
+
+    def reprint_job(self, job_id):
+        """Print a job again: (the new job's id, "") or (None, why not)."""
+        answer, problem = self.call(f"jobs/{job_id}/reprint", {}, f"job {job_id} not printed again")
+        if answer is not None:
+            self.recent_due = True
+            return answer.get("job"), ""
+        return None, problem
+
+    def set_offsets(self, uid, offset_x, offset_y):
+        """A printer's calibration in dots; "" if the server took it, else why not."""
+        answer, problem = self.call("printers/offsets", {"printer": uid, "offset_x": offset_x, "offset_y": offset_y},
+                                    f"offsets of {uid} not set")
+        if answer is not None and uid in self.settings:
+            self.settings[uid] = {**self.settings[uid], "offset_x": offset_x, "offset_y": offset_y}
+        return problem
 
     def mark(self, code, message=""):
         if code != self.state["code"] or message != self.state["message"]:

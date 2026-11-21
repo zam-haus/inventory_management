@@ -13,6 +13,7 @@ and the labels waiting for one of their printers to be loaded with them (for the
 someone can set the labels and the ribbon loaded in a Zebra (loaded, ribbon).
 """
 import base64
+import io
 import json
 import re
 
@@ -27,7 +28,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 from ipware import get_client_ip
 
-from . import drivers, services
+from . import drivers, render, services
 from .devices.run import DONE, FAILED, SENT, Result
 from .models import LabelStock, PrintAgent, Printer, PrintJob, Ribbon
 
@@ -134,7 +135,8 @@ def discovered(agent, uid, report):
 def poll(request, agent, data):
     """Heartbeat with the printers found and their status. Answers the agent's printers, a job for each that is not
     busy (each the oldest it can print now, rendered for it and claimed for the agent), the commands for the jobs
-    it holds and the labels waiting to be loaded. Agents before version 6 are refused: they must be updated."""
+    it holds and the labels waiting to be loaded; asked for ("recent": true, agents since 6.3), the last finished
+    jobs. Agents before version 6 are refused: they must be updated."""
     if not version_at_least(data.get("version"), 6):
         return JsonResponse({"error": "update the print agent (version 6 or later)"}, status=426)
     agent.last_seen = timezone.now()
@@ -159,7 +161,9 @@ def poll(request, agent, data):
     jobs = services.jobs_for_agent(agent, busy, found)
     return JsonResponse({"printers": services.agent_printers(agent), "jobs": [job_data(job) for job in jobs],
                          "commands": {str(pk): command for pk, command in commands.items()},
-                         "printer_commands": printer_commands, "waiting": services.material_waits(agent, found)})
+                         "printer_commands": printer_commands, "waiting": services.material_waits(agent, found),
+                         "offered": services.offered_jobs(agent, found),
+                         **({"recent": services.recent_jobs(agent)} if data.get("recent") is True else {})})
 
 
 def version_at_least(version, major):
@@ -178,6 +182,7 @@ def job_data(job):
         "payload": base64.b64encode(bytes(job.payload)).decode("ascii"),
         "pages": job.pages,
         "subject": job.subject_label,  # what it is for, for the agent's display (a location, item or label ID)
+        "material": (job.medium.code or job.medium.name) if job.medium_id else "",  # e.g. TZe-231
         "expected_tape_mm": services.expected_tape_mm(job),
         "expected_length": services.expected_length(job),
         "check_status": job.printer.reports_status,
@@ -194,7 +199,8 @@ def loaded(request, agent, data):
     if stock is None or printer.takes(stock):
         return JsonResponse({"error": "not labels of this printer"}, status=400)
     services.set_loaded(printer, stock)
-    return JsonResponse({"ok": True})
+    # whether the ribbon in it suits them: else the display asks for another one
+    return JsonResponse({"ok": True, "ribbon_problem": str(printer.ribbon_problem())})
 
 
 @agent_api
@@ -224,6 +230,98 @@ def own_label(request, agent, data):
     except services.PrintError as error:
         return JsonResponse({"error": str(error)}, status=400)
     return JsonResponse({"ok": True, "job": job.pk})
+
+
+@agent_api
+def cancel(request, agent, data, pk):
+    """A waiting job one of the agent's printers could print, cancelled on its display."""
+    job = PrintJob.objects.filter(pk=pk).first()
+    if job is None or not services.offered_to(agent, job):
+        return JsonResponse({"error": "not a waiting job for this agent"}, status=404)
+    services.control(job, PrintJob.Command.ABORT, by="display")
+    return JsonResponse({"ok": True})
+
+
+@agent_api
+def extend(request, agent, data, pk):
+    """A waiting job one of the agent's printers could print waits longer (its display's countdown tapped)."""
+    job = PrintJob.objects.filter(pk=pk).first()
+    if job is None or not services.offered_to(agent, job):
+        return JsonResponse({"error": "not a waiting job for this agent"}, status=404)
+    expires_at = services.extend(job)
+    return JsonResponse({"ok": True, "expires_in": int((expires_at - timezone.now()).total_seconds())})
+
+
+# Previews of a job's labels on the agent's display (800 × 480): at most so wide and high (a label higher than wide:
+# higher), at most so many
+PREVIEW_WIDTH, PREVIEW_HEIGHT, PREVIEW_HEIGHT_TALL, PREVIEW_LABELS = 640, 110, 200, 20
+
+
+def preview_png(images, medium):
+    """A label's pages side by side, in the colours of its labels, scaled for the display; PNG bytes."""
+    from PIL import Image
+
+    print_color, background = medium.colours()
+    image = render.stack([render.coloured(page, background, print_color) for page in images],
+                         drivers.mm_to_dots(3, medium.printer.dpi))
+    height = PREVIEW_HEIGHT_TALL if image.height > image.width else PREVIEW_HEIGHT
+    scale = min(height / image.height, PREVIEW_WIDTH / image.width, 3)
+    size = (max(1, round(image.width * scale)), max(1, round(image.height * scale)))
+    image = image.convert("RGB").resize(size, Image.NEAREST if scale >= 1 else Image.LANCZOS)
+    out = io.BytesIO()
+    image.save(out, format="PNG", optimize=True)
+    return out.getvalue()
+
+
+@agent_api
+def detail(request, agent, data, pk):
+    """A job of the agent's (one of its printers', or without a printer, for labels one of them takes) for its
+    display: the job, previews of its labels as they would print now (each with how many: its copies), and
+    whether it can be printed again."""
+    job = PrintJob.objects.select_related("printer", "medium").filter(pk=pk).first()
+    if job is None or not services.concerns(agent, job):
+        return JsonResponse({"error": "not a job of this agent"}, status=404)
+    labels, problem = [], ""
+    target = services.preview_target(agent, job)
+    if target is None:
+        problem = "Keine Vorschau: was gedruckt wurde, gibt es nicht mehr."
+    else:
+        layout, subjects, medium = target
+        try:
+            rendered = services.render(layout, subjects[:PREVIEW_LABELS], medium, preview=True)
+        except services.PrintError as error:
+            rendered, problem = [], str(error)
+        for subject, label in zip(subjects, rendered):
+            labels.append({"subject": str(subject), "count": job.copies,
+                           "image": base64.b64encode(preview_png(label.images, medium)).decode("ascii")})
+    return JsonResponse({"job": services.job_entry(job), "labels": labels, "problem": problem,
+                         "more": max(0, len(target[1]) - PREVIEW_LABELS) if target else 0})
+
+
+@agent_api
+def reprint(request, agent, data, pk):
+    """A job of the agent's printed again, asked for on its display (services.again): the new job's id."""
+    job = PrintJob.objects.select_related("printer", "medium").filter(pk=pk).first()
+    if job is None or not services.concerns(agent, job):
+        return JsonResponse({"error": "not a job of this agent"}, status=404)
+    try:
+        new = services.again(job)
+    except services.PrintError as error:
+        return JsonResponse({"error": str(error)}, status=400)
+    return JsonResponse({"ok": True, "job": new.pk})
+
+
+@agent_api
+def offsets(request, agent, data):
+    """A printer's calibration, set on its agent's display after a calibration label."""
+    printer = agent_printer(agent, data)
+    if printer is None:
+        return JsonResponse({"error": "not a printer of this agent"}, status=404)
+    try:
+        services.set_offsets(printer, data.get("offset_x"), data.get("offset_y"))
+    except services.PrintError as error:
+        return JsonResponse({"error": str(error)}, status=400)
+    return JsonResponse({"ok": True})
 
 
 def agent_printer(agent, data):

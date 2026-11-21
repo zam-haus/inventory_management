@@ -162,7 +162,7 @@ class BrotherStream:
             if command == ord("z"):
                 if len(data) < 13:
                     return 0
-                self.width_mm = data[5]
+                self.width_mm = data[5] if data[3] & 0x04 else None  # checked only if marked valid (PI_WIDTH)
                 return 13
             if command == ord("d"):
                 return 5 if len(data) >= 5 else 0
